@@ -1,10 +1,10 @@
 BasedOnStyle: LLVM
-IndentWidth: 4
-TabWidth: 4
+IndentWidth: 2
+TabWidth: 2
 UseTab: Never
 
 # Language standard
-Standard: Cpp20
+Standard: c++20
 
 # Line length
 ColumnLimit: 100

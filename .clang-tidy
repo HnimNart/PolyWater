@@ -1,90 +1,20 @@
 # .clang-tidy (C++20)
-
-# Keep it explicit: only enable what we want
-Checks: >
-  -*,
-  clang-analyzer-*,
-  bugprone-*,
-  performance-*,
-  portability-*,
-  readability-*,
-  modernize-*,
-  cppcoreguidelines-*,
-  hicpp-*,
-  # selectively disable rules that are too noisy for engine code
-  -readability-magic-numbers,
-  -readability-identifier-naming,
-  -readability-implicit-bool-conversion,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-owning-memory,             # many engines manage memory manually
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-avoid-non-const-global-variables, # often used for registries/singletons in engines
-  -hicpp-braces-around-statements,
-  -hicpp-no-array-decay
-
-WarningsAsErrors: ''        # set to '*' to make all warnings errors
-FormatStyle: none           # rely on .clang-format
-
-# Only lint our code (speeds up and avoids vendor noise)
-HeaderFilterRegex: '^(engine|app)/'
-# Paths that should be completely ignored by the linter
-ExcludePaths:
-  - '^third_party/.*'
-  - '^external/.*'
-  - '^build/.*'
-  - '^out/.*'
-
-# Language standard baseline
-AnalyzeTemporaryDtors: true
-CompileCommandsDir: build
-
-CheckOptions:
-  # ----- modernize -----
-  - key: modernize-use-override.IgnoreDestructors
-    value: '1'
-  - key: modernize-use-override.FinalSpelling
-    value: 'final'
-  - key: modernize-use-nullptr.NullMacros
-    value: 'NULL,nullptr_t'
-  - key: modernize-loop-convert.MaxCopySize
-    value: '16'
-  - key: modernize-use-emplace.ContainersWithPushBack
-    value: 'std::vector;std::deque;std::list'
-  - key: modernize-use-nodiscard.ReplacementString
-    value: '[[nodiscard]]'
-
-  # ----- readability -----
-  - key: readability-braces-around-statements.ShortStatementLines
-    value: '1'
-  - key: readability-else-after-return.WarnOnUnfixable
-    value: '0'
-  - key: readability-implicit-bool-conversion.AllowIntegerConditions
-    value: '1'
-  - key: readability-function-size.LineThreshold
-    value: '500'     # engines often have large translation units
-  - key: readability-identifier-naming.IgnoreMainLikeFunctions
-    value: '1'
-
-  # ----- bugprone -----
-  - key: bugprone-virtual-near-miss.IgnoreDestructors
-    value: '1'
-  - key: bugprone-exception-escape.FunctionsThatShouldNotThrow
-    value: 'operator==;operator<=>'
-  - key: bugprone-sizeof-expression.WarnOnSizeOfThis
-    value: '1'
-
-  # ----- cppcoreguidelines / hicpp -----
-  - key: cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
-    value: '1'
-  - key: hicpp-use-auto.MinTypeNameLength
-    value: '16'
-
-  # ----- performance -----
-  - key: performance-unnecessary-value-param.AllowedTypes
-    value: 'std::string'
-  - key: performance-for-range-copy.WarnOnAllAutoCopies
-    value: '1'
-
-  # ----- portability -----
-  - key: portability-simd-intrinsics.AllowedFunctions
-    value: '_mm_*;_mm256_*;_mm512_*'
+---
+Checks: "*,
+        -abseil-*,
+        -altera-*,
+        -android-*,
+        -fuchsia-*,
+        -google-*,
+        -llvm*,
+        -modernize-use-trailing-return-type,
+        -zircon-*,
+        -readability-else-after-return,
+        -readability-static-accessed-through-instance,
+        -readability-avoid-const-params-in-decls,
+        -cppcoreguidelines-non-private-member-variables-in-classes,
+        -misc-non-private-member-variables-in-classes,
+"
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     none
