@@ -22,11 +22,8 @@
 #include "nvh/fileoperations.hpp"
 #include "nvvk/descriptorsets_vk.hpp"
 
-#include "nvh/alignment.hpp"
 #include "nvvk/shaders_vk.hpp"
 #include "nvvk/buffers_vk.hpp"
-
-#include <engine/tools/assetc/importers/obj_loader.h>
 
 extern std::vector<std::string> defaultSearchPaths;
 
