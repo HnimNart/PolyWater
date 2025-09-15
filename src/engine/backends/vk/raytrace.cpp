@@ -24,8 +24,9 @@
 
 #include "nvh/alignment.hpp"
 #include "nvvk/shaders_vk.hpp"
-#include "obj_loader.h"
 #include "nvvk/buffers_vk.hpp"
+
+#include <engine/tools/assetc/importers/obj_loader.h>
 
 extern std::vector<std::string> defaultSearchPaths;
 

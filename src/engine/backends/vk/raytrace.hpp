@@ -22,7 +22,7 @@
 #include "nvvk/descriptorsets_vk.hpp"
 #include "nvvk/raytraceKHR_vk.hpp"
 #include "nvvk/sbtwrapper_vk.hpp"
-#include "obj.hpp"
+#include <tools/assetc/importers/obj.hpp>
 
 #include "shaders/host_device.h"
 

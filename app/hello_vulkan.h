@@ -25,13 +25,10 @@
 #include "shaders/host_device.h"
 
 // #VKRay
-#include "nvvk/raytraceKHR_vk.hpp"
-#include "offscreen.hpp"
+#include <backends/vk/offscreen.hpp>
+#include <backends/vk/raytrace.hpp>
+#include <tools/assetc/importers/obj.hpp>
 
-#include "obj.hpp"
-#include "raytrace.hpp"
-
-#include <memory>
 
 // Choosing the allocator to use
 #define ALLOC_DMA

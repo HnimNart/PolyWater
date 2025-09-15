@@ -25,8 +25,6 @@ else()
   message(FATAL_ERROR "could not find base directory, please set LIB_DIRECTORY to folder containing nvpro_core")
 endif()
 
-set(TUTO_KHR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-
 if(MSVC)
     add_definitions(/wd26812)  # 'enum class' over 'enum'
     add_definitions(/wd26451)  # Arithmetic overflow, casting 4 byte value to 8 byte value
@@ -41,9 +39,14 @@ _add_nvpro_core_lib()
 message(STATUS "COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets to  ${OUTPUT_PATH}")
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${OUTPUT_PATH})
 
+
 #--------------------------------------------------------------------------------------------------
-# Sub examples
-add_subdirectory(src)
+# Compile engine
+add_subdirectory(src)  # path to your repo root
+
+#--------------------------------------------------------------------------------------------------
+# Compile applications
+add_subdirectory(app)
 
 #--------------------------------------------------------------------------------------------------
 # Install - copying the media directory

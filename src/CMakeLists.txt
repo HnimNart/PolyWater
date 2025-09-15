@@ -1,79 +1,86 @@
-#*****************************************************************************
-# Copyright 2020 NVIDIA Corporation. All rights reserved.
-#*****************************************************************************
+cmake_minimum_required(VERSION 3.20)
 
-cmake_minimum_required(VERSION 3.9.6 FATAL_ERROR)
+# TODO seperate this into smaller
 
-#--------------------------------------------------------------------------------------------------
-# Project setting
-set(PROJNAME ACoolName)
-project(${PROJNAME} LANGUAGES C CXX)
-message(STATUS "-------------------------------")
-message(STATUS "Processing Project ${PROJNAME}:")
+# ---- Project ----
+project(engine LANGUAGES CXX)
 
+# Build shared/static based on user preference
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-#--------------------------------------------------------------------------------------------------
-# C++ target and defines
-set(CMAKE_CXX_STANDARD 20)
-add_executable(${PROJNAME})
-_add_project_definitions(${PROJNAME})
+# ---- Target name ----
+set(TARGET engine)
 
+# ---- Sources ----
+file(GLOB_RECURSE SRC_VK
+     CONFIGURE_DEPENDS
+     engine/backends/vk/*.cpp
+)
 
-#--------------------------------------------------------------------------------------------------
-# Source files for this project
-#
-file(GLOB SOURCE_FILES *.cpp *.hpp *.inl *.h *.c)
-file(GLOB EXTRA_COMMON ${TUTO_KHR_DIR}/common/*.*)
-list(APPEND COMMON_SOURCE_FILES ${EXTRA_COMMON})
-include_directories(${TUTO_KHR_DIR}/common)
+file(GLOB SRC_TOOLS
+     CONFIGURE_DEPENDS
+     engine/tools/assetc/importers/*.cpp
+)
 
+file(GLOB_RECURSE HEADERS
+     CONFIGURE_DEPENDS
+     engine/**/*.hpp
+     engine/**/*.h
+)
 
-#--------------------------------------------------------------------------------------------------
-# GLSL to SPIR-V custom build
+file(GLOB SHADERS
+     CONFIGURE_DEPENDS
+     engine/shaders/*.*    # collects .vert, .frag, .glsl, .rgen, etc.
+)
+
+# ---- Library ----
+add_library(${TARGET})
+
+target_sources(${TARGET}
+    PRIVATE
+        ${SRC_VK}
+        ${SRC_TOOLS}
+        ${HEADERS}
+        ${SHADERS}
+)
+
+target_compile_features(${TARGET} PUBLIC cxx_std_20)
+
+if(MSVC)
+    target_compile_options(${TARGET} PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+target_include_directories(${TARGET}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/backends
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/tools
+)
+
+find_package(Vulkan REQUIRED)
+target_link_libraries(${TARGET} PUBLIC Vulkan::Vulkan ${PLATFORM_LIBRARIES} nvpro_core)
+
+target_compile_definitions(${TARGET}
+    PUBLIC
+        ENGINE_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/engine/shaders"
+)
+
+# ---- Source groups (IDE organization) ----
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/engine/backends/vk PREFIX "backends/vk" FILES ${SRC_VK})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/engine/tools/assetc/importers PREFIX "tools/assetc/importers" FILES ${SRC_TOOLS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/engine PREFIX "headers" FILES ${HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/engine/shaders PREFIX "shaders" FILES ${SHADERS})
+
+set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# ----- COMPILE GLSL to SPIR-V -----
+set(SPV_OUT_DIR ${CMAKE_BINARY_DIR}/spv)
+file(MAKE_DIRECTORY ${SPV_OUT_DIR})
 compile_glsl_directory(
-	SRC "${CMAKE_CURRENT_SOURCE_DIR}/shaders" 
-	DST "${CMAKE_CURRENT_SOURCE_DIR}/spv" 
+	SRC "${CMAKE_CURRENT_SOURCE_DIR}/engine/shaders"
+	DST "${SPV_OUT_DIR}"
 	VULKAN_TARGET "vulkan1.2"
 	DEPENDENCY ${VULKAN_BUILD_DEPENDENCIES}
 	)
-
-
-#--------------------------------------------------------------------------------------------------
-# Sources
-target_sources(${PROJNAME} PUBLIC ${SOURCE_FILES} ${HEADER_FILES})
-target_sources(${PROJNAME} PUBLIC ${COMMON_SOURCE_FILES})
-target_sources(${PROJNAME} PUBLIC ${PACKAGE_SOURCE_FILES})
-target_sources(${PROJNAME} PUBLIC ${GLSL_SOURCES} ${GLSL_HEADERS})
-
-
-#--------------------------------------------------------------------------------------------------
-# Sub-folders in Visual Studio
-#
-source_group("Common"       FILES ${COMMON_SOURCE_FILES} ${PACKAGE_SOURCE_FILES})
-source_group("Sources"      FILES ${SOURCE_FILES})
-source_group("Headers"      FILES ${HEADER_FILES})
-source_group("Shader Sources"  FILES ${GLSL_SOURCES})
-source_group("Shader Headers"  FILES ${GLSL_HEADERS})
-
-
-#--------------------------------------------------------------------------------------------------
-# Linkage
-#
-target_link_libraries(${PROJNAME} ${PLATFORM_LIBRARIES} nvpro_core)
-
-foreach(DEBUGLIB ${LIBRARIES_DEBUG})
-  target_link_libraries(${PROJNAME} debug ${DEBUGLIB})
-endforeach(DEBUGLIB)
-
-foreach(RELEASELIB ${LIBRARIES_OPTIMIZED})
-  target_link_libraries(${PROJNAME} optimized ${RELEASELIB})
-endforeach(RELEASELIB)
-
-#--------------------------------------------------------------------------------------------------
-# copies binaries that need to be put next to the exe files (ZLib, etc.)
-#
-_finalize_target( ${PROJNAME} )
-
-
-install(FILES ${SPV_OUTPUT} CONFIGURATIONS Release DESTINATION "bin_${ARCH}/${PROJNAME}/spv")
-install(FILES ${SPV_OUTPUT} CONFIGURATIONS Debug DESTINATION "bin_${ARCH}_debug/${PROJNAME}/spv")
