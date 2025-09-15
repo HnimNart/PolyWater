@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "nvvkhl/appbase_vk.hpp"
 #include "nvvk/debug_util_vk.hpp"
 #include "nvvk/resourceallocator_vk.hpp"
+#include "nvvkhl/appbase_vk.hpp"
 #include "shaders/host_device.h"
 
 // #VKRay
@@ -29,23 +29,21 @@
 #include <backends/vk/raytrace.hpp>
 #include <tools/assetc/importers/obj.hpp>
 
-
 // Choosing the allocator to use
 #define ALLOC_DMA
-//#define ALLOC_DEDICATED
-//#define ALLOC_VMA
+// #define ALLOC_DEDICATED
+// #define ALLOC_VMA
 #include <nvvk/resourceallocator_vk.hpp>
 
 #if defined(ALLOC_DMA)
-#include <nvvk/memallocator_dma_vk.hpp>
+#  include <nvvk/memallocator_dma_vk.hpp>
 using Allocator = nvvk::ResourceAllocatorDma;
 #elif defined(ALLOC_VMA)
-#include <nvvk/memallocator_vma_vk.hpp>
+#  include <nvvk/memallocator_vma_vk.hpp>
 using Allocator = nvvk::ResourceAllocatorVma;
 #else
 using Allocator = nvvk::ResourceAllocatorDedicated;
 #endif
-
 
 //--------------------------------------------------------------------------------------------------
 // Simple rasterizer of OBJ objects
@@ -57,7 +55,8 @@ using Allocator = nvvk::ResourceAllocatorDedicated;
 class HelloVulkan : public nvvkhl::AppBaseVk
 {
 public:
-  void setup(const VkInstance& instance, const VkDevice& device, const VkPhysicalDevice& physicalDevice, uint32_t queueFamily) override;
+  void setup(const VkInstance& instance, const VkDevice& device,
+             const VkPhysicalDevice& physicalDevice, uint32_t queueFamily) override;
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void loadModel(const std::string& filename, glm::mat4 transform = glm::mat4(1));
@@ -73,34 +72,32 @@ public:
   Offscreen& offscreen() { return m_offscreen; }
   Raytracer& raytracer() { return m_raytrace; }
 
-
   // Information pushed at each draw call
   PushConstantRaster m_pcRaster{
       {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},  // Identity matrix
       {10.f, 15.f, 8.f},                                 // light position
       0,                                                 // instance Id
       {-1.f, -1.f, -.4f},                                // lightDirection;
-      0.939692621f,                                      // {cos(glm::radians(20.0f))},  // lightSpotCutoff;
-      0.866025404f,                                      // {cos(glm::radians(30.0f))},  // lightSpotOuterCutoff;
-      100.f,                                             // light intensity
-      0                                                  // light type
+      0.939692621f,  // {cos(glm::radians(20.0f))},  // lightSpotCutoff;
+      0.866025404f,  // {cos(glm::radians(30.0f))},  // lightSpotOuterCutoff;
+      100.f,         // light intensity
+      0              // light type
   };
 
   // Array of objects and instances in the scene
-  std::vector<ObjModel>    m_objModel;   // Model on host
-  std::vector<ObjDesc>     m_objDesc;    // Model description for device access
+  std::vector<ObjModel> m_objModel;      // Model on host
+  std::vector<ObjDesc> m_objDesc;        // Model description for device access
   std::vector<ObjInstance> m_instances;  // Scene model instances
 
-
   // Graphic pipeline
-  VkPipelineLayout            m_pipelineLayout;
-  VkPipeline                  m_graphicsPipeline;
+  VkPipelineLayout m_pipelineLayout;
+  VkPipeline m_graphicsPipeline;
   nvvk::DescriptorSetBindings m_descSetLayoutBind;
-  VkDescriptorPool            m_descPool;
-  VkDescriptorSetLayout       m_descSetLayout;
-  VkDescriptorSet             m_descSet;
+  VkDescriptorPool m_descPool;
+  VkDescriptorSetLayout m_descSetLayout;
+  VkDescriptorSet m_descSet;
 
-  int  m_maxFrames{500};
+  int m_maxFrames{500};
   void resetFrame();
   void updateFrame();
 
@@ -109,14 +106,12 @@ public:
 
   std::vector<nvvk::Texture> m_textures;  // vector of all textures of the scene
 
-
-  Allocator       m_alloc;  // Allocator for buffer, images, acceleration structures
+  Allocator m_alloc;        // Allocator for buffer, images, acceleration structures
   nvvk::DebugUtil m_debug;  // Utility to name objects
 
   // #Post
   Offscreen m_offscreen;
-  void      initOffscreen();
-
+  void initOffscreen();
 
   // #VKRay
   Raytracer m_raytrace;

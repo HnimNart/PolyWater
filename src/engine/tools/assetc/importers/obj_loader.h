@@ -18,27 +18,29 @@
  */
 
 #pragma once
-#include <glm/glm.hpp>
-#include "tiny_obj_loader.h"
-#include <array>
-#include <iostream>
 #include <stdint.h>
+
+#include <array>
+#include <glm/glm.hpp>
+#include <iostream>
 #include <unordered_map>
 #include <vector>
+
+#include "tiny_obj_loader.h"
 
 // Structure holding the material
 struct MaterialObj
 {
-  glm::vec3 ambient       = glm::vec3(0.1f, 0.1f, 0.1f);
-  glm::vec3 diffuse       = glm::vec3(0.7f, 0.7f, 0.7f);
-  glm::vec3 specular      = glm::vec3(1.0f, 1.0f, 1.0f);
+  glm::vec3 ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+  glm::vec3 diffuse = glm::vec3(0.7f, 0.7f, 0.7f);
+  glm::vec3 specular = glm::vec3(1.0f, 1.0f, 1.0f);
   glm::vec3 transmittance = glm::vec3(0.0f, 0.0f, 0.0f);
-  glm::vec3 emission      = glm::vec3(0.0f, 0.0f, 0.10);
-  float     shininess     = 0.f;
-  float     ior           = 1.0f;  // index of refraction
-  float     dissolve      = 1.f;   // 1 == opaque; 0 == fully transparent
-                                   // illumination model (see http://www.fileformat.info/format/material/)
-  int illum     = 0;
+  glm::vec3 emission = glm::vec3(0.0f, 0.0f, 0.10);
+  float shininess = 0.f;
+  float ior = 1.0f;      // index of refraction
+  float dissolve = 1.f;  // 1 == opaque; 0 == fully transparent
+                         // illumination model (see http://www.fileformat.info/format/material/)
+  int illum = 0;
   int textureID = -1;
 };
 // OBJ representation of a vertex
@@ -50,7 +52,6 @@ struct VertexObj
   glm::vec3 color;
   glm::vec2 texCoord;
 };
-
 
 struct shapeObj
 {
@@ -64,9 +65,9 @@ class ObjLoader
 public:
   void loadModel(const std::string& filename);
 
-  std::vector<VertexObj>   m_vertices;
-  std::vector<uint32_t>    m_indices;
+  std::vector<VertexObj> m_vertices;
+  std::vector<uint32_t> m_indices;
   std::vector<MaterialObj> m_materials;
   std::vector<std::string> m_textures;
-  std::vector<int32_t>     m_matIndx;
+  std::vector<int32_t> m_matIndx;
 };

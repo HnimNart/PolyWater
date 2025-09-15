@@ -1,20 +1,17 @@
-# .clang-tidy (C++20)
----
-Checks: "*,
-        -abseil-*,
-        -altera-*,
-        -android-*,
-        -fuchsia-*,
-        -google-*,
-        -llvm*,
-        -modernize-use-trailing-return-type,
-        -zircon-*,
-        -readability-else-after-return,
-        -readability-static-accessed-through-instance,
-        -readability-avoid-const-params-in-decls,
-        -cppcoreguidelines-non-private-member-variables-in-classes,
-        -misc-non-private-member-variables-in-classes,
-"
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-*
+
 WarningsAsErrors: ''
-HeaderFilterRegex: ''
-FormatStyle:     none
+
+HeaderFilterRegex: '.*'
+FormatStyle: none
+
+CheckOptions:
+  - key: modernize-use-override.IgnoreDestructors
+    value: '1'
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL'

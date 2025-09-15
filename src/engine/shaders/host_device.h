@@ -17,12 +17,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #ifndef COMMON_HOST_DEVICE
 #define COMMON_HOST_DEVICE
 
 #ifdef __cplusplus
-#include <glm/glm.hpp>
+
+#  include <glm/glm.hpp>
 // GLSL Type
 using vec2 = glm::vec2;
 using vec3 = glm::vec3;
@@ -37,7 +37,7 @@ using uint = unsigned int;
  #define END_BINDING() }
 #else
  #define START_BINDING(a)  const uint
- #define END_BINDING() 
+ #define END_BINDING()
 #endif
 
 START_BINDING(SceneBindings)
@@ -56,7 +56,7 @@ END_BINDING();
 // Information of a obj model when referenced in a shader
 struct ObjDesc
 {
-  int      txtOffset;             // Texture index offset in the array of textures
+  int txtOffset;                  // Texture index offset in the array of textures
   uint64_t vertexAddress;         // Address of the Vertex buffer
   uint64_t indexAddress;          // Address of the index buffer
   uint64_t materialAddress;       // Address of the material buffer
@@ -74,30 +74,29 @@ struct GlobalUniforms
 // Push constant structure for the raster
 struct PushConstantRaster
 {
-  mat4  modelMatrix;  // matrix of the instance
-  vec3  lightPosition;
-  uint  objIndex;
-  vec3  lightDirection;
+  mat4 modelMatrix;  // matrix of the instance
+  vec3 lightPosition;
+  uint objIndex;
+  vec3 lightDirection;
   float lightSpotCutoff;
   float lightSpotOuterCutoff;
   float lightIntensity;
-  int   lightType;
-  int   frame;
+  int lightType;
+  int frame;
 };
-
 
 // Push constant structure for the ray tracer
 struct PushConstantRay
 {
-  vec4  clearColor;
-  vec3  lightPosition;
-  uint  objIndex;
-  vec3  lightDirection;
+  vec4 clearColor;
+  vec3 lightPosition;
+  uint objIndex;
+  vec3 lightDirection;
   float lightSpotCutoff;
   float lightSpotOuterCutoff;
   float lightIntensity;
-  int   lightType;
-  int   frame;
+  int lightType;
+  int frame;
 };
 
 struct Vertex  // See ObjLoader, copy of VertexObj, could be compressed for device
@@ -110,17 +109,16 @@ struct Vertex  // See ObjLoader, copy of VertexObj, could be compressed for devi
 
 struct WaveFrontMaterial  // See ObjLoader, copy of MaterialObj, could be compressed for device
 {
-  vec3  ambient;
-  vec3  diffuse;
-  vec3  specular;
-  vec3  transmittance;
-  vec3  emission;
+  vec3 ambient;
+  vec3 diffuse;
+  vec3 specular;
+  vec3 transmittance;
+  vec3 emission;
   float shininess;
   float ior;       // index of refraction
   float dissolve;  // 1 == opaque; 0 == fully transparent
-  int   illum;     // illumination model (see http://www.fileformat.info/format/material/)
-  int   textureId;
+  int illum;       // illumination model (see http://www.fileformat.info/format/material/)
+  int textureId;
 };
-
 
 #endif

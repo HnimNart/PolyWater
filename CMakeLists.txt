@@ -1,5 +1,31 @@
 cmake_minimum_required(VERSION 3.9.6 FATAL_ERROR)
-project(vk_raytracing_tutorial)
+
+# Prefer clang
+if(NOT CMAKE_CXX_COMPILER)
+  find_program(CLANGXX clang++)
+  if(CLANGXX)
+    message(STATUS "Using clang++: ${CLANGXX}")
+    set(CMAKE_CXX_COMPILER ${CLANGXX} CACHE STRING "" FORCE)
+  endif()
+endif()
+
+if(NOT CMAKE_C_COMPILER)
+  find_program(CLANGC clang)
+  if(CLANGC)
+    message(STATUS "Using clang: ${CLANGC}")
+    set(CMAKE_C_COMPILER ${CLANGC} CACHE STRING "" FORCE)
+  endif()
+endif()
+
+# Force compiler diagnostics to be colored
+set(CMAKE_COLOR_DIAGNOSTICS ON)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fdiagnostics-color=always)
+elseif (MSVC)
+    add_compile_options(/diagnostics:column /FC)
+endif()
+
+project(vulkan_engine)
 
 #--------------------------------------------------------------------------------------------------
 # look for nvpro_core 1) as a sub-folder 2) at some other locations
