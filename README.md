@@ -8,12 +8,15 @@ It can be used for both **rasterization** and **ray tracing**, with a strong foc
 ## Project Structure
 
 ### Applications
+```
 app/
 ├─ sandbox/       # Example app using the engine
 ├─ editor/        # Optional editor/front-end
 └─ tests/         # Rendering and regression tests
+```
 
 ### Engine
+```
 engine/
 ├─ core/          # Core utilities (no platform/API deps)
 │   ├─ math/          # linear algebra, geometry helpers
@@ -85,8 +88,9 @@ engine/
     ├─ sky/
     ├─ pathtracer/
     └─ shadows/
-
+```
 ### Offline Tools
+```
 tools/
 ├─ assetc/        # Asset compiler
 │   ├─ importers/     # glTF, OBJ, FBX, USD
@@ -96,8 +100,10 @@ tools/
 │
 ├─ shadersync/    # Offline shader build & reflection
 └─ validation/    # Compare GPU results with reference
+```
 
 ### Third Party Deps
+```
 third_party/
 ├─ vma/           # Vulkan Memory Allocator
 ├─ spirv-tools/
@@ -105,6 +111,9 @@ third_party/
 ├─ meshoptimizer/
 ├─ basisu/
 └─ stb/
+```
 
 ### Documentation
+```
 docs/             # Design docs, diagrams, samples
+```
