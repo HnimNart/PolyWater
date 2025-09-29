@@ -136,6 +136,8 @@ int main(int argc, char** argv)
 
   // Search path for shaders and other assets
   defaultSearchPaths = {
+      // Hack to point to build dir -- Should really be handled by cmake
+      NVPSystem::exePath() + "../..",
       NVPSystem::exePath() + PROJECT_RELDIRECTORY,
       NVPSystem::exePath() + PROJECT_RELDIRECTORY "..",
       std::string(PROJECT_NAME),

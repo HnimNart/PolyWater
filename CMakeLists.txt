@@ -82,3 +82,21 @@ install(DIRECTORY "assets"
 install(DIRECTORY "assets"
         CONFIGURATIONS Debug
         DESTINATION "bin_${ARCH}_debug")
+
+
+#--------------------------------------------------------------------------------------------------
+# Custom targets
+file(GLOB_RECURSE ALL_SRC
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/*.hpp
+)
+add_custom_target(format
+    COMMAND echo ${ALL_SRC}
+    COMMAND clang-format -i ${ALL_SRC}
+    COMMENT "Formatting all source files"
+)
+
+add_custom_target(tidy
+    COMMAND run-clang-tidy -p ${CMAKE_BINARY_DIR}
+    COMMENT "Running clang-tidy analysis"
+)
