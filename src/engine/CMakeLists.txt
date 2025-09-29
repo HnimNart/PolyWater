@@ -45,7 +45,6 @@ add_subdirectory(shaders)
 # ----- COMPILE GLSL to SPIR-V -----
 set(SPV_OUT_DIR ${CMAKE_BINARY_DIR}/spv)
 file(MAKE_DIRECTORY ${SPV_OUT_DIR})
-message(STATUS "___ ${CMAKE_CURRENT_SOURCE_DIR} - ${SPV_OUT_DIR}")
 compile_glsl_directory(
 	SRC "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
 	DST "${SPV_OUT_DIR}"

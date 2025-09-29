@@ -107,12 +107,12 @@ list:
 # run clang-format (requires a custom target in your CMake)
 fmt:
 	$(call ensure_configured)
-	$(MAKE) build cfg=$(cfg) B=$(B) t=clang-format
+	$(MAKE) build cfg=$(cfg) B=$(B) t=format
 
 # run clang-tidy (requires a custom target in your CMake)
 tidy:
 	$(call ensure_configured)
-	$(MAKE) build cfg=$(cfg) B=$(B) t=clang-tidy
+	$(MAKE) build cfg=$(cfg) B=$(B) t=tidy
 
 # Convenience shortcuts
 HelloWorld_app:  ; $(MAKE) run cfg=$(cfg) B=$(B) t=HelloWorld_app

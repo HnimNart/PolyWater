@@ -98,5 +98,5 @@ add_custom_target(format
 
 add_custom_target(tidy
     COMMAND run-clang-tidy -p ${CMAKE_BINARY_DIR}
-    COMMENT "Running clang-tidy analysis"
+    COMMENT "Running clang-tidy analysis ${CMAKE_BINARY_DIR}"
 )
