@@ -3,20 +3,52 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 24 },
   "configurePresets": [
     {
+      "name": "base",
+      "hidden": false,
+      "generator": "Ninja Multi-Config",
+      "description": "Base preset with common clang settings",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      }
+    },
+    {
       "name": "release",
-      "generator": "Ninja",
+      "inherits": "base",
+      "description": "Release build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra"
       }
     },
     {
       "name": "debug",
-      "generator": "Ninja",
+      "inherits": "base",
+      "description": "Debug build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_C_FLAGS_DEBUG": "-g -O0 -Wall -Wextra",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -Wextra"
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "description": "Build the Release configure preset",
+      "configuration": "Release",
+      "jobs": 0
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "description": "Build the Debug configure preset",
+      "configuration": "Debug",
+      "jobs": 0
     }
   ]
 }

@@ -1,10 +1,30 @@
-cmake_minimum_required(VERSION 3.20)
+set(LIB_NAME common)
 
-# Root project (keeps name generic)
-project(engine LANGUAGES CXX)
+file(GLOB LIB_SOURCES *.cpp *.hpp)
+file(GLOB SHADERS_SOURCES shaders/*.*)
 
-# Build shared/static based on user preference
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+# Adding the library here does not actually create a build target,
+add_library(${LIB_NAME})
+# Add the sources to the library target
+target_sources(${LIB_NAME} PRIVATE ${LIB_SOURCES} ${SHADERS_SOURCES})
 
-# Delegate to the engine folder
-add_subdirectory(engine)
+# Add the vk_mini_samples directory to the include path, so that these files
+# can be included using a "src/" prefix.
+target_include_directories(${LIB_NAME} INTERFACE ${PROJECT_SOURCE_DIR})
+
+# Add the current directory to include path for the library
+target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Add dependencies
+target_link_libraries(${LIB_NAME} PUBLIC
+  glm
+  volk # The Vulkan loader
+  nvutils
+  nvvk
+)
+
+# Make headers show up in IDE
+source_group("Shaders" FILES ${SHADERS_SOURCES})
+
+# Since this is actually header-only, we don't need to build anything
+set_target_properties(${LIB_NAME} PROPERTIES LINKER_LANGUAGE CXX)
