@@ -135,14 +135,14 @@ git submodule update
 ```
 
 ## Post Cloning
-
+```
 # Download Vulkan SDK and unpack inside 'ext' directory
 # Vulkan SDK homepage: https://vulkan.lunarg.com/sdk/home
 # Example (replace VERSION with desired version):
 # wget -O vulkansdk.tar.gz https://sdk.lunarg.com/sdk/download/VERSION/linux/vulkan-sdk-VERSION.tar.gz
 # mkdir -p ext
 # tar -xzf vulkansdk.tar.gz -C ext
-```
+
 # Basic X11 development libraries
 $ sudo apt install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxxf86vm-dev
 
