@@ -17,37 +17,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
 
 #include <filesystem>
-
 #include <glm/glm.hpp>
 
-#include "io_gltf.h"  // Contains definitions for GLTF GltfMesh, BufferView, TriangleMesh and more
-
+#include "core/io_gltf.h"  // Contains definitions for GLTF GltfMesh, BufferView, TriangleMesh and more
 #include "nvutils/bounding_box.hpp"
+#include "nvutils/primitives.hpp"
 #include "nvvk/resources.hpp"
 #include "nvvk/staging.hpp"
-#include "nvutils/primitives.hpp"
 #include "tinygltf/tiny_gltf.h"
 
-namespace nvsamples {
+namespace nvsamples
+{
 
 // Simple scene resource that holds meshes, instances, and materials
 struct GltfSceneResource
 {
-  std::vector<shaderio::GltfMesh>              meshes;     // All meshes in the scene
-  std::vector<shaderio::GltfInstance>          instances;  // All instances in the scene
+  std::vector<shaderio::GltfMesh> meshes;                  // All meshes in the scene
+  std::vector<shaderio::GltfInstance> instances;           // All instances in the scene
   std::vector<shaderio::GltfMetallicRoughness> materials;  // All materials in the scene
-  shaderio::GltfSceneInfo sceneInfo;  // Scene information (camera matrices, meshes, instances, materials, etc.)
+  shaderio::GltfSceneInfo
+      sceneInfo;  // Scene information (camera matrices, meshes, instances, materials, etc.)
 
   // GPU buffers for the scene data
-  std::vector<nvvk::Buffer> bGltfDatas;  // Buffers containing the GLTF binary data for each loaded scene
-  nvvk::Buffer              bMeshes;     // Buffer containing all GltfMesh data
-  nvvk::Buffer              bInstances;  // Buffer containing all GltfInstance data
-  nvvk::Buffer              bMaterials;  // Buffer containing all GltfMetallicRoughness data
-  nvvk::Buffer              bSceneInfo;  // Buffer containing GltfSceneInfo
+  std::vector<nvvk::Buffer>
+      bGltfDatas;           // Buffers containing the GLTF binary data for each loaded scene
+  nvvk::Buffer bMeshes;     // Buffer containing all GltfMesh data
+  nvvk::Buffer bInstances;  // Buffer containing all GltfInstance data
+  nvvk::Buffer bMaterials;  // Buffer containing all GltfMetallicRoughness data
+  nvvk::Buffer bSceneInfo;  // Buffer containing GltfSceneInfo
 
   // Mapping from mesh index to buffer index in bGltfDatas
   std::vector<uint32_t> meshToBufferIndex;  // meshToBufferIndex[meshIndex] = bufferIndex
@@ -57,16 +57,16 @@ struct GltfSceneResource
 tinygltf::Model loadGltfResources(const std::filesystem::path& filename);
 
 // This is a utility function to import the GLTF data into the scene resource.
-void importGltfData(GltfSceneResource&     sceneResource,
-                    const tinygltf::Model& model,
-                    nvvk::StagingUploader& stagingUploader,
-                    bool                   importInstance = false);
+void importGltfData(GltfSceneResource& sceneResource, const tinygltf::Model& model,
+                    nvvk::StagingUploader& stagingUploader, bool importInstance = false);
 
 // This is a utility function to create the scene info buffer.
-void createGltfSceneInfoBuffer(GltfSceneResource& sceneResource, nvvk::StagingUploader& stagingUploader);
+void createGltfSceneInfoBuffer(GltfSceneResource& sceneResource,
+                               nvvk::StagingUploader& stagingUploader);
 
 // This is a utility function to convert a primitive mesh to a GltfMeshResource.
-void primitiveMeshToResource(GltfSceneResource& sceneResource, nvvk::StagingUploader& stagingUploader, const nvutils::PrimitiveMesh& primMesh);
-
+void primitiveMeshToResource(GltfSceneResource& sceneResource,
+                             nvvk::StagingUploader& stagingUploader,
+                             const nvutils::PrimitiveMesh& primMesh);
 
 }  // namespace nvsamples

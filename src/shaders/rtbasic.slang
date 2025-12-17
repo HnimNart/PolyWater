@@ -17,10 +17,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "include/pbr.h.slang"
 #include "nvshaders/constants.h.slang"
 #include "nvshaders/sky_functions.h.slang"
 #include "shaderio.h"
-#include "src/shaders/pbr.h.slang"
 
 #define MISS_DEPTH 1000
 

@@ -20,7 +20,7 @@
 #include <nvshaders/slang_types.h>
 
 #include "shaderio.h"
-#include "src/shaders/pbr.h.slang"
+#include "include/pbr.h.slang"
 
 // clang-format off
 [[vk::push_constant]]                       ConstantBuffer<TutoPushConstant> pushConst;

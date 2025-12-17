@@ -128,7 +128,7 @@ docs/             # Design docs, diagrams, samples
 $ git clone --recursive git@github.com:HnimNart/VulkanRenderer.git
 ```
 
-In case you forgot: 
+In case you forgot:
 ```
 git submodule init
 git submodule update
@@ -151,4 +151,8 @@ $ sudo apt install libxcb1-dev libxcb-keysyms1-dev
 
 # Threading and OpenGL support
 $ sudo apt install libtbb-dev libgl-dev
+
+
+# Optional
+$ sudo apt install ccache
 ```

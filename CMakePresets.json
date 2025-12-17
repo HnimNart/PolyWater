@@ -6,11 +6,13 @@
       "name": "base",
       "hidden": false,
       "generator": "Ninja Multi-Config",
-      "description": "Base preset with common clang settings",
+      "description": "Base preset with common clang settings and ccache",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_COLOR_DIAGNOSTICS": "ON"
       }
     },
@@ -23,6 +25,16 @@
         "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra",
         "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra"
       }
+    },
+    {
+        "name": "relwithdebinfo",
+        "inherits": "base",
+        "description": "Release build with debug information",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra"
+        }
     },
     {
       "name": "debug",
@@ -41,6 +53,13 @@
       "configurePreset": "release",
       "description": "Build the Release configure preset",
       "configuration": "Release",
+      "jobs": 0
+    },
+    {
+      "name": "dev",
+      "configurePreset": "relwithdebinfo",
+      "description": "Build the RelWithDebInfo configure preset",
+      "configuration": "RelWithDebInfo",
       "jobs": 0
     },
     {

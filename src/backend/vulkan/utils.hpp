@@ -17,32 +17,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
+
+#include <vulkan/vulkan_core.h>
 
 #include <filesystem>
 #include <span>
 #include <string>
 #include <vector>
 
-#include <nvutils/file_operations.hpp>
-#include <vulkan/vulkan_core.h>
+namespace nvsamples
+{
 
-namespace nvsamples {
-
-inline static VkShaderModuleCreateInfo getShaderModuleCreateInfo(const std::span<const uint32_t>& spirv)
+inline static VkShaderModuleCreateInfo
+getShaderModuleCreateInfo(const std::span<const uint32_t>& spirv)
 {
   return VkShaderModuleCreateInfo{
-      .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       .codeSize = spirv.size_bytes(),
-      .pCode    = spirv.data(),
+      .pCode = spirv.data(),
   };
 }
 
-nvvk::Image loadAndCreateImage(VkCommandBuffer              cmd,
-                               nvvk::StagingUploader&       staging,
-                               VkDevice                     device,
-                               const std::filesystem::path& filename,
-                               bool                         sRgb = true);
+nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& staging, VkDevice device,
+                               const std::filesystem::path& filename, bool sRgb = true);
 
 }  // namespace nvsamples

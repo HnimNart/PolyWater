@@ -65,61 +65,6 @@ function(setup_rt_tutorial_sample)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR} ${ROOT_DIR})
 
     #------------------------------------------------------------------------------------------------------------------------------
-    # Compile shaders
-    set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_LIST_DIR}/_autogen")
-    file(GLOB SHADER_GLSL_FILES "shaders/*.glsl")
-    file(GLOB SHADER_SLANG_FILES "shaders/*.slang")
-
-    # Handle .h.slang files if requested
-    if(RT_TUTORIAL_INCLUDE_H_SLANG_FILES)
-        file(GLOB SHADER_H_FILES "shaders/*.h" "shaders/*.h.slang")
-        list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
-    else()
-        file(GLOB SHADER_H_FILES "shaders/*.h")
-    endif()
-
-    # Adding standard shaders (consistent across all samples)
-    list(APPEND SHADER_SLANG_FILES
-        ${NVSHADERS_DIR}/nvshaders/sky_simple.slang
-        ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
-    )
-
-    # Add foundation shader if requested
-    if(RT_TUTORIAL_USE_FOUNDATION_SHADER)
-        list(APPEND SHADER_SLANG_FILES ${COMMON_DIR}/shaders/foundation.slang)
-    endif()
-
-    # Build shader include flags
-    set(SHADER_INCLUDE_FLAGS "-I${NVSHADERS_DIR}" "-I${ROOT_DIR}")
-    if(RT_TUTORIAL_EXTRA_SHADER_INCLUDES)
-        foreach(include_dir ${RT_TUTORIAL_EXTRA_SHADER_INCLUDES})
-            list(APPEND SHADER_INCLUDE_FLAGS "-I${include_dir}")
-        endforeach()
-    endif()
-
-    compile_slang(
-        "${SHADER_SLANG_FILES}"
-        "${SHADER_OUTPUT_DIR}"
-        GENERATED_SHADER_HEADERS
-        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-    )
-
-    compile_glsl(
-        "${SHADER_GLSL_FILES}"
-        "${SHADER_OUTPUT_DIR}"
-        GENERATED_SHADER_GLSL_HEADERS
-        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-    )
-
-    # Add shader files to the project
-    source_group("Shaders" FILES ${SHADER_SLANG_FILES} ${SHADER_GLSL_FILES} ${SHADER_H_FILES})
-    source_group("Shaders/Compiled" FILES ${GENERATED_SHADER_SLANG_HEADERS} ${GENERATED_SHADER_GLSL_HEADERS} ${GENERATED_SHADER_HEADERS})
-
-    # Add the output shader headers (target) directly to the executable
-    # This allow to compile the shaders when the executable is built
-    target_sources(${PROJECT_NAME} PRIVATE ${SHADER_SLANG_FILES} ${GENERATED_SHADER_SLANG_HEADERS} ${GENERATED_SHADER_GLSL_HEADERS} ${SHADER_H_FILES})
-
-    #------------------------------------------------------------------------------------------------------------------------------
     # Installation, copy files
 
     # Build copy files list
@@ -135,10 +80,10 @@ function(setup_rt_tutorial_sample)
     endif()
 
     # Copy files next to the executable
-    copy_to_runtime_and_install(${PROJECT_NAME}
-        FILES ${COPY_FILES} ${Slang_GLSLANG}
-        DIRECTORIES ${COPY_DIRECTORIES}
-        LOCAL_DIRS "${CMAKE_CURRENT_LIST_DIR}/shaders"
-        AUTO
-    )
+    # copy_to_runtime_and_install(${PROJECT_NAME}
+    #     FILES ${COPY_FILES} ${Slang_GLSLANG}
+    #     DIRECTORIES ${COPY_DIRECTORIES}
+    #     LOCAL_DIRS "${CMAKE_CURRENT_LIST_DIR}/shaders"
+    #     AUTO
+    # )
 endfunction()
