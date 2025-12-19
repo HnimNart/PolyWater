@@ -16,19 +16,19 @@ add_library(${LIB_NAME})
 # Add the sources to the library target
 target_sources(${LIB_NAME} PRIVATE ${LIB_SOURCES} ${SHADERS_SOURCES})
 
-# Add the vk_mini_samples directory to the include path, so that these files
-# can be included using a "src/" prefix.
 target_include_directories(${LIB_NAME} INTERFACE ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/_autogen)
 
 # Add the current directory to include path for the library
-target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/_autogen)
+target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/_autogen)
 
+message(STATUS "ASadasdsa ${CMAKE_CURRENT_SOURCE_DIR}")
 # Add dependencies
 target_link_libraries(${LIB_NAME} PUBLIC
   glm
   volk # The Vulkan loader
   nvutils
   nvvk
+  nvpro2::nvslang
 )
 
 # Make headers show up in IDE
@@ -53,8 +53,9 @@ list(APPEND SHADER_SLANG_FILES
     ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
 )
 
+message(STATUS "___-- ${ROOT_DIR}")
 # Build shader include flags
-set(SHADER_INCLUDE_FLAGS "-I${NVSHADERS_DIR}" "-I${ROOT_DIR}" "-I${SHADER_DIR}")
+set(SHADER_INCLUDE_FLAGS "-I${NVSHADERS_DIR}" "-I${ROOT_DIR}" "-I${SHADER_DIR}" "-I${CMAKE_CURRENT_SOURCE_DIR}")
 
 message(STATUS "__AXASS ${SHADER_SLANG_FILES}")
 

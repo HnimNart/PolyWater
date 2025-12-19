@@ -23,6 +23,7 @@
 #include "nvvk/default_structs.hpp"
 #include "nvvk/formats.hpp"
 #include "scene/gltf/gltf_utils.hpp"  // GLTF utilities for loading and importing GLTF models
+#include "shaders/compiler/slang.hpp"
 
 class SceneManager
 {
@@ -50,8 +51,6 @@ public:
     // The VMA allocator is used for all allocations, the staging uploader will use it for staging
     // buffers and images
     m_stagingUploader.init(m_ctx->allocator, true);
-
-    init_slang_compiler();
 
     // Acquiring the texture sampler which will be used for displaying the GBuffer
     m_samplerPool.init(m_ctx->device);
@@ -376,7 +375,7 @@ public:
       s.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
     // Compile shader, fallback to pre-compiled
-    VkShaderModuleCreateInfo shaderCode = compileSlangShader("rtbasic.slang", rtbasic_slang);
+    VkShaderModuleCreateInfo shaderCode = m_compiler.compile("rtbasic.slang", rtbasic_slang);
 
     stages[eRaygen].pNext = &shaderCode;
     stages[eRaygen].pName = "rgenMain";
@@ -596,7 +595,7 @@ public:
     SCOPED_TIMER(__FUNCTION__);
 
     // Use pre-compiled shaders by default
-    VkShaderModuleCreateInfo shaderCode = compileSlangShader("foundation.slang", foundation_slang);
+    VkShaderModuleCreateInfo shaderCode = m_compiler.compile("foundation.slang", foundation_slang);
 
     // Destroy the previous shaders if they exist
     vkDestroyShaderEXT(m_ctx->device, m_vertexShader, nullptr);
@@ -637,52 +636,6 @@ public:
     shaderInfo.pCode = shaderCode.pCode;
     vkCreateShadersEXT(m_ctx->device, 1U, &shaderInfo, nullptr, &m_fragmentShader);
     NVVK_DBG_NAME(m_fragmentShader);
-  }
-
-  // This function is used to compile the Slang shader, and when it fails, it will use the
-  // pre-compiled shaders
-  VkShaderModuleCreateInfo compileSlangShader(const std::filesystem::path& filename,
-                                              const std::span<const uint32_t>& spirv)
-  {
-    SCOPED_TIMER(__FUNCTION__);
-
-    // Use pre-compiled shaders by default
-    VkShaderModuleCreateInfo shaderCode = nvsamples::getShaderModuleCreateInfo(spirv);
-
-    // Try compiling the shader
-    std::filesystem::path shaderSource = nvutils::findFile(filename, nvsamples::getShaderDirs());
-    if (m_slangCompiler.compileFile(shaderSource))
-    {
-      // Using the Slang compiler to compile the shaders
-      shaderCode.codeSize = m_slangCompiler.getSpirvSize();
-      shaderCode.pCode = m_slangCompiler.getSpirv();
-    }
-    else
-    {
-      LOGE("Error compiling shaders: %s\n%s\n", shaderSource.string().c_str(),
-           m_slangCompiler.getLastDiagnosticMessage().c_str());
-    }
-    return shaderCode;
-  }
-
-  void init_slang_compiler()
-  {
-    // Setting up the Slang compiler for hot reload shader
-    m_slangCompiler.addSearchPaths(nvsamples::getShaderDirs());
-    m_slangCompiler.defaultTarget();
-    m_slangCompiler.defaultOptions();
-    m_slangCompiler.addOption(
-        {slang::CompilerOptionName::DebugInformation,
-         {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_MAXIMAL}});
-#if defined(AFTERMATH_AVAILABLE)
-    // This aftermath callback is used to report the shader hash (Spirv) to the Aftermath library.
-    m_slangCompiler.setCompileCallback(
-        [&](const std::filesystem::path& sourceFile, const uint32_t* spirvCode, size_t spirvSize)
-        {
-          std::span<const uint32_t> data(spirvCode, spirvSize / sizeof(uint32_t));
-          AftermathCrashTracker::getInstance().addShaderBinary(data);
-        });
-#endif
   }
 
   void post_process(VkCommandBuffer cmd)
@@ -885,5 +838,6 @@ public:
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
-  nvslang::SlangCompiler m_slangCompiler{};  // The Slang compiler used to compile the shaders
+  // Slang compiler
+  SlangShaderCompiler m_compiler{nvsamples::getShaderDirs()};
 };
