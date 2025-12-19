@@ -65,7 +65,7 @@
 
 #include "src/scene/manager.hpp"
 
-SceneManager::Context* ctx = nullptr;
+VulkanContext* ctx = nullptr;
 
 class RtBasic : public nvapp::IAppElement
 {
@@ -91,12 +91,12 @@ public:
     m_allocator.init(allocatorInfo);
     // m_allocator.setLeakID(14);  // Set a leak ID for the allocator to track memory leaks
 
-    ctx = new SceneManager::Context{.allocator = &m_allocator,
-                                    .physicalDevice = m_app->getPhysicalDevice(),
-                                    .device = m_app->getDevice(),
-                                    .graphics_queue = m_app->getQueue(0),
-                                    .viewport_size = m_app->getViewportSize(),
-                                    .texture_descriptor_pool = m_app->getTextureDescriptorPool()};
+    ctx = new VulkanContext{.allocator = &m_allocator,
+                            .physicalDevice = m_app->getPhysicalDevice(),
+                            .device = m_app->getDevice(),
+                            .graphicsQueue = m_app->getQueue(0),
+                            .viewportSize = m_app->getViewportSize(),
+                            .textureDescriptorPool = m_app->getTextureDescriptorPool()};
     m_scene_manager = std::make_unique<SceneManager>(ctx);
     m_scene_manager->set_camera(m_cameraManip);
     VkCommandBuffer cmd = m_app->createTempCmdBuffer();

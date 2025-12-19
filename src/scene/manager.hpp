@@ -23,6 +23,7 @@
 #include "nvvk/default_structs.hpp"
 #include "nvvk/formats.hpp"
 #include "scene/gltf/gltf_utils.hpp"  // GLTF utilities for loading and importing GLTF models
+#include "scene_context.hpp"
 #include "shaders/compiler/slang.hpp"
 
 class SceneManager
@@ -35,17 +36,7 @@ public:
     eImgTonemapped
   };
 
-  struct Context
-  {
-    nvvk::ResourceAllocator* allocator = nullptr;
-    VkPhysicalDevice physicalDevice;
-    VkDevice device;
-    const nvvk::QueueInfo& graphics_queue;
-    const VkExtent2D& viewport_size;
-    VkDescriptorPool texture_descriptor_pool;
-  };
-
-  SceneManager(Context* ctx)
+  SceneManager(VulkanContext* ctx)
   {
     m_ctx = ctx;
     // The VMA allocator is used for all allocations, the staging uploader will use it for staging
@@ -66,7 +57,7 @@ public:
                          VK_FORMAT_R8G8B8A8_UNORM},  // Render target, tonemapped
         .depthFormat = nvvk::findDepthFormat(m_ctx->physicalDevice),
         .imageSampler = linearSampler,
-        .descriptorPool = m_ctx->texture_descriptor_pool,
+        .descriptorPool = m_ctx->textureDescriptorPool,
     };
     m_gBuffers.init(gBufferInit);
 
@@ -130,7 +121,7 @@ public:
     vkGetPhysicalDeviceProperties2(m_ctx->physicalDevice, &prop2);
 
     // Initialize acceleration structure builder
-    m_asBuilder.init(m_ctx->allocator, &m_stagingUploader, m_ctx->graphics_queue);
+    m_asBuilder.init(m_ctx->allocator, &m_stagingUploader, m_ctx->graphicsQueue);
 
     // Initialize SBT generator
     m_sbtGenerator.init(m_ctx->device, m_rtProperties);
@@ -489,7 +480,7 @@ public:
 
     // Ray trace
     const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
-    const VkExtent2D& size = m_ctx->viewport_size;
+    const VkExtent2D& size = m_ctx->viewportSize;
     vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit, &regions.callable,
                       size.width, size.height, 1);
 
@@ -678,7 +669,7 @@ public:
     {
       const glm::mat4& viewMatrix = camera()->getViewMatrix();
       const glm::mat4& projMatrix = camera()->getPerspectiveMatrix();
-      m_skySimple.runCompute(cmd, m_ctx->viewport_size, viewMatrix, projMatrix,
+      m_skySimple.runCompute(cmd, m_ctx->viewportSize, viewMatrix, projMatrix,
                              resources().sceneInfo.skySimpleParam,
                              m_gBuffers.getDescriptorImageInfo(0));
     }
@@ -728,7 +719,7 @@ public:
     m_dynamicPipeline.rasterizationState.cullMode =
         VK_CULL_MODE_NONE;  // Don't cull any triangles (double-sided rendering)
     m_dynamicPipeline.cmdApplyAllStates(cmd);
-    m_dynamicPipeline.cmdSetViewportAndScissor(cmd, m_ctx->viewport_size);
+    m_dynamicPipeline.cmdSetViewportAndScissor(cmd, m_ctx->viewportSize);
     vkCmdSetDepthTestEnable(cmd, VK_TRUE);
 
     // Same shader for all meshes
@@ -790,7 +781,7 @@ public:
   }
 
 public:
-  Context* m_ctx = nullptr;
+  VulkanContext* m_ctx = nullptr;
 
   nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
   nvvk::SamplerPool m_samplerPool{};          // Texture sampler pool
