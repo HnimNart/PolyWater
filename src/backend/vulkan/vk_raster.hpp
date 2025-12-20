@@ -13,10 +13,10 @@
 
 #include "_autogen/foundation.slang.h"  // Local shader
 #include "_autogen/sky_simple.slang.h"  // Local shader
-#include "context.hpp"
 #include "nvutils/timers.hpp"
 #include "scene/shared.hpp"
 #include "shaders/compiler/slang.hpp"
+#include "vk_context.hpp"
 
 class VulkanRaster
 {

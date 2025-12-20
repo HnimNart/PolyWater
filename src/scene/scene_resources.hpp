@@ -6,9 +6,8 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/sampler_pool.hpp>
 #include <src/common/path_utils.hpp>
-#include <vector>
 
-#include "backend/vulkan/vulkan_scene_resources.hpp"
+#include "backend/vulkan/vk_resources.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 class CpuSceneResources

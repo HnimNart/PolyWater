@@ -14,8 +14,8 @@
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
 
-#include "backend/vulkan/context.hpp"
-#include "backend/vulkan/vulkan_backend.hpp"
+#include "backend/vulkan/vk_backend.hpp"
+#include "backend/vulkan/vk_context.hpp"
 #include "core/camera.hpp"
 #include "scene_resources.hpp"
 #include "shaders/post/tonemapper.hpp"

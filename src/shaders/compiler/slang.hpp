@@ -1,18 +1,10 @@
 #pragma once
 
 #include <shaders/shaderio.h>
+#include <vulkan/vulkan_core.h>
 
 #include <filesystem>
-#include <nvshaders_host/sky.hpp>
-#include <nvshaders_host/tonemapper.hpp>
 #include <nvslang/slang.hpp>
-#include <nvutils/camera_manipulator.hpp>
-#include <nvvk/acceleration_structures.hpp>  // Acceleration structure management
-#include <nvvk/descriptors.hpp>
-#include <nvvk/gbuffers.hpp>  // GBuffer management
-#include <nvvk/graphics_pipeline.hpp>
-#include <nvvk/sampler_pool.hpp>
-#include <nvvk/sbt_generator.hpp>
 
 class SlangShaderCompiler
 {

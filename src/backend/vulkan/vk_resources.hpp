@@ -5,15 +5,15 @@
 #include <nvvk/formats.hpp>
 #include <string>
 
-#include "backend/vulkan/context.hpp"
-#include "backend/vulkan/utils.hpp"
+#include "backend/vulkan/vk_context.hpp"
+#include "backend/vulkan/vk_utils.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 
 class VulkanSceneResources
 {
 public:
-  using MeshID = uint;
+  using MeshID = int;
   using TextureID = uint;
 
   VulkanSceneResources(VulkanContext* ctx)
@@ -85,9 +85,7 @@ public:
 
 private:
   VulkanContext* m_ctx = nullptr;
-
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;
-
   uint mesh_id_counter = 0;
 };

@@ -2,12 +2,12 @@
 
 #include <nvvk/formats.hpp>
 
-#include "context.hpp"
 #include "core/camera.hpp"
 #include "shaders/post/tonemapper.hpp"
 #include "src/backend/backend.hpp"
-#include "vulkan_raster.hpp"
-#include "vulkan_raytrace.hpp"
+#include "vk_context.hpp"
+#include "vk_raster.hpp"
+#include "vk_raytrace.hpp"
 
 class VulkanBackend final : public IBackend
 {

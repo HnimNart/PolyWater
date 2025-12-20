@@ -45,23 +45,12 @@
 #include <nvgui/camera.hpp>              // Camera widget
 #include <nvgui/sky.hpp>                 // Sky widget
 #include <nvgui/tonemapper.hpp>          // Tonemapper widget
-#include <nvshaders_host/sky.hpp>        // Sky shader
-#include <nvshaders_host/tonemapper.hpp>     // Tonemapper shader
-#include <nvslang/slang.hpp>                 // Slang compiler
-#include <nvutils/camera_manipulator.hpp>    // Camera manipulator
-#include <nvutils/logger.hpp>                // Logger for debug messages
-#include <nvutils/parameter_parser.hpp>      // Parameter parser
-#include <nvutils/timers.hpp>                // Timers for profiling
-#include <nvvk/acceleration_structures.hpp>  // Acceleration structure management
-#include <nvvk/context.hpp>                  // Vulkan context management
-#include <nvvk/default_structs.hpp>          // Default Vulkan structures
-#include <nvvk/descriptors.hpp>              // Descriptor set management
-#include <nvvk/formats.hpp>                  // Finding Vulkan formats utilities
-#include <nvvk/gbuffers.hpp>                 // GBuffer management
-#include <nvvk/graphics_pipeline.hpp>        // Graphics pipeline management
-#include <nvvk/sampler_pool.hpp>             // Sampler pool management
-#include <nvvk/sbt_generator.hpp>            // Shader binding table generator
-#include <nvvk/validation_settings.hpp>      // Validation settings for Vulkan
+#include <nvutils/camera_manipulator.hpp>  // Camera manipulator
+#include <nvutils/logger.hpp>              // Logger for debug messages
+#include <nvutils/parameter_parser.hpp>    // Parameter parser
+#include <nvutils/timers.hpp>              // Timers for profiling
+#include <nvvk/context.hpp>                // Vulkan context management
+#include <nvvk/validation_settings.hpp>    // Validation settings for Vulkan
 
 #include "src/scene/manager.hpp"
 

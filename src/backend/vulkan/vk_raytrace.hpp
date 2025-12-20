@@ -8,11 +8,11 @@
 #include <scene/scene_resources.hpp>
 
 #include "_autogen/rtbasic.slang.h"  // Local shader
-#include "acceleration.hpp"
-#include "context.hpp"
 #include "scene/shared.hpp"
 #include "shaders/compiler/slang.hpp"
-#include "vulkan_raster.hpp"
+#include "vk_accel.hpp"
+#include "vk_context.hpp"
+#include "vk_raster.hpp"
 
 class VulkanRayTracer
 {

@@ -1,10 +1,7 @@
 #include "slang.hpp"
 
-#include <iostream>
 #include <nvslang/slang.hpp>
 #include <nvutils/timers.hpp>
-
-#include "backend/vulkan/utils.hpp"
 
 SlangShaderCompiler::SlangShaderCompiler(const std::vector<std::filesystem::path>& shader_dirs)
 {

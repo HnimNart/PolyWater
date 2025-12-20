@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "utils.hpp"
+#include "vk_utils.hpp"
 
 #include <stb/stb_image.h>
 
