@@ -31,13 +31,12 @@ enum BindingPoints
   eTlas,          // Top-level acceleration structure
 };
 
-struct TutoPushConstant
+struct PushConstant
 {
-  float3x3       normalMatrix;
-  int            instanceIndex;              // Instance index for the current draw call
-  GltfSceneInfo* sceneInfoAddress;           // Address of the scene information buffer
-  float2         metallicRoughnessOverride;  // Metallic and roughness override values
+  float3x3 normalMatrix;
+  int instanceIndex;                 // Instance index for the current draw call
+  GltfSceneInfo* sceneInfoAddress;   // Address of the scene information buffer
+  float2 metallicRoughnessOverride;  // Metallic and roughness override values
 };
-
 
 NAMESPACE_SHADERIO_END()

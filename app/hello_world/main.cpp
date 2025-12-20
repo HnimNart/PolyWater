@@ -79,11 +79,8 @@ public:
     SceneResources& scene_resources = m_scene_manager->scene_resources();
     SCOPED_TIMER(__FUNCTION__);
     // Load the GLTF resources
-    {
-      tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf", ctx->stagingUploader);
-
-      tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf", ctx->stagingUploader);
-    }
+    tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf", ctx->stagingUploader);
+    tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf", ctx->stagingUploader);
 
     // Textures
     {
@@ -146,7 +143,9 @@ public:
   // - Called when the application initialize
   void onAttach(nvapp::Application* app) override
   {
+
     m_app = app;
+
     // Initialize the VMA allocator
     VmaAllocatorCreateInfo allocatorInfo = {
         .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
@@ -204,9 +203,8 @@ public:
     // Display the rendering GBuffer in the ImGui window ("Viewport")
     if (ImGui::Begin("Viewport"))
     {
-      ImGui::Image(
-          ImTextureID(m_scene_manager->gbuffers().getDescriptorSet(SceneManager::eImgTonemapped)),
-          ImGui::GetContentRegionAvail());
+      ImGui::Image(ImTextureID(m_scene_manager->gbuffers().getDescriptorSet(eImgTonemapped)),
+                   ImGui::GetContentRegionAvail());
     }
     ImGui::End();
 
@@ -311,16 +309,7 @@ public:
 
     // Update the scene information buffer, this cannot be done in between dynamic rendering
     updateSceneBuffer(cmd);
-
-    if (m_useRayTracing)
-    {
-      m_scene_manager->raytraceScene(cmd);
-    }
-    else
-    {
-      m_scene_manager->rasterScene(cmd);
-    }
-
+    m_scene_manager->render(cmd, m_useRayTracing);
     postProcess(cmd);
   }
 
@@ -351,15 +340,7 @@ public:
     if (reload)
     {
       vkQueueWaitIdle(m_app->getQueue(0).queue);
-
-      if (m_useRayTracing)
-      {
-        m_scene_manager->createRayTracingPipeline();
-      }
-      else
-      {
-        m_scene_manager->compileAndCreateGraphicsShaders();
-      }
+      m_scene_manager->reload(m_useRayTracing);
     }
   }
 
@@ -406,7 +387,7 @@ public:
 
   void onLastHeadlessFrame() override
   {
-    m_app->saveImageToFile(m_scene_manager->get_image(SceneManager::eImgTonemapped),
+    m_app->saveImageToFile(m_scene_manager->get_image(eImgTonemapped),
                            m_scene_manager->gbuffers().getSize(),
                            nvutils::getExecutablePath().replace_extension(".jpg").string());
   }

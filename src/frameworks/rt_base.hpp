@@ -486,7 +486,7 @@ public:
     // Push constant is used to pass data to the shader at each frame
     const VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
                                                 .offset = 0,
-                                                .size = sizeof(shaderio::TutoPushConstant)};
+                                                .size = sizeof(shaderio::PushConstant)};
 
     // The pipeline layout is used to pass data to the pipeline, anything with "layout" in the
     // shader
@@ -707,8 +707,7 @@ public:
   {
 
     // Push constant: we want to be able to update constants used by the shaders
-    const VkPushConstantRange pushConstant{VK_SHADER_STAGE_ALL, 0,
-                                           sizeof(shaderio::TutoPushConstant)};
+    const VkPushConstantRange pushConstant{VK_SHADER_STAGE_ALL, 0, sizeof(shaderio::PushConstant)};
 
     // Descriptor sets: one specific to ray tracing, and one shared with the rasterization pipeline
     std::array<VkDescriptorSetLayout, 2> layouts = {
@@ -801,7 +800,7 @@ public:
     const VkPushConstantsInfo pushInfo{.sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
                                        .layout = m_rtPipelineLayout,
                                        .stageFlags = VK_SHADER_STAGE_ALL,
-                                       .size = sizeof(shaderio::TutoPushConstant),
+                                       .size = sizeof(shaderio::PushConstant),
                                        .pValues = &m_pushValues};
     vkCmdPushConstants2(cmd, &pushInfo);
 
@@ -889,7 +888,7 @@ public:
     vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
     // Push constant information
-    shaderio::TutoPushConstant pushValues{
+    shaderio::PushConstant pushValues{
         .sceneInfoAddress = (shaderio::GltfSceneInfo*) m_sceneResource.bSceneInfo.address,
         .metallicRoughnessOverride = m_metallicRoughnessOverride,
     };
@@ -898,7 +897,7 @@ public:
         .layout = m_graphicPipelineLayout,
         .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
         .offset = 0,
-        .size = sizeof(shaderio::TutoPushConstant),
+        .size = sizeof(shaderio::PushConstant),
         .pValues = &pushValues,
     };
 
@@ -993,8 +992,7 @@ protected:
   VkPipelineLayout m_rtPipelineLayout{};  // Ray tracing pipeline layout
   nvvk::DescriptorBindings m_rtBindings;  // Ray tracing descriptor bindings
 
-  shaderio::TutoPushConstant
-      m_pushValues{};  // Push constant values used to pass data to the shaders
+  shaderio::PushConstant m_pushValues{};  // Push constant values used to pass data to the shaders
 
   // Acceleration Structure Components
   nvvk::AccelerationStructureHelper m_asBuilder{};  // Helper to create acceleration structures

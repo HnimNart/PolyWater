@@ -26,7 +26,7 @@
 
 // clang-format off
 // Push constants containing scene information, camera data, and material overrides
-[[vk::push_constant]]                           ConstantBuffer<TutoPushConstant> pushConst;
+[[vk::push_constant]]                           ConstantBuffer<PushConstant> pushConst;
 // Texture array for material textures (albedo, normal maps, etc.)
 [[vk::binding(BindingPoints::eTextures, 0)]]    Sampler2D textures[];
 // Top-level acceleration structure containing the scene geometry hierarchy

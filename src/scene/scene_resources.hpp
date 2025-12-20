@@ -8,6 +8,8 @@
 #include <src/common/path_utils.hpp>
 #include <vector>
 
+#include "_autogen/sky_simple.slang.h"
+#include "nvshaders_host/sky.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "scene/scene_context.hpp"
 #include "src/backend/vulkan/utils.hpp"
@@ -28,6 +30,9 @@ public:
 
     NVVK_CHECK(m_samplerPool.acquireSampler(m_linearSampler));
     NVVK_DBG_NAME(m_linearSampler);
+
+    // Initialize the Sky with the pre-compiled shader
+    m_skySimple.init(ctx->allocator, std::span(sky_simple_slang));
   }
 
   tinygltf::Model loadGltf(const std::string& filename, nvvk::StagingUploader& uploader)
@@ -108,6 +113,8 @@ public:
     }
 
     m_samplerPool.deinit();
+
+    m_skySimple.deinit();
   }
 
   const nvsamples::GltfSceneResource& data() const { return m_resources; };
@@ -120,9 +127,12 @@ public:
   shaderio::GltfSceneInfo& scene_info() { return m_resources.sceneInfo; }
   const shaderio::GltfSceneInfo& scene_info() const { return m_resources.sceneInfo; }
 
+  const nvshaders::SkySimple& sky() const { return m_skySimple; }
+
 public:
   nvsamples::GltfSceneResource m_resources{};
   std::vector<nvvk::Image> m_textures;
+  nvshaders::SkySimple m_skySimple{};  // Sky rendering
 
   nvvk::SamplerPool m_samplerPool{};  // Texture sampler pool
   VkSampler m_linearSampler{};

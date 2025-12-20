@@ -23,7 +23,7 @@
 #include "include/pbr.h.slang"
 
 // clang-format off
-[[vk::push_constant]]                       ConstantBuffer<TutoPushConstant> pushConst;
+[[vk::push_constant]]                       ConstantBuffer<PushConstant> pushConst;
 [[vk::binding(BindingPoints::eTextures)]]   Sampler2D textures[];
 // clang-format on
 

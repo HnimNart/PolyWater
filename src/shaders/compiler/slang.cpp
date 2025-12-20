@@ -1,5 +1,6 @@
 #include "slang.hpp"
 
+#include <iostream>
 #include <nvslang/slang.hpp>
 #include <nvutils/timers.hpp>
 

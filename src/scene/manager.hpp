@@ -14,14 +14,12 @@
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
 
-#include "_autogen/foundation.slang.h"  // Local shader
 #include "_autogen/rtbasic.slang.h"     // Local shader
-#include "_autogen/sky_simple.slang.h"  // from nvpro_core2
 #include "_autogen/tonemapper.slang.h"  //   "    "
 #include "acceleration.hpp"
-#include "nvvk/default_structs.hpp"
 #include "nvvk/formats.hpp"
 #include "scene/gltf/gltf_utils.hpp"  // GLTF utilities for loading and importing GLTF models
+#include "scene/vulkan_raster.hpp"
 #include "scene_context.hpp"
 #include "scene_resources.hpp"
 #include "shaders/compiler/slang.hpp"
@@ -29,13 +27,6 @@
 class SceneManager
 {
 public:
-  // Type of GBuffers
-  enum
-  {
-    eImgRendered,
-    eImgTonemapped
-  };
-
   SceneManager(VulkanContext* ctx)
   {
     m_ctx = ctx;
@@ -52,22 +43,13 @@ public:
     };
     m_gBuffers.init(gBufferInit);
 
-    createGraphicsDescriptorSetLayout();
-    createGraphicsPipelineLayout();
-    compileAndCreateGraphicsShaders();
+    m_raster.init(m_ctx);
   }
 
   void clear()
   {
-    m_descPack.deinit();
-
     m_scene_resources.clear(m_ctx->allocator);
-
-    vkDestroyPipelineLayout(m_ctx->device, m_graphicPipelineLayout, nullptr);
-    vkDestroyShaderEXT(m_ctx->device, m_vertexShader, nullptr);
-    vkDestroyShaderEXT(m_ctx->device, m_fragmentShader, nullptr);
-
-    m_skySimple.deinit();
+    m_raster.clear(m_ctx->device);
     m_tonemapper.deinit();
     m_gBuffers.deinit();
 
@@ -83,10 +65,7 @@ public:
 
   void postInit()
   {
-    m_scene_resources.updateTextures(m_descPack, m_ctx);
-
-    // Initialize the Sky with the pre-compiled shader
-    m_skySimple.init(m_ctx->allocator, std::span(sky_simple_slang));
+    m_scene_resources.updateTextures(m_raster.descPack(), m_ctx);
 
     // Initialize the tonemapper also with proe-compiled shader
     m_tonemapper.init(m_ctx->allocator, std::span(tonemapper_slang));
@@ -200,8 +179,7 @@ public:
     shader_groups.push_back(group);
 
     // Push constant: we want to be able to update constants used by the shaders
-    const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0,
-                                            sizeof(shaderio::TutoPushConstant)};
+    const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0, sizeof(shaderio::PushConstant)};
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -210,7 +188,7 @@ public:
 
     // Descriptor sets: one specific to ray tracing, and one shared with the rasterization pipeline
     std::array<VkDescriptorSetLayout, 2> layouts = {
-        {m_descPack.getLayout(), m_rtDescPack.getLayout()}};
+        {m_raster.descPack().getLayout(), m_rtDescPack.getLayout()}};
     pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
     pipeline_layout_create_info.pSetLayouts = layouts.data();
     vkCreatePipelineLayout(m_ctx->device, &pipeline_layout_create_info, nullptr,
@@ -235,9 +213,27 @@ public:
     createShaderBindingTable(rtPipelineInfo);
   }
 
+  void render(VkCommandBuffer cmd, bool raytrace)
+  {
+    // Push constant information
+    shaderio::PushConstant pushValues{
+        .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
+        .metallicRoughnessOverride = m_metallicRoughnessOverride,
+    };
+
+    if (raytrace)
+    {
+      raytraceScene(cmd, pushValues);
+    }
+    else
+    {
+      m_raster.render(cmd, m_gBuffers, m_scene_resources, m_cameraManip, pushValues);
+    }
+  }
+
   //---------------------------------------------------------------------------------------------------------------
   // Ray tracing rendering method
-  void raytraceScene(VkCommandBuffer cmd)
+  void raytraceScene(VkCommandBuffer cmd, shaderio::PushConstant& pushValues)
   {
     NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
@@ -251,7 +247,7 @@ public:
         .layout = m_rtPipelineLayout,
         .firstSet = 0,
         .descriptorSetCount = 1,
-        .pDescriptorSets = m_descPack.getSetPtr()};
+        .pDescriptorSets = m_raster.descPack().getSetPtr()};
     vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
     // Push descriptor sets for ray tracing
@@ -262,15 +258,10 @@ public:
     vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipelineLayout, 1,
                               write.size(), write.data());
 
-    // Push constant information
-    shaderio::TutoPushConstant pushValues{
-        .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
-        .metallicRoughnessOverride = m_metallicRoughnessOverride,
-    };
     const VkPushConstantsInfo pushInfo{.sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
                                        .layout = m_rtPipelineLayout,
                                        .stageFlags = VK_SHADER_STAGE_ALL,
-                                       .size = sizeof(shaderio::TutoPushConstant),
+                                       .size = sizeof(shaderio::PushConstant),
                                        .pValues = &pushValues};
     vkCmdPushConstants2(cmd, &pushInfo);
 
@@ -306,108 +297,6 @@ public:
         m_sbtGenerator.populateSBTBuffer(m_sbtBuffer.address, bufferSize, m_sbtBuffer.mapping));
   }
 
-  //---------------------------------------------------------------------------------------------------------------
-  // The Vulkan descriptor set defines the resources that are used by the shaders.
-  // Here we add the bindings for the textures.
-  void createGraphicsDescriptorSetLayout()
-  {
-    nvvk::DescriptorBindings bindings;
-    bindings.addBinding({.binding = shaderio::BindingPoints::eTextures,
-                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                         .descriptorCount = 10,  // Maximum number of textures used in the scene
-                         .stageFlags = VK_SHADER_STAGE_ALL},
-                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-    // Creating the descriptor set and set layout from the bindings
-    m_descPack.init(bindings, m_ctx->device, 1,
-                    VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
-                    VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
-                        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-
-    NVVK_DBG_NAME(m_descPack.getLayout());
-    NVVK_DBG_NAME(m_descPack.getPool());
-    NVVK_DBG_NAME(m_descPack.getSet(0));
-  }
-
-  //--------------------------------------------------------------------------------------------------
-  // The graphic pipeline is all the stages that are used to render a section of the scene.
-  // Stages like: vertex shader, fragment shader, rasterization, and blending.
-  //
-  void createGraphicsPipelineLayout()
-  {
-    // Push constant is used to pass data to the shader at each frame
-    const VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-                                                .offset = 0,
-                                                .size = sizeof(shaderio::TutoPushConstant)};
-
-    // The pipeline layout is used to pass data to the pipeline, anything with "layout" in the
-    // shader
-    const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1,
-        .pSetLayouts = m_descPack.getLayoutPtr(),
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pushConstantRange,
-    };
-    NVVK_CHECK(vkCreatePipelineLayout(m_ctx->device, &pipelineLayoutInfo, nullptr,
-                                      &m_graphicPipelineLayout));
-    NVVK_DBG_NAME(m_graphicPipelineLayout);
-  }
-
-  //---------------------------------------------------------------------------------------------------------------
-  // Compile the graphics shaders and create the shader modules.
-  // This function only creates vertex and fragment shader modules for the graphics pipeline.
-  // The actual graphics pipeline is created elsewhere and uses these shader modules.
-  // This function will use the pre-compiled shaders if the compilation fails.
-  void compileAndCreateGraphicsShaders()
-  {
-    SCOPED_TIMER(__FUNCTION__);
-
-    // Use pre-compiled shaders by default
-    VkShaderModuleCreateInfo shaderCode = m_compiler.compile("foundation.slang", foundation_slang);
-
-    // Destroy the previous shaders if they exist
-    vkDestroyShaderEXT(m_ctx->device, m_vertexShader, nullptr);
-    vkDestroyShaderEXT(m_ctx->device, m_fragmentShader, nullptr);
-
-    // Push constant is used to pass data to the shader at each frame
-    const VkPushConstantRange pushConstantRange{
-        .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-        .offset = 0,
-        .size = sizeof(shaderio::TutoPushConstant),
-    };
-
-    // Shader create information, this is used to create the shader modules
-    VkShaderCreateInfoEXT shaderInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-        .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-        .pName = "main",
-        .setLayoutCount = 1,
-        .pSetLayouts = m_descPack.getLayoutPtr(),
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pushConstantRange,
-    };
-
-    // Vertex Shader
-    shaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderInfo.pName = "vertexMain";  // The entry point of the vertex shader
-    shaderInfo.codeSize = shaderCode.codeSize;
-    shaderInfo.pCode = shaderCode.pCode;
-    vkCreateShadersEXT(m_ctx->device, 1U, &shaderInfo, nullptr, &m_vertexShader);
-    NVVK_DBG_NAME(m_vertexShader);
-
-    // Fragment Shader
-    shaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderInfo.nextStage = 0;
-    shaderInfo.pName = "fragmentMain";  // The entry point of the vertex shader
-    shaderInfo.codeSize = shaderCode.codeSize;
-    shaderInfo.pCode = shaderCode.pCode;
-    vkCreateShadersEXT(m_ctx->device, 1U, &shaderInfo, nullptr, &m_fragmentShader);
-    NVVK_DBG_NAME(m_fragmentShader);
-  }
-
   void post_process(VkCommandBuffer cmd)
   {
     // Default post-processing: tonemapping
@@ -417,126 +306,16 @@ public:
                             m_gBuffers.getDescriptorImageInfo(1));
   }
 
-  // Raster //
-  //---------------------------------------------------------------------------------------------------------------
-  // Recording the commands to render the scene
-  //
-  void rasterScene(VkCommandBuffer cmd)
+  void reload(bool use_raytracing)
   {
-    NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
-
-    // Push constant information, see usage later
-    shaderio::TutoPushConstant pushValues{
-        .sceneInfoAddress =
-            (shaderio::GltfSceneInfo*) gltf_resources()
-                .bSceneInfo
-                .address,  // Pass the address of the scene information buffer to the shader
-        .metallicRoughnessOverride =
-            m_metallicRoughnessOverride,  // Override the metallic and roughness values
-    };
-    const VkPushConstantsInfo pushInfo{
-        .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
-        .layout = m_graphicPipelineLayout,
-        .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-        .offset = 0,
-        .size = sizeof(shaderio::TutoPushConstant),
-        .pValues = &pushValues,  // Other values are passed later
-    };
-
-    // Rendering the Sky
-    if (gltf_resources().sceneInfo.useSky)
+    if (use_raytracing)
     {
-      const glm::mat4& viewMatrix = camera()->getViewMatrix();
-      const glm::mat4& projMatrix = camera()->getPerspectiveMatrix();
-      m_skySimple.runCompute(cmd, m_ctx->viewportSize, viewMatrix, projMatrix,
-                             gltf_resources().sceneInfo.skySimpleParam,
-                             m_gBuffers.getDescriptorImageInfo(0));
+      createRayTracingPipeline();
     }
-
-    // Rendering to the GBuffer
-    VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
-    colorAttachment.loadOp =
-        gltf_resources().sceneInfo.useSky
-            ? VK_ATTACHMENT_LOAD_OP_LOAD
-            : VK_ATTACHMENT_LOAD_OP_CLEAR;  // Load the previous content of the GBuffer color
-                                            // attachment (Sky rendering)
-    colorAttachment.imageView = m_gBuffers.getColorImageView(0);
-    colorAttachment.clearValue = {.color = {gltf_resources().sceneInfo.backgroundColor.x,
-                                            gltf_resources().sceneInfo.backgroundColor.y,
-                                            gltf_resources().sceneInfo.backgroundColor.z, 1.0f}};
-
-    VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
-    depthAttachment.imageView = m_gBuffers.getDepthImageView();
-    depthAttachment.clearValue = {.depthStencil = DEFAULT_VkClearDepthStencilValue};
-
-    // Create the rendering info
-    VkRenderingInfo renderingInfo = DEFAULT_VkRenderingInfo;
-    renderingInfo.renderArea = DEFAULT_VkRect2D(m_gBuffers.getSize());
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments = &colorAttachment;
-    renderingInfo.pDepthAttachment = &depthAttachment;
-
-    // Change the GBuffer layout to prepare for rendering (attachment)
-    nvvk::cmdImageMemoryBarrier(cmd,
-                                {m_gBuffers.getColorImage(eImgRendered), VK_IMAGE_LAYOUT_GENERAL,
-                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-
-    // Bind the descriptor sets for the graphics pipeline (making textures available to the shaders)
-    const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
-        .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
-        .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-        .layout = m_graphicPipelineLayout,
-        .firstSet = 0,
-        .descriptorSetCount = 1,
-        .pDescriptorSets = m_descPack.getSetPtr()};
-    vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
-
-    // ** BEGIN RENDERING **
-    vkCmdBeginRendering(cmd, &renderingInfo);
-
-    // All dynamic states are set here
-    m_dynamicPipeline.rasterizationState.cullMode =
-        VK_CULL_MODE_NONE;  // Don't cull any triangles (double-sided rendering)
-    m_dynamicPipeline.cmdApplyAllStates(cmd);
-    m_dynamicPipeline.cmdSetViewportAndScissor(cmd, m_ctx->viewportSize);
-    vkCmdSetDepthTestEnable(cmd, VK_TRUE);
-
-    // Same shader for all meshes
-    m_dynamicPipeline.cmdBindShaders(cmd, {.vertex = m_vertexShader, .fragment = m_fragmentShader});
-
-    // We don't send vertex attributes, they are pulled in the shader
-    VkVertexInputBindingDescription2EXT bindingDescription = {};
-    VkVertexInputAttributeDescription2EXT attributeDescription = {};
-    vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
-
-    for (size_t i = 0; i < gltf_resources().instances.size(); i++)
+    else
     {
-      uint32_t meshIndex = gltf_resources().instances[i].meshIndex;
-      const shaderio::GltfMesh& gltfMesh = gltf_resources().meshes[meshIndex];
-      const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
-
-      // Push constant is information that is passed to the shader at each draw call.
-      pushValues.normalMatrix =
-          glm::transpose(glm::inverse(glm::mat3(gltf_resources().instances[i].transform)));
-      pushValues.instanceIndex = int(i);  // The index of the instance in the m_instances vector
-      vkCmdPushConstants2(cmd, &pushInfo);
-
-      // Get the buffer directly using the pre-computed mapping
-      uint32_t bufferIndex = gltf_resources().meshToBufferIndex[meshIndex];
-      const nvvk::Buffer& v = gltf_resources().bGltfDatas[bufferIndex];
-
-      // Bind index buffers
-      vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset, VkIndexType(gltfMesh.indexType));
-
-      // Draw the mesh
-      vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);  // All indices
+      m_raster.reload(m_ctx->device);
     }
-
-    // ** END RENDERING **
-    vkCmdEndRendering(cmd);
-    nvvk::cmdImageMemoryBarrier(cmd, {m_gBuffers.getColorImage(eImgRendered),
-                                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_IMAGE_LAYOUT_GENERAL});
   }
 
   VkImage get_image(int buffer_idx) { return m_gBuffers.getColorImage(buffer_idx); }
@@ -568,21 +347,10 @@ private:
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
       std::make_shared<nvutils::CameraManipulator>()};
 
-  // Pipeline
-  nvvk::GraphicsPipelineState
-      m_dynamicPipeline;  // The dynamic pipeline state used to set the graphics pipeline state,
-                          // like viewport, scissor, and depth test
-  nvvk::DescriptorPack m_descPack;  // The descriptor bindings used to create the descriptor set
-                                    // layout and descriptor sets
-  VkPipelineLayout m_graphicPipelineLayout{};  // The pipeline layout use with graphics pipeline
+  VulkanRaster m_raster;
 
   SceneResources m_scene_resources{};
 
-  // Shaders
-  VkShaderEXT m_vertexShader{};    // The vertex shader used to render the scene
-  VkShaderEXT m_fragmentShader{};  // The fragment shader used to render the scene
-
-  nvshaders::SkySimple m_skySimple{};    // Sky rendering
   nvshaders::Tonemapper m_tonemapper{};  // Tonemapper for post-processing effects
   shaderio::TonemapperData
       m_tonemapperData{};  // Tonemapper data used to pass parameters to the tonemapper shader
@@ -605,6 +373,5 @@ private:
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
-  // Slang compiler
   SlangShaderCompiler m_compiler{nvsamples::getShaderDirs()};
 };
