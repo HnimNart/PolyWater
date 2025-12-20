@@ -21,21 +21,22 @@
 class VulkanRaster
 {
 public:
-  void init(VulkanContext* ctx)
+  void init(VulkanContext* ctx, SlangShaderCompiler* compiler)
   {
     assert(ctx);
+    m_compiler = compiler;
     createDescriptorSetLayout(ctx->device);
     createPipelineLayout(ctx->device);
     compileShaders(ctx->device);
   }
 
-  void clear(VkDevice device)
+  void clear(VulkanContext* ctx)
   {
     m_descPack.deinit();
 
-    vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
-    vkDestroyShaderEXT(device, m_vertexShader, nullptr);
-    vkDestroyShaderEXT(device, m_fragmentShader, nullptr);
+    vkDestroyPipelineLayout(ctx->device, m_pipelineLayout, nullptr);
+    vkDestroyShaderEXT(ctx->device, m_vertexShader, nullptr);
+    vkDestroyShaderEXT(ctx->device, m_fragmentShader, nullptr);
   }
 
   void resize(VkCommandBuffer cmd, VkExtent2D size);
@@ -213,7 +214,7 @@ private:
     SCOPED_TIMER(__FUNCTION__);
 
     // Use pre-compiled shaders by default
-    VkShaderModuleCreateInfo shaderCode = m_compiler.compile("foundation.slang", foundation_slang);
+    VkShaderModuleCreateInfo shaderCode = m_compiler->compile("foundation.slang", foundation_slang);
     // SlangCompiler::instance().compiler().compile("foundation.slang", foundation_slang);
 
     // Destroy the previous shaders if they exist
@@ -265,5 +266,5 @@ private:
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
 
-  SlangShaderCompiler m_compiler{nvsamples::getShaderDirs()};
+  SlangShaderCompiler* m_compiler = nullptr;
 };

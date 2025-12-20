@@ -96,20 +96,20 @@ public:
     ctx->stagingUploader.cmdUploadAppended(cmd);  // Upload the scene information to the GPU
   }
 
-  void clear(nvvk::ResourceAllocator* allocator)
+  void clear(VulkanContext* ctx)
   {
 
     for (auto& texture : m_textures)
     {
-      allocator->destroyImage(texture);
+      ctx->allocator->destroyImage(texture);
     }
-    allocator->destroyBuffer(m_resources.bSceneInfo);
-    allocator->destroyBuffer(m_resources.bMeshes);
-    allocator->destroyBuffer(m_resources.bMaterials);
-    allocator->destroyBuffer(m_resources.bInstances);
+    ctx->allocator->destroyBuffer(m_resources.bSceneInfo);
+    ctx->allocator->destroyBuffer(m_resources.bMeshes);
+    ctx->allocator->destroyBuffer(m_resources.bMaterials);
+    ctx->allocator->destroyBuffer(m_resources.bInstances);
     for (auto& gltfData : m_resources.bGltfDatas)
     {
-      allocator->destroyBuffer(gltfData);
+      ctx->allocator->destroyBuffer(gltfData);
     }
 
     m_samplerPool.deinit();
