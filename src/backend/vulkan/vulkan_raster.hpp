@@ -10,13 +10,13 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
-#include <scene/scene_context.hpp>
 #include <scene/scene_resources.hpp>
 
 #include "_autogen/foundation.slang.h"  // Local shader
+#include "context.hpp"
 #include "nvutils/timers.hpp"
+#include "scene/shared.hpp"
 #include "shaders/compiler/slang.hpp"
-#include "shared.hpp"
 
 class VulkanRaster
 {
@@ -47,7 +47,7 @@ public:
   //
   void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const SceneResources& scene,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
-              shaderio::PushConstant& push_constants)
+              shaderio::PushConstant& push_constants) const
   {
     NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
@@ -113,6 +113,7 @@ public:
     vkCmdBeginRendering(cmd, &renderingInfo);
 
     // All dynamic states are set here
+    nvvk::GraphicsPipelineState m_pipeline{};
     m_pipeline.rasterizationState.cullMode =
         VK_CULL_MODE_NONE;  // Don't cull any triangles (double-sided rendering)
     m_pipeline.cmdApplyAllStates(cmd);
@@ -260,7 +261,6 @@ private:
 
 private:
   nvvk::DescriptorPack m_descPack{};
-  nvvk::GraphicsPipelineState m_pipeline{};
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};

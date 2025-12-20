@@ -5,14 +5,14 @@
 #include <array>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/sbt_generator.hpp>
-#include <scene/scene_context.hpp>
 #include <scene/scene_resources.hpp>
 
 #include "_autogen/rtbasic.slang.h"  // Local shader
 #include "acceleration.hpp"
+#include "context.hpp"
 #include "scene/shared.hpp"
-#include "scene/vulkan_raster.hpp"
 #include "shaders/compiler/slang.hpp"
+#include "vulkan_raster.hpp"
 
 class VulkanRayTracer
 {
@@ -190,7 +190,7 @@ public:
   //---------------------------------------------------------------------------------------------------------------
   // Ray tracing rendering method
   void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, VulkanContext* ctx,
-              shaderio::PushConstant& pushValues)
+              const shaderio::PushConstant& pushValues) const
   {
     NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 

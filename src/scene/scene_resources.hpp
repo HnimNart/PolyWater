@@ -9,9 +9,9 @@
 #include <vector>
 
 #include "_autogen/sky_simple.slang.h"
+#include "backend/vulkan/context.hpp"
 #include "nvshaders_host/sky.hpp"
 #include "scene/gltf/gltf_utils.hpp"
-#include "scene/scene_context.hpp"
 #include "src/backend/vulkan/utils.hpp"
 
 class SceneResources
@@ -27,9 +27,6 @@ public:
   {
     // Acquiring the texture sampler which will be used for displaying the GBuffer
     m_samplerPool.init(ctx->device);
-
-    NVVK_CHECK(m_samplerPool.acquireSampler(m_linearSampler));
-    NVVK_DBG_NAME(m_linearSampler);
 
     // Initialize the Sky with the pre-compiled shader
     m_skySimple.init(ctx->allocator, std::span(sky_simple_slang));
@@ -121,7 +118,6 @@ public:
   nvsamples::GltfSceneResource& data() { return m_resources; };
 
   const std::vector<nvvk::Image>& textures() const { return m_textures; };
-  const VkSampler& sampler() const { return m_linearSampler; }
   nvvk::SamplerPool& sampler_pool() { return m_samplerPool; }
 
   shaderio::GltfSceneInfo& scene_info() { return m_resources.sceneInfo; }
@@ -129,11 +125,10 @@ public:
 
   const nvshaders::SkySimple& sky() const { return m_skySimple; }
 
-public:
+private:
   nvsamples::GltfSceneResource m_resources{};
   std::vector<nvvk::Image> m_textures;
   nvshaders::SkySimple m_skySimple{};  // Sky rendering
 
   nvvk::SamplerPool m_samplerPool{};  // Texture sampler pool
-  VkSampler m_linearSampler{};
 };

@@ -14,53 +14,28 @@
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
 
-#include "_autogen/tonemapper.slang.h"  //   "    "
-#include "nvvk/formats.hpp"
-#include "scene/vulkan_raster.hpp"
-#include "scene/vulkan_raytrace.hpp"
-#include "scene_context.hpp"
+#include "backend/vulkan/context.hpp"
+#include "backend/vulkan/vulkan_backend.hpp"
+#include "core/camera.hpp"
 #include "scene_resources.hpp"
-#include "shaders/compiler/slang.hpp"
+#include "shaders/post/tonemapper.hpp"
 
 class SceneManager
 {
 public:
-  SceneManager(VulkanContext* ctx)
+  SceneManager(VulkanContext* ctx, std::shared_ptr<VulkanBackend> backend)
   {
-    m_ctx = ctx;
-    m_scene_resources.init(m_ctx);
-
-    // Create the G-Buffers
-    nvvk::GBufferInitInfo gBufferInit{
-        .allocator = m_ctx->allocator,
-        .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT,
-                         VK_FORMAT_R8G8B8A8_UNORM},  // Render target, tonemapped
-        .depthFormat = nvvk::findDepthFormat(m_ctx->physicalDevice),
-        .imageSampler = m_scene_resources.sampler(),
-        .descriptorPool = m_ctx->textureDescriptorPool,
-    };
-    m_gBuffers.init(gBufferInit);
-
-    m_raster.init(m_ctx, &m_compiler);
-    m_ray_tracer.init(m_ctx, &m_compiler, &m_raster);
+    m_backend = std::move(backend);
+    m_scene_resources.init(ctx);
   }
 
-  void clear()
+  void clear(VulkanContext* ctx)
   {
-    m_scene_resources.clear(m_ctx);
-    m_raster.clear(m_ctx);
-    m_ray_tracer.clear(m_ctx);
-    m_tonemapper.deinit();
-    m_gBuffers.deinit();
+    m_scene_resources.clear(ctx);
+    m_backend->clear();
   }
 
-  void postInit()
-  {
-    m_scene_resources.updateTextures(m_raster.descPack(), m_ctx);
-    m_ray_tracer.createPipeline(m_ctx, m_scene_resources);
-    // Initialize the tonemapper also with proe-compiled shader
-    m_tonemapper.init(m_ctx->allocator, std::span(tonemapper_slang));
-  }
+  void postInit() { m_backend->init(m_scene_resources); }
 
   void render(VkCommandBuffer cmd, bool raytrace)
   {
@@ -69,76 +44,42 @@ public:
         .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
         .metallicRoughnessOverride = m_metallicRoughnessOverride,
     };
-
-    if (raytrace)
-    {
-      m_ray_tracer.render(cmd, m_gBuffers, m_ctx, pushValues);
-    }
-    else
-    {
-      m_raster.render(cmd, m_gBuffers, m_scene_resources, m_cameraManip, pushValues);
-    }
+    m_backend->render(cmd, m_camera, m_scene_resources, raytrace, pushValues);
   }
 
-  void post_process(VkCommandBuffer cmd)
-  {
-    // Default post-processing: tonemapping
-    m_tonemapper.runCompute(cmd, m_gBuffers.getSize(), m_tonemapperData,
-                            m_gBuffers.getDescriptorImageInfo(0),
-                            m_gBuffers.getDescriptorImageInfo(1));
-  }
+  // --------------------------------------------------
+  // Rendering / Post-processing
+  // --------------------------------------------------
+  void post_process(VkCommandBuffer cmd) { m_backend->post_process(cmd); }
+  void reload(bool use_raytracing) { m_backend->reload(use_raytracing); }
+  VkImage get_image(int buffer_idx) { return m_backend->get_image(buffer_idx); }
+  void onResize(VkCommandBuffer cmd, const VkExtent2D& size) { m_backend->onResize(cmd, size); }
 
-  void reload(bool use_raytracing)
-  {
-    if (use_raytracing)
-    {
-      m_ray_tracer.createRayTracingPipeline(m_ctx);
-    }
-    else
-    {
-      m_raster.reload(m_ctx->device);
-    }
-  }
-
-  VkImage get_image(int buffer_idx) { return m_gBuffers.getColorImage(buffer_idx); }
-
-  void onResize(VkCommandBuffer cmd, const VkExtent2D& size)
-  {
-    NVVK_CHECK(m_gBuffers.update(cmd, size));
-  }
-
-  std::shared_ptr<nvutils::CameraManipulator> camera() const { return m_cameraManip; }
+  // --------------------------------------------------
+  // Scene / Resources
+  // --------------------------------------------------
   nvsamples::GltfSceneResource& gltf_resources() { return m_scene_resources.data(); }
   const nvsamples::GltfSceneResource& gltf_resources() const { return m_scene_resources.data(); }
   SceneResources& scene_resources() { return m_scene_resources; }
-  const nvvk::GBuffer& gbuffers() const { return m_gBuffers; }
 
-  shaderio::TonemapperData& tonemapper() { return m_tonemapperData; }
+  // --------------------------------------------------
+  // Rendering parameters
+  // --------------------------------------------------
+  shaderio::TonemapperData& tonemapper() { return m_backend->post_processor().data(); }
   glm::vec2& metallic_roughness() { return m_metallicRoughnessOverride; }
 
-  void set_camera(std::shared_ptr<nvutils::CameraManipulator> camera)
-  {
-    m_cameraManip = std::move(camera);
-  }
+  // --------------------------------------------------
+  // Camera
+  // --------------------------------------------------
+  void set_camera(CameraPtr camera) { m_camera = std::move(camera); }
+  CameraPtr camera() const { return m_camera; }
 
 private:
-  VulkanContext* m_ctx = nullptr;
-
-  nvvk::GBuffer m_gBuffers{};  // The G-Buffer
-  // Camera manipulator
-  std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
-      std::make_shared<nvutils::CameraManipulator>()};
-
-  VulkanRaster m_raster;
-  VulkanRayTracer m_ray_tracer;
+  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
   SceneResources m_scene_resources{};
+  std::shared_ptr<VulkanBackend> m_backend = nullptr;
 
-  nvshaders::Tonemapper m_tonemapper{};  // Tonemapper for post-processing effects
-  shaderio::TonemapperData
-      m_tonemapperData{};  // Tonemapper data used to pass parameters to the tonemapper shader
   glm::vec2 m_metallicRoughnessOverride{
       -0.01f, -0.01f};  // Override values for metallic and roughness, used
                         // in the UI to control the material properties
-
-  SlangShaderCompiler m_compiler{nvsamples::getShaderDirs()};
 };

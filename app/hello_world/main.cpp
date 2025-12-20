@@ -168,7 +168,8 @@ public:
                             .textureDescriptorPool = m_app->getTextureDescriptorPool(),
                             .stagingUploader = m_stagingUploader};
 
-    m_scene_manager = std::make_unique<SceneManager>(ctx);
+    m_vulkan_backend = std::make_shared<VulkanBackend>(ctx);
+    m_scene_manager = std::make_unique<SceneManager>(ctx, m_vulkan_backend);
     m_scene_manager->set_camera(m_cameraManip);
 
     // Create scene
@@ -187,8 +188,7 @@ public:
     NVVK_CHECK(vkQueueWaitIdle(m_app->getQueue(0).queue));
 
     VkDevice device = m_app->getDevice();
-
-    m_scene_manager->clear();
+    m_scene_manager->clear(ctx);
     m_stagingUploader.deinit();
     m_allocator.deinit();
   }
@@ -203,7 +203,7 @@ public:
     // Display the rendering GBuffer in the ImGui window ("Viewport")
     if (ImGui::Begin("Viewport"))
     {
-      ImGui::Image(ImTextureID(m_scene_manager->gbuffers().getDescriptorSet(eImgTonemapped)),
+      ImGui::Image(ImTextureID(m_vulkan_backend->gbuffers().getDescriptorSet(eImgTonemapped)),
                    ImGui::GetContentRegionAvail());
     }
     ImGui::End();
@@ -388,7 +388,7 @@ public:
   void onLastHeadlessFrame() override
   {
     m_app->saveImageToFile(m_scene_manager->get_image(eImgTonemapped),
-                           m_scene_manager->gbuffers().getSize(),
+                           m_vulkan_backend->gbuffers().getSize(),
                            nvutils::getExecutablePath().replace_extension(".jpg").string());
   }
 
@@ -403,6 +403,7 @@ private:
   nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
 
   std::unique_ptr<SceneManager> m_scene_manager = nullptr;
+  std::shared_ptr<VulkanBackend> m_vulkan_backend = nullptr;
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
       std::make_shared<nvutils::CameraManipulator>()};
 

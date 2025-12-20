@@ -7,7 +7,7 @@
 #include <scene/gltf/gltf_utils.hpp>
 #include <vector>
 
-#include "scene/scene_context.hpp"
+#include "context.hpp"
 
 class AccelerationStructures
 {
