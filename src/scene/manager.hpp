@@ -18,7 +18,7 @@
 #include "_autogen/rtbasic.slang.h"     // Local shader
 #include "_autogen/sky_simple.slang.h"  // from nvpro_core2
 #include "_autogen/tonemapper.slang.h"  //   "    "
-#include "backend/vulkan/utils.hpp"     // Common utilities for the sample application
+#include "acceleration.hpp"
 #include "nvvk/default_structs.hpp"
 #include "nvvk/formats.hpp"
 #include "scene/gltf/gltf_utils.hpp"  // GLTF utilities for loading and importing GLTF models
@@ -77,8 +77,7 @@ public:
     m_rtDescPack.deinit();
     m_ctx->allocator->destroyBuffer(m_sbtBuffer);
 
-    m_asBuilder.deinitAccelerationStructures();
-    m_asBuilder.deinit();
+    m_accel.deinit();
     m_sbtGenerator.deinit();
   }
 
@@ -98,113 +97,23 @@ public:
     vkGetPhysicalDeviceProperties2(m_ctx->physicalDevice, &prop2);
 
     // Initialize acceleration structure builder
-    m_asBuilder.init(m_ctx->allocator, &m_ctx->stagingUploader, m_ctx->graphicsQueue);
+    m_accel.init(m_ctx);
 
     // Initialize SBT generator
     m_sbtGenerator.init(m_ctx->device, m_rtProperties);
 
-    // Set up acceleration structure infrastructure
-    createBottomLevelAS();  // Set up BLAS infrastructure
-    createTopLevelAS();     // Set up TLAS infrastructure
-    // Set up ray tracing pipeline infrastructure
-    createRaytraceDescriptorLayout();  // Create descriptor layout
-    createRayTracingPipeline();        // Create pipeline structure and SBT
+    create_ray_tracing_pipeline();
   }
 
   void create_ray_tracing_pipeline()
   {
     // Set up acceleration structure infrastructure
-    createBottomLevelAS();  // Set up BLAS infrastructure
-    createTopLevelAS();     // Set up TLAS infrastructure
+    m_accel.buildBLAS(gltf_resources());  // Set up BLAS infrastructure
+    m_accel.buildTLAS(gltf_resources());  // Set up TLAS infrastructure
 
     // Set up ray tracing pipeline infrastructure
     createRaytraceDescriptorLayout();  // Create descriptor layout
     createRayTracingPipeline();        // Create pipeline structure and SBT
-  }
-  //---------------------------------------------------------------------------------------------------------------
-  // Create bottom-level acceleration structures
-  void createBottomLevelAS()
-  {
-    SCOPED_TIMER(__FUNCTION__);
-
-    // Prepare geometry information for all meshes
-    std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(gltf_resources().meshes.size());
-    for (uint32_t p_idx = 0; p_idx < gltf_resources().meshes.size(); p_idx++)
-    {
-      geoInfos[p_idx] = primitiveToGeometry(gltf_resources().meshes[p_idx]);
-    }
-
-    // Build the bottom-level acceleration structures
-    m_asBuilder.blasSubmitBuildAndWait(geoInfos,
-                                       VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
-  }
-
-  //--------------------------------------------------------------------------------------------------
-  // Converting a PrimitiveMesh as input for BLAS
-  //
-  nvvk::AccelerationStructureGeometryInfo primitiveToGeometry(const shaderio::GltfMesh& gltfMesh)
-  {
-    nvvk::AccelerationStructureGeometryInfo result = {};
-
-    const shaderio::TriangleMesh triMesh = gltfMesh.triMesh;
-    const auto triangleCount = static_cast<uint32_t>(triMesh.indices.count / 3U);
-
-    // Describe buffer as array of VertexObj.
-    VkAccelerationStructureGeometryTrianglesDataKHR triangles{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-        .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,  // vec3 vertex position data
-        .vertexData = {.deviceAddress =
-                           VkDeviceAddress(gltfMesh.gltfBuffer) + triMesh.positions.offset},
-        .vertexStride = triMesh.positions.byteStride,
-        .maxVertex = triMesh.positions.count - 1,
-        .indexType = VkIndexType(
-            gltfMesh.indexType),  // Index type (VK_INDEX_TYPE_UINT16 or VK_INDEX_TYPE_UINT32)
-        .indexData = {.deviceAddress =
-                          VkDeviceAddress(gltfMesh.gltfBuffer) + triMesh.indices.offset},
-    };
-
-    // Identify the above data as containing opaque triangles.
-    result.geometry = VkAccelerationStructureGeometryKHR{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-        .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
-        .geometry = {.triangles = triangles},
-        .flags = VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR | VK_GEOMETRY_OPAQUE_BIT_KHR,
-    };
-
-    result.rangeInfo = VkAccelerationStructureBuildRangeInfoKHR{.primitiveCount = triangleCount};
-
-    return result;
-  }
-
-  //--------------------------------------------------------------------------------------------------
-  // Create the top level acceleration structures, referencing all BLAS
-  //
-  void createTopLevelAS()
-  {
-    SCOPED_TIMER(__FUNCTION__);
-
-    // Prepare instance data for TLAS
-    std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
-    tlasInstances.reserve(gltf_resources().instances.size());
-    const VkGeometryInstanceFlagsKHR flags{VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV};
-
-    for (const shaderio::GltfInstance& instance : gltf_resources().instances)
-    {
-      VkAccelerationStructureInstanceKHR ray_inst{};
-      ray_inst.transform =
-          nvvk::toTransformMatrixKHR(instance.transform);  // Position of the instance
-      ray_inst.instanceCustomIndex = instance.meshIndex;   // gl_InstanceCustomIndexEXT
-      ray_inst.accelerationStructureReference = m_asBuilder.blasSet[instance.meshIndex].address;
-      ray_inst.instanceShaderBindingTableRecordOffset =
-          0;  // We will use the same hit group for all objects
-      ray_inst.flags = flags;
-      ray_inst.mask = 0xFF;
-      tlasInstances.emplace_back(ray_inst);
-    }
-
-    // Build the top-level acceleration structure
-    m_asBuilder.tlasSubmitBuildAndWait(tlasInstances,
-                                       VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
   }
 
   //--------------------------------------------------------------------------------------------------
@@ -347,7 +256,7 @@ public:
 
     // Push descriptor sets for ray tracing
     nvvk::WriteSetContainer write{};
-    write.append(m_rtDescPack.makeWrite(shaderio::BindingPoints::eTlas), m_asBuilder.tlas);
+    write.append(m_rtDescPack.makeWrite(shaderio::BindingPoints::eTlas), m_accel.tlas());
     write.append(m_rtDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
                  m_gBuffers.getColorImageView(eImgRendered), VK_IMAGE_LAYOUT_GENERAL);
     vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipelineLayout, 1,
@@ -687,9 +596,10 @@ private:
   VkPipelineLayout m_rtPipelineLayout{};  // Ray tracing pipeline layout
 
   // Acceleration Structure Components
-  nvvk::AccelerationStructureHelper m_asBuilder{};  // Helper to create acceleration structures
-  nvvk::SBTGenerator m_sbtGenerator;                // Shader binding table wrapper
-  nvvk::Buffer m_sbtBuffer;                         // Buffer for shader binding table
+  AccelerationStructures m_accel;
+
+  nvvk::SBTGenerator m_sbtGenerator;  // Shader binding table wrapper
+  nvvk::Buffer m_sbtBuffer;           // Buffer for shader binding table
 
   // Ray Tracing Properties
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{

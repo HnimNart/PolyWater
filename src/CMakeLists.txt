@@ -8,8 +8,13 @@ file(GLOB_RECURSE LIB_SOURCES
 
 file(GLOB SHADERS_SOURCES shaders/*.*)
 
-message(STATUS "___ ${LIB_SOURCES}")
-message(STATUS "___ ${SHADERS_SOURCES}")
+foreach(src IN LISTS LIB_SOURCES)
+  message(STATUS "===> ${src}")
+endforeach()
+foreach(src IN LISTS SHADER_SOURCES)
+  message(STATUS "===> ${src}")
+endforeach()
+
 
 # Adding the library here does not actually create a build target,
 add_library(${LIB_NAME})
@@ -21,7 +26,6 @@ target_include_directories(${LIB_NAME} INTERFACE ${PROJECT_SOURCE_DIR} ${CMAKE_B
 # Add the current directory to include path for the library
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/_autogen)
 
-message(STATUS "ASadasdsa ${CMAKE_CURRENT_SOURCE_DIR}")
 # Add dependencies
 target_link_libraries(${LIB_NAME} PUBLIC
   glm
@@ -53,11 +57,8 @@ list(APPEND SHADER_SLANG_FILES
     ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
 )
 
-message(STATUS "___-- ${ROOT_DIR}")
 # Build shader include flags
 set(SHADER_INCLUDE_FLAGS "-I${NVSHADERS_DIR}" "-I${ROOT_DIR}" "-I${SHADER_DIR}" "-I${CMAKE_CURRENT_SOURCE_DIR}")
-
-message(STATUS "__AXASS ${SHADER_SLANG_FILES}")
 
 compile_slang(
     "${SHADER_SLANG_FILES}"
