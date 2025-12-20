@@ -74,6 +74,73 @@ public:
   RtBasic() = default;
   ~RtBasic() override = default;
 
+  void setup_scene(VkCommandBuffer cmd, VulkanContext* vulkan_ctx)
+  {
+    SceneResources& scene_resources = m_scene_manager->scene_resources();
+    SCOPED_TIMER(__FUNCTION__);
+    // Load the GLTF resources
+    {
+      tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf", ctx->stagingUploader);
+
+      tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf", ctx->stagingUploader);
+    }
+
+    // Textures
+    {
+      scene_resources.loadTexture("tiled_floor.png", cmd, vulkan_ctx);
+    }
+
+    // Teapot material
+    SceneResources::MaterialID teapot_id =
+        scene_resources.addMaterial({.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
+                                     .metallicFactor = 0.5f,
+                                     .roughnessFactor = 0.5f});
+    // Plane material with texture
+    SceneResources::MaterialID plane_id =
+        scene_resources.addMaterial({.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                     .metallicFactor = 0.1f,
+                                     .roughnessFactor = 0.8f,
+                                     .baseColorTextureIndex = 1});
+
+    // Teapot
+    scene_resources.addInstance({.transform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)) *
+                                              glm::scale(glm::mat4(1), glm::vec3(0.5f)),
+                                 .materialIndex = teapot_id,
+                                 .meshIndex = 0});
+    // Plane
+    scene_resources.addInstance(
+        {.transform =
+             glm::scale(glm::translate(glm::mat4(1), glm::vec3(0, -0.9f, 0)), glm::vec3(2.f)),
+         .materialIndex = plane_id,
+         .meshIndex = 1});
+
+    scene_resources.finalizeSceneResources(cmd, vulkan_ctx);
+
+    // Scene information
+    nvsamples::GltfSceneResource& gltf_resources = m_scene_manager->gltf_resources();
+    shaderio::GltfSceneInfo& sceneInfo = gltf_resources.sceneInfo;
+    sceneInfo.useSky = false;  // Use light
+    sceneInfo.instances = (shaderio::GltfInstance*)
+                              gltf_resources.bInstances.address;  // Address of the instance buffer
+    sceneInfo.meshes =
+        (shaderio::GltfMesh*) gltf_resources.bMeshes.address;  // Address of the mesh buffer
+    sceneInfo.materials = (shaderio::GltfMetallicRoughness*)
+                              gltf_resources.bMaterials.address;  // Address of the material buffer
+    sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f};            // The background color
+    sceneInfo.numLights = 1;
+    sceneInfo.punctualLights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
+    sceneInfo.punctualLights[0].intensity = 4.0f;
+    sceneInfo.punctualLights[0].position = glm::vec3(1.0f, 1.0f, 1.0f);   // Position of the light
+    sceneInfo.punctualLights[0].direction = glm::vec3(1.0f, 1.0f, 1.0f);  // Direction to the light
+    sceneInfo.punctualLights[0].type = shaderio::GltfLightType::ePoint;
+    sceneInfo.punctualLights[0].coneAngle =
+        0.9f;  // Cone angle for spot lights (0 for point and directional lights)
+
+    // Default camera
+    m_cameraManip->setClipPlanes({0.01F, 100.0F});
+    m_cameraManip->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
+  }
+
   //-------------------------------------------------------------------------------
   // Create the what is needed
   // - Called when the application initialize
@@ -90,19 +157,26 @@ public:
     };
     m_allocator.init(allocatorInfo);
     // m_allocator.setLeakID(14);  // Set a leak ID for the allocator to track memory leaks
+    // The VMA allocator is used for all allocations, the staging uploader will use it for staging
+    // buffers and images
+    m_stagingUploader.init(&m_allocator, true);
 
     ctx = new VulkanContext{.allocator = &m_allocator,
                             .physicalDevice = m_app->getPhysicalDevice(),
                             .device = m_app->getDevice(),
                             .graphicsQueue = m_app->getQueue(0),
                             .viewportSize = m_app->getViewportSize(),
-                            .textureDescriptorPool = m_app->getTextureDescriptorPool()};
+                            .textureDescriptorPool = m_app->getTextureDescriptorPool(),
+                            .stagingUploader = m_stagingUploader};
+
     m_scene_manager = std::make_unique<SceneManager>(ctx);
     m_scene_manager->set_camera(m_cameraManip);
+
+    // Create scene
     VkCommandBuffer cmd = m_app->createTempCmdBuffer();
-    m_scene_manager->createScene(cmd);
+    setup_scene(cmd, ctx);
     m_app->submitAndWaitTempCmdBuffer(cmd);  // Submit the command buffer to upload the resources
-    m_scene_manager->initPost();
+    m_scene_manager->postInit();
   }
 
   //-------------------------------------------------------------------------------
@@ -116,7 +190,7 @@ public:
     VkDevice device = m_app->getDevice();
 
     m_scene_manager->clear();
-
+    m_stagingUploader.deinit();
     m_allocator.deinit();
   }
 
@@ -146,54 +220,59 @@ public:
         nvgui::CameraWidget(m_scene_manager->camera());
       if (ImGui::CollapsingHeader("Environment"))
       {
-        ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager->resources().sceneInfo.useSky);
-        if (m_scene_manager->resources().sceneInfo.useSky)
-          nvgui::skySimpleParametersUI(m_scene_manager->resources().sceneInfo.skySimpleParam);
+        ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager->gltf_resources().sceneInfo.useSky);
+        if (m_scene_manager->gltf_resources().sceneInfo.useSky)
+          nvgui::skySimpleParametersUI(m_scene_manager->gltf_resources().sceneInfo.skySimpleParam);
         else
         {
           PE::begin();
           PE::ColorEdit3("Background",
-                         (float*) &m_scene_manager->resources().sceneInfo.backgroundColor);
+                         (float*) &m_scene_manager->gltf_resources().sceneInfo.backgroundColor);
           PE::end();
           // Light
           PE::begin();
-          if (m_scene_manager->resources().sceneInfo.punctualLights[0].type ==
+          if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
                   shaderio::GltfLightType::ePoint ||
-              m_scene_manager->resources().sceneInfo.punctualLights[0].type ==
+              m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
                   shaderio::GltfLightType::eSpot)
           {
             PE::DragFloat3(
                 "Light Position",
-                glm::value_ptr(m_scene_manager->resources().sceneInfo.punctualLights[0].position),
+                glm::value_ptr(
+                    m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].position),
                 1.0f, -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None, "Position of the light");
           }
-          if (m_scene_manager->resources().sceneInfo.punctualLights[0].type ==
+          if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
                   shaderio::GltfLightType::eDirectional ||
-              m_scene_manager->resources().sceneInfo.punctualLights[0].type ==
+              m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
                   shaderio::GltfLightType::eSpot)
           {
             PE::SliderFloat3(
                 "Light Direction",
-                glm::value_ptr(m_scene_manager->resources().sceneInfo.punctualLights[0].direction),
+                glm::value_ptr(
+                    m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].direction),
                 -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None, "Direction of the light");
           }
 
           PE::SliderFloat("Light Intensity",
-                          &m_scene_manager->resources().sceneInfo.punctualLights[0].intensity, 0.0f,
-                          1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic, "Intensity of the light");
+                          &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].intensity,
+                          0.0f, 1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic,
+                          "Intensity of the light");
           PE::ColorEdit3(
               "Light Color",
-              glm::value_ptr(m_scene_manager->resources().sceneInfo.punctualLights[0].color),
+              glm::value_ptr(m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].color),
               ImGuiColorEditFlags_NoInputs, "Color of the light");
-          PE::Combo(
-              "Light Type", (int*) &m_scene_manager->resources().sceneInfo.punctualLights[0].type,
-              "Point\0Spot\0Directional\0", 3, "Type of the light (Point, Spot, Directional)");
-          if (m_scene_manager->resources().sceneInfo.punctualLights[0].type ==
+          PE::Combo("Light Type",
+                    (int*) &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type,
+                    "Point\0Spot\0Directional\0", 3,
+                    "Type of the light (Point, Spot, Directional)");
+          if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
               shaderio::GltfLightType::eSpot)
           {
             PE::SliderAngle(
-                "Cone Angle", &m_scene_manager->resources().sceneInfo.punctualLights[0].coneAngle,
-                0.f, 90.f, "%.2f", ImGuiSliderFlags_AlwaysClamp, "Cone angle of the spot light");
+                "Cone Angle",
+                &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].coneAngle, 0.f, 90.f,
+                "%.2f", ImGuiSliderFlags_AlwaysClamp, "Cone angle of the spot light");
           }
           PE::end();
         }
@@ -293,33 +372,34 @@ public:
     const glm::mat4& viewMatrix = m_scene_manager->camera()->getViewMatrix();
     const glm::mat4& projMatrix = m_scene_manager->camera()->getPerspectiveMatrix();
 
-    m_scene_manager->resources().sceneInfo.viewProjMatrix =
+    m_scene_manager->gltf_resources().sceneInfo.viewProjMatrix =
         projMatrix * viewMatrix;  // Combine the view and projection matrices
-    m_scene_manager->resources().sceneInfo.projInvMatrix =
+    m_scene_manager->gltf_resources().sceneInfo.projInvMatrix =
         glm::inverse(projMatrix);  // Inverse projection matrix
-    m_scene_manager->resources().sceneInfo.viewInvMatrix =
+    m_scene_manager->gltf_resources().sceneInfo.viewInvMatrix =
         glm::inverse(viewMatrix);  // Inverse view matrix
-    m_scene_manager->resources().sceneInfo.cameraPosition =
+    m_scene_manager->gltf_resources().sceneInfo.cameraPosition =
         m_scene_manager->camera()->getEye();  // Get the camera position
-    m_scene_manager->resources().sceneInfo.instances =
-        (shaderio::GltfInstance*) m_scene_manager->resources()
+    m_scene_manager->gltf_resources().sceneInfo.instances =
+        (shaderio::GltfInstance*) m_scene_manager->gltf_resources()
             .bInstances.address;  // Get the address of the instance buffer
-    m_scene_manager->resources().sceneInfo.meshes =
-        (shaderio::GltfMesh*) m_scene_manager->resources()
+    m_scene_manager->gltf_resources().sceneInfo.meshes =
+        (shaderio::GltfMesh*) m_scene_manager->gltf_resources()
             .bMeshes.address;  // Get the address of the mesh buffer
-    m_scene_manager->resources().sceneInfo.materials =
-        (shaderio::GltfMetallicRoughness*) m_scene_manager->resources()
+    m_scene_manager->gltf_resources().sceneInfo.materials =
+        (shaderio::GltfMetallicRoughness*) m_scene_manager->gltf_resources()
             .bMaterials.address;  // Get the address of the material buffer
 
     // Making sure the scene information buffer is updated before rendering
     // Wait that the fragment shader is done reading the previous scene information and wait for the
     // transfer to complete
-    nvvk::cmdBufferMemoryBarrier(cmd, {m_scene_manager->resources().bSceneInfo.buffer,
+    nvvk::cmdBufferMemoryBarrier(cmd, {m_scene_manager->gltf_resources().bSceneInfo.buffer,
                                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                        VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-    vkCmdUpdateBuffer(cmd, m_scene_manager->resources().bSceneInfo.buffer, 0,
-                      sizeof(shaderio::GltfSceneInfo), &m_scene_manager->resources().sceneInfo);
-    nvvk::cmdBufferMemoryBarrier(cmd, {m_scene_manager->resources().bSceneInfo.buffer,
+    vkCmdUpdateBuffer(cmd, m_scene_manager->gltf_resources().bSceneInfo.buffer, 0,
+                      sizeof(shaderio::GltfSceneInfo),
+                      &m_scene_manager->gltf_resources().sceneInfo);
+    nvvk::cmdBufferMemoryBarrier(cmd, {m_scene_manager->gltf_resources().bSceneInfo.buffer,
                                        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
   }
@@ -339,6 +419,8 @@ private:
   nvapp::Application* m_app{};  // The application framework
   nvvk::ResourceAllocator
       m_allocator{};  // Resource allocator for Vulkan resources, used for buffers and images
+  nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
+
   std::unique_ptr<SceneManager> m_scene_manager = nullptr;
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
       std::make_shared<nvutils::CameraManipulator>()};

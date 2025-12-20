@@ -14,7 +14,8 @@ struct VulkanContext
   nvvk::ResourceAllocator* allocator = nullptr;
   VkPhysicalDevice physicalDevice{};
   VkDevice device{};
-  nvvk::QueueInfo graphicsQueue{};
-  VkExtent2D viewportSize{};
+  nvvk::QueueInfo graphicsQueue;
+  const VkExtent2D& viewportSize{};
   VkDescriptorPool textureDescriptorPool{};
+  nvvk::StagingUploader& stagingUploader;  // Utility to upload data to the GPU
 };

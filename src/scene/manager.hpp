@@ -19,11 +19,11 @@
 #include "_autogen/sky_simple.slang.h"  // from nvpro_core2
 #include "_autogen/tonemapper.slang.h"  //   "    "
 #include "backend/vulkan/utils.hpp"     // Common utilities for the sample application
-#include "common/path_utils.hpp"        // Path utilities for handling resources file paths
 #include "nvvk/default_structs.hpp"
 #include "nvvk/formats.hpp"
 #include "scene/gltf/gltf_utils.hpp"  // GLTF utilities for loading and importing GLTF models
 #include "scene_context.hpp"
+#include "scene_resources.hpp"
 #include "shaders/compiler/slang.hpp"
 
 class SceneManager
@@ -39,16 +39,7 @@ public:
   SceneManager(VulkanContext* ctx)
   {
     m_ctx = ctx;
-    // The VMA allocator is used for all allocations, the staging uploader will use it for staging
-    // buffers and images
-    m_stagingUploader.init(m_ctx->allocator, true);
-
-    // Acquiring the texture sampler which will be used for displaying the GBuffer
-    m_samplerPool.init(m_ctx->device);
-
-    VkSampler linearSampler{};
-    NVVK_CHECK(m_samplerPool.acquireSampler(linearSampler));
-    NVVK_DBG_NAME(linearSampler);
+    m_scene_resources.init(m_ctx);
 
     // Create the G-Buffers
     nvvk::GBufferInitInfo gBufferInit{
@@ -56,7 +47,7 @@ public:
         .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT,
                          VK_FORMAT_R8G8B8A8_UNORM},  // Render target, tonemapped
         .depthFormat = nvvk::findDepthFormat(m_ctx->physicalDevice),
-        .imageSampler = linearSampler,
+        .imageSampler = m_scene_resources.sampler(),
         .descriptorPool = m_ctx->textureDescriptorPool,
     };
     m_gBuffers.init(gBufferInit);
@@ -70,29 +61,15 @@ public:
   {
     m_descPack.deinit();
 
-    for (auto& texture : m_textures)
-    {
-      m_ctx->allocator->destroyImage(texture);
-    }
+    m_scene_resources.clear(m_ctx->allocator);
 
     vkDestroyPipelineLayout(m_ctx->device, m_graphicPipelineLayout, nullptr);
     vkDestroyShaderEXT(m_ctx->device, m_vertexShader, nullptr);
     vkDestroyShaderEXT(m_ctx->device, m_fragmentShader, nullptr);
 
-    m_ctx->allocator->destroyBuffer(m_sceneResource.bSceneInfo);
-    m_ctx->allocator->destroyBuffer(m_sceneResource.bMeshes);
-    m_ctx->allocator->destroyBuffer(m_sceneResource.bMaterials);
-    m_ctx->allocator->destroyBuffer(m_sceneResource.bInstances);
-    for (auto& gltfData : m_sceneResource.bGltfDatas)
-    {
-      m_ctx->allocator->destroyBuffer(gltfData);
-    }
-
     m_skySimple.deinit();
     m_tonemapper.deinit();
     m_gBuffers.deinit();
-    m_stagingUploader.deinit();
-    m_samplerPool.deinit();
 
     // Cleanup acceleration structures
     vkDestroyPipelineLayout(m_ctx->device, m_rtPipelineLayout, nullptr);
@@ -105,9 +82,9 @@ public:
     m_sbtGenerator.deinit();
   }
 
-  void initPost()
+  void postInit()
   {
-    updateTextures();
+    m_scene_resources.updateTextures(m_descPack, m_ctx);
 
     // Initialize the Sky with the pre-compiled shader
     m_skySimple.init(m_ctx->allocator, std::span(sky_simple_slang));
@@ -121,7 +98,7 @@ public:
     vkGetPhysicalDeviceProperties2(m_ctx->physicalDevice, &prop2);
 
     // Initialize acceleration structure builder
-    m_asBuilder.init(m_ctx->allocator, &m_stagingUploader, m_ctx->graphicsQueue);
+    m_asBuilder.init(m_ctx->allocator, &m_ctx->stagingUploader, m_ctx->graphicsQueue);
 
     // Initialize SBT generator
     m_sbtGenerator.init(m_ctx->device, m_rtProperties);
@@ -132,96 +109,6 @@ public:
     // Set up ray tracing pipeline infrastructure
     createRaytraceDescriptorLayout();  // Create descriptor layout
     createRayTracingPipeline();        // Create pipeline structure and SBT
-  }
-
-  //---------------------------------------------------------------------------------------------------------------
-  // Create the scene for this sample
-  // - Load a teapot, a plane and an image.
-  // - Create instances for them, assign a material and a transformation
-  void createScene(VkCommandBuffer cmd)
-  {
-    SCOPED_TIMER(__FUNCTION__);
-    // Load the GLTF resources
-    {
-      tinygltf::Model teapotModel = nvsamples::loadGltfResources(nvutils::findFile(
-          "teapot.gltf",
-          nvsamples::getResourcesDirs()));  // Load the GLTF resources from the file
-
-      tinygltf::Model planeModel = nvsamples::loadGltfResources(nvutils::findFile(
-          "plane.gltf", nvsamples::getResourcesDirs()));  // Load the GLTF resources from the file
-
-      // Textures
-      {
-        std::filesystem::path imageFilename =
-            nvutils::findFile("tiled_floor.png", nvsamples::getResourcesDirs());
-        nvvk::Image texture = nvsamples::loadAndCreateImage(
-            cmd, m_stagingUploader, m_ctx->device,
-            imageFilename);  // Load the image from the file and create a texture from it
-        NVVK_DBG_NAME(texture.image);
-        m_samplerPool.acquireSampler(texture.descriptor.sampler);
-        m_textures.emplace_back(texture);  // Store the texture in the vector of textures
-      }
-
-      // Upload the GLTF resources to the GPU
-      {
-        nvsamples::importGltfData(m_sceneResource, teapotModel,
-                                  m_stagingUploader);  // Import the GLTF resources
-        nvsamples::importGltfData(m_sceneResource, planeModel,
-                                  m_stagingUploader);  // Import the GLTF resources
-      }
-    }
-
-    m_sceneResource.materials = {// Teapot material
-                                 {.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
-                                  .metallicFactor = 0.5f,
-                                  .roughnessFactor = 0.5f},
-                                 // Plane material with texture
-                                 {.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                  .metallicFactor = 0.1f,
-                                  .roughnessFactor = 0.8f,
-                                  .baseColorTextureIndex = 1}};
-
-    m_sceneResource.instances = {
-        // Teapot
-        {.transform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)) *
-                      glm::scale(glm::mat4(1), glm::vec3(0.5f)),
-         .materialIndex = 0,
-         .meshIndex = 0},
-        // Plane
-        {.transform =
-             glm::scale(glm::translate(glm::mat4(1), glm::vec3(0, -0.9f, 0)), glm::vec3(2.f)),
-         .materialIndex = 1,
-         .meshIndex = 1},
-    };
-
-    nvsamples::createGltfSceneInfoBuffer(
-        m_sceneResource,
-        m_stagingUploader);  // Create buffers for the scene data (GPU buffers)
-
-    m_stagingUploader.cmdUploadAppended(cmd);  // Upload the scene information to the GPU
-
-    // Scene information
-    shaderio::GltfSceneInfo& sceneInfo = m_sceneResource.sceneInfo;
-    sceneInfo.useSky = false;  // Use light
-    sceneInfo.instances = (shaderio::GltfInstance*)
-                              m_sceneResource.bInstances.address;  // Address of the instance buffer
-    sceneInfo.meshes =
-        (shaderio::GltfMesh*) m_sceneResource.bMeshes.address;  // Address of the mesh buffer
-    sceneInfo.materials = (shaderio::GltfMetallicRoughness*)
-                              m_sceneResource.bMaterials.address;  // Address of the material buffer
-    sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f};             // The background color
-    sceneInfo.numLights = 1;
-    sceneInfo.punctualLights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
-    sceneInfo.punctualLights[0].intensity = 4.0f;
-    sceneInfo.punctualLights[0].position = glm::vec3(1.0f, 1.0f, 1.0f);   // Position of the light
-    sceneInfo.punctualLights[0].direction = glm::vec3(1.0f, 1.0f, 1.0f);  // Direction to the light
-    sceneInfo.punctualLights[0].type = shaderio::GltfLightType::ePoint;
-    sceneInfo.punctualLights[0].coneAngle =
-        0.9f;  // Cone angle for spot lights (0 for point and directional lights)
-
-    // Default camera
-    m_cameraManip->setClipPlanes({0.01F, 100.0F});
-    m_cameraManip->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
   }
 
   void create_ray_tracing_pipeline()
@@ -241,10 +128,10 @@ public:
     SCOPED_TIMER(__FUNCTION__);
 
     // Prepare geometry information for all meshes
-    std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(resources().meshes.size());
-    for (uint32_t p_idx = 0; p_idx < resources().meshes.size(); p_idx++)
+    std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(gltf_resources().meshes.size());
+    for (uint32_t p_idx = 0; p_idx < gltf_resources().meshes.size(); p_idx++)
     {
-      geoInfos[p_idx] = primitiveToGeometry(resources().meshes[p_idx]);
+      geoInfos[p_idx] = primitiveToGeometry(gltf_resources().meshes[p_idx]);
     }
 
     // Build the bottom-level acceleration structures
@@ -298,10 +185,10 @@ public:
 
     // Prepare instance data for TLAS
     std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
-    tlasInstances.reserve(resources().instances.size());
+    tlasInstances.reserve(gltf_resources().instances.size());
     const VkGeometryInstanceFlagsKHR flags{VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV};
 
-    for (const shaderio::GltfInstance& instance : resources().instances)
+    for (const shaderio::GltfInstance& instance : gltf_resources().instances)
     {
       VkAccelerationStructureInstanceKHR ray_inst{};
       ray_inst.transform =
@@ -468,7 +355,7 @@ public:
 
     // Push constant information
     shaderio::TutoPushConstant pushValues{
-        .sceneInfoAddress = (shaderio::GltfSceneInfo*) resources().bSceneInfo.address,
+        .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
         .metallicRoughnessOverride = m_metallicRoughnessOverride,
     };
     const VkPushConstantsInfo pushInfo{.sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
@@ -559,23 +446,6 @@ public:
     NVVK_DBG_NAME(m_graphicPipelineLayout);
   }
 
-  //--------------------------------------------------------------------------------------------------
-  // Update the textures: this is called when the scene is loaded
-  // Textures are updated in the descriptor set (0)
-  void updateTextures()
-  {
-    if (m_textures.empty())
-      return;
-
-    // Update the descriptor set with the textures
-    nvvk::WriteSetContainer write{};
-    VkWriteDescriptorSet allTextures =
-        m_descPack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1, uint32_t(m_textures.size()));
-    nvvk::Image* allImages = m_textures.data();
-    write.append(allTextures, allImages);
-    vkUpdateDescriptorSets(m_ctx->device, write.size(), write.data(), 0, nullptr);
-  }
-
   //---------------------------------------------------------------------------------------------------------------
   // Compile the graphics shaders and create the shader modules.
   // This function only creates vertex and fragment shader modules for the graphics pipeline.
@@ -649,7 +519,7 @@ public:
     // Push constant information, see usage later
     shaderio::TutoPushConstant pushValues{
         .sceneInfoAddress =
-            (shaderio::GltfSceneInfo*) resources()
+            (shaderio::GltfSceneInfo*) gltf_resources()
                 .bSceneInfo
                 .address,  // Pass the address of the scene information buffer to the shader
         .metallicRoughnessOverride =
@@ -665,26 +535,26 @@ public:
     };
 
     // Rendering the Sky
-    if (resources().sceneInfo.useSky)
+    if (gltf_resources().sceneInfo.useSky)
     {
       const glm::mat4& viewMatrix = camera()->getViewMatrix();
       const glm::mat4& projMatrix = camera()->getPerspectiveMatrix();
       m_skySimple.runCompute(cmd, m_ctx->viewportSize, viewMatrix, projMatrix,
-                             resources().sceneInfo.skySimpleParam,
+                             gltf_resources().sceneInfo.skySimpleParam,
                              m_gBuffers.getDescriptorImageInfo(0));
     }
 
     // Rendering to the GBuffer
     VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
     colorAttachment.loadOp =
-        resources().sceneInfo.useSky
+        gltf_resources().sceneInfo.useSky
             ? VK_ATTACHMENT_LOAD_OP_LOAD
             : VK_ATTACHMENT_LOAD_OP_CLEAR;  // Load the previous content of the GBuffer color
                                             // attachment (Sky rendering)
     colorAttachment.imageView = m_gBuffers.getColorImageView(0);
-    colorAttachment.clearValue = {.color = {resources().sceneInfo.backgroundColor.x,
-                                            resources().sceneInfo.backgroundColor.y,
-                                            resources().sceneInfo.backgroundColor.z, 1.0f}};
+    colorAttachment.clearValue = {.color = {gltf_resources().sceneInfo.backgroundColor.x,
+                                            gltf_resources().sceneInfo.backgroundColor.y,
+                                            gltf_resources().sceneInfo.backgroundColor.z, 1.0f}};
 
     VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
     depthAttachment.imageView = m_gBuffers.getDepthImageView();
@@ -730,21 +600,21 @@ public:
     VkVertexInputAttributeDescription2EXT attributeDescription = {};
     vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
-    for (size_t i = 0; i < resources().instances.size(); i++)
+    for (size_t i = 0; i < gltf_resources().instances.size(); i++)
     {
-      uint32_t meshIndex = resources().instances[i].meshIndex;
-      const shaderio::GltfMesh& gltfMesh = resources().meshes[meshIndex];
+      uint32_t meshIndex = gltf_resources().instances[i].meshIndex;
+      const shaderio::GltfMesh& gltfMesh = gltf_resources().meshes[meshIndex];
       const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
       // Push constant is information that is passed to the shader at each draw call.
       pushValues.normalMatrix =
-          glm::transpose(glm::inverse(glm::mat3(resources().instances[i].transform)));
+          glm::transpose(glm::inverse(glm::mat3(gltf_resources().instances[i].transform)));
       pushValues.instanceIndex = int(i);  // The index of the instance in the m_instances vector
       vkCmdPushConstants2(cmd, &pushInfo);
 
       // Get the buffer directly using the pre-computed mapping
-      uint32_t bufferIndex = resources().meshToBufferIndex[meshIndex];
-      const nvvk::Buffer& v = resources().bGltfDatas[bufferIndex];
+      uint32_t bufferIndex = gltf_resources().meshToBufferIndex[meshIndex];
+      const nvvk::Buffer& v = gltf_resources().bGltfDatas[bufferIndex];
 
       // Bind index buffers
       vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset, VkIndexType(gltfMesh.indexType));
@@ -768,8 +638,9 @@ public:
   }
 
   std::shared_ptr<nvutils::CameraManipulator> camera() const { return m_cameraManip; }
-  nvsamples::GltfSceneResource& resources() { return m_sceneResource; }
-  const nvsamples::GltfSceneResource& resources() const { return m_sceneResource; }
+  nvsamples::GltfSceneResource& gltf_resources() { return m_scene_resources.data(); }
+  const nvsamples::GltfSceneResource& gltf_resources() const { return m_scene_resources.data(); }
+  SceneResources& scene_resources() { return m_scene_resources; }
   const nvvk::GBuffer& gbuffers() const { return m_gBuffers; }
 
   shaderio::TonemapperData& tonemapper() { return m_tonemapperData; }
@@ -780,12 +651,10 @@ public:
     m_cameraManip = std::move(camera);
   }
 
-public:
+private:
   VulkanContext* m_ctx = nullptr;
 
-  nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
-  nvvk::SamplerPool m_samplerPool{};          // Texture sampler pool
-  nvvk::GBuffer m_gBuffers{};                 // The G-Buffer
+  nvvk::GBuffer m_gBuffers{};  // The G-Buffer
   // Camera manipulator
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
       std::make_shared<nvutils::CameraManipulator>()};
@@ -798,22 +667,19 @@ public:
                                     // layout and descriptor sets
   VkPipelineLayout m_graphicPipelineLayout{};  // The pipeline layout use with graphics pipeline
 
+  SceneResources m_scene_resources{};
+
   // Shaders
   VkShaderEXT m_vertexShader{};    // The vertex shader used to render the scene
   VkShaderEXT m_fragmentShader{};  // The fragment shader used to render the scene
-
-  // Scene information buffer (UBO)
-  nvsamples::GltfSceneResource m_sceneResource{};  // The GLTF scene resource, contains all the
-                                                   // buffers and data for the scene
-  std::vector<nvvk::Image> m_textures{};           // Textures used in the scene
 
   nvshaders::SkySimple m_skySimple{};    // Sky rendering
   nvshaders::Tonemapper m_tonemapper{};  // Tonemapper for post-processing effects
   shaderio::TonemapperData
       m_tonemapperData{};  // Tonemapper data used to pass parameters to the tonemapper shader
   glm::vec2 m_metallicRoughnessOverride{
-      -0.01f, -0.01f};  // Override values for metallic and roughness, used in the UI to control
-                        // the material properties
+      -0.01f, -0.01f};  // Override values for metallic and roughness, used
+                        // in the UI to control the material properties
 
   // Ray Tracing Pipeline Components
   nvvk::DescriptorPack m_rtDescPack;      // Ray tracing descriptor bindings
