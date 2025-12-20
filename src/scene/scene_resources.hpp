@@ -18,7 +18,10 @@ public:
   using InstanceID = uint;
   using MaterialID = uint;
 
-  void init(std::shared_ptr<VulkanSceneResources> gpu_uploader) { m_gpu_uploader = gpu_uploader; }
+  void init(std::shared_ptr<VulkanSceneResources> gpu_uploader)
+  {
+    m_gpu_uploader = std::move(gpu_uploader);
+  }
 
   tinygltf::Model loadGltf(const std::string& filename)
   {

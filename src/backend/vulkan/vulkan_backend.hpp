@@ -41,6 +41,7 @@ public:
     m_ray_tracer.clear(m_ctx);
     m_gBuffers.deinit();
     m_resources.reset();
+    m_post.clear();
   }
 
   void reload(bool use_raytracing) override

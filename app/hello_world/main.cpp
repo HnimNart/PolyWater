@@ -154,7 +154,7 @@ public:
         .vulkanApiVersion = VK_API_VERSION_1_4,
     };
     m_allocator.init(allocatorInfo);
-    // m_allocator.setLeakID(14);  // Set a leak ID for the allocator to track memory leaks
+    // m_allocator.setLeakID(0);  // Set a leak ID for the allocator to track memory leaks
     // The VMA allocator is used for all allocations, the staging uploader will use it for staging
     // buffers and images
     m_stagingUploader.init(&m_allocator, true);
