@@ -76,24 +76,24 @@ public:
 
   void setup_scene(VkCommandBuffer cmd, VulkanContext* vulkan_ctx)
   {
-    SceneResources& scene_resources = m_scene_manager->scene_resources();
+    CpuSceneResources& scene_resources = m_scene_manager->scene_resources();
     SCOPED_TIMER(__FUNCTION__);
     // Load the GLTF resources
-    tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf", ctx->stagingUploader);
-    tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf", ctx->stagingUploader);
+    tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf");
+    tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf");
 
     // Textures
     {
-      scene_resources.loadTexture("tiled_floor.png", cmd, vulkan_ctx);
+      scene_resources.loadTexture("tiled_floor.png", cmd);
     }
 
     // Teapot material
-    SceneResources::MaterialID teapot_id =
+    CpuSceneResources::MaterialID teapot_id =
         scene_resources.addMaterial({.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
                                      .metallicFactor = 0.5f,
                                      .roughnessFactor = 0.5f});
     // Plane material with texture
-    SceneResources::MaterialID plane_id =
+    CpuSceneResources::MaterialID plane_id =
         scene_resources.addMaterial({.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                      .metallicFactor = 0.1f,
                                      .roughnessFactor = 0.8f,
@@ -111,7 +111,7 @@ public:
          .materialIndex = plane_id,
          .meshIndex = 1});
 
-    scene_resources.finalizeSceneResources(cmd, vulkan_ctx);
+    scene_resources.finalizeSceneResources(cmd);
 
     // Scene information
     nvsamples::GltfSceneResource& gltf_resources = m_scene_manager->gltf_resources();
@@ -143,7 +143,6 @@ public:
   // - Called when the application initialize
   void onAttach(nvapp::Application* app) override
   {
-
     m_app = app;
 
     // Initialize the VMA allocator

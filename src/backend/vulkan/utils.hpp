@@ -22,22 +22,11 @@
 #include <vulkan/vulkan_core.h>
 
 #include <filesystem>
-#include <span>
-#include <string>
-#include <vector>
+#include <nvvk/resources.hpp>
+#include <nvvk/staging.hpp>
 
 namespace nvsamples
 {
-
-inline static VkShaderModuleCreateInfo
-getShaderModuleCreateInfo(const std::span<const uint32_t>& spirv)
-{
-  return VkShaderModuleCreateInfo{
-      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      .codeSize = spirv.size_bytes(),
-      .pCode = spirv.data(),
-  };
-}
 
 nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& staging, VkDevice device,
                                const std::filesystem::path& filename, bool sRgb = true);

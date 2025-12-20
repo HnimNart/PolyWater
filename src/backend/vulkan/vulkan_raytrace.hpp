@@ -19,39 +19,40 @@ class VulkanRayTracer
 public:
   void init(VulkanContext* ctx, SlangShaderCompiler* compiler, VulkanRaster* raster)
   {
+    m_ctx = ctx;
     m_compiler = compiler;
     m_raster = raster;
   }
 
-  void createPipeline(VulkanContext* ctx, const SceneResources& scene)
+  void createPipeline(const CpuSceneResources& scene)
   {
     // Get ray tracing properties
     VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
     prop2.pNext = &m_properties;
-    vkGetPhysicalDeviceProperties2(ctx->physicalDevice, &prop2);
+    vkGetPhysicalDeviceProperties2(m_ctx->physicalDevice, &prop2);
     // Initialize acceleration structure builder
-    m_accel.init(ctx);
+    m_accel.init(m_ctx);
 
     // Initialize SBT generator
-    m_sbtGenerator.init(ctx->device, m_properties);
+    m_sbtGenerator.init(m_ctx->device, m_properties);
 
-    create_ray_tracing_pipeline(ctx, scene);
+    create_ray_tracing_pipeline(scene);
   }
 
-  void create_ray_tracing_pipeline(VulkanContext* ctx, const SceneResources& scene)
+  void create_ray_tracing_pipeline(const CpuSceneResources& scene)
   {
     // Set up acceleration structure infrastructure
     m_accel.buildBLAS(scene.data());  // Set up BLAS infrastructure
     m_accel.buildTLAS(scene.data());  // Set up TLAS infrastructure
 
     // Set up ray tracing pipeline infrastructure
-    createRaytraceDescriptorLayout(ctx);  // Create descriptor layout
-    createRayTracingPipeline(ctx);        // Create pipeline structure and SBT
+    createRaytraceDescriptorLayout();  // Create descriptor layout
+    createRayTracingPipeline();        // Create pipeline structure and SBT
   }
 
   //--------------------------------------------------------------------------------------------------
   // Create the descriptor set layout for ray tracing
-  void createRaytraceDescriptorLayout(VulkanContext* ctx)
+  void createRaytraceDescriptorLayout()
   {
     SCOPED_TIMER(__FUNCTION__);
     nvvk::DescriptorBindings bindings;
@@ -65,7 +66,7 @@ public:
                          .stageFlags = VK_SHADER_STAGE_ALL});
 
     // Creating a PUSH descriptor set and set layout from the bindings
-    m_descPack.init(bindings, ctx->device, 0,
+    m_descPack.init(bindings, m_ctx->device, 0,
                     VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
   }
 
@@ -75,12 +76,12 @@ public:
   // We also create the shader groups and the pipeline layout.
   // The pipeline is used to execute the ray tracing pipeline.
   // We also create the SBT (Shader Binding Table)
-  void createRayTracingPipeline(VulkanContext* ctx)
+  void createRayTracingPipeline()
   {
     SCOPED_TIMER(__FUNCTION__);
     // For re-creation
-    vkDestroyPipeline(ctx->device, m_pipeline, nullptr);
-    vkDestroyPipelineLayout(ctx->device, m_pipelineLayout, nullptr);
+    vkDestroyPipeline(m_ctx->device, m_pipeline, nullptr);
+    vkDestroyPipelineLayout(m_ctx->device, m_pipelineLayout, nullptr);
 
     // Creating all shaders
     enum StageIndices
@@ -145,7 +146,7 @@ public:
         {m_raster->descPack().getLayout(), m_descPack.getLayout()}};
     pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
     pipeline_layout_create_info.pSetLayouts = layouts.data();
-    vkCreatePipelineLayout(ctx->device, &pipeline_layout_create_info, nullptr, &m_pipelineLayout);
+    vkCreatePipelineLayout(m_ctx->device, &pipeline_layout_create_info, nullptr, &m_pipelineLayout);
     NVVK_DBG_NAME(m_pipelineLayout);
 
     // Assemble the shader stages and recursion depth info into the ray tracing pipeline
@@ -158,24 +159,23 @@ public:
     rtPipelineInfo.maxPipelineRayRecursionDepth =
         std::max(3U, m_properties.maxRayRecursionDepth);  // Ray depth
     rtPipelineInfo.layout = m_pipelineLayout;
-    vkCreateRayTracingPipelinesKHR(ctx->device, {}, {}, 1, &rtPipelineInfo, nullptr, &m_pipeline);
+    vkCreateRayTracingPipelinesKHR(m_ctx->device, {}, {}, 1, &rtPipelineInfo, nullptr, &m_pipeline);
     NVVK_DBG_NAME(m_pipeline);
 
     // Create the shader binding table for this pipeline
-    createShaderBindingTable(ctx, rtPipelineInfo);
+    createShaderBindingTable(rtPipelineInfo);
   }
 
-  void createShaderBindingTable(VulkanContext* ctx,
-                                const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
+  void createShaderBindingTable(const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
   {
     SCOPED_TIMER(__FUNCTION__);
 
-    ctx->allocator->destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
+    m_ctx->allocator->destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
     // Calculate required SBT buffer size
     size_t bufferSize = m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
     // Create SBT buffer using the size from above
-    NVVK_CHECK(ctx->allocator->createBuffer(
+    NVVK_CHECK(m_ctx->allocator->createBuffer(
         m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -189,7 +189,7 @@ public:
 
   //---------------------------------------------------------------------------------------------------------------
   // Ray tracing rendering method
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, VulkanContext* ctx,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
               const shaderio::PushConstant& pushValues) const
   {
     NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
@@ -224,7 +224,7 @@ public:
 
     // Ray trace
     const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
-    const VkExtent2D& size = ctx->viewportSize;
+    const VkExtent2D& size = m_ctx->viewportSize;
     vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit, &regions.callable,
                       size.width, size.height, 1);
 
@@ -244,6 +244,7 @@ public:
   }
 
 private:
+  VulkanContext* m_ctx = nullptr;
   nvvk::DescriptorPack m_descPack{};
   VkPipeline m_pipeline{};
   VkPipelineLayout m_pipelineLayout{};
@@ -256,6 +257,5 @@ private:
   // Acceleration Structure Components
   AccelerationStructures m_accel;
   VulkanRaster* m_raster = nullptr;
-
   SlangShaderCompiler* m_compiler = nullptr;
 };

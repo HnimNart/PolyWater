@@ -34,7 +34,7 @@ VkShaderModuleCreateInfo SlangShaderCompiler::compile(const std::filesystem::pat
   SCOPED_TIMER(__FUNCTION__);
 
   // Use pre-compiled shaders by default
-  VkShaderModuleCreateInfo shaderCode = nvsamples::getShaderModuleCreateInfo(spirv);
+  VkShaderModuleCreateInfo shaderCode = getShaderModuleCreateInfo(spirv);
 
   // Try compiling the shader
   std::filesystem::path shaderSource = nvutils::findFile(filename, m_shader_dirs);

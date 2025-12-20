@@ -6,9 +6,9 @@
 
 class IBackend
 {
-  virtual void init(SceneResources& scene) = 0;
+  virtual void init(CpuSceneResources& scene) = 0;
   virtual void clear() = 0;
-  virtual void render(VkCommandBuffer cmd, CameraPtr camera, const SceneResources& scene,
+  virtual void render(VkCommandBuffer cmd, CameraPtr camera, const CpuSceneResources& scene,
                       bool raytrace, shaderio::PushConstant& pushValues) const = 0;
   virtual void reload(bool use_raytracing) = 0;
 };

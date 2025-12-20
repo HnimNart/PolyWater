@@ -26,12 +26,12 @@ public:
   SceneManager(VulkanContext* ctx, std::shared_ptr<VulkanBackend> backend)
   {
     m_backend = std::move(backend);
-    m_scene_resources.init(ctx);
+    m_scene_resources.init(m_backend->resources());
   }
 
   void clear(VulkanContext* ctx)
   {
-    m_scene_resources.clear(ctx);
+    m_scene_resources.clear();
     m_backend->clear();
   }
 
@@ -60,7 +60,7 @@ public:
   // --------------------------------------------------
   nvsamples::GltfSceneResource& gltf_resources() { return m_scene_resources.data(); }
   const nvsamples::GltfSceneResource& gltf_resources() const { return m_scene_resources.data(); }
-  SceneResources& scene_resources() { return m_scene_resources; }
+  CpuSceneResources& scene_resources() { return m_scene_resources; }
 
   // --------------------------------------------------
   // Rendering parameters
@@ -76,7 +76,7 @@ public:
 
 private:
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
-  SceneResources m_scene_resources{};
+  CpuSceneResources m_scene_resources{};
   std::shared_ptr<VulkanBackend> m_backend = nullptr;
 
   glm::vec2 m_metallicRoughnessOverride{

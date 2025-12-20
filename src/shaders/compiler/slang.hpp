@@ -23,6 +23,14 @@ public:
                                    const std::span<const uint32_t>& spirv);
 
 private:
+  inline VkShaderModuleCreateInfo getShaderModuleCreateInfo(const std::span<const uint32_t>& spirv)
+  {
+    return VkShaderModuleCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = spirv.size_bytes(),
+        .pCode = spirv.data(),
+    };
+  }
   std::vector<std::filesystem::path> m_shader_dirs;
   nvslang::SlangCompiler m_compiler{};
 };

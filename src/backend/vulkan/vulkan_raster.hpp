@@ -3,7 +3,6 @@
 #include <shaders/shaderio.h>
 #include <vulkan/vulkan.h>
 
-#include <iostream>
 #include <memory>
 #include <nvutils/camera_manipulator.hpp>
 #include <nvvk/default_structs.hpp>
@@ -13,6 +12,7 @@
 #include <scene/scene_resources.hpp>
 
 #include "_autogen/foundation.slang.h"  // Local shader
+#include "_autogen/sky_simple.slang.h"  // Local shader
 #include "context.hpp"
 #include "nvutils/timers.hpp"
 #include "scene/shared.hpp"
@@ -24,19 +24,20 @@ public:
   void init(VulkanContext* ctx, SlangShaderCompiler* compiler)
   {
     assert(ctx);
+    m_ctx = ctx;
     m_compiler = compiler;
-    createDescriptorSetLayout(ctx->device);
-    createPipelineLayout(ctx->device);
-    compileShaders(ctx->device);
+    createDescriptorSetLayout(m_ctx->device);
+    createPipelineLayout(m_ctx->device);
+    compileShaders(m_ctx);
   }
 
   void clear(VulkanContext* ctx)
   {
     m_descPack.deinit();
-
     vkDestroyPipelineLayout(ctx->device, m_pipelineLayout, nullptr);
     vkDestroyShaderEXT(ctx->device, m_vertexShader, nullptr);
     vkDestroyShaderEXT(ctx->device, m_fragmentShader, nullptr);
+    m_skySimple.deinit();
   }
 
   void resize(VkCommandBuffer cmd, VkExtent2D size);
@@ -45,7 +46,7 @@ public:
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const SceneResources& scene,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const CpuSceneResources& scene,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
               shaderio::PushConstant& push_constants) const
   {
@@ -67,7 +68,7 @@ public:
     {
       const glm::mat4& viewMatrix = camera->getViewMatrix();
       const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
-      scene.sky().runCompute(cmd, size, viewMatrix, projMatrix,
+      m_skySimple.runCompute(cmd, size, viewMatrix, projMatrix,
                              gltf_resources.sceneInfo.skySimpleParam,
                              gBuffers.getDescriptorImageInfo(0));
     }
@@ -158,7 +159,7 @@ public:
                                       VK_IMAGE_LAYOUT_GENERAL});
   }
 
-  void reload(VkDevice device) { compileShaders(device); }
+  void reload() { compileShaders(m_ctx); }
 
   const nvvk::GBuffer& gbuffer() const;
 
@@ -210,7 +211,7 @@ private:
 
   //---------------------------------------------------------------------------------------------------------------
   // Compile the graphics shaders and create the shader modules.
-  void compileShaders(VkDevice device)
+  void compileShaders(VulkanContext* ctx)
   {
     SCOPED_TIMER(__FUNCTION__);
 
@@ -219,8 +220,9 @@ private:
     // SlangCompiler::instance().compiler().compile("foundation.slang", foundation_slang);
 
     // Destroy the previous shaders if they exist
-    vkDestroyShaderEXT(device, m_vertexShader, nullptr);
-    vkDestroyShaderEXT(device, m_fragmentShader, nullptr);
+    vkDestroyShaderEXT(ctx->device, m_vertexShader, nullptr);
+    vkDestroyShaderEXT(ctx->device, m_fragmentShader, nullptr);
+    m_skySimple.deinit();
 
     // Push constant is used to pass data to the shader at each frame
     const VkPushConstantRange pushConstantRange{
@@ -246,7 +248,7 @@ private:
     shaderInfo.pName = "vertexMain";  // The entry point of the vertex shader
     shaderInfo.codeSize = shaderCode.codeSize;
     shaderInfo.pCode = shaderCode.pCode;
-    vkCreateShadersEXT(device, 1U, &shaderInfo, nullptr, &m_vertexShader);
+    vkCreateShadersEXT(ctx->device, 1U, &shaderInfo, nullptr, &m_vertexShader);
     NVVK_DBG_NAME(m_vertexShader);
 
     // Fragment Shader
@@ -255,16 +257,21 @@ private:
     shaderInfo.pName = "fragmentMain";  // The entry point of the vertex shader
     shaderInfo.codeSize = shaderCode.codeSize;
     shaderInfo.pCode = shaderCode.pCode;
-    vkCreateShadersEXT(device, 1U, &shaderInfo, nullptr, &m_fragmentShader);
+    vkCreateShadersEXT(ctx->device, 1U, &shaderInfo, nullptr, &m_fragmentShader);
     NVVK_DBG_NAME(m_fragmentShader);
+
+    // Initialize the Sky with the pre-compiled shader
+    m_skySimple.init(ctx->allocator, std::span(sky_simple_slang));
   }
 
 private:
+  VulkanContext* m_ctx = nullptr;
   nvvk::DescriptorPack m_descPack{};
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
+  nvshaders::SkySimple m_skySimple{};  // Sky rendering
 
   SlangShaderCompiler* m_compiler = nullptr;
 };
