@@ -1,8 +1,5 @@
 #pragma once
 
-namespace core
-{
-
 //------------------------------------------------------------
 // RenderContext
 //------------------------------------------------------------
@@ -24,5 +21,3 @@ protected:
   RenderContext(RenderContext&&) = delete;
   RenderContext& operator=(RenderContext&&) = delete;
 };
-
-}  // namespace core
