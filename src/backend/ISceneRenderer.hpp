@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/camera.hpp"
-#include "scene/scene_resources.hpp"
+#include "core/Camera.hpp"
+#include "scene/SceneResources.hpp"
 #include "shaders/shaderio.h"
 
-class IBackend
+class ISceneRenderer
 {
   virtual void init(CpuSceneResources& scene) = 0;
   virtual void clear() = 0;

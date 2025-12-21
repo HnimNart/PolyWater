@@ -5,18 +5,18 @@
 
 #include <memory>
 #include <nvutils/camera_manipulator.hpp>
+#include <nvutils/timers.hpp>
 #include <nvvk/default_structs.hpp>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
-#include <scene/scene_resources.hpp>
 
+#include "VulkanContext.hpp"
 #include "_autogen/foundation.slang.h"  // Local shader
 #include "_autogen/sky_simple.slang.h"  // Local shader
-#include "nvutils/timers.hpp"
-#include "scene/shared.hpp"
+#include "scene/SceneResources.hpp"
+#include "scene/Shared.hpp"
 #include "shaders/compiler/slang.hpp"
-#include "vk_context.hpp"
 
 class VulkanRaster
 {

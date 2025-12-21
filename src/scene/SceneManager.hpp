@@ -14,19 +14,19 @@
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
 
-#include "backend/vulkan/vk_backend.hpp"
-#include "backend/vulkan/vk_context.hpp"
-#include "core/camera.hpp"
-#include "scene_resources.hpp"
-#include "shaders/post/tonemapper.hpp"
+#include "SceneResources.hpp"
+#include "backend/vulkan/VulkanContext.hpp"
+#include "backend/vulkan/VulkanSceneRenderer.hpp"
+#include "core/Camera.hpp"
 
+// TODO Switch out VulkanSceneRenderer with ISceneRenderer
 class SceneManager
 {
 public:
-  SceneManager(VulkanContext* ctx, std::shared_ptr<VulkanBackend> backend)
+  SceneManager(std::shared_ptr<VulkanSceneRenderer> backend)
   {
     m_backend = std::move(backend);
-    m_scene_resources.init(m_backend->resources());
+    m_scene_resources.init(m_backend->deviceResources());
   }
 
   void clear(VulkanContext* ctx)
@@ -77,7 +77,7 @@ public:
 private:
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
   CpuSceneResources m_scene_resources{};
-  std::shared_ptr<VulkanBackend> m_backend = nullptr;
+  std::shared_ptr<VulkanSceneRenderer> m_backend = nullptr;
 
   glm::vec2 m_metallicRoughnessOverride{
       -0.01f, -0.01f};  // Override values for metallic and roughness, used

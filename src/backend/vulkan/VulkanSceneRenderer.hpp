@@ -2,17 +2,17 @@
 
 #include <nvvk/formats.hpp>
 
-#include "core/camera.hpp"
+#include "VulkanContext.hpp"
+#include "VulkanRaster.hpp"
+#include "VulkanRayTracer.hpp"
+#include "core/Camera.hpp"
 #include "shaders/post/tonemapper.hpp"
-#include "src/backend/backend.hpp"
-#include "vk_context.hpp"
-#include "vk_raster.hpp"
-#include "vk_raytrace.hpp"
+#include "src/backend/ISceneRenderer.hpp"
 
-class VulkanBackend final : public IBackend
+class VulkanSceneRenderer final : public ISceneRenderer
 {
 public:
-  explicit VulkanBackend(VulkanContext* ctx) :
+  explicit VulkanSceneRenderer(VulkanContext* ctx) :
       m_ctx(ctx), m_compiler(nvsamples::getShaderDirs()),
       m_resources(std::make_shared<VulkanSceneResources>(ctx))
   {
@@ -21,8 +21,10 @@ public:
     m_post.init(m_ctx);
   }
 
-  VulkanBackend(const VulkanBackend&) = delete;
-  VulkanBackend& operator=(const VulkanBackend&) = delete;
+  VulkanSceneRenderer(const VulkanSceneRenderer&) = delete;
+  VulkanSceneRenderer& operator=(const VulkanSceneRenderer&) = delete;
+  VulkanSceneRenderer(VulkanSceneRenderer&&) = delete;
+  VulkanSceneRenderer& operator=(VulkanSceneRenderer&&) = delete;
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -87,7 +89,7 @@ public:
   const PostProcessor& post_processor() const noexcept { return m_post; }
 
   const nvvk::GBuffer& gbuffers() const noexcept { return m_gBuffers; }
-  std::shared_ptr<VulkanSceneResources> resources() noexcept { return m_resources; }
+  std::shared_ptr<VulkanSceneResources> deviceResources() noexcept { return m_resources; }
 
 private:
   // ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 #include <nvvk/gbuffers.hpp>
 
 #include "_autogen/tonemapper.slang.h"
-#include "backend/vulkan/vk_context.hpp"
+#include "backend/vulkan/VulkanContext.hpp"
 
 class PostProcessor
 {

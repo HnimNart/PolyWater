@@ -5,14 +5,14 @@
 #include <array>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/sbt_generator.hpp>
-#include <scene/scene_resources.hpp>
 
+#include "VulkanAcceleration.hpp"
+#include "VulkanContext.hpp"
+#include "VulkanRaster.hpp"
 #include "_autogen/rtbasic.slang.h"  // Local shader
-#include "scene/shared.hpp"
+#include "scene/SceneResources.hpp"
+#include "scene/Shared.hpp"
 #include "shaders/compiler/slang.hpp"
-#include "vk_accel.hpp"
-#include "vk_context.hpp"
-#include "vk_raster.hpp"
 
 class VulkanRayTracer
 {

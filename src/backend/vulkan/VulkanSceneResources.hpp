@@ -5,7 +5,7 @@
 #include <nvvk/formats.hpp>
 #include <string>
 
-#include "backend/vulkan/vk_context.hpp"
+#include "backend/vulkan/VulkanContext.hpp"
 #include "backend/vulkan/vk_utils.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"

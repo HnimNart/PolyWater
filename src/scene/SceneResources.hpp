@@ -7,7 +7,7 @@
 #include <nvvk/sampler_pool.hpp>
 #include <src/common/path_utils.hpp>
 
-#include "backend/vulkan/vk_resources.hpp"
+#include "backend/vulkan/VulkanSceneResources.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 class CpuSceneResources

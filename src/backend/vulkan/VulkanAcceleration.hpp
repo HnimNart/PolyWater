@@ -7,7 +7,7 @@
 #include <scene/gltf/gltf_utils.hpp>
 #include <vector>
 
-#include "vk_context.hpp"
+#include "VulkanContext.hpp"
 
 class AccelerationStructures
 {

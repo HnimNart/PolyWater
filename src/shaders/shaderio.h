@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "src/core/io_gltf.h"
+#include "src/scene/gltf/io_gltf.h"
 
 NAMESPACE_SHADERIO_BEGIN()
 

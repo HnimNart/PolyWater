@@ -35,10 +35,10 @@ target_sources(${LIB_NAME}
         ${SHADER_SOURCES}
 )
 
-set_target_properties(${LIB_NAME} PROPERTIES
-    UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE 8
-)
+# set_target_properties(${LIB_NAME} PROPERTIES
+#     UNITY_BUILD ON
+#     UNITY_BUILD_BATCH_SIZE 8
+# )
 
 ###################################
 # Include paths

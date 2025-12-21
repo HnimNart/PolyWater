@@ -18,4 +18,5 @@ struct VulkanContext
   const VkExtent2D& viewportSize{};
   VkDescriptorPool textureDescriptorPool{};
   nvvk::StagingUploader& stagingUploader;  // Utility to upload data to the GPU
+  VkCommandPool commandPool;
 };

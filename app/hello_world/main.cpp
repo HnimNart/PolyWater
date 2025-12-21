@@ -52,7 +52,7 @@
 #include <nvvk/context.hpp>                // Vulkan context management
 #include <nvvk/validation_settings.hpp>    // Validation settings for Vulkan
 
-#include "src/scene/manager.hpp"
+#include "src/scene/SceneManager.hpp"
 
 VulkanContext* ctx = nullptr;
 
@@ -154,10 +154,11 @@ public:
                             .graphicsQueue = m_app->getQueue(0),
                             .viewportSize = m_app->getViewportSize(),
                             .textureDescriptorPool = m_app->getTextureDescriptorPool(),
-                            .stagingUploader = m_stagingUploader};
+                            .stagingUploader = m_stagingUploader,
+                            .commandPool = m_app->getCommandPool()};
 
-    m_vulkan_backend = std::make_shared<VulkanBackend>(ctx);
-    m_scene_manager = std::make_unique<SceneManager>(ctx, m_vulkan_backend);
+    m_vulkan_backend = std::make_shared<VulkanSceneRenderer>(ctx);
+    m_scene_manager = std::make_unique<SceneManager>(m_vulkan_backend);
     m_scene_manager->set_camera(m_cameraManip);
 
     // Create scene
@@ -391,7 +392,7 @@ private:
   nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
 
   std::unique_ptr<SceneManager> m_scene_manager = nullptr;
-  std::shared_ptr<VulkanBackend> m_vulkan_backend = nullptr;
+  std::shared_ptr<VulkanSceneRenderer> m_vulkan_backend = nullptr;
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
       std::make_shared<nvutils::CameraManipulator>()};
 
@@ -477,7 +478,6 @@ int main(int argc, char** argv)
 
   // Elements added to the application
   auto tutorial = std::make_shared<RtBasic>();  // Our tutorial element
-
   auto elemCamera =
       std::make_shared<nvapp::ElementCamera>();  // Element to control the camera movement
   auto windowTitle =
