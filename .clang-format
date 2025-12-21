@@ -37,12 +37,21 @@ ReferenceAlignment: Left
 # Includes
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:           '^<.*\.h>'
-    Priority:        1
-  - Regex:           '^<.*>'
-    Priority:        2
-  - Regex:           '.*'
-    Priority:        3
+  # 1. C system headers (e.g., <stdio.h>, <stdlib.h>)
+  - Regex: '^<.*\.h>$'
+    Priority: 1
+
+  # 2. C++ standard library headers (e.g., <vector>, <string>)
+  - Regex: '^<[^/]+>$'
+    Priority: 2
+
+  # 3. Third-party headers (e.g., <glm/glm.hpp>, <boost/...>)
+  - Regex: '^<.*>'
+    Priority: 3
+
+  # 4. Local/project headers (e.g., "my_header.h")
+  - Regex: '^".*"'
+    Priority: 4
 SortIncludes: true
 
 # Comments

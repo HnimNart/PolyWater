@@ -22,16 +22,14 @@
 #include <fmt/format.h>
 #include <vulkan/vulkan_core.h>
 
-#include <algorithm>
 #include <functional>
-#include <glm/gtc/type_ptr.hpp>  // glm::make_vec3
-#include <iostream>
 #include <span>
 
-#include "nvutils/logger.hpp"
-#include "nvutils/timers.hpp"
-#include "nvvk/check_error.hpp"
-#include "nvvk/debug_util.hpp"
+#include <glm/gtc/type_ptr.hpp>  // glm::make_vec3
+#include <nvutils/logger.hpp>
+#include <nvutils/timers.hpp>
+#include <nvvk/check_error.hpp>
+#include <nvvk/debug_util.hpp>
 
 // This is a utility function to convert a primitive mesh to a GltfMeshResource.
 void nvsamples::primitiveMeshToResource(GltfSceneResource& sceneResource,
