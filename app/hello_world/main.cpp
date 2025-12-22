@@ -382,7 +382,7 @@ public:
   }
 
   // Accessor for camera manipulator
-  std::shared_ptr<nvutils::CameraManipulator> getCameraManipulator() const { return m_cameraManip; }
+  CameraPtr getCameraManipulator() const { return m_cameraManip; }
 
 private:
   // Application and core components
@@ -393,25 +393,14 @@ private:
 
   std::unique_ptr<SceneManager> m_scene_manager = nullptr;
   std::shared_ptr<VulkanSceneRenderer> m_vulkan_backend = nullptr;
-  std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{
-      std::make_shared<nvutils::CameraManipulator>()};
+  CameraPtr m_cameraManip{std::make_shared<nvutils::CameraManipulator>()};
 
   // Ray tracing toggle
   bool m_useRayTracing = true;  // Set to true to use ray tracing, false for rasterization
 };
 
-//---------------------------------------------------------------------------------------------------------------
-// The main function, entry point of the application
-int main(int argc, char** argv)
+nvvk::ContextInitInfo setupVulkanContext(const nvapp::ApplicationCreateInfo& appInfo)
 {
-  nvapp::ApplicationCreateInfo appInfo{};
-
-  // Parsing the command line
-  nvutils::ParameterParser cli(nvutils::getExecutablePath().stem().string());
-  nvutils::ParameterRegistry reg;
-  reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
-  cli.add(reg);
-  cli.parse(argc, argv);
 
   // Setting up the Vulkan context, instance and device extensions
   VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
@@ -456,8 +445,24 @@ int main(int argc, char** argv)
   nvvk::CheckError::getInstance().setCallbackFunction([&](VkResult result)
                                                       { aftermath.errorCallback(result); });
 #endif
+  return vkSetup;
+}
+
+//---------------------------------------------------------------------------------------------------------------
+// The main function, entry point of the application
+int main(int argc, char** argv)
+{
+  nvapp::ApplicationCreateInfo appInfo{};
+
+  // Parsing the command line
+  nvutils::ParameterParser cli(nvutils::getExecutablePath().stem().string());
+  nvutils::ParameterRegistry reg;
+  reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
+  cli.add(reg);
+  cli.parse(argc, argv);
 
   // Initialize the Vulkan context
+  nvvk::ContextInitInfo vkSetup = setupVulkanContext(appInfo);
   nvvk::Context vkContext;
   if (vkContext.init(vkSetup) != VK_SUCCESS)
   {
