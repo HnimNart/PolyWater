@@ -15,30 +15,15 @@
 #include <nvgui/settings_handler.hpp>
 
 #include "IAppElement.hpp"
+#include "backend/IRenderBackend.hpp"
+#include "types.h"
 
 // Forward declarations only (no backend headers here)
 struct GLFWwindow;
-class IRenderBackend;
 class RenderContext;
 
 namespace core
 {
-
-struct WindowSize
-{
-  uint32_t width;
-  uint32_t height;
-};
-
-//------------------------------------------------------------
-// FrameContext
-//------------------------------------------------------------
-struct FrameContext
-{
-  uint32_t frameIndex = 0;   // Index within the frame ring
-  uint32_t frameCount = 0;   // Total frames in flight
-  uint64_t frameNumber = 0;  // Monotonic frame counter
-};
 
 //------------------------------------------------------------
 // ApplicationCreateInfo
@@ -93,17 +78,7 @@ public:
   //----------------------------------------------------------
   void run();  // Runs until close() is called
   void runOneFrame();
-  void close()
-  {
-    if (m_headless)
-    {
-      m_headlessClose = true;
-    }
-    else
-    {
-      glfwSetWindowShouldClose(m_windowHandle, true);
-    }
-  }
+  void close();
 
   //----------------------------------------------------------
   // Elements
@@ -131,10 +106,18 @@ public:
   //----------------------------------------------------------
   void requestScreenshot(const std::filesystem::path& filename, int quality = 100);
   inline GLFWwindow* getWindowHandle() const { return m_windowHandle; }
-  inline const WindowSize& getViewportSize() const { return m_viewportSize; }
+  inline const WindowSize& getViewportSize() const { return m_backend->getViewportSize(); }
+  void onFileDrop(const std::filesystem::path& filename);
+  void onResize(const WindowSize& size);
 
 private:
   void runFrame();
+
+  void initGlfw(const ApplicationCreateInfo& info);
+  void initializeImGuiContextAndSettings();
+  void testAndSetWindowSizeAndPos(const glm::uvec2& winSize);
+  bool isWindowPosValid(const glm::ivec2& winPos);
+  void setupImguiDock();
 
   std::unique_ptr<IRenderBackend> m_backend;
   std::vector<std::shared_ptr<IAppElement>> m_elements;
@@ -146,9 +129,7 @@ private:
   nvapp::FramePacer m_framePacer;  // Low-latency system
 
   GLFWwindow* m_windowHandle{nullptr};  // GLFW Window
-  WindowSize m_viewportSize{0, 0};
-  WindowSize m_windowSize{0, 0};  // Size of the window
-  float m_dpiScale{1.f};          // Current scaling due to DPI.
+  WindowSize m_windowSize{0, 0};        // Size of the window
 
   //--
   std::vector<std::vector<std::function<void()>>>

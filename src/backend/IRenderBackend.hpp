@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 
-class RenderContext;
-struct FrameContext;
+#include "core/application/types.h"
 
 //------------------------------------------------------------
 // IRenderBackend
@@ -25,7 +23,7 @@ public:
   //----------------------------------------------------------
   // Lifecycle
   //----------------------------------------------------------
-  virtual void initialize() = 0;
+  virtual void init() = 0;
   virtual void shutdown() = 0;
 
   //----------------------------------------------------------
@@ -35,9 +33,8 @@ public:
   // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
   virtual bool beginFrame(FrameContext& frame) = 0;
 
-  // Access the per-frame render context.
-  // The reference remains valid until endFrame() is called.
-  virtual RenderContext& getRenderContext() = 0;
+  // Render the frame
+  virtual void renderFrame(FrameContext const& frame) = 0;
 
   // Complete the frame
   virtual void endFrame(FrameContext const& frame) = 0;
@@ -54,7 +51,8 @@ public:
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  virtual void resize(uint32_t width, uint32_t height) = 0;
+  virtual void resize(const WindowSize& size) = 0;
+  virtual const WindowSize getViewportSize() const = 0;
 
   //----------------------------------------------------------
   // Utilities

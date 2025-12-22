@@ -14,7 +14,6 @@ class VulkanRenderContext final : public RenderContext
 public:
   VulkanRenderContext() = default;
   ~VulkanRenderContext() override = default;
-
   // Deleted copy/move
   VulkanRenderContext(const VulkanRenderContext&) = delete;
   VulkanRenderContext& operator=(const VulkanRenderContext&) = delete;
@@ -25,17 +24,14 @@ public:
   // Vulkan-specific per-frame members
   // ------------------------------------------------------------------------
 
-  VkCommandBuffer commandBuffer{VK_NULL_HANDLE};
-  uint32_t frameIndex{0};                       // Frame index in the swapchain / ring buffer
+  VkCommandPool cmdPool{};      // Command pool for recording commands for this frame
+  VkCommandBuffer cmdBuffer{};  // Command buffer containing the frame's rendering commands
+  uint64_t frameNumber{0};      // Timeline value for synchronization (increases each frame)
+
+  //
   VkSemaphore waitSemaphore{VK_NULL_HANDLE};    // Optional extra per-frame wait semaphore
   VkSemaphore signalSemaphore{VK_NULL_HANDLE};  // Optional extra per-frame signal semaphore
 
   // Optionally store a pointer back to the backend for resource access
   void* backendUserData{nullptr};
-
-  // Other per-frame Vulkan objects can be added as needed:
-  // - framebuffers
-  // - render passes
-  // - descriptor sets
-  // - etc.
 };

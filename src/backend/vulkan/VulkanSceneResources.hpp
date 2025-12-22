@@ -1,9 +1,10 @@
 #pragma once
 
+#include <string>
+
 #include <nvvk/debug_util.hpp>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
-#include <string>
 
 #include "backend/vulkan/VulkanContext.hpp"
 #include "backend/vulkan/vk_utils.hpp"
@@ -33,7 +34,7 @@ public:
   TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd)
   {
     nvvk::Image texture =
-        nvsamples::loadAndCreateImage(cmd, m_ctx->stagingUploader, m_ctx->device, filepath);
+        vk_utils::loadAndCreateImage(cmd, m_ctx->stagingUploader, m_ctx->device, filepath);
 
     NVVK_DBG_NAME(texture.image);
     m_samplerPool.acquireSampler(texture.descriptor.sampler);

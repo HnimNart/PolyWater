@@ -3,12 +3,13 @@
 #include <cstdint>
 #include <filesystem>
 
+#include "types.h"
+
 namespace core
 {
 
 class Application;
 class RenderContext;
-struct FrameContext;
 
 /**
  * @brief Interface for application elements (Layers).

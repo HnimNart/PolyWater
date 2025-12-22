@@ -22,13 +22,17 @@
 #include <vulkan/vulkan_core.h>
 
 #include <filesystem>
+
 #include <nvvk/resources.hpp>
 #include <nvvk/staging.hpp>
+#include <nvvk/swapchain.hpp>
 
-namespace nvsamples
+namespace vk_utils
 {
 
 nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& staging, VkDevice device,
                                const std::filesystem::path& filename, bool sRgb = true);
 
-}  // namespace nvsamples
+void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& swapchainParams);
+
+}  // namespace vk_utils
