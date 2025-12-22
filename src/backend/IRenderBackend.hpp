@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <memory>
 
 class RenderContext;
 struct FrameContext;

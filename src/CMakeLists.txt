@@ -61,6 +61,7 @@ target_link_libraries(${LIB_NAME}
         nvutils
         nvvk
         nvpro2::nvslang
+        nvpro2::nvgui
 )
 
 ###################################

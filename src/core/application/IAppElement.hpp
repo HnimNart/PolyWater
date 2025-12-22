@@ -1,58 +1,61 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 
 namespace core
 {
 
+class Application;
 class RenderContext;
 struct FrameContext;
 
-//------------------------------------------------------------
-// IAppElement
-//------------------------------------------------------------
-// Represents a pluggable application component ("layer", "system",
-// or "module") that participates in the application's lifecycle.
-//
-// Implementations MUST be backend-agnostic at the interface level.
-// Backend-specific logic should be accessed via RenderContext.
-class IAppElement
+/**
+ * @brief Interface for application elements (Layers).
+ * Elements are attached to the Application and receive callbacks for
+ * lifecycle events, OS signals, and rendering phases.
+ */
+struct IAppElement
 {
-public:
   virtual ~IAppElement() = default;
 
-  //----------------------------------------------------------
-  // Lifecycle
-  //----------------------------------------------------------
+  // --- Lifecycle Management ---
+  /** @brief Called once when the element is added to the application. */
+  virtual void onAttach(Application* app) {}
 
-  // Called once after Application::init()
-  virtual void onInitialize() {}
+  /** @brief Called once before the element is removed or the application shuts down. */
+  virtual void onDetach() {}
 
-  // Called once before Application::shutdown()
-  virtual void onShutdown() {}
+  // --- Window & OS Events ---
+  /** @brief Called when the swapchain or viewport is resized. */
+  virtual void onResize(uint32_t width, uint32_t height) {}
 
-  //----------------------------------------------------------
-  // Frame loop
-  //----------------------------------------------------------
+  /** @brief Called when a file is dragged and dropped onto the application window. */
+  virtual void onFileDrop(const std::filesystem::path& filename) {}
 
-  // Called at the beginning of a frame, before rendering
-  virtual void onBeginFrame(FrameContext const& /*frame*/) {}
+  // --- UI Callbacks (ImGui) ---
+  /** @brief Called within the ImGui frame to define custom menus (e.g., File, Edit). */
+  virtual void onUIMenu() {}
 
-  // Called during rendering
-  virtual void onRender(RenderContext& /*ctx*/, FrameContext const& /*frame*/) {}
+  /** @brief Called within the ImGui frame to draw windows and widgets. */
+  virtual void onUIRender() {}
 
-  // Called at the end of a frame, after rendering
-  virtual void onEndFrame(FrameContext const& /*frame*/) {}
+  // --- The Render Loop ---
+  /** @brief Logic executed before the GPU command recording begins. Use for CPU-side updates. */
+  virtual void onPreRender() {}
 
-  //----------------------------------------------------------
-  // Events (optional, extend as needed)
-  //----------------------------------------------------------
+  /** @brief Called at the start of the frame, before any rendering commands are issued. */
+  virtual void onBeginFrame(const FrameContext& frame) {}
 
-  // Window resized
-  virtual void onResize(uint32_t /*width*/, uint32_t /*height*/) {}
+  /** @brief Primary rendering callback. Record draw calls into the provided context. */
+  virtual void onRender(RenderContext& ctx, const FrameContext& frame) {}
 
-  // File drop event
-  virtual void onFileDrop(char const* /*path*/) {}
+  /** @brief Called after all rendering commands have been recorded for the frame. */
+  virtual void onEndFrame(const FrameContext& frame) {}
+
+  // --- Special Modes ---
+  /** @brief Final callback for headless execution before the application exits. */
+  virtual void onLastHeadlessFrame() {}
 };
 
 }  // namespace core
