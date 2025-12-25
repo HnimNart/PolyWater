@@ -12,7 +12,6 @@
 #include <nvvk/sbt_generator.hpp>
 #include <shaders/post/tonemapper.hpp>
 
-#include "backend/vulkan/VulkanContext.hpp"
 #include "backend/vulkan/VulkanSceneRenderer.hpp"
 
 SceneManager::SceneManager(std::shared_ptr<VulkanSceneRenderer> backend)

@@ -63,16 +63,19 @@
 #include "src/scene/SceneManager.hpp"
 #include "src/scene/Shared.hpp"
 
-VulkanContext* ctx = nullptr;
+std::shared_ptr<VulkanContext> ctx = nullptr;
 
 class RtBasic : public nvapp::IAppElement
 {
+private:
+  nvvk::Context* m_ctx = nullptr;
 
 public:
-  RtBasic() = default;
+  RtBasic() = delete;
+  RtBasic(nvvk::Context* ctx) : m_ctx(ctx){};
   ~RtBasic() override = default;
 
-  void setup_scene(VkCommandBuffer cmd, VulkanContext* vulkan_ctx)
+  void setup_scene(VkCommandBuffer cmd)
   {
     CpuSceneResources& scene_resources = m_scene_manager->scene_resources();
     SCOPED_TIMER(__FUNCTION__);
@@ -146,43 +149,17 @@ public:
   void onAttach(nvapp::Application* app) override
   {
     m_app = app;
-
-    // Initialize the VMA allocator
-    VmaAllocatorCreateInfo allocatorInfo = {
-        .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-        .physicalDevice = app->getPhysicalDevice(),
-        .device = app->getDevice(),
-        .instance = app->getInstance(),
-        .vulkanApiVersion = VK_API_VERSION_1_4,
-    };
-    m_allocator.init(allocatorInfo);
-    // m_allocator.setLeakID(0);  // Set a leak ID for the allocator to track memory leaks
-    // The VMA allocator is used for all allocations, the staging uploader will use it for staging
-    // buffers and images
-    m_stagingUploader.init(&m_allocator, true);
-
+    VkDescriptorPool descriptorPool = m_app->getTextureDescriptorPool();
     std::shared_ptr<SlangShaderCompiler> compiler =
         make_shared<SlangShaderCompiler>(nvsamples::getShaderDirs());
-
-    ctx = new VulkanContext{
-        .allocator = &m_allocator,
-        .physicalDevice = m_app->getPhysicalDevice(),
-        .device = m_app->getDevice(),
-        .graphicsQueue = m_app->getQueue(0),
-        .viewportSize = m_app->getViewportSize(),
-        .textureDescriptorPool = m_app->getTextureDescriptorPool(),
-        .stagingUploader = m_stagingUploader,
-        .commandPool = m_app->getCommandPool(),
-        .slang_compiler = compiler,
-    };
-
-    m_vulkan_backend = std::make_shared<VulkanSceneRenderer>(ctx);
-    m_scene_manager = std::make_unique<SceneManager>(m_vulkan_backend);
+    ctx = create_vk_context(*m_ctx, descriptorPool, m_app->getViewportSize(), compiler);
+    m_vulkan_scene_renderer = std::make_shared<VulkanSceneRenderer>(ctx);
+    m_scene_manager = std::make_unique<SceneManager>(m_vulkan_scene_renderer);
     m_scene_manager->set_camera(m_cameraManip);
 
     // Create scene
     VkCommandBuffer cmd = m_app->createTempCmdBuffer();
-    setup_scene(cmd, ctx);
+    setup_scene(cmd);
     m_app->submitAndWaitTempCmdBuffer(cmd);  // Submit the command buffer to upload the resources
     m_scene_manager->postInit();
   }
@@ -194,8 +171,6 @@ public:
   void onDetach() override
   {
     NVVK_CHECK(vkQueueWaitIdle(m_app->getQueue(0).queue));
-
-    VkDevice device = m_app->getDevice();
     m_scene_manager->clear();
     m_stagingUploader.deinit();
     m_allocator.deinit();
@@ -211,8 +186,9 @@ public:
     // Display the rendering GBuffer in the ImGui window ("Viewport")
     if (ImGui::Begin("Viewport"))
     {
-      ImGui::Image(ImTextureID(m_vulkan_backend->gbuffers().getDescriptorSet(eImgTonemapped)),
-                   ImGui::GetContentRegionAvail());
+      ImGui::Image(
+          ImTextureID(m_vulkan_scene_renderer->gbuffers().getDescriptorSet(eImgTonemapped)),
+          ImGui::GetContentRegionAvail());
     }
     ImGui::End();
 
@@ -396,7 +372,7 @@ public:
   void onLastHeadlessFrame() override
   {
     m_app->saveImageToFile(m_scene_manager->get_image(eImgTonemapped),
-                           m_vulkan_backend->gbuffers().getSize(),
+                           m_vulkan_scene_renderer->gbuffers().getSize(),
                            nvutils::getExecutablePath().replace_extension(".jpg").string());
   }
 
@@ -411,7 +387,7 @@ private:
   nvvk::StagingUploader m_stagingUploader{};  // Utility to upload data to the GPU
 
   std::unique_ptr<SceneManager> m_scene_manager = nullptr;
-  std::shared_ptr<VulkanSceneRenderer> m_vulkan_backend = nullptr;
+  std::shared_ptr<VulkanSceneRenderer> m_vulkan_scene_renderer = nullptr;
   CameraPtr m_cameraManip{std::make_shared<nvutils::CameraManipulator>()};
 
   // Ray tracing toggle
@@ -452,7 +428,7 @@ int main(int argc, char** argv)
   application.init(appInfo);
 
   // Elements added to the application
-  auto tutorial = std::make_shared<RtBasic>();  // Our tutorial element
+  auto tutorial = std::make_shared<RtBasic>(&vkContext);  // Our tutorial element
   auto elemCamera =
       std::make_shared<nvapp::ElementCamera>();  // Element to control the camera movement
   auto windowTitle =

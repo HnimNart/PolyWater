@@ -14,28 +14,27 @@
 #include "VulkanContext.hpp"
 #include "scene/SceneResources.hpp"  // For CpuSceneResources definition
 #include "scene/Shared.hpp"
-#include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
 #include "_autogen/foundation.slang.h"
 #include "_autogen/sky_simple.slang.h"
 
-void VulkanRaster::init(VulkanContext* ctx, SlangShaderCompiler* compiler)
+void VulkanRaster::init(std::shared_ptr<VulkanContext> ctx)
 {
   assert(ctx);
-  m_ctx = ctx;
-  m_compiler = compiler;
-  createDescriptorSetLayout(m_ctx->device);
-  createPipelineLayout(m_ctx->device);
+  m_ctx = std::move(ctx);
+  m_compiler = m_ctx->slangCompiler;
+  createDescriptorSetLayout(m_ctx->context.getDevice());
+  createPipelineLayout(m_ctx->context.getDevice());
   compileShaders(m_ctx);
 }
 
-void VulkanRaster::clear(VulkanContext* ctx)
+void VulkanRaster::clear()
 {
   m_descPack.deinit();
-  vkDestroyPipelineLayout(ctx->device, m_pipelineLayout, nullptr);
-  vkDestroyShaderEXT(ctx->device, m_vertexShader, nullptr);
-  vkDestroyShaderEXT(ctx->device, m_fragmentShader, nullptr);
+  vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyShaderEXT(m_ctx->context.getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_ctx->context.getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
@@ -199,7 +198,7 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
   NVVK_DBG_NAME(m_pipelineLayout);
 }
 
-void VulkanRaster::compileShaders(VulkanContext* ctx)
+void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
 {
   SCOPED_TIMER(__FUNCTION__);
 
@@ -207,8 +206,8 @@ void VulkanRaster::compileShaders(VulkanContext* ctx)
   VkShaderModuleCreateInfo shaderCode = m_compiler->compile("foundation.slang", foundation_slang);
 
   // Cleanup old shaders
-  vkDestroyShaderEXT(ctx->device, m_vertexShader, nullptr);
-  vkDestroyShaderEXT(ctx->device, m_fragmentShader, nullptr);
+  vkDestroyShaderEXT(ctx->context.getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(ctx->context.getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 
   const VkPushConstantRange pushConstantRange{
@@ -233,7 +232,7 @@ void VulkanRaster::compileShaders(VulkanContext* ctx)
   shaderInfo.pName = "vertexMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(ctx->device, 1U, &shaderInfo, nullptr, &m_vertexShader);
+  vkCreateShadersEXT(ctx->context.getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
   // Fragment Shader
@@ -242,9 +241,9 @@ void VulkanRaster::compileShaders(VulkanContext* ctx)
   shaderInfo.pName = "fragmentMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(ctx->device, 1U, &shaderInfo, nullptr, &m_fragmentShader);
+  vkCreateShadersEXT(ctx->context.getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 
   // Sky
-  m_skySimple.init(ctx->allocator, std::span(sky_simple_slang));
+  m_skySimple.init(&ctx->allocator, std::span(sky_simple_slang));
 }

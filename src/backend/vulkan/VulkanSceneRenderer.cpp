@@ -15,11 +15,10 @@
 #include "shaders/post/tonemapper.hpp"
 
 // Constructor
-VulkanSceneRenderer::VulkanSceneRenderer(VulkanContext* ctx) : m_ctx(ctx)
+VulkanSceneRenderer::VulkanSceneRenderer(std::shared_ptr<VulkanContext> ctx) : m_ctx(ctx)
 {
   // Initialize unique_ptrs
-  // Note: getShaderDirs is likely from path_utils.hpp or a similar util header
-  m_compiler = ctx->slang_compiler;
+  m_compiler = ctx->slangCompiler;
   m_resources = std::make_shared<VulkanSceneResources>(ctx);
 
   m_raster = std::make_unique<VulkanRaster>();
@@ -28,8 +27,8 @@ VulkanSceneRenderer::VulkanSceneRenderer(VulkanContext* ctx) : m_ctx(ctx)
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 
   // Initialization logic
-  m_raster->init(m_ctx, m_compiler.get());
-  m_ray_tracer->init(m_ctx, m_compiler.get(), m_raster.get());
+  m_raster->init(m_ctx);
+  m_ray_tracer->init(m_ctx, m_raster.get());
   m_post->init(m_ctx);
 }
 
@@ -43,14 +42,14 @@ VulkanSceneRenderer::~VulkanSceneRenderer() = default;
 void VulkanSceneRenderer::init(CpuSceneResources& scene)
 {
   init_gbuffers();
-  m_resources->update_descriptors(m_raster->descPack(), m_ctx);
+  m_resources->update_descriptors(m_raster->descPack());
   m_ray_tracer->createPipeline(scene);
 }
 
 void VulkanSceneRenderer::clear()
 {
-  m_raster->clear(m_ctx);
-  m_ray_tracer->clear(m_ctx);
+  m_raster->clear();
+  m_ray_tracer->clear();
   m_gBuffers->deinit();
   m_resources.reset();
   m_post->clear();
@@ -99,12 +98,11 @@ void VulkanSceneRenderer::init_gbuffers()
   NVVK_DBG_NAME(linearSampler);
 
   nvvk::GBufferInitInfo info{
-      .allocator = m_ctx->allocator,
+      .allocator = &m_ctx->allocator,
       .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM},
-      .depthFormat = nvvk::findDepthFormat(m_ctx->physicalDevice),
+      .depthFormat = nvvk::findDepthFormat(m_ctx->context.getPhysicalDevice()),
       .imageSampler = linearSampler,
-      .descriptorPool = m_ctx->textureDescriptorPool,
-  };
+      .descriptorPool = m_ctx->descriptorPool};
 
   m_gBuffers->init(info);
 }

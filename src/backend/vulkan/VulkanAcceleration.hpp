@@ -18,7 +18,7 @@ struct GltfMesh;
 class AccelerationStructures
 {
 public:
-  void init(VulkanContext* ctx);
+  void init(std::shared_ptr<VulkanContext> ctx);
   void deinit();
 
   void buildBLAS(const nvsamples::GltfSceneResource& scene);

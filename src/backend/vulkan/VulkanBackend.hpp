@@ -7,9 +7,11 @@
 
 #include "VulkanRenderContext.hpp"  // We need the concrete type here
 #include "backend/IRenderBackend.hpp"
+#include "backend/vulkan/VulkanContext.hpp"
 #include "core/application/App.hpp"
 
-class GLFWwindow;
+struct GLFWwindow;
+class VulkanSceneRenderer;
 
 namespace core
 {
@@ -17,8 +19,11 @@ namespace core
 class VulkanBackend final : public IRenderBackend
 {
 public:
-  static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo appInfo);
-  VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window);
+  static std::unique_ptr<VulkanBackend>
+  create(const core::ApplicationCreateInfo appInfo,
+         const std::vector<std::filesystem::path>& shader_dirs);
+  VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window,
+                std::shared_ptr<SlangShaderCompiler> compiler);
   ~VulkanBackend() override = default;
 
   // Lifecycle
@@ -45,6 +50,9 @@ public:
 private:
   void createFrameSubmission(uint32_t numFrames);
   void waitForFrameCompletion() const;
+
+  std::shared_ptr<VulkanSceneRenderer> m_render = nullptr;
+  std::shared_ptr<VulkanContext> m_ctx = nullptr;
 
   bool m_vsyncWanted{true};  // Wanting swapchain with vsync
 

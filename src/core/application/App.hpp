@@ -18,7 +18,7 @@
 #include "backend/IRenderBackend.hpp"
 #include "types.h"
 
-// Forward declarations only (no backend headers here)
+// Forward declarations only
 struct GLFWwindow;
 class RenderContext;
 

@@ -9,12 +9,15 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/swapchain.hpp>
 
+#include "VulkanSceneRenderer.hpp"
 #include "vk_utils.hpp"
 
 namespace core
 {
 
-std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo appInfo)
+std::unique_ptr<VulkanBackend>
+VulkanBackend::create(const core::ApplicationCreateInfo appInfo,
+                      const std::vector<std::filesystem::path>& shader_dirs)
 {
   // Initialize the Vulkan context
   nvvk::ContextInitInfo vkSetup = vk_utils::setupVulkanContext(appInfo);
@@ -24,12 +27,18 @@ std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCrea
     LOGE("Error in Vulkan context creation\n");
     assert(0);
   }
-  return std::make_unique<VulkanBackend>(vkContext, nullptr);
+  std::shared_ptr<SlangShaderCompiler> compiler = make_shared<SlangShaderCompiler>(shader_dirs);
+  return std::make_unique<VulkanBackend>(vkContext, nullptr, compiler);
 }
 
-VulkanBackend::VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window) :
+VulkanBackend::VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window,
+                             std::shared_ptr<SlangShaderCompiler> compiler) :
     m_windowHandle(window), m_vkContext(vkContext)
 {
+  m_vkContext = vkContext;
+  init();
+  m_ctx = create_vk_context(m_vkContext, m_descriptorPool, m_viewportSize, compiler);
+  m_render = std::make_shared<VulkanSceneRenderer>(m_ctx);
 }
 
 void VulkanBackend::init()

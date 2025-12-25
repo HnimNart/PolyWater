@@ -15,24 +15,23 @@
 #include "VulkanRaster.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/Shared.hpp"
-#include "shaders/compiler/slang.hpp"
 
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-void VulkanRayTracer::init(VulkanContext* ctx, SlangShaderCompiler* compiler, VulkanRaster* raster)
+void VulkanRayTracer::init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* raster)
 {
-  m_ctx = ctx;
-  m_compiler = compiler;
+  m_ctx = std::move(ctx);
+  m_compiler = m_ctx->slangCompiler;
   m_raster = raster;
 }
 
-void VulkanRayTracer::clear(VulkanContext* ctx)
+void VulkanRayTracer::clear()
 {
-  vkDestroyPipelineLayout(ctx->device, m_pipelineLayout, nullptr);
-  vkDestroyPipeline(ctx->device, m_pipeline, nullptr);
+  vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipeline(m_ctx->context.getDevice(), m_pipeline, nullptr);
   m_descPack.deinit();
-  ctx->allocator->destroyBuffer(m_sbtBuffer);
+  m_ctx->allocator.destroyBuffer(m_sbtBuffer);
   m_sbtGenerator.deinit();
   m_accel.deinit();
 }
@@ -42,13 +41,13 @@ void VulkanRayTracer::createPipeline(const CpuSceneResources& scene)
   // Get ray tracing properties
   VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   prop2.pNext = &m_properties;
-  vkGetPhysicalDeviceProperties2(m_ctx->physicalDevice, &prop2);
+  vkGetPhysicalDeviceProperties2(m_ctx->context.getPhysicalDevice(), &prop2);
 
   // Initialize acceleration structure builder
   m_accel.init(m_ctx);
 
   // Initialize SBT generator
-  m_sbtGenerator.init(m_ctx->device, m_properties);
+  m_sbtGenerator.init(m_ctx->context.getDevice(), m_properties);
 
   create_ray_tracing_pipeline(scene);
 }
@@ -78,7 +77,7 @@ void VulkanRayTracer::createRaytraceDescriptorLayout()
                        .stageFlags = VK_SHADER_STAGE_ALL});
 
   // Creating a PUSH descriptor set and set layout from the bindings
-  m_descPack.init(bindings, m_ctx->device, 0,
+  m_descPack.init(bindings, m_ctx->context.getDevice(), 0,
                   VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 }
 
@@ -86,8 +85,8 @@ void VulkanRayTracer::createRayTracingPipeline()
 {
   SCOPED_TIMER(__FUNCTION__);
   // For re-creation
-  vkDestroyPipeline(m_ctx->device, m_pipeline, nullptr);
-  vkDestroyPipelineLayout(m_ctx->device, m_pipelineLayout, nullptr);
+  vkDestroyPipeline(m_ctx->context.getDevice(), m_pipeline, nullptr);
+  vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);
 
   // Creating all shaders
   enum StageIndices
@@ -152,7 +151,8 @@ void VulkanRayTracer::createRayTracingPipeline()
       {m_raster->descPack().getLayout(), m_descPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
-  vkCreatePipelineLayout(m_ctx->device, &pipeline_layout_create_info, nullptr, &m_pipelineLayout);
+  vkCreatePipelineLayout(m_ctx->context.getDevice(), &pipeline_layout_create_info, nullptr,
+                         &m_pipelineLayout);
   NVVK_DBG_NAME(m_pipelineLayout);
 
   // Assemble the shader stages
@@ -164,7 +164,8 @@ void VulkanRayTracer::createRayTracingPipeline()
   rtPipelineInfo.pGroups = shader_groups.data();
   rtPipelineInfo.maxPipelineRayRecursionDepth = std::max(3U, m_properties.maxRayRecursionDepth);
   rtPipelineInfo.layout = m_pipelineLayout;
-  vkCreateRayTracingPipelinesKHR(m_ctx->device, {}, {}, 1, &rtPipelineInfo, nullptr, &m_pipeline);
+  vkCreateRayTracingPipelinesKHR(m_ctx->context.getDevice(), {}, {}, 1, &rtPipelineInfo, nullptr,
+                                 &m_pipeline);
   NVVK_DBG_NAME(m_pipeline);
 
   // Create SBT
@@ -176,13 +177,13 @@ void VulkanRayTracer::createShaderBindingTable(
 {
   SCOPED_TIMER(__FUNCTION__);
 
-  m_ctx->allocator->destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
+  m_ctx->allocator.destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
 
   // Calculate required SBT buffer size
   size_t bufferSize = m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
   // Create SBT buffer
-  NVVK_CHECK(m_ctx->allocator->createBuffer(
+  NVVK_CHECK(m_ctx->allocator.createBuffer(
       m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
       VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
       VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,

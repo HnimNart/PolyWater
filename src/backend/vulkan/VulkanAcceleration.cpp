@@ -9,9 +9,9 @@
 #include "VulkanContext.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
-void AccelerationStructures::init(VulkanContext* ctx)
+void AccelerationStructures::init(std::shared_ptr<VulkanContext> ctx)
 {
-  m_asBuilder.init(ctx->allocator, &ctx->stagingUploader, ctx->graphicsQueue);
+  m_asBuilder.init(&ctx->allocator, &ctx->stagingUploader, ctx->context.getQueueInfo(0));
 }
 
 void AccelerationStructures::deinit()

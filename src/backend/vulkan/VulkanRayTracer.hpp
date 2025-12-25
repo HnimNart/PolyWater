@@ -26,8 +26,8 @@ struct PushConstant;
 class VulkanRayTracer
 {
 public:
-  void init(VulkanContext* ctx, SlangShaderCompiler* compiler, VulkanRaster* raster);
-  void clear(VulkanContext* ctx);
+  void init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* raster);
+  void clear();
 
   void createPipeline(const CpuSceneResources& scene);
 
@@ -44,8 +44,8 @@ private:
   void createShaderBindingTable(const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
 
 private:
-  VulkanContext* m_ctx = nullptr;
-  SlangShaderCompiler* m_compiler = nullptr;
+  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
   VulkanRaster* m_raster = nullptr;
 
   nvvk::DescriptorPack m_descPack{};

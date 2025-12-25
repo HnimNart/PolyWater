@@ -28,8 +28,8 @@ struct PushConstant;
 class VulkanRaster
 {
 public:
-  void init(VulkanContext* ctx, SlangShaderCompiler* compiler);
-  void clear(VulkanContext* ctx);
+  void init(std::shared_ptr<VulkanContext> ctx);
+  void clear();
 
   // Note: implementation moved to cpp
   void resize(VkCommandBuffer cmd, VkExtent2D size);
@@ -51,11 +51,11 @@ public:
 private:
   void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
-  void compileShaders(VulkanContext* ctx);
+  void compileShaders(std::shared_ptr<VulkanContext> ctx);
 
 private:
-  VulkanContext* m_ctx = nullptr;
-  SlangShaderCompiler* m_compiler = nullptr;
+  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
 
   nvvk::DescriptorPack m_descPack{};
   VkPipelineLayout m_pipelineLayout{};

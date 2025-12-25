@@ -29,12 +29,12 @@ public:
   using TextureID = uint32_t;
 
   // Lifecycle
-  explicit VulkanSceneResources(VulkanContext* ctx);
+  explicit VulkanSceneResources(std::shared_ptr<VulkanContext> ctx);
 
   // Resources
   MeshID upload_gltf_model(const tinygltf::Model& model, nvsamples::GltfSceneResource& resources);
   TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd);
-  void update_descriptors(nvvk::DescriptorPack& descriptor_pack, VulkanContext* ctx);
+  void update_descriptors(nvvk::DescriptorPack& descriptor_pack);
   void finalizeSceneResources(nvsamples::GltfSceneResource& resources, VkCommandBuffer cmd);
   void clear(nvsamples::GltfSceneResource& resources);
 
@@ -43,7 +43,7 @@ public:
   nvvk::SamplerPool& sampler_pool();
 
 private:
-  VulkanContext* m_ctx = nullptr;
+  std::shared_ptr<VulkanContext> m_ctx = nullptr;
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;
   uint32_t mesh_id_counter = 0;

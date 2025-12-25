@@ -4,16 +4,16 @@
 
 #include <memory>
 
+#include "backend/vulkan/VulkanContext.hpp"
 #include "src/backend/ISceneRenderer.hpp"
 
-// Forward declarations to avoid heavy includes
-struct VulkanContext;
 class VulkanRaster;
 class VulkanRayTracer;
 class PostProcessor;
+class IRenderBackend;
 class VulkanSceneResources;
 class CpuSceneResources;
-class SlangShaderCompiler;
+
 namespace nvvk
 {
 class GBuffer;
@@ -26,7 +26,7 @@ struct PushConstant;
 class VulkanSceneRenderer final : public ISceneRenderer
 {
 public:
-  explicit VulkanSceneRenderer(VulkanContext* ctx);
+  explicit VulkanSceneRenderer(std::shared_ptr<VulkanContext> ctx);
   ~VulkanSceneRenderer() override;
 
   // Delete copy/move
@@ -72,7 +72,7 @@ private:
   void init_gbuffers();
 
 private:
-  VulkanContext* m_ctx = nullptr;
+  std::shared_ptr<VulkanContext> m_ctx = nullptr;
 
   // PIMPL: Using unique_ptr allows us to forward declare these types
   // instead of including their headers here.

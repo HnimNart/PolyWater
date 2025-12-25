@@ -13,10 +13,10 @@
 class PostProcessor
 {
 public:
-  void init(VulkanContext* ctx)
+  void init(std::shared_ptr<VulkanContext> ctx)
   {
     // Initialize the tonemapper also with proe-compiled shader
-    m_tonemapper.init(ctx->allocator, std::span(tonemapper_slang));
+    m_tonemapper.init(&ctx->allocator, std::span(tonemapper_slang));
   }
   void run(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers)
   {

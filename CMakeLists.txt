@@ -16,6 +16,12 @@ find_package(NvproCore2 REQUIRED)
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
+if(MSVC)
+    add_compile_options(/w)
+else()
+    add_compile_options(-w)
+endif()
+
 # Add common library first as other samples might depend on it
 add_subdirectory(src)
 add_subdirectory(app)
