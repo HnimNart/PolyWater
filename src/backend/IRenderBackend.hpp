@@ -1,7 +1,15 @@
 #pragma once
 
-#include <filesystem>
+#include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <imgui.h>
+#include <vulkan/vulkan_core.h>
 
+#include <filesystem>
+#include <functional>
+#include <vector>
+
+#include "core/application/IAppElement.hpp"
 #include "core/application/types.h"
 
 //------------------------------------------------------------
@@ -29,12 +37,18 @@ public:
   //----------------------------------------------------------
   // Frame loop
   //----------------------------------------------------------
+  virtual void newFrame()
+  {
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+  }
 
   // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
   virtual bool beginFrame(FrameContext& frame) = 0;
 
   // Render the frame
-  virtual void renderFrame(FrameContext const& frame) = 0;
+  virtual void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
+                           FrameContext const& frame) = 0;
 
   // Complete the frame
   virtual void endFrame(FrameContext const& frame) = 0;
@@ -45,17 +59,50 @@ public:
   //----------------------------------------------------------
   // Runtime control
   //----------------------------------------------------------
-  virtual void setVsync(bool enabled) = 0;
-  virtual bool isVsync() const = 0;
+  virtual void setVsync(bool enabled) { m_vsyncWanted = enabled; };
+  virtual bool isVsync() const { return m_vsync; };
 
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  virtual void resize(const WindowSize& size) = 0;
-  virtual const WindowSize getViewportSize() const = 0;
+  virtual void onResize(const WindowSize& size)
+  {
+    // Check for DPI scaling and adjust the font size
+    float xscale, yscale;
+    glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
+    ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
+    m_dpiScale = xscale;
+
+    m_viewportSize = {size.width, size.height};
+  }
+
+  virtual WindowSize getViewportSize() const
+  {
+    return {m_viewportSize.width, m_viewportSize.height};
+  }
+  virtual void setWindow(GLFWwindow* windowHandle) { m_windowHandle = windowHandle; }
+  virtual void setWindowSize(const WindowSize& windowSize) = 0;
 
   //----------------------------------------------------------
   // Utilities
   //----------------------------------------------------------
   virtual void requestScreenshot(const std::filesystem::path& filename, int quality = 100) = 0;
+  virtual void freeResourcesQueue() {};
+
+protected:
+  GLFWwindow* m_windowHandle{nullptr};  // GLFW Window
+  WindowSize m_viewportSize{0, 0};      // Size of the viewport
+  float m_dpiScale = 1.0f;
+
+  // Vsync
+  bool m_vsyncWanted{true};  // Wanting swapchain with vsync
+  bool m_vsync{true};
+
+  // Screenshot
+  bool m_screenShotRequested = false;
+  int m_screenShotFrame = 0;
+  std::filesystem::path m_screenShotFilename;
+
+  std::vector<std::vector<std::function<void()>>>
+      m_resourceFreeQueue;  // Queue of functions to free resources
 };

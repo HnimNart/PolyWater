@@ -3,108 +3,118 @@
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <volk.h>
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan_core.h>
 
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/swapchain.hpp>
 
+#include "VulkanRenderContext.hpp"
 #include "VulkanSceneRenderer.hpp"
+#include "backend/RenderContext.hpp"
 #include "vk_utils.hpp"
 
 namespace core
 {
 
 std::unique_ptr<VulkanBackend>
-VulkanBackend::create(const core::ApplicationCreateInfo appInfo,
-                      const std::vector<std::filesystem::path>& shader_dirs)
+VulkanBackend::create(const core::ApplicationCreateInfo& appInfo,
+                      const std::vector<std::filesystem::path>& shaderDirs)
 {
-  // Initialize the Vulkan context
-  nvvk::ContextInitInfo vkSetup = vk_utils::setupVulkanContext(appInfo);
-  nvvk::Context vkContext;
-  if (vkContext.init(vkSetup) != VK_SUCCESS)
+  try
   {
-    LOGE("Error in Vulkan context creation\n");
-    assert(0);
+    auto compiler = std::make_shared<SlangShaderCompiler>(shaderDirs);
+    return std::unique_ptr<VulkanBackend>(new VulkanBackend(appInfo, compiler));
   }
-  std::shared_ptr<SlangShaderCompiler> compiler = make_shared<SlangShaderCompiler>(shader_dirs);
-  return std::make_unique<VulkanBackend>(vkContext, nullptr, compiler);
+  catch (const std::exception& e)
+  {
+    LOGE("Critical Error creating VulkanBackend: %s\n", e.what());
+    return nullptr;
+  }
 }
 
-VulkanBackend::VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window,
+VulkanBackend::VulkanBackend(const core::ApplicationCreateInfo& appInfo,
                              std::shared_ptr<SlangShaderCompiler> compiler) :
-    m_windowHandle(window), m_vkContext(vkContext)
+    m_compiler(std::move(compiler))
 {
-  m_vkContext = vkContext;
-  init();
-  m_ctx = create_vk_context(m_vkContext, m_descriptorPool, m_viewportSize, compiler);
-  m_render = std::make_shared<VulkanSceneRenderer>(m_ctx);
+  nvvk::ContextInitInfo vkSetup = vk_utils::createVkContextInfo(appInfo);
+  VkResult result = m_vkContext.init(vkSetup);
+  if (result != VK_SUCCESS)
+  {
+    LOGE("Failed to initialize Vulkan context.\n");
+    std::string errorMsg = "Vulkan Initialization Failed: " + std::string(string_VkResult(result));
+    throw std::runtime_error(errorMsg);
+  }
 }
 
 void VulkanBackend::init()
 {
+  // Validate window handle before surface creation
+  if (!m_windowHandle)
+  {
+    throw std::runtime_error("VulkanBackend initialized without a valid GLFW window.");
+  }
+
   VkDevice device = m_vkContext.getDevice();
   VkPhysicalDevice physicalDevice = m_vkContext.getPhysicalDevice();
   VkInstance instance = m_vkContext.getInstance();
-  const nvvk::QueueInfo& graphics_queue = m_vkContext.getQueueInfo(0);
+  const nvvk::QueueInfo& graphicsQueue = m_vkContext.getQueueInfo(0);
 
-  // Create the window surface
-  NVVK_CHECK(
-      glfwCreateWindowSurface(m_vkContext.getInstance(), m_windowHandle, nullptr, &m_surface));
+  // 1. Create Window Surface
+  NVVK_CHECK(glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
 
-  // CreateTransientCommandPool
-  const VkCommandPoolCreateInfo commandPoolCreateInfo{
+  // 2. Create Transient Command Pool
+  const VkCommandPoolCreateInfo cmdPoolInfo{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,  // Hint that commands will be short-lived
-      .queueFamilyIndex = graphics_queue.familyIndex,
+      .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+      .queueFamilyIndex = graphicsQueue.familyIndex,
   };
-  NVVK_CHECK(vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &m_transientCmdPool));
+  NVVK_CHECK(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &m_transientCmdPool));
   NVVK_DBG_NAME(m_transientCmdPool);
 
-  // createDescriptorPool()
-  const std::array<VkDescriptorPoolSize, 1> poolSizes{
+  // 3. Create Descriptor Pool
+  const std::array<VkDescriptorPoolSize, 1> poolSizes{{
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_maxTexturePool},
-  };
+  }};
 
-  const VkDescriptorPoolCreateInfo poolInfo = {
+  const VkDescriptorPoolCreateInfo poolInfo{
       .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-      .flags =
-          VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |   //  allows descriptor sets to be
-                                                              //  updated after they have been bound
-                                                              //  to a command buffer
-          VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,  // individual descriptor sets can be
-                                                              // freed from the descriptor pool
-      .maxSets = m_maxTexturePool,  // Allowing to create many sets (ImGui uses this for textures)
-      .poolSizeCount = uint32_t(poolSizes.size()),
+      .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
+               VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+      .maxSets = m_maxTexturePool,
+      .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
       .pPoolSizes = poolSizes.data(),
   };
   NVVK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_descriptorPool));
   NVVK_DBG_NAME(m_descriptorPool);
 
-  // Create the swapchain
+  // 4. Create Swapchain
   nvvk::Swapchain::InitInfo swapChainInit{
       .physicalDevice = physicalDevice,
       .device = device,
-      .queue = graphics_queue,
       .surface = m_surface,
+      .queue = graphicsQueue,
       .cmdPool = m_transientCmdPool,
-      // .preferredVsyncOffMode = info.preferredVsyncOffMode,
-      // .preferredVsyncOnMode = info.preferredVsyncOnMode,
   };
-  // We do some custom error-handling here to provide additional information
-  // about the reason creating the swapchain failed.
+
   const VkResult result = m_swapchain.init(swapChainInit);
-  if (VK_SUCCESS != result)
+  if (result != VK_SUCCESS)
   {
     vk_utils::reportSwapchainDiagnostics(instance, swapChainInit);
-    // So that this is treated the same way as other NVVK_CHECK errors:
-    nvvk::CheckError::getInstance().check(result, "m_swapchain.init(swapChainInit)", __FILE__,
-                                          __LINE__);
+    nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__, __LINE__);
   }
-  // Update the window size to the actual size of the surface
+
+  // Initialize Swapchain Resources (triggers resize logic)
   NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
 
-  // Create what is needed to submit the scene for each frame in-flight
+  // 5. Finalize High-Level Wrappers
+  // Now that basic Vulkan plumbing is done, create the high-level context
+  m_ctx = create_vk_context(m_vkContext, m_descriptorPool,
+                            {m_viewportSize.width, m_viewportSize.height}, m_compiler);
+  m_render = std::make_shared<VulkanSceneRenderer>(m_ctx);
+
+  // 6. Create Frame Submission Sync Objects
   createFrameSubmission(m_swapchain.getMaxFramesInFlight());
 }
 
@@ -124,19 +134,31 @@ void VulkanBackend::waitForFrameCompletion() const
   vkWaitSemaphores(device, &waitInfo, std::numeric_limits<uint64_t>::max());
 }
 
+void VulkanBackend::newFrame()
+{
+  IRenderBackend::newFrame();
+  ImGui_ImplVulkan_NewFrame();
+}
+
 bool VulkanBackend::beginFrame(FrameContext& frame)
 {
-  VkDevice device = m_vkContext.getDevice();
+  if (m_swapchain.needRebuilding())
+  {
+    NVVK_CHECK(m_swapchain.reinitResources(m_windowSize, m_vsyncWanted));
+  }
 
-  waitForFrameCompletion();
+  waitForFrameCompletion();  // Wait until GPU has finished processing
 
   // Acquire
+  VkDevice device = m_vkContext.getDevice();
   VkResult res = m_swapchain.acquireNextImage(device);
-  if (res == VK_ERROR_OUT_OF_DATE_KHR)
+
+  if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
   {
-    resize({0, 0});  // Trigger resize logic
     return false;
-  }
+  }  // Continue only if we got a valid image
+
+  m_frameData[m_frameRingCurrent]->frameNumber += m_swapchain.getMaxFramesInFlight();
 
   // Prepare Command Buffer
   auto& ctx = m_frameData[m_frameRingCurrent];
@@ -146,29 +168,66 @@ bool VulkanBackend::beginFrame(FrameContext& frame)
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   vkBeginCommandBuffer(ctx->cmdBuffer, &beginInfo);
 
+  // Reset the extra semaphores and command buffers
+  m_waitSemaphores.clear();
+  m_signalSemaphores.clear();
+  m_commandBuffers.clear();
+
   return true;
 }
 
-void VulkanBackend::renderFrame(FrameContext const& frame)
+void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
+                                FrameContext const& frame)
 {
-  // This is where internal backend rendering (like ImGui) would happen.
-  // The Application loop calls onRender() on elements BEFORE calling this.
+
+  std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
+  auto& ctx = m_frameData[m_frameRingCurrent];
+  VkCommandBuffer cmd = ctx->cmdBuffer;
+  for (const std::shared_ptr<IAppElement>& e : elements)
+  {
+    e->onRender(static_cast<RenderContext*>(ctx.get()), frame);
+  }
+
+  // Start rendering to the swapchain
+  beginDynamicRenderingToSwapchain(cmd);
+  {
+    nvvk::DebugUtil::ScopedCmdLabel scopedCmdLabel(cmd, "ImGui");
+    // The ImGui draw commands are recorded to the command buffer, which includes the display of our
+    // GBuffer image
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+  }
+  endDynamicRenderingToSwapchain(cmd);
+
+  // Prepare to submit the current frame for rendering
+  // First add the swapchain semaphore to wait for the image to be available.
+  m_waitSemaphores.push_back({
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+      .semaphore = m_swapchain.getImageAvailableSemaphore(),
+      .stageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+  });
+  m_signalSemaphores.push_back({
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+      .semaphore = m_swapchain.getRenderFinishedSemaphore(),
+      .stageMask =
+          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,  // Ensure everything is done before presenting
+  });
 }
 
-void VulkanBackend::endFrame(FrameContext const& frame)
+void VulkanBackend::endFrame(FrameContext const& frameCtx)
 {
-  auto& ctx = m_frameData[m_frameRingCurrent];
-  vkEndCommandBuffer(ctx->cmdBuffer);
+  auto& frame = m_frameData[m_frameRingCurrent];
+  vkEndCommandBuffer(frame->cmdBuffer);
+  frame->cmdBuffer == VK_NULL_HANDLE;
 
   // Calculate timeline signal value
-  m_frameData[m_frameRingCurrent]->frameNumber = frame.frameNumber + m_frameData.size();
+  m_frameData[m_frameRingCurrent]->frameNumber = frameCtx.frameNumber + m_frameData.size();
 
   // Add timeline semaphore to signal when GPU completes this frame
   // The color attachment output stage is used since that's when the frame is fully rendered
   m_signalSemaphores.push_back({
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
       .semaphore = m_frameTimelineSemaphore,
-      .value = frame.frameNumber,
+      .value = frameCtx.frameNumber,
       .stageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,  // Wait that everything is completed
   });
 
@@ -176,11 +235,7 @@ void VulkanBackend::endFrame(FrameContext const& frame)
   // Note: extra command buffers could have been added to the list from other parts of the
   // application (elements)
   m_commandBuffers.push_back(
-      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = ctx->cmdBuffer});
-
-  VkSemaphore waitSem = m_swapchain.getImageAvailableSemaphore();
-  VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  VkSemaphore signalSem = m_swapchain.getRenderFinishedSemaphore();
+      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = frame->cmdBuffer});
 
   // Populate the submit info to synchronize rendering and send the command buffer
   const VkSubmitInfo2 submitInfo{
@@ -203,16 +258,9 @@ void VulkanBackend::present()
   m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
 }
 
-void VulkanBackend::resize(const WindowSize& size)
+void VulkanBackend::onResize(const WindowSize& size)
 {
-
-  // Check for DPI scaling and adjust the font size
-  float xscale, yscale;
-  glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
-  ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
-  m_dpiScale = xscale;
-
-  m_viewportSize = {size.width, size.height};
+  IRenderBackend::onResize(size);
   // Recreate the G-Buffer to the size of the viewport
   NVVK_CHECK(vkQueueWaitIdle(m_vkContext.getQueueInfo(0).queue));
   // TODO Should resize VulkanSceneRenderer
@@ -227,6 +275,11 @@ void VulkanBackend::resize(const WindowSize& size)
   //   NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_device, m_transientCmdPool,
   //   m_queues[0].queue));
   // }
+}
+
+uint32_t VulkanBackend::getFrameCycleSize() const
+{
+  return static_cast<uint32_t>(m_frameData.size());
 }
 
 void VulkanBackend::shutdown()
@@ -298,12 +351,71 @@ void VulkanBackend::createFrameSubmission(uint32_t numFrames)
 
 void VulkanBackend::requestScreenshot(const std::filesystem::path& filename, int quality)
 {
-
   m_screenShotRequested = true;
   m_screenShotFilename = filename;
   // Making sure the screenshot is taken after the swapchain loop (remove the menu after click)
   m_screenShotFrame = (m_frameRingCurrent - 1 + m_swapchain.getMaxFramesInFlight()) %
                       m_swapchain.getMaxFramesInFlight();
+}
+
+void VulkanBackend::setWindowSize(const WindowSize& windowSize)
+{
+  m_windowSize = {windowSize.width, windowSize.height};
+}
+
+//-----------------------------------------------------------------------
+// We are using dynamic rendering, which is a more flexible way to render to the swapchain image.
+//
+void VulkanBackend::beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const
+{
+  // Image to render to
+  const VkRenderingAttachmentInfo colorAttachment{
+      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+      .imageView = m_swapchain.getImageView(),
+      .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,    // Clear the image (see clearValue)
+      .storeOp = VK_ATTACHMENT_STORE_OP_STORE,  // Store the image (keep the image)
+      .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}},
+  };
+
+  // Details of the dynamic rendering
+  const VkRenderingInfo renderingInfo{
+      .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+      .renderArea = {{0, 0}, m_windowSize},
+      .layerCount = 1,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &colorAttachment,
+  };
+
+  // Transition the swapchain image to the color attachment layout, needed when using dynamic
+  // rendering
+  nvvk::cmdImageMemoryBarrier(cmd, {m_swapchain.getImage(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+
+  vkCmdBeginRendering(cmd, &renderingInfo);
+}
+
+//-----------------------------------------------------------------------
+// End of dynamic rendering.
+// The image is transitioned back to the present layout, and the rendering is ended.
+//
+void VulkanBackend::endDynamicRenderingToSwapchain(VkCommandBuffer cmd)
+{
+  vkCmdEndRendering(cmd);
+
+  // Transition the swapchain image back to the present layout
+  nvvk::cmdImageMemoryBarrier(cmd,
+                              {m_swapchain.getImage(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
+}
+
+void VulkanBackend::freeResourcesQueue()
+{
+  for (auto& func : m_resourceFreeQueue[m_frameRingCurrent])
+  {
+    func();  // Free resources in queue
+  }
+  m_resourceFreeQueue[m_frameRingCurrent].clear();
 }
 
 }  // namespace core

@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <volk/volk.h>
 
-#include "nvgui/style.hpp"
+#include <nvgui/style.hpp>
 #undef APIENTRY
 
 #include <backends/imgui_impl_glfw.h>
@@ -27,12 +27,15 @@
 namespace core
 {
 
-Application::Application()
+Application::Application(ApplicationCreateInfo const& info,
+                         std::unique_ptr<IRenderBackend> backend) : m_backend(std::move(backend))
 {
   glfwInit();
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
+
+  init(info);
 }
 
 Application::~Application()
@@ -40,9 +43,8 @@ Application::~Application()
   shutdown();
 }
 
-void Application::init(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend)
+void Application::init(ApplicationCreateInfo const& info)
 {
-  m_backend = std::move(backend);
   m_useMenubar = info.useMenu;
   m_vsyncWanted = info.vSync;
   m_dockSetup = info.dockSetup;
@@ -64,6 +66,7 @@ void Application::init(ApplicationCreateInfo const& info, std::unique_ptr<IRende
   // Initialize backend
   if (m_backend)
   {
+    m_backend->setWindow(m_windowHandle);
     m_backend->init();
   }
 
@@ -89,7 +92,9 @@ void Application::runOneFrame()
   if (!m_headless)
   {
     if (m_vsyncWanted)
+    {
       m_framePacer.pace();
+    }
     glfwPollEvents();
 
     // Skip rendering when minimized
@@ -119,8 +124,7 @@ void Application::runFrame()
   FrameContext frameCtx{m_frameCounter, m_vsyncWanted};
 
   // 1. Begin ImGui Frame
-  m_backend->beginFrame(frameCtx);
-  ImGui::NewFrame();
+  m_backend->newFrame();
 
   // 2. Docking & Menus
   setupImguiDock();
@@ -133,17 +137,55 @@ void Application::runFrame()
     ImGui::EndMainMenuBar();
   }
 
-  // 3. UI Phase
-  for (auto& e : m_elements)
+  // Handle Viewport Updates
+  WindowSize viewportSize = m_windowSize;
+  const ImGuiWindow* viewport = ImGui::FindWindowByName("Viewport");
+  if (viewport)
   {
-    e->onUIRender();
+    viewportSize = {uint32_t(viewport->Size.x), uint32_t(viewport->Size.y)};
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Viewport");
+    ImGui::End();
+    ImGui::PopStyleVar();
   }
 
-  // 4. Backend Logic & GPU Command Recording
-  // This encapsulates: AcquireImage, onPreRender, onRender, onEndFrame, and Present
-  m_backend->renderFrame(frameCtx);
+  // Update viewport if size changed
+  if (m_backend->getViewportSize() != viewportSize)
+  {
+    m_backend->onResize(viewportSize);
+  }
 
-  m_backend->present();
+  // // Handle Screenshot Requests
+  // if(m_screenShotRequested && (m_frameRingCurrent == m_screenShotFrame))
+  // {
+  //   saveScreenShot(m_screenShotFilename, k_imageQuality);
+  //   m_screenShotRequested = false;
+  // }
+
+  if (m_backend->beginFrame(frameCtx))
+  {
+    // Draw frame
+    {
+      // 3. UI Phase
+      for (auto& e : m_elements)
+      {
+        e->onUIRender();
+      }
+      // This is creating the data to draw the UI (not on GPU yet)
+      ImGui::Render();
+
+      // Call onPreRender for each element with the command buffer of the frame
+      for (std::shared_ptr<IAppElement>& e : m_elements)
+      {
+        e->onPreRender();
+      }
+    }
+
+    // 4. Backend Logic & GPU Command Recording
+    m_backend->renderFrame(m_elements, frameCtx);
+    m_backend->endFrame(frameCtx);
+    m_backend->present();
+  }
 
   // 5. Finalize ImGui (Viewports)
   ImGui::EndFrame();
@@ -174,10 +216,14 @@ void Application::shutdown()
   ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
 
   if (m_backend)
+  {
     m_backend->shutdown();
+  }
 
   if (ImPlot::GetCurrentContext())
+  {
     ImPlot::DestroyContext();
+  }
   ImGui::DestroyContext();
 
   if (m_windowHandle)
@@ -199,7 +245,7 @@ bool Application::isHeadless() const noexcept
 
 void Application::onResize(const WindowSize& size)
 {
-  m_backend->resize(size);
+  m_backend->onResize(size);
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {
     e->onResize(size.width, size.height);

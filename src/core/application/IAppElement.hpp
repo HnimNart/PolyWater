@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <filesystem>
 
+#include "backend/RenderContext.hpp"
 #include "types.h"
 
 namespace core
 {
 
 class Application;
-class RenderContext;
 
 /**
  * @brief Interface for application elements (Layers).
@@ -49,7 +49,7 @@ struct IAppElement
   virtual void onBeginFrame(const FrameContext& frame) {}
 
   /** @brief Primary rendering callback. Record draw calls into the provided context. */
-  virtual void onRender(RenderContext& ctx, const FrameContext& frame) {}
+  virtual void onRender(RenderContext* ctx, const FrameContext& frame) {}
 
   /** @brief Called after all rendering commands have been recorded for the frame. */
   virtual void onEndFrame(const FrameContext& frame) {}

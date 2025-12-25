@@ -137,7 +137,7 @@ void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& 
   // against GLFW and have nvvk::Context call glfwGetPhysicalDevicePresentationSupport.
 }
 
-template <typename T> nvvk::ContextInitInfo setupVulkanContext(const T& appInfo)
+template <typename T> nvvk::ContextInitInfo createVkContextInfo(const T& appInfo)
 {
 
   // Setting up the Vulkan context, instance and device extensions
@@ -187,8 +187,8 @@ template <typename T> nvvk::ContextInitInfo setupVulkanContext(const T& appInfo)
 }
 
 template nvvk::ContextInitInfo
-setupVulkanContext<core::ApplicationCreateInfo>(const core::ApplicationCreateInfo& appInfo);
+createVkContextInfo<core::ApplicationCreateInfo>(const core::ApplicationCreateInfo& appInfo);
 template nvvk::ContextInitInfo
-setupVulkanContext<nvapp::ApplicationCreateInfo>(const nvapp::ApplicationCreateInfo& appInfo);
+createVkContextInfo<nvapp::ApplicationCreateInfo>(const nvapp::ApplicationCreateInfo& appInfo);
 
 }  // namespace vk_utils

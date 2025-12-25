@@ -408,7 +408,7 @@ int main(int argc, char** argv)
   cli.parse(argc, argv);
 
   // Initialize the Vulkan context
-  nvvk::ContextInitInfo vkSetup = vk_utils::setupVulkanContext(appInfo);
+  nvvk::ContextInitInfo vkSetup = vk_utils::createVkContextInfo(appInfo);
   nvvk::Context vkContext;
   if (vkContext.init(vkSetup) != VK_SUCCESS)
   {

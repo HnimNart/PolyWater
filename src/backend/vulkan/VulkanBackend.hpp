@@ -10,7 +10,6 @@
 #include "backend/vulkan/VulkanContext.hpp"
 #include "core/application/App.hpp"
 
-struct GLFWwindow;
 class VulkanSceneRenderer;
 
 namespace core
@@ -20,10 +19,9 @@ class VulkanBackend final : public IRenderBackend
 {
 public:
   static std::unique_ptr<VulkanBackend>
-  create(const core::ApplicationCreateInfo appInfo,
-         const std::vector<std::filesystem::path>& shader_dirs);
-  VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window,
-                std::shared_ptr<SlangShaderCompiler> compiler);
+  create(const core::ApplicationCreateInfo& appInfo,  // Pass by const reference
+         const std::vector<std::filesystem::path>& shaderDirs);
+
   ~VulkanBackend() override = default;
 
   // Lifecycle
@@ -31,39 +29,39 @@ public:
   void shutdown() override;
 
   // Frame Loop
+  void newFrame() override;
+
   bool beginFrame(FrameContext& frame) override;
-  void renderFrame(FrameContext const& frame) override;
+  void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
+                   FrameContext const& frame) override;
   void endFrame(FrameContext const& frame) override;
   void present() override;
 
-  // Controls
-  void setVsync(bool enabled) override { m_vsyncWanted = enabled; }
-  bool isVsync() const override { return m_vsync; }
-  void resize(const WindowSize& size) override;
+  void onResize(const WindowSize& size) override;
   void requestScreenshot(const std::filesystem::path& filename, int quality) override;
-  inline uint32_t getFrameCycleSize() const { return uint32_t(m_frameData.size()); }
-  const WindowSize getViewportSize() const override
-  {
-    return {m_viewportSize.width, m_viewportSize.height};
-  }
+
+  // Getters
+  uint32_t getFrameCycleSize() const;
+  void setWindowSize(const WindowSize& windowSize) override;
+
+  void freeResourcesQueue() override;
 
 private:
+  VulkanBackend(const core::ApplicationCreateInfo& appInfo,
+                std::shared_ptr<SlangShaderCompiler> compiler);
   void createFrameSubmission(uint32_t numFrames);
   void waitForFrameCompletion() const;
 
-  std::shared_ptr<VulkanSceneRenderer> m_render = nullptr;
-  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
+  void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
 
-  bool m_vsyncWanted{true};  // Wanting swapchain with vsync
-
-  GLFWwindow* m_windowHandle{nullptr};  // GLFW Window
-  VkExtent2D m_windowSize{0, 0};        // Size of the window
-  VkExtent2D m_viewportSize{0, 0};      // Size of the viewport
-  float m_dpiScale = 1.0f;
+  std::shared_ptr<VulkanSceneRenderer> m_render{};
+  std::shared_ptr<VulkanContext> m_ctx{};
+  std::shared_ptr<SlangShaderCompiler> m_compiler{};
 
   // Vulkan resources
-  nvvk::Context& m_vkContext;
-  nvvk::Swapchain m_swapchain;
+  nvvk::Context m_vkContext{};
+  nvvk::Swapchain m_swapchain{};
   VkSurfaceKHR m_surface{VK_NULL_HANDLE};
   VkCommandPool m_transientCmdPool{};   // The command pool
   VkDescriptorPool m_descriptorPool{};  // Application descriptor pool
@@ -76,15 +74,14 @@ private:
   uint32_t m_frameRingCurrent{0};          // Current frame index in the ring buffer (cycles through
                                            // available frames) : static for resource free queue
   // Fine control over the frame submission
-  std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores;    // Possible extra frame wait semaphores
-  std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores;  // Possible extra frame signal semaphores
-  std::vector<VkCommandBufferSubmitInfo> m_commandBuffers;  // Possible extra frame command buffers
-  bool m_vsync{true};
+  std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores{};  // Possible extra frame wait semaphores
+  std::vector<VkSemaphoreSubmitInfo>
+      m_signalSemaphores{};  // Possible extra frame signal semaphores
+  std::vector<VkCommandBufferSubmitInfo>
+      m_commandBuffers{};  // Possible extra frame command buffers
 
   // Misc
-  bool m_screenShotRequested = false;
-  int m_screenShotFrame = 0;
-  std::filesystem::path m_screenShotFilename;
+  VkExtent2D m_windowSize{0, 0};
 };
 
 }  // namespace core

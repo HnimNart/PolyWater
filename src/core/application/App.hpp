@@ -58,7 +58,7 @@ struct ApplicationCreateInfo
 class Application
 {
 public:
-  Application();
+  Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend);
   ~Application();
 
   Application(Application const&) = delete;
@@ -69,8 +69,7 @@ public:
   //----------------------------------------------------------
   // Initialization / shutdown
   //----------------------------------------------------------
-  void init(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend);
-
+  void init(const ApplicationCreateInfo& info);
   void shutdown();
 
   //----------------------------------------------------------
@@ -119,8 +118,8 @@ private:
   bool isWindowPosValid(const glm::ivec2& winPos);
   void setupImguiDock();
 
-  std::unique_ptr<IRenderBackend> m_backend;
-  std::vector<std::shared_ptr<IAppElement>> m_elements;
+  std::unique_ptr<IRenderBackend> m_backend{};
+  std::vector<std::shared_ptr<IAppElement>> m_elements{};
 
   bool m_useMenubar{true};    // Will use a menubar
   bool m_vsyncWanted{true};   // Wanting swapchain with vsync
