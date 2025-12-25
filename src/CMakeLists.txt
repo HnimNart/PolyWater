@@ -27,13 +27,15 @@ endforeach()
 ###################################
 # Library target
 ###################################
-add_library(${LIB_NAME} SHARED)
+add_library(${LIB_NAME})
 
 target_sources(${LIB_NAME}
     PRIVATE
         ${LIB_SOURCES}
         ${SHADER_SOURCES}
 )
+
+# add_project_definitions(${LIB_NAME})
 
 # set_target_properties(${LIB_NAME} PROPERTIES
 #     UNITY_BUILD ON
@@ -62,6 +64,7 @@ target_link_libraries(${LIB_NAME}
         nvvk
         nvpro2::nvslang
         nvpro2::nvgui
+        nvpro2::nvapp
 )
 
 ###################################

@@ -22,15 +22,18 @@
 #include <stb/stb_image.h>
 #include <volk.h>
 
-#define NVLOGGER_ENABLE_FMT
-
+#include <nvapp/application.hpp>
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 #include <nvutils/timers.hpp>
 #include <nvvk/check_error.hpp>
+#include <nvvk/context.hpp>
 #include <nvvk/default_structs.hpp>
 #include <nvvk/staging.hpp>
 #include <nvvk/swapchain.hpp>
+#include <nvvk/validation_settings.hpp>
+
+#include "core/application/App.hpp"
 
 namespace vk_utils
 {
@@ -133,5 +136,59 @@ void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& 
   // the window and surface before the context, or we would need to link NVVK
   // against GLFW and have nvvk::Context call glfwGetPhysicalDevicePresentationSupport.
 }
+
+template <typename T> nvvk::ContextInitInfo setupVulkanContext(const T& appInfo)
+{
+
+  // Setting up the Vulkan context, instance and device extensions
+  VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
+
+  // Add ray tracing features
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+
+  nvvk::ContextInitInfo vkSetup{
+      .instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
+      .deviceExtensions =
+          {
+              {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
+              {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
+              {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+               &accelFeature},  // Build acceleration structures
+              {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+               &rtPipelineFeature},                              // Use vkCmdTraceRaysKHR
+              {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},  // Required by ray tracing pipeline
+          },
+  };
+  if (!appInfo.headless)
+  {
+    nvvk::addSurfaceExtensions(vkSetup.instanceExtensions, &vkSetup.deviceExtensions);
+  }
+
+  // Adding control on the validation layers
+  nvvk::ValidationSettings validationSettings;
+  validationSettings.setPreset(nvvk::ValidationSettings::LayerPresets::eStandard);
+  vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
+
+#if defined(USE_NSIGHT_AFTERMATH)
+  // Adding the Aftermath extension to the device and initialize the Aftermath
+  auto& aftermath = AftermathCrashTracker::getInstance();
+  aftermath.initialize();
+  aftermath.addExtensions(vkSetup.deviceExtensions);
+  // The callback function is called when a validation error is triggered. This will wait to give
+  // time to dump the GPU crash.
+  nvvk::CheckError::getInstance().setCallbackFunction([&](VkResult result)
+                                                      { aftermath.errorCallback(result); });
+#endif
+  return vkSetup;
+}
+
+template nvvk::ContextInitInfo
+setupVulkanContext<core::ApplicationCreateInfo>(const core::ApplicationCreateInfo& appInfo);
+template nvvk::ContextInitInfo
+setupVulkanContext<nvapp::ApplicationCreateInfo>(const nvapp::ApplicationCreateInfo& appInfo);
 
 }  // namespace vk_utils

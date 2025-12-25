@@ -18,7 +18,7 @@ set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Add common library first as other samples might depend on it
 add_subdirectory(src)
-add_subdirectory(app/hello_world)
+add_subdirectory(app)
 
 
 # Install the resources and nvshaders folders

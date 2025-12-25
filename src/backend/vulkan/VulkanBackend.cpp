@@ -14,6 +14,19 @@
 namespace core
 {
 
+std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo appInfo)
+{
+  // Initialize the Vulkan context
+  nvvk::ContextInitInfo vkSetup = vk_utils::setupVulkanContext(appInfo);
+  nvvk::Context vkContext;
+  if (vkContext.init(vkSetup) != VK_SUCCESS)
+  {
+    LOGE("Error in Vulkan context creation\n");
+    assert(0);
+  }
+  return std::make_unique<VulkanBackend>(vkContext, nullptr);
+}
+
 VulkanBackend::VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window) :
     m_windowHandle(window), m_vkContext(vkContext)
 {
@@ -25,11 +38,6 @@ void VulkanBackend::init()
   VkPhysicalDevice physicalDevice = m_vkContext.getPhysicalDevice();
   VkInstance instance = m_vkContext.getInstance();
   const nvvk::QueueInfo& graphics_queue = m_vkContext.getQueueInfo(0);
-
-  // appInfo.instance = vkContext.getInstance();
-  // appInfo.device = vkContext.getDevice();
-  // appInfo.physicalDevice = vkContext.getPhysicalDevice();
-  // appInfo.queues = vkContext.getQueueInfos();
 
   // Create the window surface
   NVVK_CHECK(
@@ -132,32 +140,6 @@ bool VulkanBackend::beginFrame(FrameContext& frame)
   return true;
 }
 
-void VulkanBackend::resize(const WindowSize& size)
-{
-
-  // Check for DPI scaling and adjust the font size
-  float xscale, yscale;
-  glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
-  ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
-  m_dpiScale = xscale;
-
-  m_viewportSize = {size.width, size.height};
-  // Recreate the G-Buffer to the size of the viewport
-  NVVK_CHECK(vkQueueWaitIdle(m_vkContext.getQueueInfo(0).queue));
-  // TODO Should resize VulkanSceneRenderer
-  // {
-  //   VkCommandBuffer cmd{};
-  //   NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, m_device, m_transientCmdPool));
-  //   // Call the implementation of the UI rendering
-  //   for (std::shared_ptr<IAppElement>& e : m_elements)
-  //   {
-  //     e->onResize(m_viewportSize);
-  //   }
-  //   NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_device, m_transientCmdPool,
-  //   m_queues[0].queue));
-  // }
-}
-
 void VulkanBackend::renderFrame(FrameContext const& frame)
 {
   // This is where internal backend rendering (like ImGui) would happen.
@@ -210,6 +192,32 @@ void VulkanBackend::present()
 {
   m_swapchain.presentFrame(m_vkContext.getQueueInfo(0).queue);
   m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
+}
+
+void VulkanBackend::resize(const WindowSize& size)
+{
+
+  // Check for DPI scaling and adjust the font size
+  float xscale, yscale;
+  glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
+  ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
+  m_dpiScale = xscale;
+
+  m_viewportSize = {size.width, size.height};
+  // Recreate the G-Buffer to the size of the viewport
+  NVVK_CHECK(vkQueueWaitIdle(m_vkContext.getQueueInfo(0).queue));
+  // TODO Should resize VulkanSceneRenderer
+  // {
+  //   VkCommandBuffer cmd{};
+  //   NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, m_device, m_transientCmdPool));
+  //   // Call the implementation of the UI rendering
+  //   for (std::shared_ptr<IAppElement>& e : m_elements)
+  //   {
+  //     e->onResize(m_viewportSize);
+  //   }
+  //   NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_device, m_transientCmdPool,
+  //   m_queues[0].queue));
+  // }
 }
 
 void VulkanBackend::shutdown()

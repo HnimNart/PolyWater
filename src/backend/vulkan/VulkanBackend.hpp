@@ -7,6 +7,7 @@
 
 #include "VulkanRenderContext.hpp"  // We need the concrete type here
 #include "backend/IRenderBackend.hpp"
+#include "core/application/App.hpp"
 
 class GLFWwindow;
 
@@ -16,6 +17,7 @@ namespace core
 class VulkanBackend final : public IRenderBackend
 {
 public:
+  static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo appInfo);
   VulkanBackend(nvvk::Context& vkContext, GLFWwindow* window);
   ~VulkanBackend() override = default;
 

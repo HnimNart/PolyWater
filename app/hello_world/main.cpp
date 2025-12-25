@@ -20,20 +20,9 @@
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
 
-#define TINYGLTF_IMPLEMENTATION         // Implementation of the GLTF loader library
-#define STB_IMAGE_IMPLEMENTATION        // Implementation of the image loading library
-#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation of the image writing library
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS                                                               \
-  1                         // Use dynamic Vulkan functions for VMA (Vulkan Memory Allocator)
-#define VMA_IMPLEMENTATION  // Implementation of the Vulkan Memory Allocator
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                                           \
-  {                                                                                                \
-    printf((format), __VA_ARGS__);                                                                 \
-    printf("\n");                                                                                  \
-  }
-
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/imgui.h>
+#include <tinygltf/tiny_gltf.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -53,6 +42,7 @@
 #include <nvvk/validation_settings.hpp>    // Validation settings for Vulkan
 
 #include "src/scene/SceneManager.hpp"
+#include "src/scene/Shared.hpp"
 
 VulkanContext* ctx = nullptr;
 
@@ -399,55 +389,6 @@ private:
   bool m_useRayTracing = true;  // Set to true to use ray tracing, false for rasterization
 };
 
-nvvk::ContextInitInfo setupVulkanContext(const nvapp::ApplicationCreateInfo& appInfo)
-{
-
-  // Setting up the Vulkan context, instance and device extensions
-  VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
-
-  // Add ray tracing features
-  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
-  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
-
-  nvvk::ContextInitInfo vkSetup{
-      .instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
-      .deviceExtensions =
-          {
-              {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
-              {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
-              {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-               &accelFeature},  // Build acceleration structures
-              {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-               &rtPipelineFeature},                              // Use vkCmdTraceRaysKHR
-              {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},  // Required by ray tracing pipeline
-          },
-  };
-  if (!appInfo.headless)
-  {
-    nvvk::addSurfaceExtensions(vkSetup.instanceExtensions, &vkSetup.deviceExtensions);
-  }
-
-  // Adding control on the validation layers
-  nvvk::ValidationSettings validationSettings;
-  validationSettings.setPreset(nvvk::ValidationSettings::LayerPresets::eStandard);
-  vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
-
-#if defined(USE_NSIGHT_AFTERMATH)
-  // Adding the Aftermath extension to the device and initialize the Aftermath
-  auto& aftermath = AftermathCrashTracker::getInstance();
-  aftermath.initialize();
-  aftermath.addExtensions(vkSetup.deviceExtensions);
-  // The callback function is called when a validation error is triggered. This will wait to give
-  // time to dump the GPU crash.
-  nvvk::CheckError::getInstance().setCallbackFunction([&](VkResult result)
-                                                      { aftermath.errorCallback(result); });
-#endif
-  return vkSetup;
-}
-
 //---------------------------------------------------------------------------------------------------------------
 // The main function, entry point of the application
 int main(int argc, char** argv)
@@ -462,7 +403,7 @@ int main(int argc, char** argv)
   cli.parse(argc, argv);
 
   // Initialize the Vulkan context
-  nvvk::ContextInitInfo vkSetup = setupVulkanContext(appInfo);
+  nvvk::ContextInitInfo vkSetup = vk_utils::setupVulkanContext(appInfo);
   nvvk::Context vkContext;
   if (vkContext.init(vkSetup) != VK_SUCCESS)
   {

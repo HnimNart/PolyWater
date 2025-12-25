@@ -23,6 +23,7 @@
 
 #include <filesystem>
 
+#include <nvvk/context.hpp>
 #include <nvvk/resources.hpp>
 #include <nvvk/staging.hpp>
 #include <nvvk/swapchain.hpp>
@@ -34,5 +35,7 @@ nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& stagi
                                const std::filesystem::path& filename, bool sRgb = true);
 
 void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& swapchainParams);
+
+template <typename T> nvvk::ContextInitInfo setupVulkanContext(const T& appInfo);
 
 }  // namespace vk_utils

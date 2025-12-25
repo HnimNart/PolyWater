@@ -1,6 +1,7 @@
 #pragma once
 
-#include <filesystem>
+#include <cstdint>
+#include <memory>
 #include <string>
 
 namespace core

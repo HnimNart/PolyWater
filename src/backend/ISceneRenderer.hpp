@@ -7,6 +7,7 @@
 class ISceneRenderer
 {
 public:
+  virtual ~ISceneRenderer() = 0;
   virtual void init(CpuSceneResources& scene) = 0;
   virtual void clear() = 0;
   virtual void render(VkCommandBuffer cmd, CameraPtr camera, const CpuSceneResources& scene,

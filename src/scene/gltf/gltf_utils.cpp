@@ -20,14 +20,13 @@
 #include "gltf_utils.hpp"
 
 #include <fmt/format.h>
+#include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan_core.h>
 
 #include <functional>
 #include <span>
 
 #include <glm/gtc/type_ptr.hpp>  // glm::make_vec3
-
-#define NVLOGGER_ENABLE_FMT
 #include <nvutils/logger.hpp>
 #include <nvutils/timers.hpp>
 #include <nvvk/check_error.hpp>

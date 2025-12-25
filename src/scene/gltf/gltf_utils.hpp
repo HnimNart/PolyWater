@@ -20,6 +20,7 @@
 #pragma once
 
 #include <filesystem>
+
 #include <glm/glm.hpp>
 
 #include "nvutils/bounding_box.hpp"
@@ -27,7 +28,11 @@
 #include "nvvk/resources.hpp"
 #include "nvvk/staging.hpp"
 #include "scene/gltf/io_gltf.h"  // Contains definitions for GLTF GltfMesh, BufferView, TriangleMesh and more
-#include "tinygltf/tiny_gltf.h"
+
+namespace tinygltf
+{
+class Model;
+}
 
 namespace nvsamples
 {
