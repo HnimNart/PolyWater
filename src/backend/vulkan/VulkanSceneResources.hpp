@@ -1,92 +1,50 @@
 #pragma once
 
+#include <vulkan/vulkan.h>
+
 #include <string>
+#include <vector>
 
-#include <nvvk/debug_util.hpp>
-#include <nvvk/descriptors.hpp>
-#include <nvvk/formats.hpp>
+#include <nvvk/resource_allocator.hpp>
+#include <nvvk/sampler_pool.hpp>
 
-#include "backend/vulkan/VulkanContext.hpp"
-#include "backend/vulkan/vk_utils.hpp"
-#include "scene/gltf/gltf_utils.hpp"
-#include "shaders/shaderio.h"
+struct VulkanContext;
+namespace tinygltf
+{
+class Model;
+}
+namespace nvsamples
+{
+struct GltfSceneResource;
+}
+namespace nvvk
+{
+class DescriptorPack;
+}
 
 class VulkanSceneResources
 {
 public:
   using MeshID = int;
-  using TextureID = uint;
+  using TextureID = uint32_t;
 
-  VulkanSceneResources(VulkanContext* ctx)
-  {
-    m_ctx = ctx;
-    // Acquiring the texture sampler which will be used for displaying the GBuffer
-    m_samplerPool.init(ctx->device);
-  }
+  // Lifecycle
+  explicit VulkanSceneResources(VulkanContext* ctx);
 
-  MeshID upload_gltf_model(const tinygltf::Model& model, nvsamples::GltfSceneResource& m_resources)
-  {
-    nvsamples::importGltfData(m_resources, model, m_ctx->stagingUploader);
-    mesh_id_counter++;
-    return mesh_id_counter - 1;
-  }
+  // Resources
+  MeshID upload_gltf_model(const tinygltf::Model& model, nvsamples::GltfSceneResource& resources);
+  TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd);
+  void update_descriptors(nvvk::DescriptorPack& descriptor_pack, VulkanContext* ctx);
+  void finalizeSceneResources(nvsamples::GltfSceneResource& resources, VkCommandBuffer cmd);
+  void clear(nvsamples::GltfSceneResource& resources);
 
-  TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd)
-  {
-    nvvk::Image texture =
-        vk_utils::loadAndCreateImage(cmd, m_ctx->stagingUploader, m_ctx->device, filepath);
-
-    NVVK_DBG_NAME(texture.image);
-    m_samplerPool.acquireSampler(texture.descriptor.sampler);
-    m_textures.emplace_back(texture);
-    return static_cast<TextureID>(m_textures.size() - 1);
-  }
-
-  void update_descriptors(nvvk::DescriptorPack& descriptor_pack, VulkanContext* ctx)
-  {
-    if (m_textures.empty())
-      return;
-
-    nvvk::WriteSetContainer write{};
-    auto write_set = descriptor_pack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
-                                               static_cast<uint32_t>(m_textures.size()));
-
-    write.append(write_set, m_textures.data());
-
-    vkUpdateDescriptorSets(ctx->device, write.size(), write.data(), 0, nullptr);
-  }
-
-  void finalizeSceneResources(nvsamples::GltfSceneResource& resources, VkCommandBuffer cmd)
-  {
-    nvsamples::createGltfSceneInfoBuffer(
-        resources,
-        m_ctx->stagingUploader);  // Create buffers for the scene data (GPU buffers)
-    m_ctx->stagingUploader.cmdUploadAppended(cmd);  // Upload the scene information to the GPU
-  }
-
-  void clear(nvsamples::GltfSceneResource& resources)
-  {
-    for (auto& texture : m_textures)
-    {
-      m_ctx->allocator->destroyImage(texture);
-    }
-    m_ctx->allocator->destroyBuffer(resources.bSceneInfo);
-    m_ctx->allocator->destroyBuffer(resources.bMeshes);
-    m_ctx->allocator->destroyBuffer(resources.bMaterials);
-    m_ctx->allocator->destroyBuffer(resources.bInstances);
-    for (auto& gltfData : resources.bGltfDatas)
-    {
-      m_ctx->allocator->destroyBuffer(gltfData);
-    }
-    m_samplerPool.deinit();
-  }
-
-  const std::vector<nvvk::Image>& textures() const { return m_textures; };
-  nvvk::SamplerPool& sampler_pool() { return m_samplerPool; }
+  // Accessors
+  const std::vector<nvvk::Image>& textures() const;
+  nvvk::SamplerPool& sampler_pool();
 
 private:
   VulkanContext* m_ctx = nullptr;
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;
-  uint mesh_id_counter = 0;
+  uint32_t mesh_id_counter = 0;
 };

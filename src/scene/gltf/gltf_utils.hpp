@@ -23,7 +23,6 @@
 
 #include <glm/glm.hpp>
 
-#include "nvutils/bounding_box.hpp"
 #include "nvutils/primitives.hpp"
 #include "nvvk/resources.hpp"
 #include "nvvk/staging.hpp"

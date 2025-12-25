@@ -20,6 +20,19 @@
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS                                                               \
+  1                         // Use dynamic Vulkan functions for VMA (Vulkan Memory Allocator)
+#define VMA_IMPLEMENTATION  // Implementation of the Vulkan Memory Allocator
+#define VMA_LEAK_LOG_FORMAT(format, ...)                                                           \
+  {                                                                                                \
+    printf((format), __VA_ARGS__);                                                                 \
+    printf("\n");                                                                                  \
+  }
+
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/imgui.h>
 #include <tinygltf/tiny_gltf.h>
@@ -38,9 +51,15 @@
 #include <nvutils/logger.hpp>              // Logger for debug messages
 #include <nvutils/parameter_parser.hpp>    // Parameter parser
 #include <nvutils/timers.hpp>              // Timers for profiling
-#include <nvvk/context.hpp>                // Vulkan context management
-#include <nvvk/validation_settings.hpp>    // Validation settings for Vulkan
+#include <nvvk/check_error.hpp>
+#include <nvvk/context.hpp>  // Vulkan context management
+#include <nvvk/debug_util.hpp>
+#include <nvvk/validation_settings.hpp>  // Validation settings for Vulkan
 
+#include "common/path_utils.hpp"
+#include "src/backend/vulkan/VulkanContext.hpp"
+#include "src/backend/vulkan/VulkanSceneRenderer.hpp"
+#include "src/backend/vulkan/vk_utils.hpp"
 #include "src/scene/SceneManager.hpp"
 #include "src/scene/Shared.hpp"
 
@@ -58,12 +77,16 @@ public:
     CpuSceneResources& scene_resources = m_scene_manager->scene_resources();
     SCOPED_TIMER(__FUNCTION__);
     // Load the GLTF resources
-    tinygltf::Model teapotModel = scene_resources.loadGltf("teapot.gltf");
-    tinygltf::Model planeModel = scene_resources.loadGltf("plane.gltf");
+
+    tinygltf::Model teapotModel =
+        scene_resources.loadGltf(nvutils::findFile("teapot.gltf", nvsamples::getResourcesDirs()));
+    tinygltf::Model planeModel =
+        scene_resources.loadGltf(nvutils::findFile("plane.gltf", nvsamples::getResourcesDirs()));
 
     // Textures
     {
-      scene_resources.loadTexture("tiled_floor.png", cmd);
+      scene_resources.loadTexture(
+          nvutils::findFile("tiled_floor.png", nvsamples::getResourcesDirs()), cmd);
     }
 
     // Teapot material
@@ -138,14 +161,20 @@ public:
     // buffers and images
     m_stagingUploader.init(&m_allocator, true);
 
-    ctx = new VulkanContext{.allocator = &m_allocator,
-                            .physicalDevice = m_app->getPhysicalDevice(),
-                            .device = m_app->getDevice(),
-                            .graphicsQueue = m_app->getQueue(0),
-                            .viewportSize = m_app->getViewportSize(),
-                            .textureDescriptorPool = m_app->getTextureDescriptorPool(),
-                            .stagingUploader = m_stagingUploader,
-                            .commandPool = m_app->getCommandPool()};
+    std::shared_ptr<SlangShaderCompiler> compiler =
+        make_shared<SlangShaderCompiler>(nvsamples::getShaderDirs());
+
+    ctx = new VulkanContext{
+        .allocator = &m_allocator,
+        .physicalDevice = m_app->getPhysicalDevice(),
+        .device = m_app->getDevice(),
+        .graphicsQueue = m_app->getQueue(0),
+        .viewportSize = m_app->getViewportSize(),
+        .textureDescriptorPool = m_app->getTextureDescriptorPool(),
+        .stagingUploader = m_stagingUploader,
+        .commandPool = m_app->getCommandPool(),
+        .slang_compiler = compiler,
+    };
 
     m_vulkan_backend = std::make_shared<VulkanSceneRenderer>(ctx);
     m_scene_manager = std::make_unique<SceneManager>(m_vulkan_backend);
@@ -167,7 +196,7 @@ public:
     NVVK_CHECK(vkQueueWaitIdle(m_app->getQueue(0).queue));
 
     VkDevice device = m_app->getDevice();
-    m_scene_manager->clear(ctx);
+    m_scene_manager->clear();
     m_stagingUploader.deinit();
     m_allocator.deinit();
   }

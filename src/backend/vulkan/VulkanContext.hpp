@@ -10,6 +10,8 @@
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
 
+#include "shaders/compiler/slang.hpp"
+
 struct VulkanContext
 {
   nvvk::ResourceAllocator* allocator = nullptr;
@@ -20,4 +22,5 @@ struct VulkanContext
   VkDescriptorPool textureDescriptorPool{};
   nvvk::StagingUploader& stagingUploader;  // Utility to upload data to the GPU
   VkCommandPool commandPool;
+  std::shared_ptr<SlangShaderCompiler> slang_compiler;
 };

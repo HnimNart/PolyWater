@@ -50,7 +50,7 @@ target_include_directories(${LIB_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/..
         ${PROJECT_SOURCE_DIR}
-        ${CMAKE_BINARY_DIR}/_autogen
+        ${CMAKE_BINARY_DIR}
 )
 
 ###################################
@@ -65,6 +65,7 @@ target_link_libraries(${LIB_NAME}
         nvpro2::nvslang
         nvpro2::nvgui
         nvpro2::nvapp
+        nvpro2::nvshaders_host
 )
 
 ###################################

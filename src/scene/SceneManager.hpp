@@ -1,85 +1,67 @@
 #pragma once
 
 #include <shaders/shaderio.h>
+#include <vulkan/vulkan.h>
 
 #include <memory>
-#include <nvshaders_host/sky.hpp>
+
+#include <glm/glm.hpp>
 #include <nvshaders_host/tonemapper.hpp>
-#include <nvslang/slang.hpp>
 #include <nvutils/camera_manipulator.hpp>
-#include <nvvk/acceleration_structures.hpp>  // Acceleration structure management
-#include <nvvk/descriptors.hpp>
-#include <nvvk/gbuffers.hpp>  // GBuffer management
-#include <nvvk/graphics_pipeline.hpp>
-#include <nvvk/sampler_pool.hpp>
-#include <nvvk/sbt_generator.hpp>
 
 #include "SceneResources.hpp"
-#include "backend/vulkan/VulkanContext.hpp"
-#include "backend/vulkan/VulkanSceneRenderer.hpp"
 #include "core/Camera.hpp"
+
+// Forward declarations
+class VulkanSceneRenderer;
+struct VulkanContext;
 
 // TODO Switch out VulkanSceneRenderer with ISceneRenderer
 class SceneManager
 {
 public:
-  SceneManager(std::shared_ptr<VulkanSceneRenderer> backend)
-  {
-    m_backend = std::move(backend);
-    m_scene_resources.init(m_backend->deviceResources());
-  }
+  explicit SceneManager(std::shared_ptr<VulkanSceneRenderer> backend);
 
-  void clear(VulkanContext* ctx)
-  {
-    m_scene_resources.clear();
-    m_backend->clear();
-  }
+  void clear();
+  void postInit();
 
-  void postInit() { m_backend->init(m_scene_resources); }
-
-  void render(VkCommandBuffer cmd, bool raytrace)
-  {
-    // Push constant information
-    shaderio::PushConstant pushValues{
-        .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
-        .metallicRoughnessOverride = m_metallicRoughnessOverride,
-    };
-    m_backend->render(cmd, m_camera, m_scene_resources, raytrace, pushValues);
-  }
+  void render(VkCommandBuffer cmd, bool raytrace);
 
   // --------------------------------------------------
   // Rendering / Post-processing
   // --------------------------------------------------
-  void post_process(VkCommandBuffer cmd) { m_backend->post_process(cmd); }
-  void reload(bool use_raytracing) { m_backend->reload(use_raytracing); }
-  VkImage get_image(int buffer_idx) { return m_backend->get_image(buffer_idx); }
-  void onResize(VkCommandBuffer cmd, const VkExtent2D& size) { m_backend->onResize(cmd, size); }
+  void post_process(VkCommandBuffer cmd);
+  void reload(bool use_raytracing);
+  VkImage get_image(int buffer_idx);
+  void onResize(VkCommandBuffer cmd, const VkExtent2D& size);
 
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
-  nvsamples::GltfSceneResource& gltf_resources() { return m_scene_resources.data(); }
-  const nvsamples::GltfSceneResource& gltf_resources() const { return m_scene_resources.data(); }
-  CpuSceneResources& scene_resources() { return m_scene_resources; }
+  nvsamples::GltfSceneResource& gltf_resources();
+  const nvsamples::GltfSceneResource& gltf_resources() const;
+  CpuSceneResources& scene_resources();
 
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
-  shaderio::TonemapperData& tonemapper() { return m_backend->post_processor().data(); }
-  glm::vec2& metallic_roughness() { return m_metallicRoughnessOverride; }
+  shaderio::TonemapperData& tonemapper();
+  glm::vec2& metallic_roughness();
 
   // --------------------------------------------------
   // Camera
   // --------------------------------------------------
-  void set_camera(CameraPtr camera) { m_camera = std::move(camera); }
-  CameraPtr camera() const { return m_camera; }
+  void set_camera(CameraPtr camera);
+  CameraPtr camera() const;
 
 private:
+  // Kept inline initialization as requested (requires camera_manipulator.hpp)
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
+
   CpuSceneResources m_scene_resources{};
   std::shared_ptr<VulkanSceneRenderer> m_backend = nullptr;
 
-  glm::vec2 m_metallicRoughnessOverride{
-      -0.01f, -0.01f};  // Override values for metallic and roughness, used
-                        // in the UI to control the material properties
+  glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 };
+
+;

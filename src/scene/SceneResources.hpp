@@ -1,67 +1,52 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h>  // For VkCommandBuffer
 
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/sampler_pool.hpp>
-#include <src/common/path_utils.hpp>
+#include <memory>
+#include <string>
 
 #include "backend/vulkan/VulkanSceneResources.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
+// Forward declarations to avoid heavy includes
+namespace tinygltf
+{
+class Model;
+}
+
 class CpuSceneResources
 {
-
 public:
-  using InstanceID = uint;
-  using MaterialID = uint;
+  using InstanceID = uint32_t;
+  using MaterialID = uint32_t;
 
-  void init(std::shared_ptr<VulkanSceneResources> gpu_uploader)
-  {
-    m_gpu_uploader = std::move(gpu_uploader);
-  }
+  // Constructor/Destructor (defaults defined in CPP to handle forward declarations)
+  CpuSceneResources();
+  ~CpuSceneResources();
 
-  tinygltf::Model loadGltf(const std::string& filename)
-  {
-    auto model =
-        nvsamples::loadGltfResources(nvutils::findFile(filename, nvsamples::getResourcesDirs()));
-    auto id = static_cast<VulkanSceneResources::MeshID>(
-        m_gpu_uploader->upload_gltf_model(model, m_resources));
-    return model;
-  }
+  void init(std::shared_ptr<VulkanSceneResources> gpu_uploader);
 
-  VulkanSceneResources::TextureID loadTexture(const std::string& filename, VkCommandBuffer cmd)
-  {
-    const auto imageFilename = nvutils::findFile(filename, nvsamples::getResourcesDirs());
-    return m_gpu_uploader->upload_texture(imageFilename, cmd);
-  }
+  // We can return tinygltf::Model by value with a forward declaration
+  // provided the caller includes tiny_gltf.h
+  tinygltf::Model loadGltf(const std::string& filename);
 
-  InstanceID addInstance(const shaderio::GltfInstance& instance)
-  {
-    m_resources.instances.push_back(instance);
-    return m_resources.instances.size() - 1;
-  }
+  uint32_t loadTexture(const std::string& filename, VkCommandBuffer cmd);
 
-  MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material)
-  {
-    m_resources.materials.push_back(material);
-    return m_resources.materials.size() - 1;
-  }
+  InstanceID addInstance(const shaderio::GltfInstance& instance);
+  MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material);
 
-  void finalizeSceneResources(VkCommandBuffer cmd)
-  {
-    m_gpu_uploader->finalizeSceneResources(m_resources, cmd);
-  }
-  void clear() { m_gpu_uploader->clear(m_resources); }
+  void finalizeSceneResources(VkCommandBuffer cmd);
+  void clear();
 
-  const nvsamples::GltfSceneResource& data() const { return m_resources; };
-  nvsamples::GltfSceneResource& data() { return m_resources; };
+  const nvsamples::GltfSceneResource& data() const;
+  nvsamples::GltfSceneResource& data();
 
-  shaderio::GltfSceneInfo& scene_info() { return m_resources.sceneInfo; }
-  const shaderio::GltfSceneInfo& scene_info() const { return m_resources.sceneInfo; }
+  shaderio::GltfSceneInfo& scene_info();
+  const shaderio::GltfSceneInfo& scene_info() const;
 
 private:
   nvsamples::GltfSceneResource m_resources{};
   std::shared_ptr<VulkanSceneResources> m_gpu_uploader = nullptr;
 };
+
+;
