@@ -52,7 +52,7 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
   return true;
 }
 
-void VulkanBackend::init()
+void VulkanBackend::init(const core::ApplicationCreateInfo& info)
 {
   // Validate window handle before surface creation
   if (!m_windowHandle)
@@ -120,6 +120,50 @@ void VulkanBackend::init()
 
   // 6. Create Frame Submission Sync Objects
   createFrameSubmission(m_swapchain.getMaxFramesInFlight());
+
+  setupImGuiVulkanBackend(info.imguiConfigFlags);
+}
+
+void VulkanBackend::setupImGuiVulkanBackend(ImGuiConfigFlags configFlags)
+{
+  static VkFormat imageFormats =
+      VK_FORMAT_B8G8R8A8_UNORM;  // Must be static for ImGui_ImplVulkan_InitInfo
+
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags = configFlags;
+  // if (m_headless)
+  // {
+  //   io.ConfigFlags &=
+  //       ~ImGuiConfigFlags_ViewportsEnable;  // In headless mode, we don't allow other viewport
+  // }
+
+  // if (!m_headless)
+  // {
+  ImGui_ImplGlfw_InitForVulkan(m_windowHandle, true);
+  imageFormats = m_swapchain.getImageFormat();
+  // }
+
+  // ImGui Initialization for Vulkan
+  ImGui_ImplVulkan_InitInfo initInfo = {
+      .ApiVersion = VK_API_VERSION_1_4,
+
+      .Instance = m_vkContext.getInstance(),
+      .PhysicalDevice = m_vkContext.getPhysicalDevice(),
+      .Device = m_vkContext.getDevice(),
+      .QueueFamily = m_vkContext.getQueueInfo(0).familyIndex,
+      .Queue = m_vkContext.getQueueInfo(0).queue,
+      .DescriptorPool = m_descriptorPool,
+      .MinImageCount = 2U,
+      .ImageCount = std::max(m_swapchain.getMaxFramesInFlight(), 2U),
+      .UseDynamicRendering = true,
+      .PipelineRenderingCreateInfo =  // Dynamic rendering
+      {
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+          .colorAttachmentCount = 1,
+          .pColorAttachmentFormats = &imageFormats,
+      },
+  };
+  ImGui_ImplVulkan_Init(&initInfo);
 }
 
 //-----------------------------------------------------------------------

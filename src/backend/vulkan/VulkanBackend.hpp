@@ -27,7 +27,7 @@ public:
   ~VulkanBackend() override = default;
 
   // Lifecycle
-  void init() override;
+  void init(const core::ApplicationCreateInfo& appInfo) override;
   void shutdown() override;
 
   // Frame Loop
@@ -51,6 +51,7 @@ public:
 private:
   VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler);
 
+  void setupImGuiVulkanBackend(ImGuiConfigFlags configFlags);
   void createFrameSubmission(uint32_t numFrames);
   void waitForFrameCompletion() const;
 

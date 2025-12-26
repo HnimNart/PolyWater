@@ -20,6 +20,7 @@
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
 
+#include "core/Camera.hpp"
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -94,10 +95,11 @@ int main(int argc, char** argv)
   auto windowTitle =
       std::make_shared<core::ElementDefaultWindowTitle>();  // Element displaying the window title
                                                             // with application name and size
-  auto windowMenu =
-      std::make_shared<core::ElementDefaultMenu>();  // Element displaying a menu, File->Exit ...
+  auto windowMenu = std::make_shared<core::ElementDefaultMenu>();  // Element displaying a menu,
+                                                                   // File->Exit ...
+  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
   // auto camManip = tutorial->getCameraManipulator();
-  // elemCamera->setCameraManipulator(camManip);
+  elemCamera->setCameraManipulator(m_camera);
 
   // Adding all elements
   application.addElement(windowMenu);

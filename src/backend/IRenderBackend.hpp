@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 
+#include "core/application/AppInfo.hpp"
 #include "core/application/IAppElement.hpp"
 #include "core/application/types.h"
 
@@ -31,7 +32,7 @@ public:
   //----------------------------------------------------------
   // Lifecycle
   //----------------------------------------------------------
-  virtual void init() = 0;
+  virtual void init(const core::ApplicationCreateInfo& appInfo) = 0;
   virtual void shutdown() = 0;
 
   //----------------------------------------------------------

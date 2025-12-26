@@ -67,7 +67,7 @@ void Application::init(ApplicationCreateInfo const& info)
   if (m_backend)
   {
     m_backend->setWindow(m_windowHandle);
-    m_backend->init();
+    m_backend->init(info);
   }
 
   m_running = true;
@@ -75,12 +75,10 @@ void Application::init(ApplicationCreateInfo const& info)
 
 void Application::run()
 {
-
   LOGI("Running application\n");
   // Re-load ImGui settings from disk, as there might be application elements with settings to
   // restore.
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
-
   while (!glfwWindowShouldClose(m_windowHandle) && m_running)
   {
     runOneFrame();
