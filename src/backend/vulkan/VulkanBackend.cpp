@@ -22,30 +22,34 @@ std::unique_ptr<VulkanBackend>
 VulkanBackend::create(const core::ApplicationCreateInfo& appInfo,
                       const std::vector<std::filesystem::path>& shaderDirs)
 {
-  try
+  auto compiler = std::make_shared<SlangShaderCompiler>(shaderDirs);
+  auto backend = std::unique_ptr<VulkanBackend>(new VulkanBackend(compiler));
+  if (!backend->initVulkan(appInfo))
   {
-    auto compiler = std::make_shared<SlangShaderCompiler>(shaderDirs);
-    return std::unique_ptr<VulkanBackend>(new VulkanBackend(appInfo, compiler));
-  }
-  catch (const std::exception& e)
-  {
-    LOGE("Critical Error creating VulkanBackend: %s\n", e.what());
     return nullptr;
   }
+
+  return backend;
 }
 
-VulkanBackend::VulkanBackend(const core::ApplicationCreateInfo& appInfo,
-                             std::shared_ptr<SlangShaderCompiler> compiler) :
+VulkanBackend::VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler) :
     m_compiler(std::move(compiler))
+{
+}
+
+// ------------------------------------------------------------------
+// Init Helper: Initializes the member variable directly.
+// ------------------------------------------------------------------
+bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 {
   nvvk::ContextInitInfo vkSetup = vk_utils::createVkContextInfo(appInfo);
   VkResult result = m_vkContext.init(vkSetup);
   if (result != VK_SUCCESS)
   {
-    LOGE("Failed to initialize Vulkan context.\n");
-    std::string errorMsg = "Vulkan Initialization Failed: " + std::string(string_VkResult(result));
-    throw std::runtime_error(errorMsg);
+    LOGE("Vulkan Initialization Failed: %s\n", string_VkResult(result));
+    return false;
   }
+  return true;
 }
 
 void VulkanBackend::init()
@@ -319,8 +323,8 @@ void VulkanBackend::createFrameSubmission(uint32_t numFrames)
   NVVK_DBG_NAME(m_frameTimelineSemaphore);
 
   // Create command pools and buffers for each frame
-  // Each frame gets its own command pool to allow parallel command recording while previous frames
-  // may still be executing on the GPU
+  // Each frame gets its own command pool to allow parallel command recording while previous
+  // frames may still be executing on the GPU
   const VkCommandPoolCreateInfo cmdPoolCreateInfo{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .queueFamilyIndex = m_vkContext.getQueueInfo(0).familyIndex,

@@ -22,6 +22,8 @@ public:
   create(const core::ApplicationCreateInfo& appInfo,  // Pass by const reference
          const std::vector<std::filesystem::path>& shaderDirs);
 
+  bool initVulkan(const core::ApplicationCreateInfo& appInfo);
+
   ~VulkanBackend() override = default;
 
   // Lifecycle
@@ -47,8 +49,8 @@ public:
   void freeResourcesQueue() override;
 
 private:
-  VulkanBackend(const core::ApplicationCreateInfo& appInfo,
-                std::shared_ptr<SlangShaderCompiler> compiler);
+  VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler);
+
   void createFrameSubmission(uint32_t numFrames);
   void waitForFrameCompletion() const;
 
