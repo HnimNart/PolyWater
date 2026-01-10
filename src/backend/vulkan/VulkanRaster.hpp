@@ -29,7 +29,7 @@ class VulkanRaster
 {
 public:
   void init(std::shared_ptr<VulkanContext> ctx);
-  void clear();
+  void deinit();
 
   // Note: implementation moved to cpp
   void resize(VkCommandBuffer cmd, VkExtent2D size);

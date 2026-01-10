@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 
-#include "backend/RenderContext.hpp"
+#include "backend/FrameContext.hpp"
 #include "types.h"
 
 namespace core
@@ -49,7 +49,7 @@ struct IAppElement
   virtual void onBeginFrame(const FrameContext& frame) {}
 
   /** @brief Primary rendering callback. Record draw calls into the provided context. */
-  virtual void onRender(RenderContext* ctx, const FrameContext& frame) {}
+  virtual void onRender(FrameContext* ctx) {}
 
   /** @brief Called after all rendering commands have been recorded for the frame. */
   virtual void onEndFrame(const FrameContext& frame) {}

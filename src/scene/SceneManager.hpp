@@ -59,7 +59,7 @@ private:
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
 
   CpuSceneResources m_scene_resources{};
-  std::shared_ptr<VulkanSceneRenderer> m_backend = nullptr;
+  std::shared_ptr<VulkanSceneRenderer> m_renderer = nullptr;
 
   glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 };

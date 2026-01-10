@@ -26,7 +26,7 @@ void VulkanRayTracer::init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* ras
   m_raster = raster;
 }
 
-void VulkanRayTracer::clear()
+void VulkanRayTracer::deinit()
 {
   vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);
   vkDestroyPipeline(m_ctx->context.getDevice(), m_pipeline, nullptr);

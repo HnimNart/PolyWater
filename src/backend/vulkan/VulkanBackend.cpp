@@ -10,9 +10,10 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/swapchain.hpp>
 
-#include "VulkanRenderContext.hpp"
+#include "VulkanFrameContext.hpp"
 #include "VulkanSceneRenderer.hpp"
-#include "backend/RenderContext.hpp"
+#include "backend/FrameContext.hpp"
+#include "nvvk/validation_settings.hpp"
 #include "vk_utils.hpp"
 
 namespace core
@@ -42,7 +43,39 @@ VulkanBackend::VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler) :
 // ------------------------------------------------------------------
 bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 {
-  nvvk::ContextInitInfo vkSetup = vk_utils::createVkContextInfo(appInfo);
+  // Setting up the Vulkan context, instance and device extensions
+  static VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
+
+  // Add ray tracing features
+  static VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+  static VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+
+  nvvk::ContextInitInfo vkSetup{
+      .instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
+      .deviceExtensions =
+          {
+              {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
+              {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
+              {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+               &accelFeature},  // Build acceleration structures
+              {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+               &rtPipelineFeature},                              // Use vkCmdTraceRaysKHR
+              {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},  // Required by ray tracing pipeline
+          },
+  };
+  if (!appInfo.headless)
+  {
+    nvvk::addSurfaceExtensions(vkSetup.instanceExtensions, &vkSetup.deviceExtensions);
+  }
+
+  // Adding control on the validation layers
+  static nvvk::ValidationSettings validationSettings;
+  validationSettings.setPreset(nvvk::ValidationSettings::LayerPresets::eStandard);
+  vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
+
   VkResult result = m_vkContext.init(vkSetup);
   if (result != VK_SUCCESS)
   {
@@ -113,10 +146,10 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
 
   // 5. Finalize High-Level Wrappers
-  // Now that basic Vulkan plumbing is done, create the high-level context
-  m_ctx = create_vk_context(m_vkContext, m_descriptorPool,
-                            {m_viewportSize.width, m_viewportSize.height}, m_compiler);
-  m_render = std::make_shared<VulkanSceneRenderer>(m_ctx);
+  // TODO context should be initialized by VulkanSceneRenderer
+  auto context = VulkanContext::create(m_vkContext, m_descriptorPool,
+                                       {m_viewportSize.width, m_viewportSize.height}, m_compiler);
+  m_render = std::make_shared<VulkanSceneRenderer>(context);
 
   // 6. Create Frame Submission Sync Objects
   createFrameSubmission(m_swapchain.getMaxFramesInFlight());
@@ -188,7 +221,7 @@ void VulkanBackend::newFrame()
   ImGui_ImplVulkan_NewFrame();
 }
 
-bool VulkanBackend::beginFrame(FrameContext& frame)
+bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
 {
   if (m_swapchain.needRebuilding())
   {
@@ -209,12 +242,12 @@ bool VulkanBackend::beginFrame(FrameContext& frame)
   m_frameData[m_frameRingCurrent]->frameNumber += m_swapchain.getMaxFramesInFlight();
 
   // Prepare Command Buffer
-  auto& ctx = m_frameData[m_frameRingCurrent];
-  vkResetCommandPool(device, m_frameData[m_frameRingCurrent]->cmdPool, 0);
+  auto& frame = m_frameData[m_frameRingCurrent];
+  NVVK_CHECK(vkResetCommandPool(device, frame->cmdPool, 0));
 
   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  vkBeginCommandBuffer(ctx->cmdBuffer, &beginInfo);
+  vkBeginCommandBuffer(frame->cmdBuffer, &beginInfo);
 
   // Reset the extra semaphores and command buffers
   m_waitSemaphores.clear();
@@ -225,15 +258,27 @@ bool VulkanBackend::beginFrame(FrameContext& frame)
 }
 
 void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                                FrameContext const& frame)
+                                FrameContext const& /* frame */)
 {
+  // 3. UI Phase
+  for (auto& e : elements)
+  {
+    e->onUIRender();
+  }
+  // This is creating the data to draw the UI (not on GPU yet)
+  ImGui::Render();
 
-  std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
-  auto& ctx = m_frameData[m_frameRingCurrent];
+  // Call onPreRender for each element with the command buffer of the frame
+  for (const std::shared_ptr<IAppElement>& e : elements)
+  {
+    e->onPreRender();
+  }
+
+  VulkanFrameContext* ctx = m_frameData[m_frameRingCurrent].get();
   VkCommandBuffer cmd = ctx->cmdBuffer;
   for (const std::shared_ptr<IAppElement>& e : elements)
   {
-    e->onRender(static_cast<RenderContext*>(ctx.get()), frame);
+    e->onRender(static_cast<FrameContext*>(ctx));
   }
 
   // Start rendering to the swapchain
@@ -261,21 +306,18 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
   });
 }
 
-void VulkanBackend::endFrame(FrameContext const& frameCtx)
+void VulkanBackend::endFrame(FrameContext const& /* frame */)
 {
   auto& frame = m_frameData[m_frameRingCurrent];
-  vkEndCommandBuffer(frame->cmdBuffer);
+  NVVK_CHECK(vkEndCommandBuffer(frame->cmdBuffer));
   frame->cmdBuffer == VK_NULL_HANDLE;
-
-  // Calculate timeline signal value
-  m_frameData[m_frameRingCurrent]->frameNumber = frameCtx.frameNumber + m_frameData.size();
 
   // Add timeline semaphore to signal when GPU completes this frame
   // The color attachment output stage is used since that's when the frame is fully rendered
   m_signalSemaphores.push_back({
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
       .semaphore = m_frameTimelineSemaphore,
-      .value = frameCtx.frameNumber,
+      .value = frame->frameNumber,
       .stageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,  // Wait that everything is completed
   });
 
@@ -330,18 +372,28 @@ uint32_t VulkanBackend::getFrameCycleSize() const
   return static_cast<uint32_t>(m_frameData.size());
 }
 
-void VulkanBackend::shutdown()
+void VulkanBackend::deinit()
 {
   VkDevice device = m_vkContext.getDevice();
-  vkDeviceWaitIdle(device);
+  NVVK_CHECK(vkDeviceWaitIdle(device));
 
+  ImGui_ImplVulkan_Shutdown();
+  m_swapchain.deinit();
   for (auto& data : m_frameData)
   {
+    vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
     vkDestroyCommandPool(device, data->cmdPool, nullptr);
   }
+  m_frameData.clear();
+
   vkDestroySemaphore(device, m_frameTimelineSemaphore, nullptr);
-  m_swapchain.deinit();
+  vkDestroyCommandPool(device, m_transientCmdPool, nullptr);
+  vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
+
   vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
+
+  m_render->deinit();
+  m_vkContext.deinit();
 }
 
 void VulkanBackend::createFrameSubmission(uint32_t numFrames)
@@ -377,7 +429,7 @@ void VulkanBackend::createFrameSubmission(uint32_t numFrames)
   m_frameData.resize(numFrames);
   for (uint32_t i = 0; i < numFrames; i++)
   {
-    m_frameData[i] = std::make_unique<VulkanRenderContext>();
+    m_frameData[i] = std::make_unique<VulkanFrameContext>();
     m_frameData[i]->frameNumber = i;  // Track frame index for synchronization
 
     // Separate pools allow independent reset/recording of commands while other frames are still

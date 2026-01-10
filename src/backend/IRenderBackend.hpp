@@ -33,7 +33,7 @@ public:
   // Lifecycle
   //----------------------------------------------------------
   virtual void init(const core::ApplicationCreateInfo& appInfo) = 0;
-  virtual void shutdown() = 0;
+  virtual void deinit() = 0;
 
   //----------------------------------------------------------
   // Frame loop
@@ -77,10 +77,7 @@ public:
     m_viewportSize = {size.width, size.height};
   }
 
-  virtual WindowSize getViewportSize() const
-  {
-    return {m_viewportSize.width, m_viewportSize.height};
-  }
+  const WindowSize& getViewportSize() const { return m_viewportSize; }
   virtual void setWindow(GLFWwindow* windowHandle) { m_windowHandle = windowHandle; }
   virtual void setWindowSize(const WindowSize& windowSize) = 0;
 

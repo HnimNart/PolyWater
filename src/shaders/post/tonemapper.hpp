@@ -24,7 +24,7 @@ public:
     m_tonemapper.runCompute(cmd, gBuffers.getSize(), m_tonemapperData,
                             gBuffers.getDescriptorImageInfo(0), gBuffers.getDescriptorImageInfo(1));
   }
-  void clear() { m_tonemapper.deinit(); }
+  void deinit() { m_tonemapper.deinit(); }
 
   shaderio::TonemapperData& data() { return m_tonemapperData; }
 

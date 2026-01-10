@@ -9,7 +9,7 @@ class ISceneRenderer
 public:
   virtual ~ISceneRenderer() = default;
   virtual void init(CpuSceneResources& scene) = 0;
-  virtual void clear() = 0;
+  virtual void deinit() = 0;
   virtual void render(VkCommandBuffer cmd, CameraPtr camera, const CpuSceneResources& scene,
                       bool raytrace, shaderio::PushConstant& pushValues) const = 0;
   virtual void reload(bool use_raytracing) = 0;

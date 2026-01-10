@@ -36,6 +36,8 @@ nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& stagi
 
 void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& swapchainParams);
 
-template <typename T> nvvk::ContextInitInfo createVkContextInfo(const T& appInfo);
+template <typename T>
+[[deprecated]]
+nvvk::ContextInitInfo createVkContextInfo(const T& appInfo);
 
 }  // namespace vk_utils

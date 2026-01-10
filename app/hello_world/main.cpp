@@ -152,7 +152,7 @@ public:
     VkDescriptorPool descriptorPool = m_app->getTextureDescriptorPool();
     std::shared_ptr<SlangShaderCompiler> compiler =
         make_shared<SlangShaderCompiler>(nvsamples::getShaderDirs());
-    ctx = create_vk_context(*m_ctx, descriptorPool, m_app->getViewportSize(), compiler);
+    ctx = VulkanContext::create(*m_ctx, descriptorPool, m_app->getViewportSize(), compiler);
     m_vulkan_scene_renderer = std::make_shared<VulkanSceneRenderer>(ctx);
     m_scene_manager = std::make_unique<SceneManager>(m_vulkan_scene_renderer);
     m_scene_manager->set_camera(m_cameraManip);

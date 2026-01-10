@@ -21,7 +21,7 @@
 
 // Forward declarations only
 struct GLFWwindow;
-class RenderContext;
+class FrameContext;
 
 namespace core
 {
@@ -33,7 +33,7 @@ class Application
 {
 public:
   Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend);
-  ~Application();
+  ~Application() = default;
 
   Application(Application const&) = delete;
   Application& operator=(Application const&) = delete;

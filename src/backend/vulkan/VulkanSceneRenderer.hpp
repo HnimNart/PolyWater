@@ -39,7 +39,7 @@ public:
   // Lifecycle
   // ---------------------------------------------------------------------------
   void init(CpuSceneResources& scene) override;
-  void clear() override;
+  void deinit() override;
   void reload(bool use_raytracing) override;
 
   // ---------------------------------------------------------------------------

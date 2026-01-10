@@ -31,6 +31,8 @@ public:
   // Lifecycle
   explicit VulkanSceneResources(std::shared_ptr<VulkanContext> ctx);
 
+  void deinit();
+
   // Resources
   MeshID upload_gltf_model(const tinygltf::Model& model, nvsamples::GltfSceneResource& resources);
   TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd);

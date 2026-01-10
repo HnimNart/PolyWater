@@ -19,6 +19,11 @@ VulkanSceneResources::VulkanSceneResources(std::shared_ptr<VulkanContext> ctx)
   m_samplerPool.init(m_ctx->context.getDevice());
 }
 
+void VulkanSceneResources::deinit()
+{
+  m_samplerPool.deinit();
+}
+
 VulkanSceneResources::MeshID
 VulkanSceneResources::upload_gltf_model(const tinygltf::Model& model,
                                         nvsamples::GltfSceneResource& resources)

@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <volk/volk.h>
 
+#include <iostream>
+
 #include <nvgui/style.hpp>
 #undef APIENTRY
 
@@ -22,6 +24,7 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/helpers.hpp>
 
+#include "backend/FrameContext.hpp"
 #include "backend/IRenderBackend.hpp"
 
 namespace core
@@ -36,11 +39,6 @@ Application::Application(ApplicationCreateInfo const& info,
   ImPlot::CreateContext();
 
   init(info);
-}
-
-Application::~Application()
-{
-  shutdown();
 }
 
 void Application::init(ApplicationCreateInfo const& info)
@@ -71,6 +69,47 @@ void Application::init(ApplicationCreateInfo const& info)
   }
 
   m_running = true;
+}
+
+void Application::shutdown()
+{
+  m_running = false;
+
+  // Save window state before destruction
+  if (m_windowHandle)
+  {
+    glfwGetWindowPos(m_windowHandle, &m_winPos.x, &m_winPos.y);
+    int w, h;
+    glfwGetWindowSize(m_windowHandle, &w, &h);
+    m_winSize = {(uint32_t) w, (uint32_t) h};
+  }
+
+  for (auto& e : m_elements)
+  {
+    e->onDetach();
+  }
+  m_elements.clear();
+
+  ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
+
+  if (m_backend)
+  {
+    m_backend->deinit();
+  }
+
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  if (ImPlot::GetCurrentContext())
+  {
+    ImPlot::DestroyContext();
+  }
+
+  if (m_windowHandle)
+  {
+    glfwDestroyWindow(m_windowHandle);
+    m_windowHandle = nullptr;
+  }
+  glfwTerminate();
 }
 
 void Application::run()
@@ -119,7 +158,9 @@ void Application::close()
 
 void Application::runFrame()
 {
-  FrameContext frameCtx{m_frameCounter, m_vsyncWanted};
+  FrameContext frameCtx{};
+  frameCtx.frameNumber = m_frameCounter;
+  frameCtx.vSyncWanted = m_vsyncWanted;
 
   // 1. Begin ImGui Frame
   m_backend->newFrame();
@@ -162,22 +203,6 @@ void Application::runFrame()
 
   if (m_backend->beginFrame(frameCtx))
   {
-    // Draw frame
-    {
-      // 3. UI Phase
-      for (auto& e : m_elements)
-      {
-        e->onUIRender();
-      }
-      // This is creating the data to draw the UI (not on GPU yet)
-      ImGui::Render();
-
-      // Call onPreRender for each element with the command buffer of the frame
-      for (std::shared_ptr<IAppElement>& e : m_elements)
-      {
-        e->onPreRender();
-      }
-    }
 
     // 4. Backend Logic & GPU Command Recording
     m_backend->renderFrame(m_elements, frameCtx);
@@ -194,44 +219,6 @@ void Application::runFrame()
   }
 }
 
-void Application::shutdown()
-{
-  m_running = false;
-
-  // Save window state before destruction
-  if (m_windowHandle)
-  {
-    glfwGetWindowPos(m_windowHandle, &m_winPos.x, &m_winPos.y);
-    int w, h;
-    glfwGetWindowSize(m_windowHandle, &w, &h);
-    m_winSize = {(uint32_t) w, (uint32_t) h};
-  }
-
-  for (auto& e : m_elements)
-    e->onDetach();
-  m_elements.clear();
-
-  ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
-
-  if (m_backend)
-  {
-    m_backend->shutdown();
-  }
-
-  if (ImPlot::GetCurrentContext())
-  {
-    ImPlot::DestroyContext();
-  }
-  ImGui::DestroyContext();
-
-  if (m_windowHandle)
-  {
-    glfwDestroyWindow(m_windowHandle);
-    m_windowHandle = nullptr;
-  }
-  glfwTerminate();
-}
-
 bool Application::isRunning() const noexcept
 {
   return m_running;
@@ -243,6 +230,7 @@ bool Application::isHeadless() const noexcept
 
 void Application::onResize(const WindowSize& size)
 {
+  printf("asda\n");
   m_backend->onResize(size);
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {

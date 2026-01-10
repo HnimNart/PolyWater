@@ -27,7 +27,7 @@ class VulkanRayTracer
 {
 public:
   void init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* raster);
-  void clear();
+  void deinit();
 
   void createPipeline(const CpuSceneResources& scene);
 

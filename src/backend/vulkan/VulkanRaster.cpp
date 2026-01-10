@@ -29,7 +29,7 @@ void VulkanRaster::init(std::shared_ptr<VulkanContext> ctx)
   compileShaders(m_ctx);
 }
 
-void VulkanRaster::clear()
+void VulkanRaster::deinit()
 {
   m_descPack.deinit();
   vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);

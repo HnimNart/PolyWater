@@ -14,21 +14,21 @@
 
 #include "backend/vulkan/VulkanSceneRenderer.hpp"
 
-SceneManager::SceneManager(std::shared_ptr<VulkanSceneRenderer> backend)
+SceneManager::SceneManager(std::shared_ptr<VulkanSceneRenderer> renderer)
 {
-  m_backend = std::move(backend);
-  m_scene_resources.init(m_backend->deviceResources());
+  m_renderer = std::move(renderer);
+  m_scene_resources.init(m_renderer->deviceResources());
 }
 
 void SceneManager::clear()
 {
   m_scene_resources.clear();
-  m_backend->clear();
+  m_renderer->deinit();
 }
 
 void SceneManager::postInit()
 {
-  m_backend->init(m_scene_resources);
+  m_renderer->init(m_scene_resources);
 }
 
 void SceneManager::render(VkCommandBuffer cmd, bool raytrace)
@@ -38,7 +38,7 @@ void SceneManager::render(VkCommandBuffer cmd, bool raytrace)
       .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
       .metallicRoughnessOverride = m_metallicRoughnessOverride,
   };
-  m_backend->render(cmd, m_camera, m_scene_resources, raytrace, pushValues);
+  m_renderer->render(cmd, m_camera, m_scene_resources, raytrace, pushValues);
 }
 
 // --------------------------------------------------
@@ -47,22 +47,22 @@ void SceneManager::render(VkCommandBuffer cmd, bool raytrace)
 
 void SceneManager::post_process(VkCommandBuffer cmd)
 {
-  m_backend->post_process(cmd);
+  m_renderer->post_process(cmd);
 }
 
 void SceneManager::reload(bool use_raytracing)
 {
-  m_backend->reload(use_raytracing);
+  m_renderer->reload(use_raytracing);
 }
 
 VkImage SceneManager::get_image(int buffer_idx)
 {
-  return m_backend->get_image(buffer_idx);
+  return m_renderer->get_image(buffer_idx);
 }
 
 void SceneManager::onResize(VkCommandBuffer cmd, const VkExtent2D& size)
 {
-  m_backend->onResize(cmd, size);
+  m_renderer->onResize(cmd, size);
 }
 
 // --------------------------------------------------
@@ -90,7 +90,7 @@ CpuSceneResources& SceneManager::scene_resources()
 
 shaderio::TonemapperData& SceneManager::tonemapper()
 {
-  return m_backend->post_processor().data();
+  return m_renderer->post_processor().data();
 }
 
 glm::vec2& SceneManager::metallic_roughness()

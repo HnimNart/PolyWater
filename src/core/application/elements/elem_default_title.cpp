@@ -17,21 +17,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #include <GLFW/glfw3.h>
 #undef APIENTRY
 
-#include <nvutils/file_operations.hpp>
-#include <nvutils/logger.hpp>
 #include <fmt/format.h>
 
+#include <nvutils/file_operations.hpp>
+#include <nvutils/logger.hpp>
 
-#include "elem_default_title.hpp"
 #include "core/application/App.hpp"
+#include "elem_default_title.hpp"
 
-core::ElementDefaultWindowTitle::ElementDefaultWindowTitle(const std::string& prefix /*= ""*/, const std::string& suffix /*= ""*/)
-    : m_prefix(prefix)
-    , m_suffix(suffix)
+core::ElementDefaultWindowTitle::ElementDefaultWindowTitle(const std::string& prefix /*= ""*/,
+                                                           const std::string& suffix /*= ""*/) :
+    m_prefix(prefix), m_suffix(suffix)
 {
 }
 
@@ -44,25 +43,25 @@ void core::ElementDefaultWindowTitle::onAttach(core::Application* app)
 void core::ElementDefaultWindowTitle::onUIRender()
 {
   GLFWwindow* window = m_app->getWindowHandle();
-  if(window == nullptr)  // This can happen in headless mode
+  if (window == nullptr)  // This can happen in headless mode
   {
     return;
   }
 
   // Window Title
   m_dirtyTimer += ImGui::GetIO().DeltaTime;
-  if(m_dirtyTimer > 1.0F)  // Refresh every second
+  if (m_dirtyTimer > 1.0F)  // Refresh every second
   {
     const auto& size = m_app->getViewportSize();
     std::string title;
-    if(!m_prefix.empty())
+    if (!m_prefix.empty())
     {
       title += fmt::format("{} | ", m_prefix.c_str());
     }
     const std::string exeName = nvutils::utf8FromPath(nvutils::getExecutablePath().stem());
     title += fmt::format("{} | {}x{} | {:.0f} FPS / {:.3f}ms", exeName, size.width, size.height,
                          ImGui::GetIO().Framerate, 1000.F / ImGui::GetIO().Framerate);
-    if(!m_suffix.empty())
+    if (!m_suffix.empty())
     {
       title += fmt::format(" | {}", m_suffix.c_str());
     }

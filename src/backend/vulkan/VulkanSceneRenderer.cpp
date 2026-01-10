@@ -46,13 +46,14 @@ void VulkanSceneRenderer::init(CpuSceneResources& scene)
   m_ray_tracer->createPipeline(scene);
 }
 
-void VulkanSceneRenderer::clear()
+void VulkanSceneRenderer::deinit()
 {
-  m_raster->clear();
-  m_ray_tracer->clear();
+  m_raster->deinit();
+  m_ray_tracer->deinit();
   m_gBuffers->deinit();
-  m_resources.reset();
-  m_post->clear();
+  m_resources->deinit();
+  m_post->deinit();
+  m_ctx->deinit();
 }
 
 void VulkanSceneRenderer::reload(bool use_raytracing)

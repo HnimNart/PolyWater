@@ -5,7 +5,7 @@
 #include <nvvk/context.hpp>
 #include <nvvk/swapchain.hpp>
 
-#include "VulkanRenderContext.hpp"  // We need the concrete type here
+#include "VulkanFrameContext.hpp"
 #include "backend/IRenderBackend.hpp"
 #include "backend/vulkan/VulkanContext.hpp"
 #include "core/application/App.hpp"
@@ -28,7 +28,7 @@ public:
 
   // Lifecycle
   void init(const core::ApplicationCreateInfo& appInfo) override;
-  void shutdown() override;
+  void deinit() override;
 
   // Frame Loop
   void newFrame() override;
@@ -59,7 +59,6 @@ private:
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
 
   std::shared_ptr<VulkanSceneRenderer> m_render{};
-  std::shared_ptr<VulkanContext> m_ctx{};
   std::shared_ptr<SlangShaderCompiler> m_compiler{};
 
   // Vulkan resources
@@ -71,7 +70,7 @@ private:
   uint32_t m_maxTexturePool{128};       // Maximum number of textures in the descriptor pool
 
   // Concrete context storage (one per frame in flight)
-  std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
+  std::vector<std::unique_ptr<VulkanFrameContext>> m_frameData{};
   VkSemaphore m_frameTimelineSemaphore{};  // Timeline semaphore used to synchronize CPU submission
                                            // with GPU completion
   uint32_t m_frameRingCurrent{0};          // Current frame index in the ring buffer (cycles through
