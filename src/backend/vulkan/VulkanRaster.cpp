@@ -4,7 +4,6 @@
 #include <shaders/shaderio.h>
 
 #include <nvutils/camera_manipulator.hpp>
-#include <nvutils/timers.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>
@@ -12,6 +11,7 @@
 #include <nvvk/graphics_pipeline.hpp>
 
 #include "VulkanContext.hpp"
+#include "common/timers.hpp"
 #include "scene/SceneResources.hpp"  // For CpuSceneResources definition
 #include "scene/Shared.hpp"
 
@@ -158,6 +158,7 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
 void VulkanRaster::reload()
 {
+  clearShaders(m_ctx);
   compileShaders(m_ctx);
 }
 
@@ -198,17 +199,20 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
   NVVK_DBG_NAME(m_pipelineLayout);
 }
 
-void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
+void VulkanRaster::clearShaders(std::shared_ptr<VulkanContext> ctx)
 {
-  SCOPED_TIMER(__FUNCTION__);
-
-  // Compile Shader
-  VkShaderModuleCreateInfo shaderCode = m_compiler->compile("foundation.slang", foundation_slang);
-
   // Cleanup old shaders
   vkDestroyShaderEXT(ctx->context.getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(ctx->context.getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
+}
+
+void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
+{
+  common::ScopedTimer(__FUNCTION__);
+
+  // Compile Shader
+  VkShaderModuleCreateInfo shaderCode = m_compiler->compile("foundation.slang", foundation_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,

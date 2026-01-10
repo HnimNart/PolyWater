@@ -1,7 +1,8 @@
 #include "slang.hpp"
 
 #include <nvslang/slang.hpp>
-#include <nvutils/timers.hpp>
+
+#include "common/timers.hpp"
 
 SlangShaderCompiler::SlangShaderCompiler(const std::vector<std::filesystem::path>& shader_dirs)
 {
@@ -28,7 +29,7 @@ SlangShaderCompiler::SlangShaderCompiler(const std::vector<std::filesystem::path
 VkShaderModuleCreateInfo SlangShaderCompiler::compile(const std::filesystem::path& filename,
                                                       const std::span<const uint32_t>& spirv)
 {
-  SCOPED_TIMER(__FUNCTION__);
+  common::ScopedTimer(filename.string());
 
   // Use pre-compiled shaders by default
   VkShaderModuleCreateInfo shaderCode = getShaderModuleCreateInfo(spirv);

@@ -28,6 +28,7 @@ struct PushConstant;
 class VulkanRaster
 {
 public:
+  VulkanRaster() = default;
   void init(std::shared_ptr<VulkanContext> ctx);
   void deinit();
 
@@ -51,6 +52,7 @@ public:
 private:
   void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
+  void clearShaders(std::shared_ptr<VulkanContext> ctx);
   void compileShaders(std::shared_ptr<VulkanContext> ctx);
 
 private:

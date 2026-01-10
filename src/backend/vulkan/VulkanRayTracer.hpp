@@ -26,6 +26,7 @@ struct PushConstant;
 class VulkanRayTracer
 {
 public:
+  VulkanRayTracer() = default;
   void init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* raster);
   void deinit();
 

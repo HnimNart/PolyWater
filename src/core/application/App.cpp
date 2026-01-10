@@ -230,7 +230,6 @@ bool Application::isHeadless() const noexcept
 
 void Application::onResize(const WindowSize& size)
 {
-  printf("asda\n");
   m_backend->onResize(size);
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {
