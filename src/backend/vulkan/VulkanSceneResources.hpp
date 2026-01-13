@@ -29,7 +29,6 @@ public:
   using MeshID = int;
   using TextureID = uint32_t;
 
-  // Lifecycle
   explicit VulkanSceneResources(core::VulkanBackend* backend);
 
   void begin_uploading();
@@ -39,9 +38,9 @@ public:
 
   // Resources
   MeshID upload_gltf_model(const tinygltf::Model& model, nvsamples::GltfSceneResource& resources);
-  TextureID upload_texture(const std::string& filepath, VkCommandBuffer cmd);
+  TextureID upload_texture(const std::string& filepath);
   void update_descriptors(nvvk::DescriptorPack& descriptor_pack);
-  void finalizeSceneResources(nvsamples::GltfSceneResource& resources, VkCommandBuffer cmd);
+  void finalizeSceneResources(nvsamples::GltfSceneResource& resources);
   void clear(nvsamples::GltfSceneResource& resources);
 
   // Accessors
@@ -53,4 +52,7 @@ private:
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;
   uint32_t mesh_id_counter = 0;
+
+  // Current command
+  VkCommandBuffer cmd{};
 };

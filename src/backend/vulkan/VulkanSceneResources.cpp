@@ -3,6 +3,7 @@
 // Implementation Includes
 #include <tinygltf/tiny_gltf.h>
 
+#include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
@@ -21,9 +22,15 @@ VulkanSceneResources::VulkanSceneResources(core::VulkanBackend* backend)
 
 void VulkanSceneResources::begin_uploading()
 {
+
+  NVVK_CHECK(
+      nvvk::beginSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool()));
 }
 void VulkanSceneResources::end_uploading()
 {
+  NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool(),
+                                         m_backend->getQueueInfo(0).queue));
+  // cmd = VkCommandBuffer{};
 }
 
 void VulkanSceneResources::deinit()
@@ -40,8 +47,7 @@ VulkanSceneResources::upload_gltf_model(const tinygltf::Model& model,
   return mesh_id_counter - 1;
 }
 
-VulkanSceneResources::TextureID VulkanSceneResources::upload_texture(const std::string& filepath,
-                                                                     VkCommandBuffer cmd)
+VulkanSceneResources::TextureID VulkanSceneResources::upload_texture(const std::string& filepath)
 {
   nvvk::Image texture = vk_utils::loadAndCreateImage(cmd, m_backend->stagingUploader(),
                                                      m_backend->getDevice(), filepath);
@@ -66,8 +72,7 @@ void VulkanSceneResources::update_descriptors(nvvk::DescriptorPack& descriptor_p
   vkUpdateDescriptorSets(m_backend->getDevice(), write.size(), write.data(), 0, nullptr);
 }
 
-void VulkanSceneResources::finalizeSceneResources(nvsamples::GltfSceneResource& resources,
-                                                  VkCommandBuffer cmd)
+void VulkanSceneResources::finalizeSceneResources(nvsamples::GltfSceneResource& resources)
 {
   nvsamples::createGltfSceneInfoBuffer(
       resources,

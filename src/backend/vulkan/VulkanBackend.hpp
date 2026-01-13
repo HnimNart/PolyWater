@@ -48,13 +48,18 @@ public:
 
   void freeResourcesQueue() override;
 
-  const nvvk::Context& get_context() const { return m_vkContext; }
+  [[deprecated]] const nvvk::Context& get_context() const { return m_vkContext; }
   [[deprecated]] nvvk::Context& get_context() { return m_vkContext; }
   VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
   nvvk::ResourceAllocator& allocator() { return m_allocator; }
   const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
-  nvvk::StagingUploader& stagingUploader() { m_stagingUploader; }
-  const nvvk::StagingUploader& stagingUploader() const { m_stagingUploader; }
+  nvvk::StagingUploader& stagingUploader() { return m_stagingUploader; }
+  const nvvk::StagingUploader& stagingUploader() const { return m_stagingUploader; }
+  const nvvk::QueueInfo& getQueueInfo(uint32_t index) const
+  {
+    return m_vkContext.getQueueInfo(index);
+  }
+  VkCommandPool transientCmdPool() const { return m_transientCmdPool; };  // The command pool
 
   VkDevice getDevice() const { return m_vkContext.getDevice(); }
   VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }

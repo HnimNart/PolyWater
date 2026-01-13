@@ -26,12 +26,13 @@ public:
   void onResize(WindowSize size) override;
   void onUIRender() override;
   void onPreRender() override;
+  void onUIMenu() override;
   void onRender(FrameContext* ctx) override;
-  void onEndFrame(const FrameContext& frame);  // Note: signature slightly diff from override?
+  void onEndFrame(const FrameContext& frame);
 
+private:
   // Custom methods
-  void setup_scene(VkCommandBuffer cmd);
-  void onUIMenu();
+  void setup_scene();
 
   // Accessor
   CameraPtr getCameraManipulator() const;

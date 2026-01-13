@@ -42,9 +42,9 @@ void SceneResources::end_uploading()
   m_gpu_uploader->end_uploading();
 }
 
-uint32_t SceneResources::loadTexture(const std::string& filename, VkCommandBuffer cmd)
+uint32_t SceneResources::loadTexture(const std::string& filename)
 {
-  return m_gpu_uploader->upload_texture(filename, cmd);
+  return m_gpu_uploader->upload_texture(filename);
 }
 
 SceneResources::InstanceID SceneResources::addInstance(const shaderio::GltfInstance& instance)
@@ -60,9 +60,9 @@ SceneResources::addMaterial(const shaderio::GltfMetallicRoughness& material)
   return static_cast<MaterialID>(m_resources.materials.size() - 1);
 }
 
-void SceneResources::finalizeSceneResources(VkCommandBuffer cmd)
+void SceneResources::finalizeSceneResources()
 {
-  m_gpu_uploader->finalizeSceneResources(m_resources, cmd);
+  m_gpu_uploader->finalizeSceneResources(m_resources);
 }
 
 void SceneResources::clear()

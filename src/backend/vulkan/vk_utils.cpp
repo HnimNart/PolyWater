@@ -33,7 +33,7 @@
 #include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "core/application/App.hpp"
+#include "core/application/AppInfo.hpp"
 
 namespace vk_utils
 {
@@ -50,8 +50,8 @@ nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& stagi
   // Define how to create the image
   VkImageCreateInfo imageInfo = DEFAULT_VkImageCreateInfo;
   imageInfo.format = sRgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-  imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
   imageInfo.extent = {uint32_t(w), uint32_t(h), 1};
+  imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 
   nvvk::ResourceAllocator* allocator = staging.getResourceAllocator();
 
@@ -59,6 +59,7 @@ nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& stagi
   const std::span dataSpan(data, w * h * req_comp);
   nvvk::Image texture;
   NVVK_CHECK(allocator->createImage(texture, imageInfo, DEFAULT_VkImageViewCreateInfo));
+  texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   NVVK_CHECK(staging.appendImage(texture, dataSpan, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 
   return texture;

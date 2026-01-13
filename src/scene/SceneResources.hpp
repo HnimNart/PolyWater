@@ -32,12 +32,12 @@ public:
   // provided the caller includes tiny_gltf.h
   tinygltf::Model loadGltf(const std::string& filename);
 
-  uint32_t loadTexture(const std::string& filename, VkCommandBuffer cmd);
+  uint32_t loadTexture(const std::string& filename);
 
   InstanceID addInstance(const shaderio::GltfInstance& instance);
   MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material);
 
-  void finalizeSceneResources(VkCommandBuffer cmd);
+  void finalizeSceneResources();
   void clear();
 
   const nvsamples::GltfSceneResource& data() const;
