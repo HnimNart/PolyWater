@@ -3,14 +3,14 @@
 #include <vector>
 
 #include <nvvk/context.hpp>
+#include <nvvk/resource_allocator.hpp>
+#include <nvvk/staging.hpp>
 #include <nvvk/swapchain.hpp>
 
 #include "VulkanFrameContext.hpp"
 #include "backend/IRenderBackend.hpp"
-#include "backend/vulkan/VulkanContext.hpp"
 #include "core/application/App.hpp"
-
-class VulkanSceneRenderer;
+#include "shaders/compiler/slang.hpp"
 
 namespace core
 {
@@ -48,6 +48,21 @@ public:
 
   void freeResourcesQueue() override;
 
+  const nvvk::Context& get_context() const { return m_vkContext; }
+  [[deprecated]] nvvk::Context& get_context() { return m_vkContext; }
+  VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
+  nvvk::ResourceAllocator& allocator() { return m_allocator; }
+  const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
+  nvvk::StagingUploader& stagingUploader() { m_stagingUploader; }
+  const nvvk::StagingUploader& stagingUploader() const { m_stagingUploader; }
+
+  VkDevice getDevice() const { return m_vkContext.getDevice(); }
+  VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
+
+  std::shared_ptr<SlangShaderCompiler> get_slang_compiler() const { return m_compiler; }
+
+  const VkExtent2D& get_view_port_size() const { return m_windowSize; }
+
 private:
   VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler);
 
@@ -58,7 +73,6 @@ private:
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
 
-  std::shared_ptr<VulkanSceneRenderer> m_render{};
   std::shared_ptr<SlangShaderCompiler> m_compiler{};
 
   // Vulkan resources
@@ -67,7 +81,9 @@ private:
   VkSurfaceKHR m_surface{VK_NULL_HANDLE};
   VkCommandPool m_transientCmdPool{};   // The command pool
   VkDescriptorPool m_descriptorPool{};  // Application descriptor pool
-  uint32_t m_maxTexturePool{128};       // Maximum number of textures in the descriptor pool
+  nvvk::ResourceAllocator m_allocator{};
+  nvvk::StagingUploader m_stagingUploader{};
+  uint32_t m_maxTexturePool{128};  // Maximum number of textures in the descriptor pool
 
   // Concrete context storage (one per frame in flight)
   std::vector<std::unique_ptr<VulkanFrameContext>> m_frameData{};

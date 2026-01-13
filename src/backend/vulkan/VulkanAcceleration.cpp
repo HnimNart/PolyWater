@@ -5,13 +5,13 @@
 
 #include <nvutils/timers.hpp>
 
-// Full definitions required for implementation
-#include "VulkanContext.hpp"
+#include "VulkanBackend.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
-void AccelerationStructures::init(std::shared_ptr<VulkanContext> ctx)
+void AccelerationStructures::init(core::VulkanBackend* backend)
 {
-  m_asBuilder.init(&ctx->allocator, &ctx->stagingUploader, ctx->context.getQueueInfo(0));
+  m_asBuilder.init(&backend->allocator(), &backend->stagingUploader(),
+                   backend->get_context().getQueueInfo(0));
 }
 
 void AccelerationStructures::deinit()

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <shaders/shaderio.h>
-#include <vulkan/vulkan.h>
-
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -10,6 +7,7 @@
 #include <nvutils/camera_manipulator.hpp>
 
 #include "SceneResources.hpp"
+#include "backend/ISceneRenderer.hpp"
 #include "core/Camera.hpp"
 
 // Forward declarations
@@ -20,7 +18,8 @@ struct VulkanContext;
 class SceneManager
 {
 public:
-  explicit SceneManager(std::shared_ptr<VulkanSceneRenderer> backend);
+  SceneManager() = default;
+  explicit SceneManager(std::shared_ptr<ISceneRenderer> renderer);
 
   void clear();
   void postInit();
@@ -40,7 +39,7 @@ public:
   // --------------------------------------------------
   nvsamples::GltfSceneResource& gltf_resources();
   const nvsamples::GltfSceneResource& gltf_resources() const;
-  CpuSceneResources& scene_resources();
+  SceneResources& scene_resources();
 
   // --------------------------------------------------
   // Rendering parameters
@@ -58,8 +57,8 @@ private:
   // Kept inline initialization as requested (requires camera_manipulator.hpp)
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
 
-  CpuSceneResources m_scene_resources{};
-  std::shared_ptr<VulkanSceneRenderer> m_renderer = nullptr;
+  SceneResources m_scene_resources{};
+  std::shared_ptr<ISceneRenderer> m_renderer = nullptr;
 
   glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 };

@@ -82,6 +82,11 @@ public:
   inline const WindowSize& getViewportSize() const { return m_backend->getViewportSize(); }
   void onFileDrop(const std::filesystem::path& filename);
   void onResize(const WindowSize& size);
+  IRenderBackend* get_backend() const
+  {
+    assert(m_backend);
+    return m_backend.get();
+  }
 
 private:
   void runFrame();

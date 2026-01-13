@@ -7,10 +7,10 @@
 #include <nvshaders_host/sky.hpp>  // Needed for nvshaders::SkySimple member
 #include <nvvk/descriptors.hpp>
 
+#include "VulkanBackend.hpp"
+
 // Forward declarations to avoid heavy includes
-struct VulkanContext;
-class SlangShaderCompiler;
-class CpuSceneResources;
+class SceneResources;
 
 namespace nvvk
 {
@@ -29,7 +29,7 @@ class VulkanRaster
 {
 public:
   VulkanRaster() = default;
-  void init(std::shared_ptr<VulkanContext> ctx);
+  void init(core::VulkanBackend* backend);
   void deinit();
 
   // Note: implementation moved to cpp
@@ -39,7 +39,7 @@ public:
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const CpuSceneResources& scene,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const SceneResources& scene,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
               shaderio::PushConstant& push_constants) const;
 
@@ -52,11 +52,11 @@ public:
 private:
   void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
-  void clearShaders(std::shared_ptr<VulkanContext> ctx);
-  void compileShaders(std::shared_ptr<VulkanContext> ctx);
+  void clearShaders();
+  void compileShaders();
 
 private:
-  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  core::VulkanBackend* m_backend = nullptr;
   std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
 
   nvvk::DescriptorPack m_descPack{};

@@ -4,8 +4,9 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/formats.hpp>
-#include <nvvk/gbuffers.hpp>  // Full definition needed here
+#include <nvvk/gbuffers.hpp>
 
+#include "VulkanBackend.hpp"
 #include "VulkanContext.hpp"
 #include "VulkanRaster.hpp"
 #include "VulkanRayTracer.hpp"
@@ -15,11 +16,13 @@
 #include "shaders/post/tonemapper.hpp"
 
 // Constructor
-VulkanSceneRenderer::VulkanSceneRenderer(std::shared_ptr<VulkanContext> ctx) : m_ctx(ctx)
+VulkanSceneRenderer::VulkanSceneRenderer(core::VulkanBackend* backend)
 {
+
   // Initialize unique_ptrs
-  m_compiler = ctx->slangCompiler;
-  m_resources = std::make_shared<VulkanSceneResources>(ctx);
+  m_backend = backend;
+  m_compiler = m_backend->get_slang_compiler();
+  m_resources = std::make_shared<VulkanSceneResources>(m_backend);
 
   m_raster = std::make_unique<VulkanRaster>();
   m_ray_tracer = std::make_unique<VulkanRayTracer>();
@@ -27,9 +30,9 @@ VulkanSceneRenderer::VulkanSceneRenderer(std::shared_ptr<VulkanContext> ctx) : m
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 
   // Initialization logic
-  m_raster->init(m_ctx);
-  m_ray_tracer->init(m_ctx, m_raster.get());
-  m_post->init(m_ctx);
+  m_raster->init(m_backend);
+  m_ray_tracer->init(m_backend, m_raster.get());
+  m_post->init(m_backend);
 }
 
 // Destructor must be defined here where the types are complete
@@ -39,7 +42,7 @@ VulkanSceneRenderer::~VulkanSceneRenderer() = default;
 // Lifecycle
 // ---------------------------------------------------------------------------
 
-void VulkanSceneRenderer::init(CpuSceneResources& scene)
+void VulkanSceneRenderer::init(SceneResources& scene)
 {
   init_gbuffers();
   m_resources->update_descriptors(m_raster->descPack());
@@ -53,7 +56,7 @@ void VulkanSceneRenderer::deinit()
   m_gBuffers->deinit();
   m_resources->deinit();
   m_post->deinit();
-  m_ctx->deinit();
+  m_backend->deinit();
 }
 
 void VulkanSceneRenderer::reload(bool use_raytracing)
@@ -65,9 +68,8 @@ void VulkanSceneRenderer::reload(bool use_raytracing)
 // Rendering
 // ---------------------------------------------------------------------------
 
-void VulkanSceneRenderer::render(VkCommandBuffer cmd, CameraPtr camera,
-                                 const CpuSceneResources& scene, bool raytrace,
-                                 shaderio::PushConstant& pushValues) const
+void VulkanSceneRenderer::render(VkCommandBuffer cmd, CameraPtr camera, const SceneResources& scene,
+                                 bool raytrace, shaderio::PushConstant& pushValues) const
 {
   if (raytrace)
   {
@@ -99,11 +101,11 @@ void VulkanSceneRenderer::init_gbuffers()
   NVVK_DBG_NAME(linearSampler);
 
   nvvk::GBufferInitInfo info{
-      .allocator = &m_ctx->allocator,
+      .allocator = &m_backend->allocator(),
       .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM},
-      .depthFormat = nvvk::findDepthFormat(m_ctx->context.getPhysicalDevice()),
+      .depthFormat = nvvk::findDepthFormat(m_backend->get_context().getPhysicalDevice()),
       .imageSampler = linearSampler,
-      .descriptorPool = m_ctx->descriptorPool};
+      .descriptorPool = m_backend->descriptorPool()};
 
   m_gBuffers->init(info);
 }
@@ -156,5 +158,3 @@ std::shared_ptr<VulkanSceneResources> VulkanSceneRenderer::deviceResources() noe
 {
   return m_resources;
 }
-
-;

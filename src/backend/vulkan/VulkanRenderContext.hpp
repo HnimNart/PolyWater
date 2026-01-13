@@ -5,7 +5,7 @@
 #include "backend/FrameContext.hpp"
 
 //------------------------------------------------------------
-// VulkanRenderContext
+// VulkanFrameContext
 //------------------------------------------------------------
 // Concrete Vulkan implementation of RenderContext for a single frame.
 // Holds the Vulkan command buffer and other per-frame objects.

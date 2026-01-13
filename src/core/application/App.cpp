@@ -233,7 +233,7 @@ void Application::onResize(const WindowSize& size)
   m_backend->onResize(size);
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {
-    e->onResize(size.width, size.height);
+    e->onResize({size.width, size.height});
   }
 }
 

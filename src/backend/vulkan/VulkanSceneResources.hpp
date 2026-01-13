@@ -8,7 +8,8 @@
 #include <nvvk/resource_allocator.hpp>
 #include <nvvk/sampler_pool.hpp>
 
-struct VulkanContext;
+#include "VulkanBackend.hpp"
+
 namespace tinygltf
 {
 class Model;
@@ -29,7 +30,10 @@ public:
   using TextureID = uint32_t;
 
   // Lifecycle
-  explicit VulkanSceneResources(std::shared_ptr<VulkanContext> ctx);
+  explicit VulkanSceneResources(core::VulkanBackend* backend);
+
+  void begin_uploading();
+  void end_uploading();
 
   void deinit();
 
@@ -45,7 +49,7 @@ public:
   nvvk::SamplerPool& sampler_pool();
 
 private:
-  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  core::VulkanBackend* m_backend = nullptr;
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;
   uint32_t mesh_id_counter = 0;

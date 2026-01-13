@@ -11,7 +11,6 @@
 #include <nvvk/swapchain.hpp>
 
 #include "VulkanFrameContext.hpp"
-#include "VulkanSceneRenderer.hpp"
 #include "backend/FrameContext.hpp"
 #include "nvvk/validation_settings.hpp"
 #include "vk_utils.hpp"
@@ -82,6 +81,7 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
     LOGE("Vulkan Initialization Failed: %s\n", string_VkResult(result));
     return false;
   }
+
   return true;
 }
 
@@ -147,9 +147,24 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
 
   // 5. Finalize High-Level Wrappers
   // TODO context should be initialized by VulkanSceneRenderer
-  auto context = VulkanContext::create(m_vkContext, m_descriptorPool,
-                                       {m_viewportSize.width, m_viewportSize.height}, m_compiler);
-  m_render = std::make_shared<VulkanSceneRenderer>(context);
+  // m_context = VulkanContext::create(m_vkContext, m_descriptorPool,
+  //                                   {m_viewportSize.width, m_viewportSize.height}, m_compiler);
+  // m_render = std::make_shared<VulkanSceneRenderer>(this);
+
+  // Initialization logic moved inside the constructor for true RAII
+  VmaAllocatorCreateInfo allocatorInfo = {
+      .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+      .physicalDevice = m_vkContext.getPhysicalDevice(),
+      .device = m_vkContext.getDevice(),
+      .instance = m_vkContext.getInstance(),
+      .vulkanApiVersion = VK_API_VERSION_1_4,
+  };
+
+  m_allocator.init(allocatorInfo);
+  // m_allocator.setLeakID(81);
+
+  // Initialize staging uploader with the allocator
+  m_stagingUploader.init(&m_allocator);
 
   // 6. Create Frame Submission Sync Objects
   createFrameSubmission(m_swapchain.getMaxFramesInFlight());
@@ -375,6 +390,7 @@ uint32_t VulkanBackend::getFrameCycleSize() const
 void VulkanBackend::deinit()
 {
   VkDevice device = m_vkContext.getDevice();
+  assert(device != VK_NULL_HANDLE);
   NVVK_CHECK(vkDeviceWaitIdle(device));
 
   ImGui_ImplVulkan_Shutdown();
@@ -392,7 +408,9 @@ void VulkanBackend::deinit()
 
   vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
 
-  m_render->deinit();
+  vkDeviceWaitIdle(device);
+  m_stagingUploader.deinit();
+  m_allocator.deinit();
   m_vkContext.deinit();
 }
 

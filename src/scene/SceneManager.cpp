@@ -14,7 +14,7 @@
 
 #include "backend/vulkan/VulkanSceneRenderer.hpp"
 
-SceneManager::SceneManager(std::shared_ptr<VulkanSceneRenderer> renderer)
+SceneManager::SceneManager(std::shared_ptr<ISceneRenderer> renderer)
 {
   m_renderer = std::move(renderer);
   m_scene_resources.init(m_renderer->deviceResources());
@@ -79,7 +79,7 @@ const nvsamples::GltfSceneResource& SceneManager::gltf_resources() const
   return m_scene_resources.data();
 }
 
-CpuSceneResources& SceneManager::scene_resources()
+SceneResources& SceneManager::scene_resources()
 {
   return m_scene_resources;
 }

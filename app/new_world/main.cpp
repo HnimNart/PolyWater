@@ -19,50 +19,28 @@
 
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
-
-#include "core/Camera.hpp"
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS                                                               \
-  1                         // Use dynamic Vulkan functions for VMA (Vulkan Memory Allocator)
-#define VMA_IMPLEMENTATION  // Implementation of the Vulkan Memory Allocator
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+#define VMA_IMPLEMENTATION
 #define VMA_LEAK_LOG_FORMAT(format, ...)                                                           \
   {                                                                                                \
     printf((format), __VA_ARGS__);                                                                 \
     printf("\n");                                                                                  \
   }
 
-#include <imgui/backends/imgui_impl_vulkan.h>
-#include <imgui/imgui.h>
-#include <tinygltf/tiny_gltf.h>
+// 2. Include the library headers that need implementation
+#include <vk_mem_alloc.h>  // Assuming VMA is included via this or similar
 
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <nvaftermath/aftermath.hpp>     // Nsight Aftermath for crash tracking and shader debugging
-#include <nvapp/application.hpp>         // Application framework
-#include <nvapp/elem_camera.hpp>         // Camera manipulator
-#include <nvapp/elem_default_menu.hpp>   // Default menu element
-#include <nvapp/elem_default_title.hpp>  // Default title element
-#include <nvgui/camera.hpp>              // Camera widget
-#include <nvgui/sky.hpp>                 // Sky widget
-#include <nvgui/tonemapper.hpp>          // Tonemapper widget
-#include <nvutils/camera_manipulator.hpp>  // Camera manipulator
-#include <nvutils/logger.hpp>              // Logger for debug messages
-#include <nvutils/parameter_parser.hpp>    // Parameter parser
-#include <nvutils/timers.hpp>              // Timers for profiling
-#include <nvvk/check_error.hpp>
-#include <nvvk/context.hpp>  // Vulkan context management
-#include <nvvk/debug_util.hpp>
-#include <nvvk/validation_settings.hpp>  // Validation settings for Vulkan
+#include <nvutils/parameter_parser.hpp>  // Parameter parser
+#include <nvutils/timers.hpp>            // Timers for profiling
 
 #include "backend/vulkan/VulkanBackend.hpp"
 #include "common/path_utils.hpp"
+#include "core/Camera.hpp"
 #include "core/application/App.hpp"
 #include "core/application/elements/elem_camera.hpp"
 #include "core/application/elements/elem_default_menu.hpp"
 #include "core/application/elements/elem_default_title.hpp"
+#include "render.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
 // The main function, entry point of the application
@@ -89,7 +67,7 @@ int main(int argc, char** argv)
   core::Application application(appInfo, std::move(backend));
 
   // Elements added to the application
-  // auto tutorial = std::make_shared<RtBasic>(&vkContext);  // Our tutorial element
+  auto tutorial = std::make_shared<RtBasic>();  // Our tutorial element
   auto elemCamera =
       std::make_shared<core::ElementCamera>();  // Element to control the camera movement
   auto windowTitle =
@@ -105,7 +83,7 @@ int main(int argc, char** argv)
   application.addElement(windowMenu);
   application.addElement(windowTitle);
   application.addElement(elemCamera);
-  // application.addElement(tutorial);
+  application.addElement(tutorial);
 
   application.run();       // Start the application, loop until the window is closed
   application.shutdown();  // Closing application

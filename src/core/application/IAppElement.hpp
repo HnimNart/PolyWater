@@ -29,7 +29,7 @@ struct IAppElement
 
   // --- Window & OS Events ---
   /** @brief Called when the swapchain or viewport is resized. */
-  virtual void onResize(uint32_t width, uint32_t height) {}
+  virtual void onResize(WindowSize size) {}
 
   /** @brief Called when a file is dragged and dropped onto the application window. */
   virtual void onFileDrop(const std::filesystem::path& filename) {}

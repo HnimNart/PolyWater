@@ -4,15 +4,13 @@
 
 #include <memory>
 
-#include "backend/vulkan/VulkanContext.hpp"
+#include "VulkanBackend.hpp"
 #include "src/backend/ISceneRenderer.hpp"
 
-class VulkanRaster;
-class VulkanRayTracer;
 class PostProcessor;
 class IRenderBackend;
 class VulkanSceneResources;
-class CpuSceneResources;
+class SceneResources;
 
 namespace nvvk
 {
@@ -26,7 +24,7 @@ struct PushConstant;
 class VulkanSceneRenderer final : public ISceneRenderer
 {
 public:
-  explicit VulkanSceneRenderer(std::shared_ptr<VulkanContext> ctx);
+  explicit VulkanSceneRenderer(core::VulkanBackend* backend);
   ~VulkanSceneRenderer() override;
 
   // Delete copy/move
@@ -38,41 +36,41 @@ public:
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
-  void init(CpuSceneResources& scene) override;
+  void init(SceneResources& scene) override;
   void deinit() override;
   void reload(bool use_raytracing) override;
 
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  void render(VkCommandBuffer cmd, CameraPtr camera, const CpuSceneResources& scene, bool raytrace,
+  void render(VkCommandBuffer cmd, CameraPtr camera, const SceneResources& scene, bool raytrace,
               shaderio::PushConstant& pushValues) const override;
 
-  void post_process(VkCommandBuffer cmd);
-  void onResize(VkCommandBuffer cmd, const VkExtent2D& size);
+  void post_process(VkCommandBuffer cmd) override;
+  void onResize(VkCommandBuffer cmd, const VkExtent2D& size) override;
 
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  VkImage get_image(uint32_t index) const;
+  VkImage get_image(uint32_t index) const override;
 
-  VulkanRaster& raster() noexcept;
-  const VulkanRaster& raster() const noexcept;
+  VulkanRaster& raster() noexcept override;
+  const VulkanRaster& raster() const noexcept override;
 
-  VulkanRayTracer& ray_tracer() noexcept;
-  const VulkanRayTracer& ray_tracer() const noexcept;
+  VulkanRayTracer& ray_tracer() noexcept override;
+  const VulkanRayTracer& ray_tracer() const noexcept override;
 
-  PostProcessor& post_processor() noexcept;
-  const PostProcessor& post_processor() const noexcept;
+  PostProcessor& post_processor() noexcept override;
+  const PostProcessor& post_processor() const noexcept override;
 
   const nvvk::GBuffer& gbuffers() const noexcept;
-  std::shared_ptr<VulkanSceneResources> deviceResources() noexcept;
+  std::shared_ptr<VulkanSceneResources> deviceResources() noexcept override;
 
 private:
   void init_gbuffers();
 
 private:
-  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  core::VulkanBackend* m_backend = nullptr;
 
   // PIMPL: Using unique_ptr allows us to forward declare these types
   // instead of including their headers here.

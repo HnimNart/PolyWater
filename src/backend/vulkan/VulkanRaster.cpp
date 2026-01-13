@@ -10,7 +10,7 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "VulkanContext.hpp"
+#include "VulkanBackend.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"  // For CpuSceneResources definition
 #include "scene/Shared.hpp"
@@ -19,22 +19,22 @@
 #include "_autogen/foundation.slang.h"
 #include "_autogen/sky_simple.slang.h"
 
-void VulkanRaster::init(std::shared_ptr<VulkanContext> ctx)
+void VulkanRaster::init(core::VulkanBackend* backend)
 {
-  assert(ctx);
-  m_ctx = std::move(ctx);
-  m_compiler = m_ctx->slangCompiler;
-  createDescriptorSetLayout(m_ctx->context.getDevice());
-  createPipelineLayout(m_ctx->context.getDevice());
-  compileShaders(m_ctx);
+  assert(backend);
+  m_backend = std::move(backend);
+  m_compiler = m_backend->get_slang_compiler();
+  createDescriptorSetLayout(m_backend->getDevice());
+  createPipelineLayout(m_backend->getDevice());
+  compileShaders();
 }
 
 void VulkanRaster::deinit()
 {
   m_descPack.deinit();
-  vkDestroyPipelineLayout(m_ctx->context.getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyShaderEXT(m_ctx->context.getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(m_ctx->context.getDevice(), m_fragmentShader, nullptr);
+  vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyShaderEXT(m_backend->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_backend->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
@@ -44,7 +44,7 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                          const CpuSceneResources& scene,
+                          const SceneResources& scene,
                           const std::shared_ptr<nvutils::CameraManipulator>& camera,
                           shaderio::PushConstant& push_constants) const
 {
@@ -158,8 +158,8 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
 void VulkanRaster::reload()
 {
-  clearShaders(m_ctx);
-  compileShaders(m_ctx);
+  clearShaders();
+  compileShaders();
 }
 
 void VulkanRaster::createDescriptorSetLayout(VkDevice device)
@@ -199,15 +199,15 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
   NVVK_DBG_NAME(m_pipelineLayout);
 }
 
-void VulkanRaster::clearShaders(std::shared_ptr<VulkanContext> ctx)
+void VulkanRaster::clearShaders()
 {
   // Cleanup old shaders
-  vkDestroyShaderEXT(ctx->context.getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(ctx->context.getDevice(), m_fragmentShader, nullptr);
+  vkDestroyShaderEXT(m_backend->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_backend->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
-void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
+void VulkanRaster::compileShaders()
 {
   common::ScopedTimer(__FUNCTION__);
 
@@ -236,7 +236,7 @@ void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
   shaderInfo.pName = "vertexMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(ctx->context.getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
+  vkCreateShadersEXT(m_backend->getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
   // Fragment Shader
@@ -245,9 +245,9 @@ void VulkanRaster::compileShaders(std::shared_ptr<VulkanContext> ctx)
   shaderInfo.pName = "fragmentMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(ctx->context.getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
+  vkCreateShadersEXT(m_backend->getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 
   // Sky
-  m_skySimple.init(&ctx->allocator, std::span(sky_simple_slang));
+  m_skySimple.init(&m_backend->allocator(), std::span(sky_simple_slang));
 }

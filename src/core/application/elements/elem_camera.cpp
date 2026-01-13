@@ -125,8 +125,8 @@ void core::ElementCamera::onUIRender()
   updateCamera(m_cameraManip, ImGui::FindWindowByName("Viewport"));
 }
 
-void core::ElementCamera::onResize(uint32_t width, uint32_t height)
+void core::ElementCamera::onResize(WindowSize size)
 {
   assert(m_cameraManip && "Missing setCamera");
-  m_cameraManip->setWindowSize({width, height});
+  m_cameraManip->setWindowSize(size);
 }

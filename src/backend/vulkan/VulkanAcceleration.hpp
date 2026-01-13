@@ -15,10 +15,14 @@ namespace shaderio
 struct GltfMesh;
 }
 
+namespace core
+{
+class VulkanBackend;
+}
 class AccelerationStructures
 {
 public:
-  void init(std::shared_ptr<VulkanContext> ctx);
+  void init(core::VulkanBackend* backend);
   void deinit();
 
   void buildBLAS(const nvsamples::GltfSceneResource& scene);

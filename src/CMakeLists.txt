@@ -51,6 +51,11 @@ target_include_directories(${LIB_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/..
         ${PROJECT_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}
+     # Add the path to tinygltf
+    "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/tinygltf"
+
+    # ✅ ADD THIS: Add the path to stb_image
+    "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/stb"
 )
 
 ###################################

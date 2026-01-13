@@ -77,8 +77,8 @@ public:
 
   void setup_scene(VkCommandBuffer cmd)
   {
-    CpuSceneResources& scene_resources = m_scene_manager->scene_resources();
     SCOPED_TIMER(__FUNCTION__);
+    SceneResources& scene_resources = m_scene_manager->scene_resources();
     // Load the GLTF resources
 
     tinygltf::Model teapotModel =
@@ -93,12 +93,12 @@ public:
     }
 
     // Teapot material
-    CpuSceneResources::MaterialID teapot_id =
+    SceneResources::MaterialID teapot_id =
         scene_resources.addMaterial({.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
                                      .metallicFactor = 0.5f,
                                      .roughnessFactor = 0.5f});
     // Plane material with texture
-    CpuSceneResources::MaterialID plane_id =
+    SceneResources::MaterialID plane_id =
         scene_resources.addMaterial({.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                      .metallicFactor = 0.1f,
                                      .roughnessFactor = 0.8f,
@@ -153,9 +153,9 @@ public:
     std::shared_ptr<SlangShaderCompiler> compiler =
         make_shared<SlangShaderCompiler>(nvsamples::getShaderDirs());
     ctx = VulkanContext::create(*m_ctx, descriptorPool, m_app->getViewportSize(), compiler);
-    m_vulkan_scene_renderer = std::make_shared<VulkanSceneRenderer>(ctx);
-    m_scene_manager = std::make_unique<SceneManager>(m_vulkan_scene_renderer);
-    m_scene_manager->set_camera(m_cameraManip);
+    // m_vulkan_scene_renderer = std::make_shared<VulkanSceneRenderer>(ctx);
+    // m_scene_manager = std::make_unique<SceneManager>(m_vulkan_scene_renderer);
+    // m_scene_manager->set_camera(m_cameraManip);
 
     // Create scene
     VkCommandBuffer cmd = m_app->createTempCmdBuffer();

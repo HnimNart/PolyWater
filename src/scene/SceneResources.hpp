@@ -14,17 +14,19 @@ namespace tinygltf
 class Model;
 }
 
-class CpuSceneResources
+class SceneResources
 {
 public:
   using InstanceID = uint32_t;
   using MaterialID = uint32_t;
 
   // Constructor/Destructor (defaults defined in CPP to handle forward declarations)
-  CpuSceneResources();
-  ~CpuSceneResources();
+  SceneResources();
+  ~SceneResources();
 
+  void begin_uploading();
   void init(std::shared_ptr<VulkanSceneResources> gpu_uploader);
+  void end_uploading();
 
   // We can return tinygltf::Model by value with a forward declaration
   // provided the caller includes tiny_gltf.h

@@ -12,7 +12,12 @@
 struct VulkanContext;
 class VulkanRaster;
 class SlangShaderCompiler;
-class CpuSceneResources;
+class SceneResources;
+
+namespace core
+{
+class VulkanBackend;
+}
 
 namespace nvvk
 {
@@ -27,17 +32,17 @@ class VulkanRayTracer
 {
 public:
   VulkanRayTracer() = default;
-  void init(std::shared_ptr<VulkanContext> ctx, VulkanRaster* raster);
+  void init(core::VulkanBackend* backend, VulkanRaster* raster);
   void deinit();
 
-  void createPipeline(const CpuSceneResources& scene);
+  void createPipeline(const SceneResources& scene);
 
   // Rendering
   void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
               const shaderio::PushConstant& pushValues) const;
 
   // Internal helpers (made public as per original class structure, or keep public if intended)
-  void create_ray_tracing_pipeline(const CpuSceneResources& scene);
+  void create_ray_tracing_pipeline(const SceneResources& scene);
   void createRaytraceDescriptorLayout();
   void createRayTracingPipeline();
 
@@ -45,7 +50,7 @@ private:
   void createShaderBindingTable(const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
 
 private:
-  std::shared_ptr<VulkanContext> m_ctx = nullptr;
+  core::VulkanBackend* m_backend = nullptr;
   std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
   VulkanRaster* m_raster = nullptr;
 

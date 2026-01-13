@@ -88,6 +88,7 @@ public:
   virtual void freeResourcesQueue() {};
 
 protected:
+  //  Window stuff
   GLFWwindow* m_windowHandle{nullptr};  // GLFW Window
   WindowSize m_viewportSize{0, 0};      // Size of the viewport
   float m_dpiScale = 1.0f;

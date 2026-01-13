@@ -8,15 +8,15 @@
 #include <nvvk/gbuffers.hpp>
 
 #include "_autogen/tonemapper.slang.h"
-#include "backend/vulkan/VulkanContext.hpp"
+#include "backend/vulkan/VulkanBackend.hpp"
 
 class PostProcessor
 {
 public:
-  void init(std::shared_ptr<VulkanContext> ctx)
+  void init(core::VulkanBackend* backend)
   {
     // Initialize the tonemapper also with proe-compiled shader
-    m_tonemapper.init(&ctx->allocator, std::span(tonemapper_slang));
+    m_tonemapper.init(&backend->allocator(), std::span(tonemapper_slang));
   }
   void run(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers)
   {
