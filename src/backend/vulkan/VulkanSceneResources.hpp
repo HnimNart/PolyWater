@@ -9,6 +9,8 @@
 #include <nvvk/sampler_pool.hpp>
 
 #include "VulkanBackend.hpp"
+#include "nvutils/camera_manipulator.hpp"
+#include "vulkan/vulkan_core.h"
 
 namespace tinygltf
 {
@@ -23,6 +25,11 @@ namespace nvvk
 class DescriptorPack;
 }
 
+// struct SceneUpdateParams
+// {
+//   std::shared_ptr<nvutils::CameraManipulator> camera;
+// };
+
 class VulkanSceneResources
 {
 public:
@@ -30,6 +37,8 @@ public:
   using TextureID = uint32_t;
 
   explicit VulkanSceneResources(core::VulkanBackend* backend);
+
+  void updateSceneBuffers();
 
   void begin_uploading();
   void end_uploading();
@@ -53,6 +62,5 @@ private:
   nvvk::SamplerPool m_samplerPool;
   uint32_t mesh_id_counter = 0;
 
-  // Current command
-  VkCommandBuffer cmd{};
-};
+  VkCommandBuffer m_cmd = VK_NULL_HANDLE;
+};                     

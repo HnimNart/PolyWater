@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <glm/vec2.hpp>
+
 struct WindowSize
 {
   uint32_t width;
@@ -11,4 +12,10 @@ struct WindowSize
   bool operator==(const WindowSize&) const = default;
 
   operator glm::uvec2() const { return glm::uvec2(width, height); }
+  // Overload the insertion operator
+  friend std::ostream& operator<<(std::ostream& os, const WindowSize& size)
+  {
+    os << size.width << "x" << size.height;
+    return os;
+  }
 };

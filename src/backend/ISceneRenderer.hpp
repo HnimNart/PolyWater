@@ -14,8 +14,9 @@ public:
   virtual ~ISceneRenderer() = default;
   virtual void init(SceneResources& scene) = 0;
   virtual void deinit() = 0;
-  virtual void render(VkCommandBuffer cmd, CameraPtr camera, const SceneResources& scene,
-                      bool raytrace, shaderio::PushConstant& pushValues) const = 0;
+  virtual void render(CameraPtr camera, SceneResources& scene, bool raytrace,
+                      shaderio::PushConstant& pushValues) const = 0;
+  virtual void post_process() = 0;
   virtual void reload(bool use_raytracing) = 0;
 
   virtual std::shared_ptr<VulkanSceneResources> deviceResources() noexcept {};
@@ -29,7 +30,6 @@ public:
   virtual PostProcessor& post_processor() noexcept {};
   virtual const PostProcessor& post_processor() const noexcept {};
 
-  virtual void post_process(VkCommandBuffer cmd) {};
-  virtual void onResize(VkCommandBuffer cmd, const VkExtent2D& size) {};
+  virtual void onResize(const WindowSize& size) {};
   virtual VkImage get_image(uint32_t index) const { return {}; };
 };

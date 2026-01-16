@@ -57,7 +57,6 @@
 #include <nvvk/validation_settings.hpp>  // Validation settings for Vulkan
 
 #include "common/path_utils.hpp"
-#include "src/backend/vulkan/VulkanContext.hpp"
 #include "src/backend/vulkan/VulkanSceneRenderer.hpp"
 #include "src/backend/vulkan/vk_utils.hpp"
 #include "src/scene/SceneManager.hpp"

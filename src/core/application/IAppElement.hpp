@@ -52,7 +52,7 @@ struct IAppElement
   virtual void onRender(FrameContext* ctx) {}
 
   /** @brief Called after all rendering commands have been recorded for the frame. */
-  virtual void onEndFrame(const FrameContext& frame) {}
+  virtual void onEndFrame(const FrameContext* frame) {}
 
   // --- Special Modes ---
   /** @brief Final callback for headless execution before the application exits. */

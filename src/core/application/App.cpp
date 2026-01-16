@@ -191,7 +191,7 @@ void Application::runFrame()
   // Update viewport if size changed
   if (m_backend->getViewportSize() != viewportSize)
   {
-    m_backend->onResize(viewportSize);
+    m_backend->onResize(m_elements, viewportSize);
   }
 
   // // Handle Screenshot Requests
@@ -203,7 +203,6 @@ void Application::runFrame()
 
   if (m_backend->beginFrame(frameCtx))
   {
-
     // 4. Backend Logic & GPU Command Recording
     m_backend->renderFrame(m_elements, frameCtx);
     m_backend->endFrame(frameCtx);
@@ -230,11 +229,7 @@ bool Application::isHeadless() const noexcept
 
 void Application::onResize(const WindowSize& size)
 {
-  m_backend->onResize(size);
-  for (std::shared_ptr<IAppElement>& e : m_elements)
-  {
-    e->onResize({size.width, size.height});
-  }
+  m_backend->onResize(m_elements, size);
 }
 
 void Application::requestScreenshot(const std::filesystem::path& filename, int quality)

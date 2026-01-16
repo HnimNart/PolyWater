@@ -7,12 +7,13 @@
 #include <vulkan/vulkan_core.h>
 
 #include <nvvk/check_error.hpp>
+#include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/swapchain.hpp>
+#include <nvvk/validation_settings.hpp>
 
 #include "VulkanFrameContext.hpp"
 #include "backend/FrameContext.hpp"
-#include "nvvk/validation_settings.hpp"
 #include "vk_utils.hpp"
 
 namespace core
@@ -272,6 +273,12 @@ bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
   return true;
 }
 
+VkCommandBuffer VulkanBackend::get_active_cmd() const
+{
+  assert(m_frameData[m_frameRingCurrent]->cmdBuffer != VK_NULL_HANDLE);
+  return m_frameData[m_frameRingCurrent]->cmdBuffer;
+}
+
 void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
                                 FrameContext const& /* frame */)
 {
@@ -294,6 +301,11 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
   for (const std::shared_ptr<IAppElement>& e : elements)
   {
     e->onRender(static_cast<FrameContext*>(ctx));
+  }
+
+  for (const std::shared_ptr<IAppElement>& e : elements)
+  {
+    e->onEndFrame(static_cast<FrameContext*>(ctx));
   }
 
   // Start rendering to the swapchain
@@ -324,8 +336,8 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
 void VulkanBackend::endFrame(FrameContext const& /* frame */)
 {
   auto& frame = m_frameData[m_frameRingCurrent];
-  NVVK_CHECK(vkEndCommandBuffer(frame->cmdBuffer));
-  frame->cmdBuffer == VK_NULL_HANDLE;
+  VkCommandBuffer cmd = frame->cmdBuffer;
+  NVVK_CHECK(vkEndCommandBuffer(cmd));
 
   // Add timeline semaphore to signal when GPU completes this frame
   // The color attachment output stage is used since that's when the frame is fully rendered
@@ -340,7 +352,7 @@ void VulkanBackend::endFrame(FrameContext const& /* frame */)
   // Note: extra command buffers could have been added to the list from other parts of the
   // application (elements)
   m_commandBuffers.push_back(
-      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = frame->cmdBuffer});
+      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = cmd});
 
   // Populate the submit info to synchronize rendering and send the command buffer
   const VkSubmitInfo2 submitInfo{
@@ -355,31 +367,14 @@ void VulkanBackend::endFrame(FrameContext const& /* frame */)
 
   // Submit the command buffer to the GPU and signal when it's done
   NVVK_CHECK(vkQueueSubmit2(m_vkContext.getQueueInfo(0).queue, 1, &submitInfo, nullptr));
+
+  frame->cmdBuffer == VK_NULL_HANDLE;
 }
 
 void VulkanBackend::present()
 {
   m_swapchain.presentFrame(m_vkContext.getQueueInfo(0).queue);
   m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
-}
-
-void VulkanBackend::onResize(const WindowSize& size)
-{
-  IRenderBackend::onResize(size);
-  // Recreate the G-Buffer to the size of the viewport
-  NVVK_CHECK(vkQueueWaitIdle(m_vkContext.getQueueInfo(0).queue));
-  // TODO Should resize VulkanSceneRenderer
-  // {
-  //   VkCommandBuffer cmd{};
-  //   NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, m_device, m_transientCmdPool));
-  //   // Call the implementation of the UI rendering
-  //   for (std::shared_ptr<IAppElement>& e : m_elements)
-  //   {
-  //     e->onResize(m_viewportSize);
-  //   }
-  //   NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_device, m_transientCmdPool,
-  //   m_queues[0].queue));
-  // }
 }
 
 uint32_t VulkanBackend::getFrameCycleSize() const

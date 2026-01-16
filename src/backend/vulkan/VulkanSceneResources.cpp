@@ -9,6 +9,7 @@
 #include <nvvk/formats.hpp>
 
 #include "VulkanSceneRenderer.hpp"
+#include "nvutils/camera_manipulator.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 #include "vk_utils.hpp"
@@ -22,13 +23,14 @@ VulkanSceneResources::VulkanSceneResources(core::VulkanBackend* backend)
 
 void VulkanSceneResources::begin_uploading()
 {
-
+  // TODO should ask backend for this
   NVVK_CHECK(
-      nvvk::beginSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool()));
+      nvvk::beginSingleTimeCommands(m_cmd, m_backend->getDevice(), m_backend->transientCmdPool()));
 }
 void VulkanSceneResources::end_uploading()
 {
-  NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool(),
+  NVVK_CHECK(nvvk::endSingleTimeCommands(m_cmd, m_backend->getDevice(),
+                                         m_backend->transientCmdPool(),
                                          m_backend->getQueueInfo(0).queue));
   // cmd = VkCommandBuffer{};
 }
@@ -49,7 +51,7 @@ VulkanSceneResources::upload_gltf_model(const tinygltf::Model& model,
 
 VulkanSceneResources::TextureID VulkanSceneResources::upload_texture(const std::string& filepath)
 {
-  nvvk::Image texture = vk_utils::loadAndCreateImage(cmd, m_backend->stagingUploader(),
+  nvvk::Image texture = vk_utils::loadAndCreateImage(m_cmd, m_backend->stagingUploader(),
                                                      m_backend->getDevice(), filepath);
 
   NVVK_DBG_NAME(texture.image);
@@ -77,7 +79,7 @@ void VulkanSceneResources::finalizeSceneResources(nvsamples::GltfSceneResource& 
   nvsamples::createGltfSceneInfoBuffer(
       resources,
       m_backend->stagingUploader());  // Create buffers for the scene data (GPU buffers)
-  m_backend->stagingUploader().cmdUploadAppended(cmd);  // Upload the scene information to the GPU
+  m_backend->stagingUploader().cmdUploadAppended(m_cmd);  // Upload the scene information to the GPU
 }
 
 void VulkanSceneResources::clear(nvsamples::GltfSceneResource& resources)

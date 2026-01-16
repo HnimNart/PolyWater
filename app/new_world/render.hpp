@@ -28,18 +28,19 @@ public:
   void onPreRender() override;
   void onUIMenu() override;
   void onRender(FrameContext* ctx) override;
-  void onEndFrame(const FrameContext& frame);
+  void onEndFrame(const FrameContext* frame) override;
+
+  // Accessor
+  CameraPtr& getCameraManipulator();
 
 private:
   // Custom methods
   void setup_scene();
 
-  // Accessor
-  CameraPtr getCameraManipulator() const;
-
 private:
   // Application and core components
   core::Application* m_app = nullptr;
+  // TODO who should own this?
   CameraPtr m_cameraManip{std::make_shared<nvutils::CameraManipulator>()};
 
   std::shared_ptr<VulkanSceneRenderer> m_renderer = nullptr;

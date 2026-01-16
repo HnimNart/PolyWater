@@ -59,7 +59,7 @@ nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& stagi
   const std::span dataSpan(data, w * h * req_comp);
   nvvk::Image texture;
   NVVK_CHECK(allocator->createImage(texture, imageInfo, DEFAULT_VkImageViewCreateInfo));
-  texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  // texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   NVVK_CHECK(staging.appendImage(texture, dataSpan, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 
   return texture;

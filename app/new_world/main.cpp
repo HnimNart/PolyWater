@@ -75,9 +75,7 @@ int main(int argc, char** argv)
                                                             // with application name and size
   auto windowMenu = std::make_shared<core::ElementDefaultMenu>();  // Element displaying a menu,
                                                                    // File->Exit ...
-  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
-  // auto camManip = tutorial->getCameraManipulator();
-  elemCamera->setCameraManipulator(m_camera);
+  elemCamera->setCameraManipulator(tutorial->getCameraManipulator());
 
   // Adding all elements
   application.addElement(windowMenu);

@@ -33,13 +33,14 @@ public:
   // Frame Loop
   void newFrame() override;
 
+  VkCommandBuffer get_active_cmd() const;
+
   bool beginFrame(FrameContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
                    FrameContext const& frame) override;
   void endFrame(FrameContext const& frame) override;
   void present() override;
 
-  void onResize(const WindowSize& size) override;
   void requestScreenshot(const std::filesystem::path& filename, int quality) override;
 
   // Getters

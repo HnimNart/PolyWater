@@ -14,7 +14,6 @@
 class VulkanSceneRenderer;
 struct VulkanContext;
 
-// TODO Switch out VulkanSceneRenderer with ISceneRenderer
 class SceneManager
 {
 public:
@@ -24,15 +23,15 @@ public:
   void clear();
   void postInit();
 
-  void render(VkCommandBuffer cmd, bool raytrace);
+  void render(bool raytrace);
 
   // --------------------------------------------------
   // Rendering / Post-processing
   // --------------------------------------------------
-  void post_process(VkCommandBuffer cmd);
+  void post_process();
   void reload(bool use_raytracing);
   VkImage get_image(int buffer_idx);
-  void onResize(VkCommandBuffer cmd, const VkExtent2D& size);
+  void onResize(const WindowSize& size);
 
   // --------------------------------------------------
   // Scene / Resources
@@ -55,7 +54,7 @@ public:
 
 private:
   // Kept inline initialization as requested (requires camera_manipulator.hpp)
-  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
+  CameraPtr m_camera = nullptr;
 
   SceneResources m_scene_resources{};
   std::shared_ptr<ISceneRenderer> m_renderer = nullptr;

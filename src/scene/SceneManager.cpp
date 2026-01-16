@@ -28,26 +28,27 @@ void SceneManager::clear()
 
 void SceneManager::postInit()
 {
+
   m_renderer->init(m_scene_resources);
 }
 
-void SceneManager::render(VkCommandBuffer cmd, bool raytrace)
+void SceneManager::render(bool raytrace)
 {
   // Push constant information
   shaderio::PushConstant pushValues{
       .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
       .metallicRoughnessOverride = m_metallicRoughnessOverride,
   };
-  m_renderer->render(cmd, m_camera, m_scene_resources, raytrace, pushValues);
+  m_renderer->render(m_camera, m_scene_resources, raytrace, pushValues);
 }
 
 // --------------------------------------------------
 // Rendering / Post-processing
 // --------------------------------------------------
 
-void SceneManager::post_process(VkCommandBuffer cmd)
+void SceneManager::post_process()
 {
-  m_renderer->post_process(cmd);
+  m_renderer->post_process();
 }
 
 void SceneManager::reload(bool use_raytracing)
@@ -60,9 +61,9 @@ VkImage SceneManager::get_image(int buffer_idx)
   return m_renderer->get_image(buffer_idx);
 }
 
-void SceneManager::onResize(VkCommandBuffer cmd, const VkExtent2D& size)
+void SceneManager::onResize(const WindowSize& size)
 {
-  m_renderer->onResize(cmd, size);
+  m_renderer->onResize(size);
 }
 
 // --------------------------------------------------

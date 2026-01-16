@@ -20,7 +20,7 @@ public:
   using InstanceID = uint32_t;
   using MaterialID = uint32_t;
 
-  // Constructor/Destructor (defaults defined in CPP to handle forward declarations)
+  // Constructor/Destructor
   SceneResources();
   ~SceneResources();
 

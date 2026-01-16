@@ -11,12 +11,15 @@
 // Project Headers
 #include <shaders/shaderio.h>
 
+#include <nvgui/camera.hpp>
 #include <nvgui/property_editor.hpp>
+#include <nvgui/tonemapper.hpp>  // Tonemapper widget
 
 #include "backend/vulkan/VulkanSceneRenderer.hpp"
 #include "common/path_utils.hpp"
 #include "common/timers.hpp"
 #include "core/application/App.hpp"
+#include "scene/Shared.hpp"
 
 void RtBasic::setup_scene()
 {
@@ -101,6 +104,7 @@ void RtBasic::onAttach(core::Application* app)
   assert(backend && "Backend is not VulkanBackend");
   m_renderer = std::make_shared<VulkanSceneRenderer>(backend);
   m_scene_manager = SceneManager(m_renderer);
+  m_scene_manager.set_camera(m_cameraManip);
 
   setup_scene();
 }
@@ -112,7 +116,7 @@ void RtBasic::onDetach()
 
 void RtBasic::onResize(WindowSize size)
 {
-  // Handle resize
+  m_scene_manager.onResize({size.width, size.height});
 }
 
 void RtBasic::onUIMenu()
@@ -139,29 +143,103 @@ void RtBasic::onUIRender()
   // Display the rendering GBuffer in the ImGui window ("Viewport")
   if (ImGui::Begin("Viewport"))
   {
-    // ImGui::Image(
-    //      ImTextureID(m_renderer->gbuffers().getDescriptorSet(eImgTonemapped)),
-    //      ImGui::GetContentRegionAvail());
+    ImGui::Image(ImTextureID(m_renderer->gbuffers().getDescriptorSet(eImgTonemapped)),
+                 ImGui::GetContentRegionAvail());
+  }
+  ImGui::End();
+
+  // Setting panel
+  if (ImGui::Begin("Settings"))
+  {
+    // Ray tracing toggle
+    ImGui::Checkbox("Use Ray Tracing", &m_useRayTracing);
+
+    if (ImGui::CollapsingHeader("Camera"))
+    {
+      nvgui::CameraWidget(m_scene_manager.camera());
+    }
+    // if (ImGui::CollapsingHeader("Environment"))
+    // {
+    //   ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager->gltf_resources().sceneInfo.useSky);
+    //   if (m_scene_manager->gltf_resources().sceneInfo.useSky)
+    //     nvgui::skySimpleParametersUI(m_scene_manager->gltf_resources().sceneInfo.skySimpleParam);
+    //   else
+    //   {
+    //     PE::begin();
+    //     PE::ColorEdit3("Background",
+    //                    (float*) &m_scene_manager->gltf_resources().sceneInfo.backgroundColor);
+    //     PE::end();
+    //     // Light
+    //     PE::begin();
+    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
+    //             shaderio::GltfLightType::ePoint ||
+    //         m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
+    //             shaderio::GltfLightType::eSpot)
+    //     {
+    //       PE::DragFloat3(
+    //           "Light Position",
+    //           glm::value_ptr(
+    //               m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].position),
+    //           1.0f, -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None, "Position of the light");
+    //     }
+    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
+    //             shaderio::GltfLightType::eDirectional ||
+    //         m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
+    //             shaderio::GltfLightType::eSpot)
+    //     {
+    //       PE::SliderFloat3(
+    //           "Light Direction",
+    //           glm::value_ptr(
+    //               m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].direction),
+    //           -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None, "Direction of the light");
+    //     }
+
+    //     PE::SliderFloat("Light Intensity",
+    //                     &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].intensity,
+    //                     0.0f, 1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic,
+    //                     "Intensity of the light");
+    //     PE::ColorEdit3(
+    //         "Light Color",
+    //         glm::value_ptr(m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].color),
+    //         ImGuiColorEditFlags_NoInputs, "Color of the light");
+    //     PE::Combo("Light Type",
+    //               (int*) &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type,
+    //               "Point\0Spot\0Directional\0", 3, "Type of the light (Point, Spot,
+    //               Directional)");
+    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
+    //         shaderio::GltfLightType::eSpot)
+    //     {
+    //       PE::SliderAngle("Cone Angle",
+    //                       &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].coneAngle,
+    //                       0.f, 90.f, "%.2f", ImGuiSliderFlags_AlwaysClamp,
+    //                       "Cone angle of the spot light");
+    //     }
+    //     PE::end();
+    //   }
+    // }
+    if (ImGui::CollapsingHeader("Tonemapper"))
+    {
+      nvgui::tonemapperWidget(m_scene_manager.tonemapper());
+    }
   }
   ImGui::End();
 }
 
 void RtBasic::onPreRender()
 {
-  printf("PreRender\n");
 }
 
 void RtBasic::onRender(FrameContext* ctx)
 {
-  printf("render\n");
+  m_scene_manager.render(m_useRayTracing);
 }
 
-void RtBasic::onEndFrame(const FrameContext& frame)
+void RtBasic::onEndFrame(const FrameContext* frame)
 {
-  printf("onEndFrame\n");
+  m_scene_manager.post_process();
 }
 
-CameraPtr RtBasic::getCameraManipulator() const
+CameraPtr& RtBasic::getCameraManipulator()
 {
   return m_cameraManip;
 }

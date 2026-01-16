@@ -43,11 +43,12 @@ public:
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  void render(VkCommandBuffer cmd, CameraPtr camera, const SceneResources& scene, bool raytrace,
+
+  void render(CameraPtr camera, SceneResources& scene, bool raytrace,
               shaderio::PushConstant& pushValues) const override;
 
-  void post_process(VkCommandBuffer cmd) override;
-  void onResize(VkCommandBuffer cmd, const VkExtent2D& size) override;
+  void post_process() override;
+  void onResize(const WindowSize& size) override;
 
   // ---------------------------------------------------------------------------
   // Accessors
@@ -68,6 +69,7 @@ public:
 
 private:
   void init_gbuffers();
+  void updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera, SceneResources& scene) const;
 
 private:
   core::VulkanBackend* m_backend = nullptr;

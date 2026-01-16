@@ -66,7 +66,8 @@ public:
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  virtual void onResize(const WindowSize& size)
+  virtual void onResize(std::vector<std::shared_ptr<core::IAppElement>>& elements,
+                        const WindowSize& size)
   {
     // Check for DPI scaling and adjust the font size
     float xscale, yscale;
@@ -75,6 +76,11 @@ public:
     m_dpiScale = xscale;
 
     m_viewportSize = {size.width, size.height};
+
+    for (const std::shared_ptr<core::IAppElement>& e : elements)
+    {
+      e->onResize(size);
+    }
   }
 
   const WindowSize& getViewportSize() const { return m_viewportSize; }
