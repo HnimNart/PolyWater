@@ -22,12 +22,12 @@ public:
   SceneResourcesManager();
   ~SceneResourcesManager();
 
-  void init(std::shared_ptr<IDeviceResources> gpu_uploader);
+  void init(std::shared_ptr<IDeviceResources> device_resources);
   void begin_uploading();
   void end_uploading();
 
   tinygltf::Model loadGltf(const std::string& filename);
-  uint32_t loadTexture(const std::string& filename);
+  IDeviceResources::TextureID loadTexture(const std::string& filename);
   InstanceID addInstance(const shaderio::GltfInstance& instance);
   MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material);
 

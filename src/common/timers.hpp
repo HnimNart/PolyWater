@@ -123,3 +123,4 @@ private:
 };
 
 }  // namespace common
+#define SCOPED_TIMER(name) auto scopedTimer##__LINE__ = nvutils::ScopedTimer(name)

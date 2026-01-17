@@ -1,6 +1,5 @@
 #include "SceneResources.hpp"
 
-// 1. Define implementations here (and ONLY here)
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -11,22 +10,12 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/sampler_pool.hpp>
 
-// Explicit defaults needed here because of forward declared types in smart pointers
 SceneResourcesManager::SceneResourcesManager() = default;
 SceneResourcesManager::~SceneResourcesManager() = default;
 
 void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> device_resource)
 {
   m_device_resources = std::move(device_resource);
-}
-
-tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
-{
-  auto model = gltf::load(filename);
-  auto id = static_cast<IDeviceResources::MeshID>(
-      m_device_resources->upload_gltf_model(model, m_resources));
-
-  return model;
 }
 
 void SceneResourcesManager::begin_uploading()
@@ -39,7 +28,16 @@ void SceneResourcesManager::end_uploading()
   m_device_resources->end_uploading();
 }
 
-uint32_t SceneResourcesManager::loadTexture(const std::string& filename)
+tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
+{
+  auto model = gltf::load(filename);
+  auto id = static_cast<IDeviceResources::MeshID>(
+      m_device_resources->upload_gltf_model(model, m_resources));
+
+  return model;
+}
+
+IDeviceResources::TextureID SceneResourcesManager::loadTexture(const std::string& filename)
 {
   return m_device_resources->upload_texture(filename);
 }

@@ -1,11 +1,9 @@
 #include "VulkanAcceleration.hpp"
 
-// Implementation Includes
 #include <vector>
 
-#include <nvutils/timers.hpp>
-
 #include "VulkanBackend.hpp"
+#include "common/timers.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 void AccelerationStructures::init(core::VulkanBackend* backend)
