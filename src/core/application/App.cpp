@@ -73,7 +73,6 @@ void Application::init(ApplicationCreateInfo const& info)
 
 void Application::shutdown()
 {
-  printf("done\n");
   m_running = false;
 
   // Save window state before destruction
@@ -91,13 +90,12 @@ void Application::shutdown()
   }
   m_elements.clear();
 
-  ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
-
   if (m_backend)
   {
     m_backend->deinit();
   }
 
+  ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   if (ImPlot::GetCurrentContext())

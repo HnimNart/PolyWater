@@ -1,4 +1,4 @@
-#include "VulkanSceneRenderer.hpp"
+#include "VulkanRenderer.hpp"
 
 #include <iostream>
 
@@ -13,20 +13,22 @@
 #include "VulkanPostToneMapper.hpp"
 #include "VulkanRaster.hpp"
 #include "VulkanRayTracer.hpp"
-#include "backend/vulkan/VulkanSceneResources.hpp"
+#include "backend/vulkan/VulkanRenderResources.hpp"
 #include "core/Camera.hpp"
 #include "core/Image.hpp"
 #include "scene/SceneResources.hpp"
+#include "scene/gltf/gltf_utils.hpp"
+#include "scene/gltf/io_gltf.h"
 #include "shaders/post/IToneMapper.hpp"
 
 // Constructor
-VulkanSceneRenderer::VulkanSceneRenderer(core::VulkanBackend* backend)
+VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
 {
 
   // Initialize unique_ptrs
   m_backend = backend;
   m_compiler = m_backend->get_slang_compiler();
-  m_resources = std::make_shared<VulkanSceneResources>(m_backend);
+  m_resources = std::make_shared<VulkanRenderResources>(m_backend);
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
   m_raster = std::make_unique<VulkanRaster>();
@@ -40,30 +42,32 @@ VulkanSceneRenderer::VulkanSceneRenderer(core::VulkanBackend* backend)
 }
 
 // Destructor must be defined here where the types are complete
-VulkanSceneRenderer::~VulkanSceneRenderer() = default;
+VulkanRenderer::~VulkanRenderer() = default;
 
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
-
-void VulkanSceneRenderer::init(SceneResources& scene)
+void VulkanRenderer::init(const SceneResourcesManager& scene)
 {
-  printf("Updated\n");
   init_gbuffers();
   m_resources->update_descriptors(m_raster->descPack());
   m_ray_tracer->createPipeline(scene);
 }
 
-void VulkanSceneRenderer::deinit()
+void VulkanRenderer::deinit()
 {
+  VkDevice device = m_backend->getDevice();
+  assert(device != VK_NULL_HANDLE);
+  NVVK_CHECK(vkDeviceWaitIdle(device));
+
   m_raster->deinit();
   m_ray_tracer->deinit();
   m_gBuffers->deinit();
-  m_resources->deinit();
   m_post->deinit();
+  m_resources->deinit();
 }
 
-void VulkanSceneRenderer::reload(bool use_raytracing)
+void VulkanRenderer::reload(bool use_raytracing)
 {
   use_raytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
 }
@@ -71,55 +75,54 @@ void VulkanSceneRenderer::reload(bool use_raytracing)
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
-
-void VulkanSceneRenderer::updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera,
-                                            SceneResources& scene) const
+shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera,
+                                                           SceneResourcesManager& scene) const
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
-  const glm::mat4& viewMatrix = camera->getViewMatrix();
-  const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
 
-  scene.data().sceneInfo.viewProjMatrix =
-      projMatrix * viewMatrix;  // Combine the view and projection matrices
-  scene.data().sceneInfo.projInvMatrix = glm::inverse(projMatrix);  // Inverse projection matrix
-  scene.data().sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);  // Inverse view matrix
-  scene.data().sceneInfo.cameraPosition = camera->getEye();         // Get the camera position
+  const nvsamples::GltfDeviceSceneResources& device_resources = m_resources->device_resources();
   scene.data().sceneInfo.instances =
-      (shaderio::GltfInstance*) scene.data()
-          .bInstances.address;  // Get the address of the instance buffer
+      (shaderio::GltfInstance*)
+          device_resources.bInstances.address;  // Get the address of the instance buffer
   scene.data().sceneInfo.meshes =
-      (shaderio::GltfMesh*) scene.data().bMeshes.address;  // Get the address of the mesh buffer
+      (shaderio::GltfMesh*) device_resources.bMeshes.address;  // Get the address of the mesh buffer
   scene.data().sceneInfo.materials =
-      (shaderio::GltfMetallicRoughness*) scene.data()
-          .bMaterials.address;  // Get the address of the material buffer
+      (shaderio::GltfMetallicRoughness*)
+          device_resources.bMaterials.address;  // Get the address of the material buffer
 
   // Making sure the scene information buffer is updated before rendering
-  // Wait that the fragment shader is done reading the previous scene information and wait for the
-  // transfer to complete
-  nvvk::cmdBufferMemoryBarrier(cmd, {scene.data().bSceneInfo.buffer,
+  nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-  vkCmdUpdateBuffer(cmd, scene.data().bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
+  vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
                     &scene.data().sceneInfo);
-  nvvk::cmdBufferMemoryBarrier(cmd,
-                               {scene.data().bSceneInfo.buffer, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  return reinterpret_cast<shaderio::GltfSceneInfo*>(device_resources.bSceneInfo.address);
 }
 
-void VulkanSceneRenderer::render(CameraPtr camera, SceneResources& scene, bool raytrace,
-                                 shaderio::PushConstant& pushValues) const
+shaderio::GltfSceneInfo* VulkanRenderer::update_buffers(CameraPtr camera,
+                                                        SceneResourcesManager& scene)
 {
   VkCommandBuffer cmd = m_backend->get_active_cmd();
-  updateSceneBuffer(cmd, camera, scene);
+  return updateSceneBuffer(cmd, camera, scene);
+}
+
+void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
+                            shaderio::PushConstant& pushValues) const
+{
+  VkCommandBuffer cmd = m_backend->get_active_cmd();
   if (raytrace)
   {
     m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
     return;
   }
-  m_raster->render(cmd, *m_gBuffers, scene, camera, pushValues);
+  m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->device_resources(), camera,
+                   pushValues);
 }
 
-void VulkanSceneRenderer::post_process()
+void VulkanRenderer::post_process()
 {
   VkCommandBuffer cmd = m_backend->get_active_cmd();
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
@@ -129,7 +132,7 @@ void VulkanSceneRenderer::post_process()
                          VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT);
 }
 
-void VulkanSceneRenderer::onResize(const WindowSize& size)
+void VulkanRenderer::onResize(const WindowSize& size)
 {
 
   NVVK_CHECK(vkQueueWaitIdle(m_backend->getQueueInfo(0).queue));
@@ -145,7 +148,7 @@ void VulkanSceneRenderer::onResize(const WindowSize& size)
 // Helpers
 // ---------------------------------------------------------------------------
 
-void VulkanSceneRenderer::init_gbuffers()
+void VulkanRenderer::init_gbuffers()
 {
   VkSampler linearSampler{};
   NVVK_CHECK(m_resources->sampler_pool().acquireSampler(linearSampler));
@@ -165,20 +168,21 @@ void VulkanSceneRenderer::init_gbuffers()
 // Accessors
 // ---------------------------------------------------------------------------
 
-core::Image VulkanSceneRenderer::get_image(uint32_t index) const
+core::Image VulkanRenderer::get_image(uint32_t index) const
 {
+  // TODO fix this
   core::Image image;
   image.descriptor = static_cast<void*>(m_gBuffers->getDescriptorSet(index));
   // image.native_handle = static_cast<void*>(&m_gBuffers->getColorImage(index));
   return image;
 }
 
-IPostProcessor& VulkanSceneRenderer::post_processor() noexcept
+IPostProcessor& VulkanRenderer::post_processor() noexcept
 {
   return *m_post;
 }
 
-std::shared_ptr<VulkanSceneResources> VulkanSceneRenderer::deviceResources() noexcept
+std::shared_ptr<IDeviceResources> VulkanRenderer::deviceResources() noexcept
 {
   return m_resources;
 }

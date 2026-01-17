@@ -12,13 +12,14 @@ namespace core
 class Application;
 class VulkanBackend;
 }  // namespace core
-class VulkanSceneRenderer;
 
-class RtBasic : public core::IAppElement
+class VulkanRenderer;
+
+class VulkanRendererElement : public core::IAppElement
 {
 public:
-  RtBasic() = default;
-  ~RtBasic() override = default;
+  VulkanRendererElement() = default;
+  ~VulkanRendererElement() override = default;
 
   // Interface Implementation
   void onAttach(core::Application* app) override;
@@ -31,7 +32,7 @@ public:
   void onEndFrame(const FrameContext* frame) override;
 
   // Accessor
-  CameraPtr& getCameraManipulator();
+  CameraPtr getCameraManipulator();
 
 private:
   // Custom methods
@@ -40,10 +41,7 @@ private:
 private:
   // Application and core components
   core::Application* m_app = nullptr;
-  // TODO who should own this?
-  CameraPtr m_cameraManip{std::make_shared<nvutils::CameraManipulator>()};
-
-  std::shared_ptr < VulkanSceneRenderer> m_renderer = nullptr;
+  std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_scene_manager;
 
   // Ray tracing toggle

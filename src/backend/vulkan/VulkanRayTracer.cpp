@@ -36,7 +36,7 @@ void VulkanRayTracer::deinit()
   m_accel.deinit();
 }
 
-void VulkanRayTracer::createPipeline(const SceneResources& scene)
+void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
 {
   // Get ray tracing properties
   VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
@@ -52,7 +52,7 @@ void VulkanRayTracer::createPipeline(const SceneResources& scene)
   create_ray_tracing_pipeline(scene);
 }
 
-void VulkanRayTracer::create_ray_tracing_pipeline(const SceneResources& scene)
+void VulkanRayTracer::create_ray_tracing_pipeline(const SceneResourcesManager& scene)
 {
   // Set up acceleration structure infrastructure
   m_accel.buildBLAS(scene.data());  // Set up BLAS infrastructure

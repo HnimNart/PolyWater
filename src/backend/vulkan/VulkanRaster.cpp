@@ -11,13 +11,15 @@
 #include <nvvk/graphics_pipeline.hpp>
 
 #include "VulkanBackend.hpp"
+#include "VulkanRenderResources.hpp"
 #include "common/timers.hpp"
-#include "scene/SceneResources.hpp"  // For CpuSceneResources definition
+#include "scene/SceneResources.hpp"
 #include "scene/Shared.hpp"
 
 // Generated Shaders
 #include "_autogen/foundation.slang.h"
 #include "_autogen/sky_simple.slang.h"
+#include "scene/gltf/gltf_utils.hpp"
 
 void VulkanRaster::init(core::VulkanBackend* backend)
 {
@@ -44,13 +46,14 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                          const SceneResources& scene,
+                          const nvsamples::GltfSceneResource& scene_resources,
+                          const nvsamples::GltfDeviceSceneResources& device_resources,
                           const std::shared_ptr<nvutils::CameraManipulator>& camera,
                           shaderio::PushConstant& push_constants) const
 {
   NVVK_DBG_SCOPE(cmd);
 
-  const nvsamples::GltfSceneResource& gltf_resources = scene.data();
+  const shaderio::GltfSceneInfo& scene_info = scene_resources.sceneInfo;
 
   // Define push info
   const VkPushConstantsInfo pushInfo{
@@ -64,23 +67,22 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Rendering the Sky
   VkExtent2D size = {camera->getWindowSize().x, camera->getWindowSize().y};
-  if (gltf_resources.sceneInfo.useSky)
+  if (scene_info.useSky)
   {
     const glm::mat4& viewMatrix = camera->getViewMatrix();
     const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
-    m_skySimple.runCompute(cmd, size, viewMatrix, projMatrix,
-                           gltf_resources.sceneInfo.skySimpleParam,
+    m_skySimple.runCompute(cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
                            gBuffers.getDescriptorImageInfo(0));
   }
 
   // Rendering to the GBuffer - Attachments
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
   colorAttachment.loadOp =
-      gltf_resources.sceneInfo.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
+      scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.imageView = gBuffers.getColorImageView(0);
-  colorAttachment.clearValue = {.color = {gltf_resources.sceneInfo.backgroundColor.x,
-                                          gltf_resources.sceneInfo.backgroundColor.y,
-                                          gltf_resources.sceneInfo.backgroundColor.z, 1.0f}};
+  colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
+                                          scene_info.backgroundColor.y,
+                                          scene_info.backgroundColor.z, 1.0f}};
 
   VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
   depthAttachment.imageView = gBuffers.getDepthImageView();
@@ -125,21 +127,21 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
-  for (size_t i = 0; i < gltf_resources.instances.size(); i++)
+  for (size_t i = 0; i < scene_resources.instances.size(); i++)
   {
-    uint32_t meshIndex = gltf_resources.instances[i].meshIndex;
-    const shaderio::GltfMesh& gltfMesh = gltf_resources.meshes[meshIndex];
+    uint32_t meshIndex = scene_resources.instances[i].meshIndex;
+    const shaderio::GltfMesh& gltfMesh = scene_resources.meshes[meshIndex];
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
     push_constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(gltf_resources.instances[i].transform)));
+        glm::transpose(glm::inverse(glm::mat3(scene_resources.instances[i].transform)));
     push_constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    uint32_t bufferIndex = gltf_resources.meshToBufferIndex[meshIndex];
-    const nvvk::Buffer& v = gltf_resources.bGltfDatas[bufferIndex];
+    uint32_t bufferIndex = device_resources.meshToBufferIndex[meshIndex];
+    const nvvk::Buffer& v = device_resources.bGltfDatas[bufferIndex];
 
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset, VkIndexType(gltfMesh.indexType));
 

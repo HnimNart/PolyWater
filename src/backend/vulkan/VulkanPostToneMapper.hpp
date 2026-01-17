@@ -16,12 +16,10 @@ public:
   VulkanPostProcessor() = default;
   void init(core::VulkanBackend* backend)
   {
-    // Initialize the tonemapper also with proe-compiled shader
     m_tonemapper.init(&backend->allocator(), std::span(tonemapper_slang));
   }
   void run(VkCommandBuffer cmd, nvvk::GBuffer& m_gBuffers)
   {
-    // Default post-processing: tonemapping
     m_tonemapper.runCompute(cmd, m_gBuffers.getSize(), m_tonemapperData,
                             m_gBuffers.getDescriptorImageInfo(0),
                             m_gBuffers.getDescriptorImageInfo(1));

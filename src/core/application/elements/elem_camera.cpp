@@ -116,7 +116,7 @@ void core::ElementCamera::updateCamera(std::shared_ptr<nvutils::CameraManipulato
 
 void core::ElementCamera::onAttach(core::Application* app)
 {
-  LOGI("Adding Camera Manipulator\n");
+  LOGI("Adding Camera Element\n");
 }
 
 void core::ElementCamera::onUIRender()

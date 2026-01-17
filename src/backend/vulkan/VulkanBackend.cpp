@@ -237,6 +237,18 @@ void VulkanBackend::newFrame()
   ImGui_ImplVulkan_NewFrame();
 }
 
+VkCommandBuffer VulkanBackend::start_single_time_cmd()
+{
+  VkCommandBuffer cmd;
+  NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, getDevice(), transientCmdPool()));
+  return cmd;
+}
+void VulkanBackend::end_single_time_cmd(VkCommandBuffer cmd)
+{
+  NVVK_CHECK(
+      nvvk::endSingleTimeCommands(cmd, getDevice(), transientCmdPool(), getQueueInfo(0).queue));
+}
+
 bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
 {
   if (m_swapchain.needRebuilding())

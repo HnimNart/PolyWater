@@ -11,84 +11,90 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/sampler_pool.hpp>
 
-#include "backend/vulkan/VulkanSceneResources.hpp"
-
 // Explicit defaults needed here because of forward declared types in smart pointers
-SceneResources::SceneResources() = default;
-SceneResources::~SceneResources() = default;
+SceneResourcesManager::SceneResourcesManager() = default;
+SceneResourcesManager::~SceneResourcesManager() = default;
 
-void SceneResources::init(std::shared_ptr<VulkanSceneResources> gpu_uploader)
+void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> device_resource)
 {
-  m_gpu_uploader = std::move(gpu_uploader);
+  m_device_resources = std::move(device_resource);
 }
 
-tinygltf::Model SceneResources::loadGltf(const std::string& filename)
+tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
 {
   auto model = nvsamples::loadGltfResources(filename);
-  // We cast to the internal MeshID type as per original code
-  auto id = static_cast<VulkanSceneResources::MeshID>(
-      m_gpu_uploader->upload_gltf_model(model, m_resources));
+  auto id = static_cast<IDeviceResources::MeshID>(
+      m_device_resources->upload_gltf_model(model, m_resources));
 
   return model;
 }
 
-void SceneResources::begin_uploading()
+void SceneResourcesManager::begin_uploading()
 {
-  m_gpu_uploader->begin_uploading();
+  m_device_resources->begin_uploading();
 }
 
-void SceneResources::end_uploading()
+void SceneResourcesManager::end_uploading()
 {
-  m_gpu_uploader->end_uploading();
+  m_device_resources->end_uploading();
 }
 
-uint32_t SceneResources::loadTexture(const std::string& filename)
+uint32_t SceneResourcesManager::loadTexture(const std::string& filename)
 {
-  return m_gpu_uploader->upload_texture(filename);
+  return m_device_resources->upload_texture(filename);
 }
 
-SceneResources::InstanceID SceneResources::addInstance(const shaderio::GltfInstance& instance)
+SceneResourcesManager::InstanceID
+SceneResourcesManager::addInstance(const shaderio::GltfInstance& instance)
 {
   m_resources.instances.push_back(instance);
   return static_cast<InstanceID>(m_resources.instances.size() - 1);
 }
 
-SceneResources::MaterialID
-SceneResources::addMaterial(const shaderio::GltfMetallicRoughness& material)
+SceneResourcesManager::MaterialID
+SceneResourcesManager::addMaterial(const shaderio::GltfMetallicRoughness& material)
 {
   m_resources.materials.push_back(material);
   return static_cast<MaterialID>(m_resources.materials.size() - 1);
 }
 
-void SceneResources::finalizeSceneResources()
+void SceneResourcesManager::finalizeSceneResources()
 {
-  m_gpu_uploader->finalizeSceneResources(m_resources);
+  m_device_resources->finalizeSceneResources(m_resources);
 }
 
-void SceneResources::clear()
+void SceneResourcesManager::clear()
 {
-  if (m_gpu_uploader)
-  {
-    m_gpu_uploader->clear(m_resources);
-  }
 }
 
-const nvsamples::GltfSceneResource& SceneResources::data() const
+void SceneResourcesManager::update_scene_info(CameraPtr camera)
+{
+  const glm::mat4& viewMatrix = camera->getViewMatrix();
+  const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
+
+  m_resources.sceneInfo.viewProjMatrix =
+      projMatrix * viewMatrix;  // Combine the view and projection matrices
+  m_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
+  m_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
+  m_resources.sceneInfo.cameraPosition = camera->getEye();
+}
+
+const nvsamples::GltfSceneResource& SceneResourcesManager::data() const
 {
   return m_resources;
 }
 
-nvsamples::GltfSceneResource& SceneResources::data()
+nvsamples::GltfSceneResource& SceneResourcesManager::data()
 {
   return m_resources;
 }
 
-shaderio::GltfSceneInfo& SceneResources::scene_info()
+shaderio::GltfSceneInfo& SceneResourcesManager::scene_info()
 {
   return m_resources.sceneInfo;
 }
 
-const shaderio::GltfSceneInfo& SceneResources::scene_info() const
+const shaderio::GltfSceneInfo& SceneResourcesManager::scene_info() const
 {
   return m_resources.sceneInfo;
 }

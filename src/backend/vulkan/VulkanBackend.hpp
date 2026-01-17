@@ -33,6 +33,9 @@ public:
   // Frame Loop
   void newFrame() override;
 
+  VkCommandBuffer start_single_time_cmd();
+  void end_single_time_cmd(VkCommandBuffer cmd);
+
   VkCommandBuffer get_active_cmd() const;
 
   bool beginFrame(FrameContext& frame) override;

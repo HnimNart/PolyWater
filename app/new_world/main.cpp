@@ -67,7 +67,7 @@ int main(int argc, char** argv)
   core::Application application(appInfo, std::move(backend));
 
   // Elements added to the application
-  auto tutorial = std::make_shared<RtBasic>();  // Our tutorial element
+  auto tutorial = std::make_shared<VulkanRendererElement>();  // Our tutorial element
   auto elemCamera =
       std::make_shared<core::ElementCamera>();  // Element to control the camera movement
   auto windowTitle =
@@ -75,13 +75,13 @@ int main(int argc, char** argv)
                                                             // with application name and size
   auto windowMenu = std::make_shared<core::ElementDefaultMenu>();  // Element displaying a menu,
                                                                    // File->Exit ...
-  elemCamera->setCameraManipulator(tutorial->getCameraManipulator());
 
   // Adding all elements
   application.addElement(windowMenu);
   application.addElement(windowTitle);
-  application.addElement(elemCamera);
   application.addElement(tutorial);
+  application.addElement(elemCamera);
+  elemCamera->setCameraManipulator(tutorial->getCameraManipulator());
 
   application.run();       // Start the application, loop until the window is closed
   application.shutdown();  // Closing application

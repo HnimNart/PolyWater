@@ -44,8 +44,11 @@ struct GltfSceneResource
   std::vector<shaderio::GltfMetallicRoughness> materials;  // All materials in the scene
   shaderio::GltfSceneInfo
       sceneInfo;  // Scene information (camera matrices, meshes, instances, materials, etc.)
+};
 
-  // GPU buffers for the scene data
+// GPU buffers for the scene data
+struct GltfDeviceSceneResources
+{
   std::vector<nvvk::Buffer>
       bGltfDatas;           // Buffers containing the GLTF binary data for each loaded scene
   nvvk::Buffer bMeshes;     // Buffer containing all GltfMesh data
@@ -61,15 +64,18 @@ struct GltfSceneResource
 tinygltf::Model loadGltfResources(const std::filesystem::path& filename);
 
 // This is a utility function to import the GLTF data into the scene resource.
-void importGltfData(GltfSceneResource& sceneResource, const tinygltf::Model& model,
-                    nvvk::StagingUploader& stagingUploader, bool importInstance = false);
+void importGltfData(GltfSceneResource& sceneResource, GltfDeviceSceneResources& deviceResource,
+                    const tinygltf::Model& model, nvvk::StagingUploader& stagingUploader,
+                    bool importInstance = false);
 
 // This is a utility function to create the scene info buffer.
-void createGltfSceneInfoBuffer(GltfSceneResource& sceneResource,
+void createGltfSceneInfoBuffer(GltfSceneResource& sceneResources,
+                               GltfDeviceSceneResources& deviceResources,
                                nvvk::StagingUploader& stagingUploader);
 
 // This is a utility function to convert a primitive mesh to a GltfMeshResource.
 void primitiveMeshToResource(GltfSceneResource& sceneResource,
+                             GltfDeviceSceneResources& deviceResources,
                              nvvk::StagingUploader& stagingUploader,
                              const nvutils::PrimitiveMesh& primMesh);
 

@@ -3,17 +3,12 @@
 #include <memory>
 
 #include <glm/glm.hpp>
-#include <nvshaders_host/tonemapper.hpp>
 #include <nvutils/camera_manipulator.hpp>
 
 #include "SceneResources.hpp"
 #include "backend/ISceneRenderer.hpp"
 #include "core/Camera.hpp"
 #include "core/Image.hpp"
-
-// Forward declarations
-class VulkanSceneRenderer;
-struct VulkanContext;
 
 class SceneManager
 {
@@ -39,7 +34,7 @@ public:
   // --------------------------------------------------
   nvsamples::GltfSceneResource& gltf_resources();
   const nvsamples::GltfSceneResource& gltf_resources() const;
-  SceneResources& scene_resources();
+  SceneResourcesManager& scene_resources();
 
   // --------------------------------------------------
   // Rendering parameters
@@ -54,12 +49,9 @@ public:
   CameraPtr camera() const;
 
 private:
-  // Kept inline initialization as requested (requires camera_manipulator.hpp)
-  CameraPtr m_camera = nullptr;
-
-  SceneResources m_scene_resources{};
+  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
+  SceneResourcesManager m_scene_resources{};
   std::shared_ptr<ISceneRenderer> m_renderer = nullptr;
-
   glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 };
 

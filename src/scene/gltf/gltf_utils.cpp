@@ -34,6 +34,7 @@
 
 // This is a utility function to convert a primitive mesh to a GltfMeshResource.
 void nvsamples::primitiveMeshToResource(GltfSceneResource& sceneResource,
+                                        GltfDeviceSceneResources& deviceResource,
                                         nvvk::StagingUploader& stagingUploader,
                                         const nvutils::PrimitiveMesh& primMesh)
 {
@@ -51,8 +52,8 @@ void nvsamples::primitiveMeshToResource(GltfSceneResource& sceneResource,
       VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT |
           VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
           VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
-  uint32_t bufferIndex = static_cast<uint32_t>(sceneResource.bGltfDatas.size());
-  sceneResource.bGltfDatas.push_back(gltfData);
+  uint32_t bufferIndex = static_cast<uint32_t>(deviceResource.bGltfDatas.size());
+  deviceResource.bGltfDatas.push_back(gltfData);
 
   // Upload vertices first (at offset 0)
   stagingUploader.appendBuffer(gltfData, 0, std::span(primMesh.vertices));
@@ -85,7 +86,7 @@ void nvsamples::primitiveMeshToResource(GltfSceneResource& sceneResource,
   sceneResource.meshes.push_back(mesh);
 
   // Update the mapping from mesh index to buffer index
-  sceneResource.meshToBufferIndex.push_back(bufferIndex);
+  deviceResource.meshToBufferIndex.push_back(bufferIndex);
 }
 
 tinygltf::Model nvsamples::loadGltfResources(const std::filesystem::path& filename)
@@ -128,8 +129,9 @@ tinygltf::Model nvsamples::loadGltfResources(const std::filesystem::path& filena
 // It has strong limitations, like the mesh must have only one primitive, and the primitive must be
 // a triangle primitive. But it allow to import the GLTF data into the scene resource with a single
 // function call, and call it again to import another scene.
-void nvsamples::importGltfData(GltfSceneResource& sceneResource, const tinygltf::Model& model,
-                               nvvk::StagingUploader& stagingUploader,
+void nvsamples::importGltfData(GltfSceneResource& sceneResource,
+                               GltfDeviceSceneResources& deviceResource,
+                               const tinygltf::Model& model, nvvk::StagingUploader& stagingUploader,
                                bool importInstance /*= false*/)
 {
   SCOPED_TIMER(__FUNCTION__);
@@ -196,8 +198,8 @@ void nvsamples::importGltfData(GltfSceneResource& sceneResource, const tinygltf:
                                             std::span<const unsigned char>(model.buffers[0].data)));
     NVVK_DBG_NAME(bGltfData.buffer);
 
-    bufferIndex = static_cast<uint32_t>(sceneResource.bGltfDatas.size());
-    sceneResource.bGltfDatas.push_back(bGltfData);
+    bufferIndex = static_cast<uint32_t>(deviceResource.bGltfDatas.size());
+    deviceResource.bGltfDatas.push_back(bGltfData);
   }
 
   for (size_t meshIdx = 0; meshIdx < model.meshes.size(); ++meshIdx)
@@ -236,7 +238,7 @@ void nvsamples::importGltfData(GltfSceneResource& sceneResource, const tinygltf:
     sceneResource.meshes.emplace_back(mesh);
 
     // Update the mapping from mesh index to buffer index
-    sceneResource.meshToBufferIndex.push_back(bufferIndex);
+    deviceResource.meshToBufferIndex.push_back(bufferIndex);
   }
 
   if (importInstance)
@@ -331,7 +333,8 @@ void nvsamples::importGltfData(GltfSceneResource& sceneResource, const tinygltf:
 // buffer is used to pass the scene information to the shader. The mesh buffer is used to pass the
 // mesh information to the shader. The instance buffer is used to pass the instance information to
 // the shader. The material buffer is used to pass the material information to the shader.
-void nvsamples::createGltfSceneInfoBuffer(GltfSceneResource& sceneResource,
+void nvsamples::createGltfSceneInfoBuffer(nvsamples::GltfSceneResource& sceneResource,
+                                          GltfDeviceSceneResources& deviceResource,
                                           nvvk::StagingUploader& stagingUploader)
 {
   SCOPED_TIMER(__FUNCTION__);
@@ -339,41 +342,41 @@ void nvsamples::createGltfSceneInfoBuffer(GltfSceneResource& sceneResource,
   nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();
 
   // Create all mesh buffers
-  allocator->createBuffer(sceneResource.bMeshes, std::span(sceneResource.meshes).size_bytes(),
+  allocator->createBuffer(deviceResource.bMeshes, std::span(sceneResource.meshes).size_bytes(),
                           VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
                               VK_BUFFER_USAGE_2_TRANSFER_DST_BIT |
                               VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT);
-  NVVK_DBG_NAME(sceneResource.bMeshes.buffer);
+  NVVK_DBG_NAME(deviceResource.bMeshes.buffer);
   NVVK_CHECK(stagingUploader.appendBuffer(
-      sceneResource.bMeshes, 0, std::span<const shaderio::GltfMesh>(sceneResource.meshes)));
+      deviceResource.bMeshes, 0, std::span<const shaderio::GltfMesh>(sceneResource.meshes)));
 
   // Create all instance buffers
-  allocator->createBuffer(sceneResource.bInstances, std::span(sceneResource.instances).size_bytes(),
-                          VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
-                              VK_BUFFER_USAGE_2_TRANSFER_DST_BIT |
-                              VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT);
-  NVVK_DBG_NAME(sceneResource.bInstances.buffer);
+  allocator->createBuffer(
+      deviceResource.bInstances, std::span(sceneResource.instances).size_bytes(),
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT |
+          VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT);
+  NVVK_DBG_NAME(deviceResource.bInstances.buffer);
   NVVK_CHECK(stagingUploader.appendBuffer(
-      sceneResource.bInstances, 0,
+      deviceResource.bInstances, 0,
       std::span<const shaderio::GltfInstance>(sceneResource.instances)));
 
   // Create all material buffers
-  allocator->createBuffer(sceneResource.bMaterials, std::span(sceneResource.materials).size_bytes(),
-                          VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
-                              VK_BUFFER_USAGE_2_TRANSFER_DST_BIT |
-                              VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT);
-  NVVK_DBG_NAME(sceneResource.bMaterials.buffer);
+  allocator->createBuffer(
+      deviceResource.bMaterials, std::span(sceneResource.materials).size_bytes(),
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT |
+          VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT);
+  NVVK_DBG_NAME(deviceResource.bMaterials.buffer);
   NVVK_CHECK(stagingUploader.appendBuffer(
-      sceneResource.bMaterials, 0,
+      deviceResource.bMaterials, 0,
       std::span<const shaderio::GltfMetallicRoughness>(sceneResource.materials)));
 
   // Create the scene info buffer
   NVVK_CHECK(allocator->createBuffer(
-      sceneResource.bSceneInfo,
+      deviceResource.bSceneInfo,
       std::span<const shaderio::GltfSceneInfo>(&sceneResource.sceneInfo, 1).size_bytes(),
       VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT));
-  NVVK_DBG_NAME(sceneResource.bSceneInfo.buffer);
+  NVVK_DBG_NAME(deviceResource.bSceneInfo.buffer);
   NVVK_CHECK(stagingUploader.appendBuffer(
-      sceneResource.bSceneInfo, 0,
+      deviceResource.bSceneInfo, 0,
       std::span<const shaderio::GltfSceneInfo>(&sceneResource.sceneInfo, 1)));
 }

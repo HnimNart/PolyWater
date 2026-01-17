@@ -12,7 +12,8 @@
 #include <nvvk/sbt_generator.hpp>
 #include <shaders/post/IToneMapper.hpp>
 
-#include "backend/vulkan/VulkanSceneRenderer.hpp"
+#include "backend/vulkan/VulkanRenderer.hpp"
+#include "scene/gltf/io_gltf.h"
 
 SceneManager::SceneManager(std::shared_ptr<ISceneRenderer> renderer)
 {
@@ -34,9 +35,10 @@ void SceneManager::postInit()
 
 void SceneManager::render(bool raytrace)
 {
-  // Push constant information
+  m_scene_resources.update_scene_info(m_camera);
+  shaderio::GltfSceneInfo* addr = m_renderer->update_buffers(m_camera, m_scene_resources);
   shaderio::PushConstant pushValues{
-      .sceneInfoAddress = (shaderio::GltfSceneInfo*) gltf_resources().bSceneInfo.address,
+      .sceneInfoAddress = addr,
       .metallicRoughnessOverride = m_metallicRoughnessOverride,
   };
   m_renderer->render(m_camera, m_scene_resources, raytrace, pushValues);
@@ -80,7 +82,7 @@ const nvsamples::GltfSceneResource& SceneManager::gltf_resources() const
   return m_scene_resources.data();
 }
 
-SceneResources& SceneManager::scene_resources()
+SceneResourcesManager& SceneManager::scene_resources()
 {
   return m_scene_resources;
 }

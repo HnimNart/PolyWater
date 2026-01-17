@@ -4,13 +4,19 @@
 
 #include <memory>
 
-#include <nvshaders_host/sky.hpp>  // Needed for nvshaders::SkySimple member
+#include <nvshaders_host/sky.hpp>
 #include <nvvk/descriptors.hpp>
 
 #include "VulkanBackend.hpp"
+#include "scene/gltf/gltf_utils.hpp"
 
 // Forward declarations to avoid heavy includes
-class SceneResources;
+
+namespace nvsamples
+{
+class GltfDeviceSceneResources;
+class GltfSceneResources;
+}  // namespace nvsamples
 
 namespace nvvk
 {
@@ -31,22 +37,21 @@ public:
   VulkanRaster() = default;
   void init(core::VulkanBackend* backend);
   void deinit();
-
-  // Note: implementation moved to cpp
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
   // Raster //
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const SceneResources& scene,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
+              const nvsamples::GltfSceneResource& scene_resources,
+              const nvsamples::GltfDeviceSceneResources& device_resources,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
               shaderio::PushConstant& push_constants) const;
 
   void reload();
 
-  const nvvk::GBuffer& gbuffer()
-      const;  // Forward declaration implied (implementation needed in cpp if accessing members)
+  const nvvk::GBuffer& gbuffer() const;
   nvvk::DescriptorPack& descPack() { return m_descPack; }
 
 private:

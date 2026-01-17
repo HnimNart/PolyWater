@@ -46,9 +46,9 @@ struct ElementCamera : public core::IAppElement
     m_cameraManip = camera;
   }
 
-  void setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator>& pCamera)
+  void setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator> pCamera)
   {
-    m_cameraManip = pCamera;
+    m_cameraManip = std::move(pCamera);
   }
   void onAttach(core::Application* app) override;
   void onUIRender() override;

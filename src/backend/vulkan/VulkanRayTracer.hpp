@@ -12,7 +12,7 @@
 struct VulkanContext;
 class VulkanRaster;
 class SlangShaderCompiler;
-class SceneResources;
+class SceneResourcesManager;
 
 namespace core
 {
@@ -35,14 +35,14 @@ public:
   void init(core::VulkanBackend* backend, VulkanRaster* raster);
   void deinit();
 
-  void createPipeline(const SceneResources& scene);
+  void createPipeline(const SceneResourcesManager& scene);
 
   // Rendering
   void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
               const shaderio::PushConstant& pushValues) const;
 
   // Internal helpers (made public as per original class structure, or keep public if intended)
-  void create_ray_tracing_pipeline(const SceneResources& scene);
+  void create_ray_tracing_pipeline(const SceneResourcesManager& scene);
   void createRaytraceDescriptorLayout();
   void createRayTracingPipeline();
 
