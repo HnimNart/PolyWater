@@ -23,5 +23,5 @@ public:
 
 public:
   uint64_t frameNumber{0};  // Timeline value for synchronization (increases each frame)
-  bool vSyncWanted = 0;     //
+  bool vSyncWanted = false;     //
 };

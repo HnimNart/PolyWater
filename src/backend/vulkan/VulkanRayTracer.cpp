@@ -15,13 +15,14 @@
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/Shared.hpp"
+#include "shaders/compiler/slang.hpp"
 
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
 void VulkanRayTracer::init(core::VulkanBackend* backend, VulkanRaster* raster)
 {
-  m_backend = std::move(backend);
+  m_backend = backend;
   m_raster = raster;
 }
 
@@ -48,10 +49,10 @@ void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
   // Initialize SBT generator
   m_sbtGenerator.init(m_backend->getDevice(), m_properties);
 
-  create_ray_tracing_pipeline(scene);
+  createRayTracingPipeline(scene);
 }
 
-void VulkanRayTracer::create_ray_tracing_pipeline(const SceneResourcesManager& scene)
+void VulkanRayTracer::createRayTracingPipeline(const SceneResourcesManager& scene)
 {
   // Set up acceleration structure infrastructure
   m_accel.buildBLAS(scene.data());  // Set up BLAS infrastructure

@@ -1,40 +1,46 @@
 ---
 Checks: >
-  clang-analyzer-core.*                  ,  # Core static analysis checks (null deref, leaks, etc.)
-  clang-analyzer-cplusplus.*             ,  # C++-specific issues (use-after-move, destructor issues)
-  clang-analyzer-security.insecureAPI.*  ,  # Detect use of unsafe functions (e.g., strcpy)
-  clang-analyzer-unix.*                     # Unix API misuse (file descriptors, malloc/free)
-
-  modernize-avoid-auto
-  modernize-use-nullptr                   ,  # Replace NULL with nullptr
-  modernize-use-override                  ,  # Mark virtual overrides with 'override'
-  modernize-use-using                     ,  # Replace typedefs with 'using'
-  modernize-loop-convert                  ,  # Use range-based for loops
-  modernize-raw-string-literal            ,  # Use raw string literals for readability
-  modernize-pass-by-value                 ,  # Pass by value + move when beneficial
-  modernize-deprecated-headers            ,  # Replace deprecated headers with modern ones
-  modernize-redundant-void-arg            ,  # Remove unnecessary void in parameter list
-  modernize-concat-nested-namespaces       # Use C++17 nested namespace syntax
-
-  performance-for-range-copy              ,  # Warns about unnecessary copies in range-for loops
-  performance-move-const-arg              ,  # Suggests using std::move for const arguments where safe
-  performance-move-constructor-init       ,  # Warn if move constructor not used when possible
-  performance-no-automatic-move           ,  # Suggests moving objects when returning by value
-  performance-unnecessary-copy-initialization,  # Warn about unnecessary copies in init
-  performance-inefficient-vector-operation ,  # Detect costly vector operations
-  performance-unnecessary-value-param       # Detect functions taking large params by value instead of ref
-
-  bugprone-argument-comment               ,  # Detect swapped function arguments with comments
-  bugprone-assert-side-effect             ,  # Detect side effects inside asserts
-  bugprone-branch-clone                   ,  # Duplicate code in branches
-  bugprone-copy-constructor-init          ,  # Detect uninitialized members in copy constructors
-  bugprone-dangling-handle                ,  # Detect dangling references/pointers
-  bugprone-exception-escape               ,  # Exceptions escaping destructors
-  bugprone-macro-parentheses              ,  # Warn about macro args missing parentheses
-  bugprone-misplaced-widening-cast        ,  # Detect narrowing/widening casts
-  bugprone-suspicious-include             ,  # Detect includes that look wrong
-  bugprone-use-after-move                   # Catch use of moved-from objects
+  clang-analyzer-core.*,
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-security.insecureAPI.*,
+  clang-analyzer-unix.*,
+  modernize-avoid-auto,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  modernize-loop-convert,
+  modernize-raw-string-literal,
+  modernize-pass-by-value,
+  modernize-deprecated-headers,
+  modernize-redundant-void-arg,
+  modernize-concat-nested-namespaces,
+  performance-for-range-copy,
+  performance-move-const-arg,
+  performance-move-constructor-init,
+  performance-no-automatic-move,
+  performance-unnecessary-copy-initialization,
+  performance-inefficient-vector-operation,
+  performance-unnecessary-value-param,
+  bugprone-argument-comment,
+  bugprone-assert-side-effect,
+  bugprone-branch-clone,
+  bugprone-copy-constructor-init,
+  bugprone-dangling-handle,
+  bugprone-exception-escape,
+  bugprone-macro-parentheses,
+  bugprone-misplaced-widening-cast,
+  bugprone-suspicious-include,
+  bugprone-use-after-move,
+  readability-identifier-naming
 
 WarningsAsErrors: ''
 HeaderFilterRegex: 'src/.*'
 FormatStyle: none
+
+CheckOptions:
+  - key:             readability-identifier-naming.FunctionCase
+    value:           camelBack
+  - key:             readability-identifier-naming.MethodCase
+    value:           camelBack
+  - key:             readability-identifier-naming.ParameterCase
+    value:           camelBack

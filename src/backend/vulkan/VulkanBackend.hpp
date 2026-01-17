@@ -7,10 +7,9 @@
 #include <nvvk/staging.hpp>
 #include <nvvk/swapchain.hpp>
 
-#include "VulkanFrameContext.hpp"
+#include "VulkanRenderContext.hpp"
 #include "backend/IRenderBackend.hpp"
 #include "core/application/App.hpp"
-#include "shaders/compiler/slang.hpp"
 
 namespace core
 {
@@ -20,10 +19,6 @@ class VulkanBackend final : public IRenderBackend
 public:
   static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
 
-  bool initVulkan(const core::ApplicationCreateInfo& appInfo);
-
-  ~VulkanBackend() override = default;
-
   // Lifecycle
   void init(const core::ApplicationCreateInfo& appInfo) override;
   void deinit() override;
@@ -31,10 +26,11 @@ public:
   // Frame Loop
   void newFrame() override;
 
-  VkCommandBuffer start_single_time_cmd();
-  void end_single_time_cmd(VkCommandBuffer cmd);
+  VkCommandBuffer startSingleTimeCmd();
+  void endSingleTimeCmd(VkCommandBuffer cmd);
+  void waitForDeviceIdle();
 
-  VkCommandBuffer get_active_cmd() const;
+  VkCommandBuffer getActiveCmd() const;
 
   bool beginFrame(FrameContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
@@ -70,6 +66,7 @@ public:
 
 private:
   VulkanBackend() = default;
+  bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 
   void setupImGuiVulkanBackend(ImGuiConfigFlags configFlags);
   void createFrameSubmission(uint32_t numFrames);
@@ -89,7 +86,7 @@ private:
   uint32_t m_maxTexturePool{128};  // Maximum number of textures in the descriptor pool
 
   // Concrete context storage (one per frame in flight)
-  std::vector<std::unique_ptr<VulkanFrameContext>> m_frameData{};
+  std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
   VkSemaphore m_frameTimelineSemaphore{};  // Timeline semaphore used to synchronize CPU submission
                                            // with GPU completion
   uint32_t m_frameRingCurrent{0};          // Current frame index in the ring buffer (cycles through

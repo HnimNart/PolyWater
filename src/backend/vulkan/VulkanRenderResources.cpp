@@ -22,14 +22,14 @@ VulkanRenderResources::VulkanRenderResources(core::VulkanBackend* backend)
   m_samplerPool.init(m_backend->getDevice());
 }
 
-void VulkanRenderResources::begin_uploading()
+void VulkanRenderResources::beginUploading()
 {
-  m_cmd = m_backend->start_single_time_cmd();
+  m_cmd = m_backend->startSingleTimeCmd();
 }
-void VulkanRenderResources::end_uploading()
+void VulkanRenderResources::endUploading()
 {
   assert(m_cmd != VK_NULL_HANDLE);
-  m_backend->end_single_time_cmd(m_cmd);
+  m_backend->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
 
@@ -50,15 +50,15 @@ void VulkanRenderResources::deinit()
   m_samplerPool.deinit();
 }
 
-VulkanRenderResources::MeshID VulkanRenderResources::upload_gltf_model(const tinygltf::Model& model,
-                                                                       gltf::Scene& resources)
+VulkanRenderResources::MeshID VulkanRenderResources::uploadGltfModel(const tinygltf::Model& model,
+                                                                     gltf::Scene& resources)
 {
   importGltfData(resources, m_device_resources, model, m_backend->stagingUploader());
   mesh_id_counter++;
   return mesh_id_counter - 1;
 }
 
-VulkanRenderResources::TextureID VulkanRenderResources::upload_texture(const std::string& filepath)
+VulkanRenderResources::TextureID VulkanRenderResources::uploadTexture(const std::string& filepath)
 {
   nvvk::Image texture = vk_utils::loadAndCreateImage(m_cmd, m_backend->stagingUploader(),
                                                      m_backend->getDevice(), filepath);
@@ -69,7 +69,7 @@ VulkanRenderResources::TextureID VulkanRenderResources::upload_texture(const std
   return static_cast<TextureID>(m_textures.size() - 1);
 }
 
-void VulkanRenderResources::update_descriptors(nvvk::DescriptorPack& descriptor_pack)
+void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptor_pack)
 {
   if (m_textures.empty())
   {
@@ -423,7 +423,7 @@ const std::vector<nvvk::Image>& VulkanRenderResources::textures() const
   return m_textures;
 }
 
-nvvk::SamplerPool& VulkanRenderResources::sampler_pool()
+nvvk::SamplerPool& VulkanRenderResources::samplerPool()
 {
   return m_samplerPool;
 }

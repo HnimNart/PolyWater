@@ -45,20 +45,20 @@ public:
 
   explicit VulkanRenderResources(core::VulkanBackend* backend);
   void deinit() override;
-  void begin_uploading() override;
-  void end_uploading() override;
+  void beginUploading() override;
+  void endUploading() override;
 
   // Resources
-  MeshID upload_gltf_model(const tinygltf::Model& model, gltf::Scene& resources) override;
-  TextureID upload_texture(const std::string& filepath) override;
+  MeshID uploadGltfModel(const tinygltf::Model& model, gltf::Scene& resources) override;
+  TextureID uploadTexture(const std::string& filepath) override;
   void finalizeSceneResources(gltf::Scene& resources) override;
 
-  void update_descriptors(nvvk::DescriptorPack& descriptor_pack);
+  void updateDescriptors(nvvk::DescriptorPack& descriptor_pack);
 
   // Accessors
   const std::vector<nvvk::Image>& textures() const;
-  nvvk::SamplerPool& sampler_pool();
-  const GltfDeviceSceneResources& device_resources() const { return m_device_resources; };
+  nvvk::SamplerPool& samplerPool();
+  const GltfDeviceSceneResources& deviceResources() const { return m_device_resources; };
 
 private:
   // This is a utility function to import the GLTF data into the scene resource.

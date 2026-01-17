@@ -45,8 +45,8 @@ VulkanRenderer::~VulkanRenderer() = default;
 // ---------------------------------------------------------------------------
 void VulkanRenderer::init(const SceneResourcesManager& scene)
 {
-  init_gbuffers();
-  m_resources->update_descriptors(m_raster->descPack());
+  initGBuffers();
+  m_resources->updateDescriptors(m_raster->descPack());
   m_ray_tracer->createPipeline(scene);
 }
 
@@ -63,21 +63,21 @@ void VulkanRenderer::deinit()
   m_resources->deinit();
 }
 
-void VulkanRenderer::reload(bool use_raytracing)
+void VulkanRenderer::reload(bool useRaytracing)
 {
-  vkQueueWaitIdle(m_backend->getQueueInfo(0).queue);
-  use_raytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
+  m_backend->waitForDeviceIdle();
+  useRaytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
 }
 
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
-shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera,
+shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
                                                            SceneResourcesManager& scene) const
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
-  const GltfDeviceSceneResources& device_resources = m_resources->device_resources();
+  const GltfDeviceSceneResources& device_resources = m_resources->deviceResources();
   scene.scene_info().instances =
       (shaderio::GltfInstance*)
           device_resources.bInstances.address;  // Get the address of the instance buffer
@@ -99,31 +99,30 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, 
   return reinterpret_cast<shaderio::GltfSceneInfo*>(device_resources.bSceneInfo.address);
 }
 
-shaderio::GltfSceneInfo* VulkanRenderer::update_buffers(CameraPtr camera,
-                                                        SceneResourcesManager& scene)
+shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffers(SceneResourcesManager& scene)
 {
-  VkCommandBuffer cmd = m_backend->get_active_cmd();
-  return updateSceneBuffer(cmd, camera, scene);
+  VkCommandBuffer cmd = m_backend->getActiveCmd();
+  return updateSceneBuffer(cmd, scene);
 }
 
 void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
                             shaderio::PushConstant& pushValues) const
 {
-  VkCommandBuffer cmd = m_backend->get_active_cmd();
+  VkCommandBuffer cmd = m_backend->getActiveCmd();
   if (raytrace)
   {
     m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
   }
   else
   {
-    m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->device_resources(), camera,
+    m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->deviceResources(), camera,
                      pushValues);
   }
 }
 
-void VulkanRenderer::post_process()
+void VulkanRenderer::postProcess()
 {
-  VkCommandBuffer cmd = m_backend->get_active_cmd();
+  VkCommandBuffer cmd = m_backend->getActiveCmd();
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
   m_post->run(cmd, *m_gBuffers);
   // Barrier to make sure the image is ready for been display
@@ -133,24 +132,20 @@ void VulkanRenderer::post_process()
 
 void VulkanRenderer::onResize(const WindowSize& size)
 {
-
-  NVVK_CHECK(vkQueueWaitIdle(m_backend->getQueueInfo(0).queue));
-  VkCommandBuffer cmd;
-  NVVK_CHECK(
-      nvvk::beginSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool()));
+  m_backend->waitForDeviceIdle();
+  VkCommandBuffer cmd = m_backend->startSingleTimeCmd();
   NVVK_CHECK(m_gBuffers->update(cmd, {size.width, size.height}));
-  NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool(),
-                                         m_backend->getQueueInfo(0).queue));
+  m_backend->endSingleTimeCmd(cmd);
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-void VulkanRenderer::init_gbuffers()
+void VulkanRenderer::initGBuffers()
 {
   VkSampler linearSampler{};
-  NVVK_CHECK(m_resources->sampler_pool().acquireSampler(linearSampler));
+  NVVK_CHECK(m_resources->samplerPool().acquireSampler(linearSampler));
   NVVK_DBG_NAME(linearSampler);
 
   nvvk::GBufferInitInfo info{
@@ -167,7 +162,7 @@ void VulkanRenderer::init_gbuffers()
 // Accessors
 // ---------------------------------------------------------------------------
 
-core::Image VulkanRenderer::get_image(uint32_t index) const
+core::Image VulkanRenderer::getImage(uint32_t index) const
 {
   // TODO fix this
   core::Image image;
@@ -176,7 +171,7 @@ core::Image VulkanRenderer::get_image(uint32_t index) const
   return image;
 }
 
-IPostProcessor& VulkanRenderer::post_processor() noexcept
+IPostProcessor& VulkanRenderer::postProcessor() noexcept
 {
   return *m_post;
 }

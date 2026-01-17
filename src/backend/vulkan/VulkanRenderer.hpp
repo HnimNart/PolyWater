@@ -39,35 +39,33 @@ public:
   // ---------------------------------------------------------------------------
   void init(const SceneResourcesManager& scene) override;
   void deinit() override;
-  void reload(bool use_raytracing) override;
+  void reload(bool useRaytracing) override;
 
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  shaderio::GltfSceneInfo* update_buffers(CameraPtr camera, SceneResourcesManager& scene) override;
+  shaderio::GltfSceneInfo* updateSceneBuffers(SceneResourcesManager& scene) override;
   void render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
               shaderio::PushConstant& pushValues) const override;
 
-  void post_process() override;
+  void postProcess() override;
   void onResize(const WindowSize& size) override;
 
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  core::Image get_image(uint32_t index) const override;
-  IPostProcessor& post_processor() noexcept override;
+  core::Image getImage(uint32_t index) const override;
+  IPostProcessor& postProcessor() noexcept override;
   std::shared_ptr<IDeviceResources> deviceResources() noexcept override;
 
 private:
-  void init_gbuffers();
-  shaderio::GltfSceneInfo* updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera,
+  void initGBuffers();
+  shaderio::GltfSceneInfo* updateSceneBuffer(VkCommandBuffer cmd,
                                              SceneResourcesManager& scene) const;
 
 private:
   core::VulkanBackend* m_backend = nullptr;
 
-  // PIMPL: Using unique_ptr allows us to forward declare these types
-  // instead of including their headers here.
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<VulkanRaster> m_raster;
   std::unique_ptr<VulkanRayTracer> m_ray_tracer;

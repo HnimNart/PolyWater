@@ -31,10 +31,8 @@ public:
   nvvk::AccelerationStructure tlas() const;
 
 private:
-  // Helper to convert GltfMesh to BLAS input geometry
   nvvk::AccelerationStructureGeometryInfo primitiveToGeometry(const shaderio::GltfMesh& mesh);
 
 private:
-  // Helper to create acceleration structures (held by value)
   nvvk::AccelerationStructureHelper m_asBuilder{};
 };

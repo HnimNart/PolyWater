@@ -35,12 +35,12 @@
 
 #include "backend/vulkan/VulkanBackend.hpp"
 #include "common/path_utils.hpp"
-#include "core/Camera.hpp"
 #include "core/application/App.hpp"
 #include "core/application/elements/elem_camera.hpp"
 #include "core/application/elements/elem_default_menu.hpp"
 #include "core/application/elements/elem_default_title.hpp"
 #include "render.hpp"
+#include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
 // The main function, entry point of the application

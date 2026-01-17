@@ -11,11 +11,11 @@ public:
 
   virtual void deinit() = 0;
 
-  virtual void begin_uploading() = 0;
-  virtual void end_uploading() = 0;
+  virtual void beginUploading() = 0;
+  virtual void endUploading() = 0;
 
   // Resources
-  virtual MeshID upload_gltf_model(const tinygltf::Model& model, gltf::Scene& resources) = 0;
-  virtual TextureID upload_texture(const std::string& filepath) = 0;
+  virtual MeshID uploadGltfModel(const tinygltf::Model& model, gltf::Scene& resources) = 0;
+  virtual TextureID uploadTexture(const std::string& filepath) = 0;
   virtual void finalizeSceneResources(gltf::Scene& resources) = 0;
 };

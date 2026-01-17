@@ -42,7 +42,7 @@ public:
               const shaderio::PushConstant& pushValues) const;
 
   // Internal helpers (made public as per original class structure, or keep public if intended)
-  void create_ray_tracing_pipeline(const SceneResourcesManager& scene);
+  void createRayTracingPipeline(const SceneResourcesManager& scene);
   void createRaytraceDescriptorLayout();
   void createRayTracingPipeline();
 

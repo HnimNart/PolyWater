@@ -108,8 +108,6 @@ void Application::shutdown()
 void Application::run()
 {
   LOGI("Running application\n");
-  // Re-load ImGui settings from disk, as there might be application elements with settings to
-  // restore.
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
   while (!glfwWindowShouldClose(m_windowHandle) && m_running)
   {
@@ -184,7 +182,7 @@ void Application::runFrame()
   // Update viewport if size changed
   if (m_backend->getViewportSize() != viewportSize)
   {
-    m_backend->onResize(m_elements, viewportSize);
+    onResize(viewportSize);
   }
 
   // // Handle Screenshot Requests
@@ -221,7 +219,11 @@ bool Application::isHeadless() const noexcept
 
 void Application::onResize(const WindowSize& size)
 {
-  m_backend->onResize(m_elements, size);
+  m_backend->onResize(size);
+  for (const std::shared_ptr<core::IAppElement>& e : m_elements)
+  {
+    e->onResize(size);
+  }
 }
 
 void Application::requestScreenshot(const std::filesystem::path& filename, int quality)

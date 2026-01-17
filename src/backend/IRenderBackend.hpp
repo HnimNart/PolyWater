@@ -66,21 +66,14 @@ public:
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  virtual void onResize(std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                        const WindowSize& size)
+  virtual void onResize(const WindowSize& size)
   {
     // Check for DPI scaling and adjust the font size
     float xscale, yscale;
     glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
     ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
     m_dpiScale = xscale;
-
-    m_viewportSize = {size.width, size.height};
-
-    for (const std::shared_ptr<core::IAppElement>& e : elements)
-    {
-      e->onResize(size);
-    }
+    m_viewportSize = size;
   }
 
   const WindowSize& getViewportSize() const { return m_viewportSize; }

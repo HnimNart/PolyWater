@@ -13,8 +13,8 @@
 #include "VulkanBackend.hpp"
 #include "VulkanRenderResources.hpp"
 #include "common/timers.hpp"
-#include "scene/SceneResources.hpp"
 #include "scene/Shared.hpp"
+#include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
 #include "_autogen/foundation.slang.h"
@@ -24,7 +24,7 @@
 void VulkanRaster::init(core::VulkanBackend* backend)
 {
   assert(backend);
-  m_backend = std::move(backend);
+  m_backend = backend;
   createDescriptorSetLayout(m_backend->getDevice());
   createPipelineLayout(m_backend->getDevice());
   compileShaders();
@@ -45,14 +45,14 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                          const gltf::Scene& scene_resources,
-                          const GltfDeviceSceneResources& device_resources,
+                          const gltf::Scene& sceneResources,
+                          const GltfDeviceSceneResources& deviceResources,
                           const std::shared_ptr<nvutils::CameraManipulator>& camera,
-                          shaderio::PushConstant& push_constants) const
+                          shaderio::PushConstant& pushConstants) const
 {
   NVVK_DBG_SCOPE(cmd);
 
-  const shaderio::GltfSceneInfo& scene_info = scene_resources.sceneInfo;
+  const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
 
   // Define push info
   const VkPushConstantsInfo pushInfo{
@@ -61,7 +61,7 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
-      .pValues = &push_constants,
+      .pValues = &pushConstants,
   };
 
   // Rendering the Sky
@@ -126,21 +126,21 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
-  for (size_t i = 0; i < scene_resources.instances.size(); i++)
+  for (size_t i = 0; i < sceneResources.instances.size(); i++)
   {
-    uint32_t meshIndex = scene_resources.instances[i].meshIndex;
-    const shaderio::GltfMesh& gltfMesh = scene_resources.meshes[meshIndex];
+    uint32_t meshIndex = sceneResources.instances[i].meshIndex;
+    const shaderio::GltfMesh& gltfMesh = sceneResources.meshes[meshIndex];
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
-    push_constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(scene_resources.instances[i].transform)));
-    push_constants.instanceIndex = int(i);
+    pushConstants.normalMatrix =
+        glm::transpose(glm::inverse(glm::mat3(sceneResources.instances[i].transform)));
+    pushConstants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    uint32_t bufferIndex = device_resources.meshToBufferIndex[meshIndex];
-    const nvvk::Buffer& v = device_resources.bGltfDatas[bufferIndex];
+    uint32_t bufferIndex = deviceResources.meshToBufferIndex[meshIndex];
+    const nvvk::Buffer& v = deviceResources.bGltfDatas[bufferIndex];
 
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset, VkIndexType(gltfMesh.indexType));
 

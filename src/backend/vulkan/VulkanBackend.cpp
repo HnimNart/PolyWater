@@ -12,7 +12,6 @@
 #include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "VulkanFrameContext.hpp"
 #include "backend/FrameContext.hpp"
 #include "vk_utils.hpp"
 
@@ -159,6 +158,33 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   setupImGuiVulkanBackend(info.imguiConfigFlags);
 }
 
+void VulkanBackend::deinit()
+{
+  VkDevice device = m_vkContext.getDevice();
+  assert(device != VK_NULL_HANDLE);
+  NVVK_CHECK(vkDeviceWaitIdle(device));
+
+  ImGui_ImplVulkan_Shutdown();
+  m_swapchain.deinit();
+  for (auto& data : m_frameData)
+  {
+    vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
+    vkDestroyCommandPool(device, data->cmdPool, nullptr);
+  }
+  m_frameData.clear();
+
+  vkDestroySemaphore(device, m_frameTimelineSemaphore, nullptr);
+  vkDestroyCommandPool(device, m_transientCmdPool, nullptr);
+  vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
+
+  vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
+
+  vkDeviceWaitIdle(device);
+  m_stagingUploader.deinit();
+  m_allocator.deinit();
+  m_vkContext.deinit();
+}
+
 void VulkanBackend::setupImGuiVulkanBackend(ImGuiConfigFlags configFlags)
 {
   static VkFormat imageFormats =
@@ -181,7 +207,6 @@ void VulkanBackend::setupImGuiVulkanBackend(ImGuiConfigFlags configFlags)
   // ImGui Initialization for Vulkan
   ImGui_ImplVulkan_InitInfo initInfo = {
       .ApiVersion = VK_API_VERSION_1_4,
-
       .Instance = m_vkContext.getInstance(),
       .PhysicalDevice = m_vkContext.getPhysicalDevice(),
       .Device = m_vkContext.getDevice(),
@@ -207,7 +232,6 @@ void VulkanBackend::waitForFrameCompletion() const
 {
   VkDevice device = m_vkContext.getDevice();
   // Wait until GPU has finished processing the frame that was using these resources previously
-  // (numFramesInFlight frames ago)
   const VkSemaphoreWaitInfo waitInfo = {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
       .semaphoreCount = 1,
@@ -223,16 +247,21 @@ void VulkanBackend::newFrame()
   ImGui_ImplVulkan_NewFrame();
 }
 
-VkCommandBuffer VulkanBackend::start_single_time_cmd()
+VkCommandBuffer VulkanBackend::startSingleTimeCmd()
 {
   VkCommandBuffer cmd;
   NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, getDevice(), transientCmdPool()));
   return cmd;
 }
-void VulkanBackend::end_single_time_cmd(VkCommandBuffer cmd)
+void VulkanBackend::endSingleTimeCmd(VkCommandBuffer cmd)
 {
   NVVK_CHECK(
       nvvk::endSingleTimeCommands(cmd, getDevice(), transientCmdPool(), getQueueInfo(0).queue));
+}
+
+void VulkanBackend::waitForDeviceIdle()
+{
+  NVVK_CHECK(vkQueueWaitIdle(getQueueInfo(0).queue));
 }
 
 bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
@@ -271,7 +300,7 @@ bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
   return true;
 }
 
-VkCommandBuffer VulkanBackend::get_active_cmd() const
+VkCommandBuffer VulkanBackend::getActiveCmd() const
 {
   assert(m_frameData[m_frameRingCurrent]->cmdBuffer != VK_NULL_HANDLE);
   return m_frameData[m_frameRingCurrent]->cmdBuffer;
@@ -280,7 +309,6 @@ VkCommandBuffer VulkanBackend::get_active_cmd() const
 void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
                                 FrameContext const& /* frame */)
 {
-  // 3. UI Phase
   for (auto& e : elements)
   {
     e->onUIRender();
@@ -294,7 +322,7 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
     e->onPreRender();
   }
 
-  VulkanFrameContext* ctx = m_frameData[m_frameRingCurrent].get();
+  VulkanRenderContext* ctx = m_frameData[m_frameRingCurrent].get();
   VkCommandBuffer cmd = ctx->cmdBuffer;
   for (const std::shared_ptr<IAppElement>& e : elements)
   {
@@ -380,33 +408,6 @@ uint32_t VulkanBackend::getFrameCycleSize() const
   return static_cast<uint32_t>(m_frameData.size());
 }
 
-void VulkanBackend::deinit()
-{
-  VkDevice device = m_vkContext.getDevice();
-  assert(device != VK_NULL_HANDLE);
-  NVVK_CHECK(vkDeviceWaitIdle(device));
-
-  ImGui_ImplVulkan_Shutdown();
-  m_swapchain.deinit();
-  for (auto& data : m_frameData)
-  {
-    vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
-    vkDestroyCommandPool(device, data->cmdPool, nullptr);
-  }
-  m_frameData.clear();
-
-  vkDestroySemaphore(device, m_frameTimelineSemaphore, nullptr);
-  vkDestroyCommandPool(device, m_transientCmdPool, nullptr);
-  vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
-
-  vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
-
-  vkDeviceWaitIdle(device);
-  m_stagingUploader.deinit();
-  m_allocator.deinit();
-  m_vkContext.deinit();
-}
-
 void VulkanBackend::createFrameSubmission(uint32_t numFrames)
 {
   assert(numFrames >= 2);  // Must have at least 2 frames in flight
@@ -440,7 +441,7 @@ void VulkanBackend::createFrameSubmission(uint32_t numFrames)
   m_frameData.resize(numFrames);
   for (uint32_t i = 0; i < numFrames; i++)
   {
-    m_frameData[i] = std::make_unique<VulkanFrameContext>();
+    m_frameData[i] = std::make_unique<VulkanRenderContext>();
     m_frameData[i]->frameNumber = i;  // Track frame index for synchronization
 
     // Separate pools allow independent reset/recording of commands while other frames are still

@@ -12,6 +12,7 @@
 #include <nvvk/sbt_generator.hpp>
 #include <shaders/post/IToneMapper.hpp>
 
+#include "Shared.hpp"
 #include "backend/vulkan/VulkanRenderer.hpp"
 #include "scene/gltf/io_gltf.h"
 
@@ -29,14 +30,13 @@ void SceneManager::clear()
 
 void SceneManager::postInit()
 {
-
   m_renderer->init(m_scene_resources);
 }
 
 void SceneManager::render(bool raytrace)
 {
   m_scene_resources.update_scene_info(m_camera);
-  shaderio::GltfSceneInfo* addr = m_renderer->update_buffers(m_camera, m_scene_resources);
+  shaderio::GltfSceneInfo* addr = m_renderer->updateSceneBuffers(m_scene_resources);
   shaderio::PushConstant pushValues{
       .sceneInfoAddress = addr,
       .metallicRoughnessOverride = m_metallicRoughnessOverride,
@@ -48,19 +48,24 @@ void SceneManager::render(bool raytrace)
 // Rendering / Post-processing
 // --------------------------------------------------
 
-void SceneManager::post_process()
+void SceneManager::postProcess()
 {
-  m_renderer->post_process();
+  m_renderer->postProcess();
 }
 
-void SceneManager::reload(bool use_raytracing)
+void SceneManager::reload(bool useRaytracing)
 {
-  m_renderer->reload(use_raytracing);
+  m_renderer->reload(useRaytracing);
 }
 
-core::Image SceneManager::get_image(int buffer_idx)
+core::Image SceneManager::getImage(int bufferIdx)
 {
-  return m_renderer->get_image(buffer_idx);
+  return m_renderer->getImage(bufferIdx);
+}
+
+core::Image SceneManager::getTonemapedImage()
+{
+  return m_renderer->getImage(eImgTonemapped);
 }
 
 void SceneManager::onResize(const WindowSize& size)
@@ -72,17 +77,17 @@ void SceneManager::onResize(const WindowSize& size)
 // Scene / Resources
 // --------------------------------------------------
 
-gltf::Scene& SceneManager::gltf_resources()
+gltf::Scene& SceneManager::gltfResources()
 {
   return m_scene_resources.data();
 }
 
-const gltf::Scene& SceneManager::gltf_resources() const
+const gltf::Scene& SceneManager::gltfResources() const
 {
   return m_scene_resources.data();
 }
 
-SceneResourcesManager& SceneManager::scene_resources()
+SceneResourcesManager& SceneManager::sceneResources()
 {
   return m_scene_resources;
 }
@@ -93,15 +98,15 @@ SceneResourcesManager& SceneManager::scene_resources()
 
 shaderio::TonemapperData& SceneManager::tonemapper()
 {
-  return m_renderer->post_processor().data();
+  return m_renderer->postProcessor().data();
 }
 
-glm::vec2& SceneManager::metallic_roughness()
+glm::vec2& SceneManager::metallicRoughness()
 {
   return m_metallicRoughnessOverride;
 }
 
-shaderio::GltfSceneInfo& SceneManager::scene_info()
+shaderio::GltfSceneInfo& SceneManager::sceneInfo()
 {
   return m_scene_resources.scene_info();
 }
@@ -110,7 +115,7 @@ shaderio::GltfSceneInfo& SceneManager::scene_info()
 // Camera
 // --------------------------------------------------
 
-void SceneManager::set_camera(CameraPtr camera)
+void SceneManager::setCamera(CameraPtr camera)
 {
   m_camera = std::move(camera);
 }

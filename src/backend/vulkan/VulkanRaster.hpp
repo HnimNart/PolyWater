@@ -12,10 +12,6 @@
 
 // Forward declarations to avoid heavy includes
 
-namespace nvsamples
-{
-class GltfSceneResources;
-}  // namespace nvsamples
 class GltfDeviceSceneResources;
 
 namespace nvvk
@@ -43,10 +39,10 @@ public:
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-              const gltf::Scene& scene_resources, const GltfDeviceSceneResources& device_resources,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const gltf::Scene& sceneResources,
+              const GltfDeviceSceneResources& deviceResources,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
-              shaderio::PushConstant& push_constants) const;
+              shaderio::PushConstant& pushConstants) const;
 
   void reload();
 

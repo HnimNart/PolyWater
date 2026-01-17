@@ -18,35 +18,35 @@ public:
 
   void clear();
   void postInit();
-
   void render(bool raytrace);
 
   // --------------------------------------------------
   // Rendering / Post-processing
   // --------------------------------------------------
-  void post_process();
-  void reload(bool use_raytracing);
-  core::Image get_image(int buffer_idx);
+  void postProcess();
+  void reload(bool useRaytracing);
+  core::Image getImage(int bufferIdx);
+  core::Image getTonemapedImage();
   void onResize(const WindowSize& size);
 
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
-  gltf::Scene& gltf_resources();
-  const gltf::Scene& gltf_resources() const;
-  SceneResourcesManager& scene_resources();
+  gltf::Scene& gltfResources();
+  const gltf::Scene& gltfResources() const;
+  SceneResourcesManager& sceneResources();
 
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
   shaderio::TonemapperData& tonemapper();
-  glm::vec2& metallic_roughness();
-  shaderio::GltfSceneInfo& scene_info();
+  glm::vec2& metallicRoughness();
+  shaderio::GltfSceneInfo& sceneInfo();
 
   // --------------------------------------------------
   // Camera
   // --------------------------------------------------
-  void set_camera(CameraPtr camera);
+  void setCamera(CameraPtr camera);
   CameraPtr camera() const;
 
 private:
