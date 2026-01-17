@@ -17,10 +17,6 @@ class IRenderBackend;
 class VulkanRenderResources;
 class SceneResourcesManager;
 
-namespace nvvk
-{
-class GBuffer;
-}
 namespace shaderio
 {
 struct PushConstant;
@@ -60,7 +56,6 @@ public:
   // ---------------------------------------------------------------------------
   core::Image get_image(uint32_t index) const override;
   IPostProcessor& post_processor() noexcept override;
-
   std::shared_ptr<IDeviceResources> deviceResources() noexcept override;
 
 private:

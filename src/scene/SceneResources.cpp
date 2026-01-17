@@ -72,8 +72,7 @@ void SceneResourcesManager::update_scene_info(CameraPtr camera)
   const glm::mat4& viewMatrix = camera->getViewMatrix();
   const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
 
-  m_resources.sceneInfo.viewProjMatrix =
-      projMatrix * viewMatrix;  // Combine the view and projection matrices
+  m_resources.sceneInfo.viewProjMatrix = projMatrix * viewMatrix;
   m_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
   m_resources.sceneInfo.cameraPosition = camera->getEye();

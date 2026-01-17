@@ -79,8 +79,8 @@ void VulkanRendererElement::setup_scene()
       0.9f;  // Cone angle for spot lights (0 for point and directional lights)
 
   // Default camera
-  // m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});
-  // m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
+  m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});
+  m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
 
   scene_resources.end_uploading();
 
@@ -144,10 +144,10 @@ void VulkanRendererElement::onUIRender()
     // Ray tracing toggle
     ImGui::Checkbox("Use Ray Tracing", &m_useRayTracing);
 
-    if (ImGui::CollapsingHeader("Camera"))
-    {
-      nvgui::CameraWidget(m_scene_manager.camera());
-    }
+    // if (ImGui::CollapsingHeader("Camera"))
+    // {
+    //   nvgui::CameraWidget(m_scene_manager.camera());
+    // }
     // if (ImGui::CollapsingHeader("Environment"))
     // {
     //   ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager->gltf_resources().sceneInfo.useSky);

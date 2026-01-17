@@ -21,10 +21,8 @@
 #include "scene/gltf/io_gltf.h"
 #include "shaders/post/IToneMapper.hpp"
 
-// Constructor
 VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
 {
-
   // Initialize unique_ptrs
   m_backend = backend;
   m_compiler = m_backend->get_slang_compiler();
@@ -41,7 +39,6 @@ VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
   m_post->init(m_backend);
 }
 
-// Destructor must be defined here where the types are complete
 VulkanRenderer::~VulkanRenderer() = default;
 
 // ---------------------------------------------------------------------------
@@ -81,12 +78,12 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, 
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   const nvsamples::GltfDeviceSceneResources& device_resources = m_resources->device_resources();
-  scene.data().sceneInfo.instances =
+  scene.scene_info().instances =
       (shaderio::GltfInstance*)
           device_resources.bInstances.address;  // Get the address of the instance buffer
-  scene.data().sceneInfo.meshes =
+  scene.scene_info().meshes =
       (shaderio::GltfMesh*) device_resources.bMeshes.address;  // Get the address of the mesh buffer
-  scene.data().sceneInfo.materials =
+  scene.scene_info().materials =
       (shaderio::GltfMetallicRoughness*)
           device_resources.bMaterials.address;  // Get the address of the material buffer
 
@@ -95,7 +92,7 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, 
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
   vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
-                    &scene.data().sceneInfo);
+                    &scene.scene_info());
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
@@ -116,10 +113,12 @@ void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene
   if (raytrace)
   {
     m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
-    return;
   }
-  m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->device_resources(), camera,
-                   pushValues);
+  else
+  {
+    m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->device_resources(), camera,
+                     pushValues);
+  }
 }
 
 void VulkanRenderer::post_process()
