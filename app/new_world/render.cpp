@@ -147,46 +147,50 @@ void VulkanRendererElement::onUIRender()
     }
     if (ImGui::CollapsingHeader("Environment"))
     {
-      ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager.sceneInfo().useSky);
-      if (m_scene_manager.sceneInfo().useSky)
-        nvgui::skySimpleParametersUI(m_scene_manager.sceneInfo().skySimpleParam);
+      // Capture by reference so ImGui updates the original data
+      auto& sceneInfo = m_scene_manager.sceneInfo();
+
+      ImGui::Checkbox("Use Sky", (bool*) &sceneInfo.useSky);
+      if (sceneInfo.useSky)
+      {
+        nvgui::skySimpleParametersUI(sceneInfo.skySimpleParam);
+      }
       else
       {
         PE::begin();
-        PE::ColorEdit3("Background", (float*) &m_scene_manager.sceneInfo().backgroundColor);
+        PE::ColorEdit3("Background", (float*) &sceneInfo.backgroundColor);
         PE::end();
-        // Light
+
+        // Light - Reference the first light for clarity
+        auto& light = sceneInfo.punctualLights[0];
+
         PE::begin();
-        if (m_scene_manager.sceneInfo().punctualLights[0].type == shaderio::GltfLightType::ePoint ||
-            m_scene_manager.sceneInfo().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        if (light.type == shaderio::GltfLightType::ePoint ||
+            light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::DragFloat3("Light Position",
-                         glm::value_ptr(m_scene_manager.sceneInfo().punctualLights[0].position),
-                         1.0f, -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None,
-                         "Position of the light");
+          PE::DragFloat3("Light Position", glm::value_ptr(light.position), 1.0f, -20.0f, 20.0f,
+                         "%.2f", ImGuiSliderFlags_None, "Position of the light");
         }
-        if (m_scene_manager.sceneInfo().punctualLights[0].type ==
-                shaderio::GltfLightType::eDirectional ||
-            m_scene_manager.sceneInfo().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        if (light.type == shaderio::GltfLightType::eDirectional ||
+            light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::SliderFloat3("Light Direction",
-                           glm::value_ptr(m_scene_manager.sceneInfo().punctualLights[0].direction),
-                           -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None, "Direction of the light");
+          PE::SliderFloat3("Light Direction", glm::value_ptr(light.direction), -1.0f, 1.0f, "%.2f",
+                           ImGuiSliderFlags_None, "Direction of the light");
         }
 
-        PE::SliderFloat("Light Intensity", &m_scene_manager.sceneInfo().punctualLights[0].intensity,
-                        0.0f, 1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic,
-                        "Intensity of the light");
-        PE::ColorEdit3("Light Color",
-                       glm::value_ptr(m_scene_manager.sceneInfo().punctualLights[0].color),
-                       ImGuiColorEditFlags_NoInputs, "Color of the light");
-        PE::Combo("Light Type", (int*) &m_scene_manager.sceneInfo().punctualLights[0].type,
-                  "Point\0Spot\0Directional\0", 3, "Type of the light (Point, Spot, Directional) ");
-        if (m_scene_manager.sceneInfo().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        PE::SliderFloat("Light Intensity", &light.intensity, 0.0f, 1000.0f, "%.2f",
+                        ImGuiSliderFlags_Logarithmic, "Intensity of the light");
+
+        PE::ColorEdit3("Light Color", glm::value_ptr(light.color), ImGuiColorEditFlags_NoInputs,
+                       "Color of the light");
+
+        PE::Combo("Light Type", (int*) &light.type, "Point\0Spot\0Directional\0", 3,
+                  "Type of the light (Point, Spot, Directional) ");
+
+        if (light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::SliderAngle("Cone Angle", &m_scene_manager.sceneInfo().punctualLights[0].coneAngle,
-                          0.f, 90.f, "%.2f", ImGuiSliderFlags_AlwaysClamp,
-                          "Cone angle of the spot light");
+          PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f, "%.2f",
+                          ImGuiSliderFlags_AlwaysClamp, "Cone angle of the spot light");
         }
         PE::end();
       }
