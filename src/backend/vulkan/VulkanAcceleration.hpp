@@ -6,27 +6,27 @@
 
 // Forward Declarations
 struct VulkanContext;
-namespace nvsamples
+namespace gltf
 {
-struct GltfSceneResource;
+struct Scene;
 }
 namespace shaderio
 {
 struct GltfMesh;
 }
-
 namespace core
 {
 class VulkanBackend;
 }
+
 class AccelerationStructures
 {
 public:
   void init(core::VulkanBackend* backend);
   void deinit();
 
-  void buildBLAS(const nvsamples::GltfSceneResource& scene);
-  void buildTLAS(const nvsamples::GltfSceneResource& scene);
+  void buildBLAS(const gltf::Scene& scene);
+  void buildTLAS(const gltf::Scene& scene);
 
   nvvk::AccelerationStructure tlas() const;
 

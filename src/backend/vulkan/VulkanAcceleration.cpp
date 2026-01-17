@@ -20,7 +20,7 @@ void AccelerationStructures::deinit()
   m_asBuilder.deinit();
 }
 
-void AccelerationStructures::buildBLAS(const nvsamples::GltfSceneResource& scene)
+void AccelerationStructures::buildBLAS(const gltf::Scene& scene)
 {
   SCOPED_TIMER(__FUNCTION__);
 
@@ -36,7 +36,7 @@ void AccelerationStructures::buildBLAS(const nvsamples::GltfSceneResource& scene
                                      VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 }
 
-void AccelerationStructures::buildTLAS(const nvsamples::GltfSceneResource& scene)
+void AccelerationStructures::buildTLAS(const gltf::Scene& scene)
 {
   SCOPED_TIMER(__FUNCTION__);
 

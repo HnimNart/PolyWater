@@ -23,6 +23,20 @@ namespace nvvk
 class DescriptorPack;
 }
 
+// GPU buffers for the scene data
+struct GltfDeviceSceneResources
+{
+  std::vector<nvvk::Buffer>
+      bGltfDatas;           // Buffers containing the GLTF binary data for each loaded scene
+  nvvk::Buffer bMeshes;     // Buffer containing all GltfMesh data
+  nvvk::Buffer bInstances;  // Buffer containing all GltfInstance data
+  nvvk::Buffer bMaterials;  // Buffer containing all GltfMetallicRoughness data
+  nvvk::Buffer bSceneInfo;  // Buffer containing GltfSceneInfo
+
+  // Mapping from mesh index to buffer index in bGltfDatas
+  std::vector<uint32_t> meshToBufferIndex;  // meshToBufferIndex[meshIndex] = bufferIndex
+};
+
 class VulkanRenderResources : public IDeviceResources
 {
 public:
@@ -35,24 +49,35 @@ public:
   void end_uploading() override;
 
   // Resources
-  MeshID upload_gltf_model(const tinygltf::Model& model,
-                           nvsamples::GltfSceneResource& resources) override;
+  MeshID upload_gltf_model(const tinygltf::Model& model, gltf::Scene& resources) override;
   TextureID upload_texture(const std::string& filepath) override;
-  void finalizeSceneResources(nvsamples::GltfSceneResource& resources) override;
+  void finalizeSceneResources(gltf::Scene& resources) override;
 
   void update_descriptors(nvvk::DescriptorPack& descriptor_pack);
 
   // Accessors
   const std::vector<nvvk::Image>& textures() const;
   nvvk::SamplerPool& sampler_pool();
-  // nvsamples::GltfDeviceSceneResources& device_resources() { return m_device_resources; };
-  const nvsamples::GltfDeviceSceneResources& device_resources() const
-  {
-    return m_device_resources;
-  };
+  const GltfDeviceSceneResources& device_resources() const { return m_device_resources; };
 
 private:
-  nvsamples::GltfDeviceSceneResources m_device_resources;
+  // This is a utility function to import the GLTF data into the scene resource.
+  static void importGltfData(gltf::Scene& sceneResource, GltfDeviceSceneResources& deviceResource,
+                             const tinygltf::Model& model, nvvk::StagingUploader& stagingUploader,
+                             bool importInstance = false);
+
+  // This is a utility function to create the scene info buffer.
+  static void createGltfSceneInfoBuffer(gltf::Scene& sceneResources,
+                                        GltfDeviceSceneResources& deviceResources,
+                                        nvvk::StagingUploader& stagingUploader);
+
+  // This is a utility function to convert a primitive mesh to a GltfMeshResource.
+  static void primitiveMeshToResource(gltf::Scene& sceneResource,
+                                      GltfDeviceSceneResources& deviceResources,
+                                      nvvk::StagingUploader& stagingUploader,
+                                      const nvutils::PrimitiveMesh& primMesh);
+
+  GltfDeviceSceneResources m_device_resources;
   core::VulkanBackend* m_backend = nullptr;
   std::vector<nvvk::Image> m_textures;
   nvvk::SamplerPool m_samplerPool;

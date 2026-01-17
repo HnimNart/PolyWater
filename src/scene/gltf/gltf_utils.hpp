@@ -33,11 +33,11 @@ namespace tinygltf
 class Model;
 }
 
-namespace nvsamples
+namespace gltf
 {
 
-// Simple scene resource that holds meshes, instances, and materials
-struct GltfSceneResource
+// Simple host scene resource that holds meshes, instances, and materials
+struct Scene
 {
   std::vector<shaderio::GltfMesh> meshes;                  // All meshes in the scene
   std::vector<shaderio::GltfInstance> instances;           // All instances in the scene
@@ -46,37 +46,7 @@ struct GltfSceneResource
       sceneInfo;  // Scene information (camera matrices, meshes, instances, materials, etc.)
 };
 
-// GPU buffers for the scene data
-struct GltfDeviceSceneResources
-{
-  std::vector<nvvk::Buffer>
-      bGltfDatas;           // Buffers containing the GLTF binary data for each loaded scene
-  nvvk::Buffer bMeshes;     // Buffer containing all GltfMesh data
-  nvvk::Buffer bInstances;  // Buffer containing all GltfInstance data
-  nvvk::Buffer bMaterials;  // Buffer containing all GltfMetallicRoughness data
-  nvvk::Buffer bSceneInfo;  // Buffer containing GltfSceneInfo
-
-  // Mapping from mesh index to buffer index in bGltfDatas
-  std::vector<uint32_t> meshToBufferIndex;  // meshToBufferIndex[meshIndex] = bufferIndex
-};
-
 // This is a utility function to load a GLTF file and return the model data.
-tinygltf::Model loadGltfResources(const std::filesystem::path& filename);
+tinygltf::Model load(const std::filesystem::path& filename);
 
-// This is a utility function to import the GLTF data into the scene resource.
-void importGltfData(GltfSceneResource& sceneResource, GltfDeviceSceneResources& deviceResource,
-                    const tinygltf::Model& model, nvvk::StagingUploader& stagingUploader,
-                    bool importInstance = false);
-
-// This is a utility function to create the scene info buffer.
-void createGltfSceneInfoBuffer(GltfSceneResource& sceneResources,
-                               GltfDeviceSceneResources& deviceResources,
-                               nvvk::StagingUploader& stagingUploader);
-
-// This is a utility function to convert a primitive mesh to a GltfMeshResource.
-void primitiveMeshToResource(GltfSceneResource& sceneResource,
-                             GltfDeviceSceneResources& deviceResources,
-                             nvvk::StagingUploader& stagingUploader,
-                             const nvutils::PrimitiveMesh& primMesh);
-
-}  // namespace nvsamples
+}  // namespace gltf

@@ -22,7 +22,7 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> device_resour
 
 tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
 {
-  auto model = nvsamples::loadGltfResources(filename);
+  auto model = gltf::load(filename);
   auto id = static_cast<IDeviceResources::MeshID>(
       m_device_resources->upload_gltf_model(model, m_resources));
 
@@ -78,12 +78,12 @@ void SceneResourcesManager::update_scene_info(CameraPtr camera)
   m_resources.sceneInfo.cameraPosition = camera->getEye();
 }
 
-const nvsamples::GltfSceneResource& SceneResourcesManager::data() const
+const gltf::Scene& SceneResourcesManager::data() const
 {
   return m_resources;
 }
 
-nvsamples::GltfSceneResource& SceneResourcesManager::data()
+gltf::Scene& SceneResourcesManager::data()
 {
   return m_resources;
 }

@@ -82,9 +82,9 @@ void VulkanRendererElement::setup_scene()
   m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});
   m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
 
+  // Finish uploading command
   scene_resources.end_uploading();
-
-  // Now build scene
+  // build scene
   m_scene_manager.postInit();
 }
 

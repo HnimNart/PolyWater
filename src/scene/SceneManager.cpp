@@ -72,12 +72,12 @@ void SceneManager::onResize(const WindowSize& size)
 // Scene / Resources
 // --------------------------------------------------
 
-nvsamples::GltfSceneResource& SceneManager::gltf_resources()
+gltf::Scene& SceneManager::gltf_resources()
 {
   return m_scene_resources.data();
 }
 
-const nvsamples::GltfSceneResource& SceneManager::gltf_resources() const
+const gltf::Scene& SceneManager::gltf_resources() const
 {
   return m_scene_resources.data();
 }

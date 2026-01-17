@@ -46,8 +46,8 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                          const nvsamples::GltfSceneResource& scene_resources,
-                          const nvsamples::GltfDeviceSceneResources& device_resources,
+                          const gltf::Scene& scene_resources,
+                          const GltfDeviceSceneResources& device_resources,
                           const std::shared_ptr<nvutils::CameraManipulator>& camera,
                           shaderio::PushConstant& push_constants) const
 {

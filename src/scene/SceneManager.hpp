@@ -32,8 +32,8 @@ public:
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
-  nvsamples::GltfSceneResource& gltf_resources();
-  const nvsamples::GltfSceneResource& gltf_resources() const;
+  gltf::Scene& gltf_resources();
+  const gltf::Scene& gltf_resources() const;
   SceneResourcesManager& scene_resources();
 
   // --------------------------------------------------

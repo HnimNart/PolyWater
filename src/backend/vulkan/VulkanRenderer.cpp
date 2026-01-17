@@ -78,7 +78,7 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd, 
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
-  const nvsamples::GltfDeviceSceneResources& device_resources = m_resources->device_resources();
+  const GltfDeviceSceneResources& device_resources = m_resources->device_resources();
   scene.scene_info().instances =
       (shaderio::GltfInstance*)
           device_resources.bInstances.address;  // Get the address of the instance buffer

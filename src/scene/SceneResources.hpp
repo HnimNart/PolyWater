@@ -35,14 +35,14 @@ public:
   void finalizeSceneResources();
   void clear();
 
-  const nvsamples::GltfSceneResource& data() const;
-  nvsamples::GltfSceneResource& data();
+  const gltf::Scene& data() const;
+  gltf::Scene& data();
 
   shaderio::GltfSceneInfo& scene_info();
   const shaderio::GltfSceneInfo& scene_info() const;
 
 private:
-  nvsamples::GltfSceneResource m_resources{};
+  gltf::Scene m_resources{};
   std::shared_ptr<IDeviceResources> m_device_resources = nullptr;
 };
 

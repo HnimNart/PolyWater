@@ -15,8 +15,7 @@ public:
   virtual void end_uploading() = 0;
 
   // Resources
-  virtual MeshID upload_gltf_model(const tinygltf::Model& model,
-                                   nvsamples::GltfSceneResource& resources) = 0;
+  virtual MeshID upload_gltf_model(const tinygltf::Model& model, gltf::Scene& resources) = 0;
   virtual TextureID upload_texture(const std::string& filepath) = 0;
-  virtual void finalizeSceneResources(nvsamples::GltfSceneResource& resources) = 0;
+  virtual void finalizeSceneResources(gltf::Scene& resources) = 0;
 };
