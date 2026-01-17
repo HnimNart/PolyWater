@@ -123,4 +123,14 @@ private:
 };
 
 }  // namespace common
-#define SCOPED_TIMER(name) auto scopedTimer##__LINE__ = nvutils::ScopedTimer(name)
+
+#if defined(_MSC_VER)
+#  define FUNC_SIG __FUNCSIG__
+#elif defined(__GNUC__) || defined(__clang__)
+#  define FUNC_SIG __PRETTY_FUNCTION__
+#else
+#  define FUNC_SIG __func__
+#endif
+
+#define SCOPED_TIMER_SIG() auto _timer_##__LINE__ = common::ScopedTimer(FUNC_SIG)
+#define SCOPED_TIMER(name) auto scopedTimer##__LINE__ = common::ScopedTimer(name)

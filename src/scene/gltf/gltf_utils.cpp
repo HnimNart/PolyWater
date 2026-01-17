@@ -28,13 +28,16 @@
 
 #include <glm/gtc/type_ptr.hpp>  // glm::make_vec3
 #include <nvutils/logger.hpp>
-#include <nvutils/timers.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
+#include "common/string_utils.h"
+#include "common/timers.hpp"
+
 tinygltf::Model gltf::load(const std::filesystem::path& filename)
 {
-  nvutils::ScopedTimer _st(__FUNCTION__);
+  std::string baseName = filename.filename().string();
+  common::ScopedTimer _timer(fmt::format("Loaded glTF file: {}", baseName));
 
   tinygltf::TinyGLTF tinyLoader;
   tinygltf::Model model;
@@ -63,6 +66,5 @@ tinygltf::Model gltf::load(const std::filesystem::path& filename)
     assert(0 && "No fallback");
     return {};
   }
-  LOGI("%s", fmt::format("\n{}Loaded glTF file: {}", _st.indent(), filename.string()).c_str());
   return model;
 }
