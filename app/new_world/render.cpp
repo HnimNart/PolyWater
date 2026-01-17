@@ -111,6 +111,7 @@ void RtBasic::onAttach(core::Application* app)
 
 void RtBasic::onDetach()
 {
+  m_scene_manager.clear();
   // Cleanup if necessary
 }
 
@@ -143,7 +144,7 @@ void RtBasic::onUIRender()
   // Display the rendering GBuffer in the ImGui window ("Viewport")
   if (ImGui::Begin("Viewport"))
   {
-    ImGui::Image(ImTextureID(m_renderer->gbuffers().getDescriptorSet(eImgTonemapped)),
+    ImGui::Image(ImTextureID(m_renderer->get_image(eImgTonemapped).descriptor),
                  ImGui::GetContentRegionAvail());
   }
   ImGui::End();

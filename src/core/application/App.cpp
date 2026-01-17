@@ -73,6 +73,7 @@ void Application::init(ApplicationCreateInfo const& info)
 
 void Application::shutdown()
 {
+  printf("done\n");
   m_running = false;
 
   // Save window state before destruction

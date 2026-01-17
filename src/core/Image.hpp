@@ -35,26 +35,14 @@ struct ImageCreateInfo
  * @brief Agnostic Image interface.
  * The actual Vulkan/DX12 resources are managed by the backend.
  */
-class Image
+struct Image
 {
 public:
-  virtual ~Image() = default;
-
-  virtual uint32_t getWidth() const = 0;
-  virtual uint32_t getHeight() const = 0;
-  virtual ImageFormat getFormat() const = 0;
-
-  /** * @brief Returns the API-specific handle (VkImage, ID3D12Resource*, etc.)
-   */
-  virtual void* getNativeHandle() const = 0;
-
-  /**
-   * @brief Returns a handle for UI tools like ImGui to display the image.
-   */
-  virtual void* getDescriptorSet() const = 0;
-
-  // Static factory: The Application/Backend will provide the implementation
-  static std::unique_ptr<Image> create(const ImageCreateInfo& info);
+  uint32_t width;
+  uint32_t height;
+  ImageFormat format;
+  void* native_handle = nullptr;
+  void* descriptor = nullptr;
 };
 
 }  // namespace core

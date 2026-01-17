@@ -9,6 +9,7 @@
 #include "SceneResources.hpp"
 #include "backend/ISceneRenderer.hpp"
 #include "core/Camera.hpp"
+#include "core/Image.hpp"
 
 // Forward declarations
 class VulkanSceneRenderer;
@@ -30,7 +31,7 @@ public:
   // --------------------------------------------------
   void post_process();
   void reload(bool use_raytracing);
-  VkImage get_image(int buffer_idx);
+  core::Image get_image(int buffer_idx);
   void onResize(const WindowSize& size);
 
   // --------------------------------------------------

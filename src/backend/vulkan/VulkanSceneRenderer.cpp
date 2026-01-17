@@ -1,21 +1,23 @@
 #include "VulkanSceneRenderer.hpp"
+
 #include <iostream>
 
 // Full headers required for implementation
 #include <nvvk/check_error.hpp>
+#include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/formats.hpp>
 #include <nvvk/gbuffers.hpp>
-#include <nvvk/commands.hpp>
 
 #include "VulkanBackend.hpp"
-#include "VulkanContext.hpp"
+#include "VulkanPostToneMapper.hpp"
 #include "VulkanRaster.hpp"
 #include "VulkanRayTracer.hpp"
 #include "backend/vulkan/VulkanSceneResources.hpp"
 #include "core/Camera.hpp"
+#include "core/Image.hpp"
 #include "scene/SceneResources.hpp"
-#include "shaders/post/tonemapper.hpp"
+#include "shaders/post/IToneMapper.hpp"
 
 // Constructor
 VulkanSceneRenderer::VulkanSceneRenderer(core::VulkanBackend* backend)
@@ -26,10 +28,10 @@ VulkanSceneRenderer::VulkanSceneRenderer(core::VulkanBackend* backend)
   m_compiler = m_backend->get_slang_compiler();
   m_resources = std::make_shared<VulkanSceneResources>(m_backend);
 
+  m_gBuffers = std::make_unique<nvvk::GBuffer>();
   m_raster = std::make_unique<VulkanRaster>();
   m_ray_tracer = std::make_unique<VulkanRayTracer>();
-  m_post = std::make_unique<PostProcessor>();
-  m_gBuffers = std::make_unique<nvvk::GBuffer>();
+  m_post = std::make_unique<VulkanPostProcessor>();
 
   // Initialization logic
   m_raster->init(m_backend);
@@ -59,7 +61,6 @@ void VulkanSceneRenderer::deinit()
   m_gBuffers->deinit();
   m_resources->deinit();
   m_post->deinit();
-  m_backend->deinit();
 }
 
 void VulkanSceneRenderer::reload(bool use_raytracing)
@@ -71,46 +72,38 @@ void VulkanSceneRenderer::reload(bool use_raytracing)
 // Rendering
 // ---------------------------------------------------------------------------
 
-void VulkanSceneRenderer::updateSceneBuffer(VkCommandBuffer cmd,
-                                            CameraPtr camera,
+void VulkanSceneRenderer::updateSceneBuffer(VkCommandBuffer cmd, CameraPtr camera,
                                             SceneResources& scene) const
 {
-    NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
-    const glm::mat4& viewMatrix = camera->getViewMatrix();
-    const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
+  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
+  const glm::mat4& viewMatrix = camera->getViewMatrix();
+  const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
 
-    scene.data().sceneInfo.viewProjMatrix =
-        projMatrix * viewMatrix;  // Combine the view and projection matrices
-    scene.data().sceneInfo.projInvMatrix =
-        glm::inverse(projMatrix);  // Inverse projection matrix
-    scene.data().sceneInfo.viewInvMatrix =
-        glm::inverse(viewMatrix);  // Inverse view matrix
-    scene.data().sceneInfo.cameraPosition =
-        camera->getEye();  // Get the camera position
-    scene.data().sceneInfo.instances =
-        (shaderio::GltfInstance*) scene.data()
-            .bInstances.address;  // Get the address of the instance buffer
-    scene.data().sceneInfo.meshes =
-        (shaderio::GltfMesh*) scene.data()
-            .bMeshes.address;  // Get the address of the mesh buffer
-    scene.data().sceneInfo.materials =
-        (shaderio::GltfMetallicRoughness*) scene.data()
-            .bMaterials.address;  // Get the address of the material buffer
+  scene.data().sceneInfo.viewProjMatrix =
+      projMatrix * viewMatrix;  // Combine the view and projection matrices
+  scene.data().sceneInfo.projInvMatrix = glm::inverse(projMatrix);  // Inverse projection matrix
+  scene.data().sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);  // Inverse view matrix
+  scene.data().sceneInfo.cameraPosition = camera->getEye();         // Get the camera position
+  scene.data().sceneInfo.instances =
+      (shaderio::GltfInstance*) scene.data()
+          .bInstances.address;  // Get the address of the instance buffer
+  scene.data().sceneInfo.meshes =
+      (shaderio::GltfMesh*) scene.data().bMeshes.address;  // Get the address of the mesh buffer
+  scene.data().sceneInfo.materials =
+      (shaderio::GltfMetallicRoughness*) scene.data()
+          .bMaterials.address;  // Get the address of the material buffer
 
-    // Making sure the scene information buffer is updated before rendering
-    // Wait that the fragment shader is done reading the previous scene information and wait for the
-    // transfer to complete
-    nvvk::cmdBufferMemoryBarrier(cmd, {scene.data().bSceneInfo.buffer,
-                                       VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-    vkCmdUpdateBuffer(cmd, scene.data().bSceneInfo.buffer, 0,
-                      sizeof(shaderio::GltfSceneInfo),
-                      &scene.data().sceneInfo);
-    nvvk::cmdBufferMemoryBarrier(cmd, {scene.data().bSceneInfo.buffer,
-                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                       VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
-
-
+  // Making sure the scene information buffer is updated before rendering
+  // Wait that the fragment shader is done reading the previous scene information and wait for the
+  // transfer to complete
+  nvvk::cmdBufferMemoryBarrier(cmd, {scene.data().bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, scene.data().bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
+                    &scene.data().sceneInfo);
+  nvvk::cmdBufferMemoryBarrier(cmd,
+                               {scene.data().bSceneInfo.buffer, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
 }
 
 void VulkanSceneRenderer::render(CameraPtr camera, SceneResources& scene, bool raytrace,
@@ -144,11 +137,9 @@ void VulkanSceneRenderer::onResize(const WindowSize& size)
   NVVK_CHECK(
       nvvk::beginSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool()));
   NVVK_CHECK(m_gBuffers->update(cmd, {size.width, size.height}));
-  NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_backend->getDevice(),
-                                         m_backend->transientCmdPool(),
+  NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, m_backend->getDevice(), m_backend->transientCmdPool(),
                                          m_backend->getQueueInfo(0).queue));
 }
-
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -174,44 +165,17 @@ void VulkanSceneRenderer::init_gbuffers()
 // Accessors
 // ---------------------------------------------------------------------------
 
-VkImage VulkanSceneRenderer::get_image(uint32_t index) const
+core::Image VulkanSceneRenderer::get_image(uint32_t index) const
 {
-  return m_gBuffers->getColorImage(index);
+  core::Image image;
+  image.descriptor = static_cast<void*>(m_gBuffers->getDescriptorSet(index));
+  // image.native_handle = static_cast<void*>(&m_gBuffers->getColorImage(index));
+  return image;
 }
 
-VulkanRaster& VulkanSceneRenderer::raster() noexcept
-{
-  return *m_raster;
-}
-
-const VulkanRaster& VulkanSceneRenderer::raster() const noexcept
-{
-  return *m_raster;
-}
-
-VulkanRayTracer& VulkanSceneRenderer::ray_tracer() noexcept
-{
-  return *m_ray_tracer;
-}
-
-const VulkanRayTracer& VulkanSceneRenderer::ray_tracer() const noexcept
-{
-  return *m_ray_tracer;
-}
-
-PostProcessor& VulkanSceneRenderer::post_processor() noexcept
+IPostProcessor& VulkanSceneRenderer::post_processor() noexcept
 {
   return *m_post;
-}
-
-const PostProcessor& VulkanSceneRenderer::post_processor() const noexcept
-{
-  return *m_post;
-}
-
-const nvvk::GBuffer& VulkanSceneRenderer::gbuffers() const noexcept
-{
-  return *m_gBuffers;
 }
 
 std::shared_ptr<VulkanSceneResources> VulkanSceneRenderer::deviceResources() noexcept

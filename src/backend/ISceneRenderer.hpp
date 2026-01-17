@@ -1,10 +1,9 @@
 #pragma once
 
-#include "backend/vulkan/VulkanRaster.hpp"
-#include "backend/vulkan/VulkanRayTracer.hpp"
 #include "core/Camera.hpp"
+#include "core/Image.hpp"
 #include "scene/SceneResources.hpp"
-#include "shaders/post/tonemapper.hpp"
+#include "shaders/post/IToneMapper.hpp"
 #include "shaders/shaderio.h"
 
 // TODO make this vulkan indepenednt
@@ -21,15 +20,7 @@ public:
 
   virtual std::shared_ptr<VulkanSceneResources> deviceResources() noexcept {};
 
-  virtual VulkanRaster& raster() noexcept {};
-  virtual const VulkanRaster& raster() const noexcept {};
-
-  virtual VulkanRayTracer& ray_tracer() noexcept {};
-  virtual const VulkanRayTracer& ray_tracer() const noexcept {};
-
-  virtual PostProcessor& post_processor() noexcept {};
-  virtual const PostProcessor& post_processor() const noexcept {};
-
+  virtual IPostProcessor& post_processor() noexcept = 0;
   virtual void onResize(const WindowSize& size) {};
-  virtual VkImage get_image(uint32_t index) const { return {}; };
+  virtual core::Image get_image(uint32_t index) const = 0;
 };

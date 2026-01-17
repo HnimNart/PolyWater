@@ -10,7 +10,7 @@
 #include <nvvk/graphics_pipeline.hpp>
 #include <nvvk/sampler_pool.hpp>
 #include <nvvk/sbt_generator.hpp>
-#include <shaders/post/tonemapper.hpp>
+#include <shaders/post/IToneMapper.hpp>
 
 #include "backend/vulkan/VulkanSceneRenderer.hpp"
 
@@ -56,7 +56,7 @@ void SceneManager::reload(bool use_raytracing)
   m_renderer->reload(use_raytracing);
 }
 
-VkImage SceneManager::get_image(int buffer_idx)
+core::Image SceneManager::get_image(int buffer_idx)
 {
   return m_renderer->get_image(buffer_idx);
 }

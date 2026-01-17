@@ -162,7 +162,7 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   };
 
   m_allocator.init(allocatorInfo);
-  // m_allocator.setLeakID(81);
+  // m_allocator.setLeakID(23);
 
   // Initialize staging uploader with the allocator
   m_stagingUploader.init(&m_allocator);

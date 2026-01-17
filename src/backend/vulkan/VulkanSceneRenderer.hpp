@@ -4,7 +4,11 @@
 
 #include <memory>
 
+#include "VulkanAcceleration.hpp"
 #include "VulkanBackend.hpp"
+#include "VulkanPostToneMapper.hpp"
+#include "VulkanRaster.hpp"
+#include "VulkanRayTracer.hpp"
 #include "src/backend/ISceneRenderer.hpp"
 
 class PostProcessor;
@@ -53,18 +57,9 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  VkImage get_image(uint32_t index) const override;
+  core::Image get_image(uint32_t index) const override;
+  IPostProcessor& post_processor() noexcept override;
 
-  VulkanRaster& raster() noexcept override;
-  const VulkanRaster& raster() const noexcept override;
-
-  VulkanRayTracer& ray_tracer() noexcept override;
-  const VulkanRayTracer& ray_tracer() const noexcept override;
-
-  PostProcessor& post_processor() noexcept override;
-  const PostProcessor& post_processor() const noexcept override;
-
-  const nvvk::GBuffer& gbuffers() const noexcept;
   std::shared_ptr<VulkanSceneResources> deviceResources() noexcept override;
 
 private:
@@ -79,8 +74,7 @@ private:
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<VulkanRaster> m_raster;
   std::unique_ptr<VulkanRayTracer> m_ray_tracer;
-  std::unique_ptr<PostProcessor> m_post;
-  std::shared_ptr<SlangShaderCompiler> m_compiler;
-
+  std::unique_ptr<VulkanPostProcessor> m_post;
   std::shared_ptr<VulkanSceneResources> m_resources;
+  std::shared_ptr<SlangShaderCompiler> m_compiler;
 };

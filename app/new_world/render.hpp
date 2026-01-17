@@ -43,7 +43,7 @@ private:
   // TODO who should own this?
   CameraPtr m_cameraManip{std::make_shared<nvutils::CameraManipulator>()};
 
-  std::shared_ptr<VulkanSceneRenderer> m_renderer = nullptr;
+  std::shared_ptr < VulkanSceneRenderer> m_renderer = nullptr;
   SceneManager m_scene_manager;
 
   // Ray tracing toggle
