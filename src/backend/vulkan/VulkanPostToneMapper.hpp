@@ -13,19 +13,21 @@
 class VulkanPostProcessor : public IPostProcessor
 {
 public:
-  VulkanPostProcessor() = default;
-  void init(core::VulkanBackend* backend)
+  VulkanPostProcessor(core::VulkanBackend* backend)
   {
     m_tonemapper.init(&backend->allocator(), std::span(tonemapper_slang));
   }
-  void run(VkCommandBuffer cmd, nvvk::GBuffer& m_gBuffers)
+
+  ~VulkanPostProcessor() override { deinit(); }
+
+  void run(VkCommandBuffer cmd, nvvk::GBuffer& mGBuffers)
   {
-    m_tonemapper.runCompute(cmd, m_gBuffers.getSize(), m_tonemapperData,
-                            m_gBuffers.getDescriptorImageInfo(0),
-                            m_gBuffers.getDescriptorImageInfo(1));
+    m_tonemapper.runCompute(cmd, mGBuffers.getSize(), m_tonemapperData,
+                            mGBuffers.getDescriptorImageInfo(0),
+                            mGBuffers.getDescriptorImageInfo(1));
   }
-  void deinit() { m_tonemapper.deinit(); }
 
 private:
+  void deinit() { m_tonemapper.deinit(); }
   nvshaders::Tonemapper m_tonemapper{};
 };

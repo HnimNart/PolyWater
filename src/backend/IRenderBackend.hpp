@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <iostream>
 #include <vector>
 
 #include "core/application/AppInfo.hpp"
@@ -66,7 +67,7 @@ public:
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  virtual void onResize(const WindowSize& size)
+  void onResize(const WindowSize& size)
   {
     // Check for DPI scaling and adjust the font size
     float xscale, yscale;
@@ -78,7 +79,8 @@ public:
 
   const WindowSize& getViewportSize() const { return m_viewportSize; }
   virtual void setWindow(GLFWwindow* windowHandle) { m_windowHandle = windowHandle; }
-  virtual void setWindowSize(const WindowSize& windowSize) = 0;
+  void setWindowSize(const WindowSize& windowSize) { m_windowSize = windowSize; };
+  const WindowSize& getWindowSize() const { return m_windowSize; }
 
   //----------------------------------------------------------
   // Utilities
@@ -90,6 +92,7 @@ protected:
   //  Window stuff
   GLFWwindow* m_windowHandle{nullptr};  // GLFW Window
   WindowSize m_viewportSize{0, 0};      // Size of the viewport
+  WindowSize m_windowSize{0, 0};        // Size of window
   float m_dpiScale = 1.0f;
 
   // Vsync

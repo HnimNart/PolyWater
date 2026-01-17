@@ -35,7 +35,7 @@ void SceneManager::postInit()
 
 void SceneManager::render(bool raytrace)
 {
-  m_scene_resources.update_scene_info(m_camera);
+  m_scene_resources.updateSceneInfo(m_camera);
   shaderio::GltfSceneInfo* addr = m_renderer->updateSceneBuffers(m_scene_resources);
   shaderio::PushConstant pushValues{
       .sceneInfoAddress = addr,
@@ -108,7 +108,7 @@ glm::vec2& SceneManager::metallicRoughness()
 
 shaderio::GltfSceneInfo& SceneManager::sceneInfo()
 {
-  return m_scene_resources.scene_info();
+  return m_scene_resources.sceneInfo();
 }
 
 // --------------------------------------------------

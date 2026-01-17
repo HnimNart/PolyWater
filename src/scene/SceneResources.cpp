@@ -13,17 +13,17 @@
 SceneResourcesManager::SceneResourcesManager() = default;
 SceneResourcesManager::~SceneResourcesManager() = default;
 
-void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> device_resource)
+void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> deviceResource)
 {
-  m_device_resources = std::move(device_resource);
+  m_device_resources = std::move(deviceResource);
 }
 
-void SceneResourcesManager::begin_uploading()
+void SceneResourcesManager::beginUploading()
 {
   m_device_resources->beginUploading();
 }
 
-void SceneResourcesManager::end_uploading()
+void SceneResourcesManager::endUploading()
 {
   m_device_resources->endUploading();
 }
@@ -65,7 +65,7 @@ void SceneResourcesManager::clear()
 {
 }
 
-void SceneResourcesManager::update_scene_info(CameraPtr camera)
+void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
 {
   const glm::mat4& viewMatrix = camera->getViewMatrix();
   const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
@@ -86,12 +86,12 @@ gltf::Scene& SceneResourcesManager::data()
   return m_resources;
 }
 
-shaderio::GltfSceneInfo& SceneResourcesManager::scene_info()
+shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo()
 {
   return m_resources.sceneInfo;
 }
 
-const shaderio::GltfSceneInfo& SceneResourcesManager::scene_info() const
+const shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo() const
 {
   return m_resources.sceneInfo;
 }

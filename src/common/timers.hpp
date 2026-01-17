@@ -134,3 +134,4 @@ private:
 
 #define SCOPED_TIMER_SIG() auto _timer_##__LINE__ = common::ScopedTimer(FUNC_SIG)
 #define SCOPED_TIMER(name) auto scopedTimer##__LINE__ = common::ScopedTimer(name)
+#define SCOPED_TIMER_FUNC() auto scopedTimer##__LINE__ = common::ScopedTimer(__FUNCTION__)

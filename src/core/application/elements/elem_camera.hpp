@@ -43,7 +43,7 @@ struct ElementCamera : public core::IAppElement
 {
   ElementCamera(std::shared_ptr<nvutils::CameraManipulator> camera = nullptr)
   {
-    m_cameraManip = camera;
+    m_cameraManip = std::move(camera);
   }
 
   void setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator> pCamera)

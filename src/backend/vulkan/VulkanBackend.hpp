@@ -40,14 +40,13 @@ public:
 
   void requestScreenshot(const std::filesystem::path& filename, int quality) override;
 
+  void setVsync(bool enabled) override;
+
   // Getters
   uint32_t getFrameCycleSize() const;
-  void setWindowSize(const WindowSize& windowSize) override;
 
   void freeResourcesQueue() override;
 
-  [[deprecated]] const nvvk::Context& get_context() const { return m_vkContext; }
-  [[deprecated]] nvvk::Context& get_context() { return m_vkContext; }
   VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
   nvvk::ResourceAllocator& allocator() { return m_allocator; }
   const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
@@ -58,11 +57,8 @@ public:
     return m_vkContext.getQueueInfo(index);
   }
   VkCommandPool transientCmdPool() const { return m_transientCmdPool; };  // The command pool
-
   VkDevice getDevice() const { return m_vkContext.getDevice(); }
   VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
-
-  const VkExtent2D& get_view_port_size() const { return m_windowSize; }
 
 private:
   VulkanBackend() = default;
@@ -97,9 +93,6 @@ private:
       m_signalSemaphores{};  // Possible extra frame signal semaphores
   std::vector<VkCommandBufferSubmitInfo>
       m_commandBuffers{};  // Possible extra frame command buffers
-
-  // Misc
-  VkExtent2D m_windowSize{0, 0};
 };
 
 }  // namespace core

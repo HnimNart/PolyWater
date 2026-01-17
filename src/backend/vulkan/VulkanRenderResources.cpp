@@ -69,7 +69,7 @@ VulkanRenderResources::TextureID VulkanRenderResources::uploadTexture(const std:
   return static_cast<TextureID>(m_textures.size() - 1);
 }
 
-void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptor_pack)
+void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptorPack)
 {
   if (m_textures.empty())
   {
@@ -77,8 +77,8 @@ void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptor_p
   }
 
   nvvk::WriteSetContainer write{};
-  auto write_set = descriptor_pack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
-                                             static_cast<uint32_t>(m_textures.size()));
+  auto write_set = descriptorPack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
+                                            static_cast<uint32_t>(m_textures.size()));
 
   write.append(write_set, m_textures.data());
 

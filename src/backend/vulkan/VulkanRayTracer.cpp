@@ -20,10 +20,15 @@
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-void VulkanRayTracer::init(core::VulkanBackend* backend, VulkanRaster* raster)
+VulkanRayTracer::VulkanRayTracer(core::VulkanBackend* backend, VulkanRaster* raster)
 {
   m_backend = backend;
   m_raster = raster;
+}
+
+VulkanRayTracer::~VulkanRayTracer()
+{
+  deinit();
 }
 
 void VulkanRayTracer::deinit()
@@ -232,7 +237,7 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Ray trace
   const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
-  const VkExtent2D& size = m_backend->get_view_port_size();
+  const WindowSize& size = m_backend->getViewportSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit, &regions.callable,
                     size.width, size.height, 1);
 

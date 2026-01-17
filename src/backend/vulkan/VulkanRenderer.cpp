@@ -1,7 +1,5 @@
 #include "VulkanRenderer.hpp"
 
-#include <iostream>
-
 // Full headers required for implementation
 #include <nvvk/check_error.hpp>
 #include <nvvk/commands.hpp>
@@ -17,25 +15,18 @@
 #include "core/Camera.hpp"
 #include "core/Image.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/gltf/gltf_utils.hpp"
 #include "scene/gltf/io_gltf.h"
 #include "shaders/post/IToneMapper.hpp"
 
 VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
 {
-  // Initialize unique_ptrs
   m_backend = backend;
   m_resources = std::make_shared<VulkanRenderResources>(m_backend);
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
-  m_raster = std::make_unique<VulkanRaster>();
-  m_ray_tracer = std::make_unique<VulkanRayTracer>();
-  m_post = std::make_unique<VulkanPostProcessor>();
-
-  // Initialization logic
-  m_raster->init(m_backend);
-  m_ray_tracer->init(m_backend, m_raster.get());
-  m_post->init(m_backend);
+  m_raster = std::make_unique<VulkanRaster>(m_backend);
+  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_backend, m_raster.get());
+  m_post = std::make_unique<VulkanPostProcessor>(m_backend);
 }
 
 VulkanRenderer::~VulkanRenderer() = default;
@@ -52,14 +43,13 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
 
 void VulkanRenderer::deinit()
 {
-  VkDevice device = m_backend->getDevice();
-  assert(device != VK_NULL_HANDLE);
-  NVVK_CHECK(vkDeviceWaitIdle(device));
+  m_backend->waitForDeviceIdle();
 
-  m_raster->deinit();
-  m_ray_tracer->deinit();
+  m_raster.reset();
+  m_ray_tracer.reset();
+  m_post.reset();
+
   m_gBuffers->deinit();
-  m_post->deinit();
   m_resources->deinit();
 }
 
@@ -78,12 +68,13 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   const GltfDeviceSceneResources& device_resources = m_resources->deviceResources();
-  scene.scene_info().instances =
+  shaderio::GltfSceneInfo& scene_info = scene.sceneInfo();
+  scene_info.instances =
       (shaderio::GltfInstance*)
           device_resources.bInstances.address;  // Get the address of the instance buffer
-  scene.scene_info().meshes =
+  scene_info.meshes =
       (shaderio::GltfMesh*) device_resources.bMeshes.address;  // Get the address of the mesh buffer
-  scene.scene_info().materials =
+  scene_info.materials =
       (shaderio::GltfMetallicRoughness*)
           device_resources.bMaterials.address;  // Get the address of the material buffer
 
@@ -92,7 +83,7 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
   vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
-                    &scene.scene_info());
+                    &scene.sceneInfo());
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});

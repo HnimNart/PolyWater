@@ -19,13 +19,12 @@
 #include "common/path_utils.hpp"
 #include "common/timers.hpp"
 #include "core/application/App.hpp"
-#include "scene/Shared.hpp"
 
 void VulkanRendererElement::setup_scene()
 {
   common::ScopedTimer(__FUNCTION__);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
-  scene_resources.begin_uploading();
+  scene_resources.beginUploading();
 
   // Load the GLTF resources
   tinygltf::Model teapotModel =
@@ -83,7 +82,7 @@ void VulkanRendererElement::setup_scene()
   m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F}, {0.0F, 1.0F, 0.0F});
 
   // Finish uploading command
-  scene_resources.end_uploading();
+  scene_resources.endUploading();
   // build scene
   m_scene_manager.postInit();
 }
@@ -91,7 +90,7 @@ void VulkanRendererElement::setup_scene()
 void VulkanRendererElement::onAttach(core::Application* app)
 {
   m_app = app;
-  auto* backend = dynamic_cast<core::VulkanBackend*>(app->get_backend());
+  auto* backend = dynamic_cast<core::VulkanBackend*>(app->getBackend());
   assert(backend && "Backend is not VulkanBackend");
   m_renderer = std::make_shared<VulkanRenderer>(backend);
   m_scene_manager = SceneManager(m_renderer);

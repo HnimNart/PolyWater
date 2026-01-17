@@ -9,7 +9,6 @@ class IPostProcessor
 {
 public:
   virtual ~IPostProcessor() = default;
-
   shaderio::TonemapperData& data() { return m_tonemapperData; }
 
 protected:

@@ -21,13 +21,18 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
-void VulkanRaster::init(core::VulkanBackend* backend)
+VulkanRaster::VulkanRaster(core::VulkanBackend* backend)
 {
   assert(backend);
   m_backend = backend;
   createDescriptorSetLayout(m_backend->getDevice());
   createPipelineLayout(m_backend->getDevice());
   compileShaders();
+}
+
+VulkanRaster::~VulkanRaster()
+{
+  deinit();
 }
 
 void VulkanRaster::deinit()

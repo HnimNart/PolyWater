@@ -31,9 +31,8 @@ struct PushConstant;
 class VulkanRayTracer
 {
 public:
-  VulkanRayTracer() = default;
-  void init(core::VulkanBackend* backend, VulkanRaster* raster);
-  void deinit();
+  VulkanRayTracer(core::VulkanBackend* backend, VulkanRaster* raster);
+  ~VulkanRayTracer();
 
   void createPipeline(const SceneResourcesManager& scene);
 
@@ -47,9 +46,9 @@ public:
   void createRayTracingPipeline();
 
 private:
+  void deinit();
   void createShaderBindingTable(const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
 
-private:
   core::VulkanBackend* m_backend = nullptr;
   std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
   VulkanRaster* m_raster = nullptr;

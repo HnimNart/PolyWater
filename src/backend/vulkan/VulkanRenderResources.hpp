@@ -53,7 +53,7 @@ public:
   TextureID uploadTexture(const std::string& filepath) override;
   void finalizeSceneResources(gltf::Scene& resources) override;
 
-  void updateDescriptors(nvvk::DescriptorPack& descriptor_pack);
+  void updateDescriptors(nvvk::DescriptorPack& descriptorPack);
 
   // Accessors
   const std::vector<nvvk::Image>& textures() const;

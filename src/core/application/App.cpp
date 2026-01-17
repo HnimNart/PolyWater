@@ -60,6 +60,7 @@ void Application::init(ApplicationCreateInfo const& info)
   {
     m_backend->setWindow(m_windowHandle);
     m_backend->init(info);
+    m_backend->setWindowSize(m_windowSize);
   }
 
   m_running = true;
@@ -168,6 +169,7 @@ void Application::runFrame()
   }
 
   // Handle Viewport Updates
+  m_windowSize = m_backend->getWindowSize();  // We have to ask the backend as it might resize it
   WindowSize viewportSize = m_windowSize;
   const ImGuiWindow* viewport = ImGui::FindWindowByName("Viewport");
   if (viewport)

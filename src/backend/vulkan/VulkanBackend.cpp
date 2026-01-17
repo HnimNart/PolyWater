@@ -135,7 +135,9 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   }
 
   // Initialize Swapchain Resources (triggers resize logic)
-  NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
+  VkExtent2D window_size = {m_windowSize.width, m_windowSize.height};
+  NVVK_CHECK(m_swapchain.initResources(window_size, m_vsyncWanted));
+  m_windowSize = {window_size.width, window_size.height};
 
   // Initialization logic moved inside the constructor for true RAII
   VmaAllocatorCreateInfo allocatorInfo = {
@@ -261,26 +263,35 @@ void VulkanBackend::endSingleTimeCmd(VkCommandBuffer cmd)
 
 void VulkanBackend::waitForDeviceIdle()
 {
-  NVVK_CHECK(vkQueueWaitIdle(getQueueInfo(0).queue));
+  // NVVK_CHECK(vkQueueWaitIdle(getQueueInfo(0).queue));
+  VkDevice device = getDevice();
+  assert(device != VK_NULL_HANDLE);
+  NVVK_CHECK(vkDeviceWaitIdle(device));
+}
+
+void VulkanBackend::setVsync(bool enabled)
+{
+  IRenderBackend::setVsync(enabled);
+  m_swapchain.requestRebuild();
 }
 
 bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
 {
   if (m_swapchain.needRebuilding())
   {
-    NVVK_CHECK(m_swapchain.reinitResources(m_windowSize, m_vsyncWanted));
+    VkExtent2D window_size = {m_windowSize.width, m_windowSize.height};
+    NVVK_CHECK(m_swapchain.reinitResources(window_size, m_vsyncWanted));
+    m_windowSize = {window_size.width, window_size.height};
   }
 
   waitForFrameCompletion();  // Wait until GPU has finished processing
-
   // Acquire
   VkDevice device = m_vkContext.getDevice();
   VkResult res = m_swapchain.acquireNextImage(device);
-
   if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
   {
     return false;
-  }  // Continue only if we got a valid image
+  }
 
   m_frameData[m_frameRingCurrent]->frameNumber += m_swapchain.getMaxFramesInFlight();
 
@@ -470,11 +481,6 @@ void VulkanBackend::requestScreenshot(const std::filesystem::path& filename, int
                       m_swapchain.getMaxFramesInFlight();
 }
 
-void VulkanBackend::setWindowSize(const WindowSize& windowSize)
-{
-  m_windowSize = {windowSize.width, windowSize.height};
-}
-
 //-----------------------------------------------------------------------
 // We are using dynamic rendering, which is a more flexible way to render to the swapchain image.
 //
@@ -493,7 +499,7 @@ void VulkanBackend::beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const
   // Details of the dynamic rendering
   const VkRenderingInfo renderingInfo{
       .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-      .renderArea = {{0, 0}, m_windowSize},
+      .renderArea = {{0, 0}, {m_windowSize.width, m_windowSize.height}},
       .layerCount = 1,
       .colorAttachmentCount = 1,
       .pColorAttachments = &colorAttachment,

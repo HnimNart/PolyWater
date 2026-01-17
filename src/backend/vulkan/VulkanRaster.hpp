@@ -30,9 +30,8 @@ struct PushConstant;
 class VulkanRaster
 {
 public:
-  VulkanRaster() = default;
-  void init(core::VulkanBackend* backend);
-  void deinit();
+  VulkanRaster(core::VulkanBackend* backend);
+  ~VulkanRaster();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
   // Raster //
@@ -50,14 +49,13 @@ public:
   nvvk::DescriptorPack& descPack() { return m_descPack; }
 
 private:
+  void deinit();
   void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
   void clearShaders();
   void compileShaders();
 
-private:
   core::VulkanBackend* m_backend = nullptr;
-
   nvvk::DescriptorPack m_descPack{};
   VkPipelineLayout m_pipelineLayout{};
 

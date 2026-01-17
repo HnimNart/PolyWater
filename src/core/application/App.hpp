@@ -71,7 +71,11 @@ public:
   //----------------------------------------------------------
   // Rendering control (forwarded to backend)
   //----------------------------------------------------------
-  void setVsync(bool v) { m_vsyncWanted = v; }
+  void setVsync(bool v)
+  {
+    m_vsyncWanted = v;
+    m_backend->setVsync(m_vsyncWanted);
+  }
   bool isVsync() const { return m_vsyncWanted; }  // Return true if V-Sync is on
 
   //----------------------------------------------------------
@@ -82,7 +86,7 @@ public:
   inline const WindowSize& getViewportSize() const { return m_backend->getViewportSize(); }
   void onFileDrop(const std::filesystem::path& filename);
   void onResize(const WindowSize& size);
-  IRenderBackend* get_backend() const
+  IRenderBackend* getBackend() const
   {
     assert(m_backend);
     return m_backend.get();

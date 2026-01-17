@@ -8,8 +8,7 @@
 
 void AccelerationStructures::init(core::VulkanBackend* backend)
 {
-  m_asBuilder.init(&backend->allocator(), &backend->stagingUploader(),
-                   backend->get_context().getQueueInfo(0));
+  m_asBuilder.init(&backend->allocator(), &backend->stagingUploader(), backend->getQueueInfo(0));
 }
 
 void AccelerationStructures::deinit()
@@ -20,7 +19,7 @@ void AccelerationStructures::deinit()
 
 void AccelerationStructures::buildBLAS(const gltf::Scene& scene)
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
 
   // Prepare geometry information for all meshes
   std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(scene.meshes.size());
@@ -36,7 +35,7 @@ void AccelerationStructures::buildBLAS(const gltf::Scene& scene)
 
 void AccelerationStructures::buildTLAS(const gltf::Scene& scene)
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
 
   // Prepare instance data for TLAS
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
