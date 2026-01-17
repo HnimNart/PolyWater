@@ -41,6 +41,7 @@ public:
   // --------------------------------------------------
   shaderio::TonemapperData& tonemapper();
   glm::vec2& metallic_roughness();
+  shaderio::GltfSceneInfo& scene_info();
 
   // --------------------------------------------------
   // Camera

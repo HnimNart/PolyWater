@@ -5,14 +5,14 @@
 
 // Third Party
 #include <imgui/imgui.h>
+#include <shaders/shaderio.h>
 #include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan.h>
 
-// Project Headers
-#include <shaders/shaderio.h>
-
+#include <glm/gtc/type_ptr.hpp>
 #include <nvgui/camera.hpp>
 #include <nvgui/property_editor.hpp>
+#include <nvgui/sky.hpp>
 #include <nvgui/tonemapper.hpp>
 
 #include "backend/vulkan/VulkanRenderer.hpp"
@@ -101,7 +101,6 @@ void VulkanRendererElement::onAttach(core::Application* app)
 void VulkanRendererElement::onDetach()
 {
   m_scene_manager.clear();
-  // Cleanup if necessary
 }
 
 void VulkanRendererElement::onResize(WindowSize size)
@@ -121,8 +120,7 @@ void VulkanRendererElement::onUIMenu()
 
   if (reload)
   {
-    // vkQueueWaitIdle(m_app->getQueue(0).queue);
-    // m_scene_manager->reload(m_useRayTracing);
+    m_scene_manager.reload(m_useRayTracing);
   }
 }
 
@@ -143,70 +141,57 @@ void VulkanRendererElement::onUIRender()
   {
     // Ray tracing toggle
     ImGui::Checkbox("Use Ray Tracing", &m_useRayTracing);
+    if (ImGui::CollapsingHeader("Camera"))
+    {
+      nvgui::CameraWidget(m_scene_manager.camera());
+    }
+    if (ImGui::CollapsingHeader("Environment"))
+    {
+      ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager.scene_info().useSky);
+      if (m_scene_manager.scene_info().useSky)
+        nvgui::skySimpleParametersUI(m_scene_manager.scene_info().skySimpleParam);
+      else
+      {
+        PE::begin();
+        PE::ColorEdit3("Background", (float*) &m_scene_manager.scene_info().backgroundColor);
+        PE::end();
+        // Light
+        PE::begin();
+        if (m_scene_manager.scene_info().punctualLights[0].type ==
+                shaderio::GltfLightType::ePoint ||
+            m_scene_manager.scene_info().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        {
+          PE::DragFloat3("Light Position",
+                         glm::value_ptr(m_scene_manager.scene_info().punctualLights[0].position),
+                         1.0f, -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None,
+                         "Position of the light");
+        }
+        if (m_scene_manager.scene_info().punctualLights[0].type ==
+                shaderio::GltfLightType::eDirectional ||
+            m_scene_manager.scene_info().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        {
+          PE::SliderFloat3("Light Direction",
+                           glm::value_ptr(m_scene_manager.scene_info().punctualLights[0].direction),
+                           -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None, "Direction of the light");
+        }
 
-    // if (ImGui::CollapsingHeader("Camera"))
-    // {
-    //   nvgui::CameraWidget(m_scene_manager.camera());
-    // }
-    // if (ImGui::CollapsingHeader("Environment"))
-    // {
-    //   ImGui::Checkbox("Use Sky", (bool*) &m_scene_manager->gltf_resources().sceneInfo.useSky);
-    //   if (m_scene_manager->gltf_resources().sceneInfo.useSky)
-    //     nvgui::skySimpleParametersUI(m_scene_manager->gltf_resources().sceneInfo.skySimpleParam);
-    //   else
-    //   {
-    //     PE::begin();
-    //     PE::ColorEdit3("Background",
-    //                    (float*) &m_scene_manager->gltf_resources().sceneInfo.backgroundColor);
-    //     PE::end();
-    //     // Light
-    //     PE::begin();
-    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
-    //             shaderio::GltfLightType::ePoint ||
-    //         m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
-    //             shaderio::GltfLightType::eSpot)
-    //     {
-    //       PE::DragFloat3(
-    //           "Light Position",
-    //           glm::value_ptr(
-    //               m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].position),
-    //           1.0f, -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None, "Position of the light");
-    //     }
-    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
-    //             shaderio::GltfLightType::eDirectional ||
-    //         m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
-    //             shaderio::GltfLightType::eSpot)
-    //     {
-    //       PE::SliderFloat3(
-    //           "Light Direction",
-    //           glm::value_ptr(
-    //               m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].direction),
-    //           -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None, "Direction of the light");
-    //     }
-
-    //     PE::SliderFloat("Light Intensity",
-    //                     &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].intensity,
-    //                     0.0f, 1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic,
-    //                     "Intensity of the light");
-    //     PE::ColorEdit3(
-    //         "Light Color",
-    //         glm::value_ptr(m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].color),
-    //         ImGuiColorEditFlags_NoInputs, "Color of the light");
-    //     PE::Combo("Light Type",
-    //               (int*) &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type,
-    //               "Point\0Spot\0Directional\0", 3, "Type of the light (Point, Spot,
-    //               Directional)");
-    //     if (m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].type ==
-    //         shaderio::GltfLightType::eSpot)
-    //     {
-    //       PE::SliderAngle("Cone Angle",
-    //                       &m_scene_manager->gltf_resources().sceneInfo.punctualLights[0].coneAngle,
-    //                       0.f, 90.f, "%.2f", ImGuiSliderFlags_AlwaysClamp,
-    //                       "Cone angle of the spot light");
-    //     }
-    //     PE::end();
-    //   }
-    // }
+        PE::SliderFloat("Light Intensity",
+                        &m_scene_manager.scene_info().punctualLights[0].intensity, 0.0f, 1000.0f,
+                        "%.2f", ImGuiSliderFlags_Logarithmic, "Intensity of the light");
+        PE::ColorEdit3("Light Color",
+                       glm::value_ptr(m_scene_manager.scene_info().punctualLights[0].color),
+                       ImGuiColorEditFlags_NoInputs, "Color of the light");
+        PE::Combo("Light Type", (int*) &m_scene_manager.scene_info().punctualLights[0].type,
+                  "Point\0Spot\0Directional\0", 3, "Type of the light (Point, Spot, Directional) ");
+        if (m_scene_manager.scene_info().punctualLights[0].type == shaderio::GltfLightType::eSpot)
+        {
+          PE::SliderAngle("Cone Angle", &m_scene_manager.scene_info().punctualLights[0].coneAngle,
+                          0.f, 90.f, "%.2f", ImGuiSliderFlags_AlwaysClamp,
+                          "Cone angle of the spot light");
+        }
+        PE::end();
+      }
+    }
     if (ImGui::CollapsingHeader("Tonemapper"))
     {
       nvgui::tonemapperWidget(m_scene_manager.tonemapper());

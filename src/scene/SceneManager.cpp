@@ -101,6 +101,11 @@ glm::vec2& SceneManager::metallic_roughness()
   return m_metallicRoughnessOverride;
 }
 
+shaderio::GltfSceneInfo& SceneManager::scene_info()
+{
+  return m_scene_resources.scene_info();
+}
+
 // --------------------------------------------------
 // Camera
 // --------------------------------------------------

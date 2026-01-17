@@ -66,6 +66,7 @@ void VulkanRenderer::deinit()
 
 void VulkanRenderer::reload(bool use_raytracing)
 {
+  vkQueueWaitIdle(m_backend->getQueueInfo(0).queue);
   use_raytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
 }
 
