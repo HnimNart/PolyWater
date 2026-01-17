@@ -73,5 +73,4 @@ private:
   std::unique_ptr<VulkanRayTracer> m_ray_tracer;
   std::unique_ptr<VulkanPostProcessor> m_post;
   std::shared_ptr<VulkanRenderResources> m_resources;
-  std::shared_ptr<SlangShaderCompiler> m_compiler;
 };

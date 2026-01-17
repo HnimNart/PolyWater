@@ -25,7 +25,6 @@ void VulkanRaster::init(core::VulkanBackend* backend)
 {
   assert(backend);
   m_backend = std::move(backend);
-  m_compiler = m_backend->get_slang_compiler();
   createDescriptorSetLayout(m_backend->getDevice());
   createPipelineLayout(m_backend->getDevice());
   compileShaders();
@@ -214,7 +213,8 @@ void VulkanRaster::compileShaders()
   common::ScopedTimer(__FUNCTION__);
 
   // Compile Shader
-  VkShaderModuleCreateInfo shaderCode = m_compiler->compile("foundation.slang", foundation_slang);
+  VkShaderModuleCreateInfo shaderCode =
+      SlangCompiler::instance().compile("foundation.slang", foundation_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,

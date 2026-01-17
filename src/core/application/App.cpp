@@ -9,7 +9,6 @@
 #undef APIENTRY
 
 #include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
 #include <fmt/ranges.h>
 #include <imgui_internal.h>
 #include <implot/implot.h>
@@ -18,11 +17,6 @@
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 #include <nvutils/timers.hpp>
-#include <nvvk/barriers.hpp>
-#include <nvvk/check_error.hpp>
-#include <nvvk/commands.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/helpers.hpp>
 
 #include "backend/FrameContext.hpp"
 #include "backend/IRenderBackend.hpp"
@@ -202,7 +196,6 @@ void Application::runFrame()
 
   if (m_backend->beginFrame(frameCtx))
   {
-    // 4. Backend Logic & GPU Command Recording
     m_backend->renderFrame(m_elements, frameCtx);
     m_backend->endFrame(frameCtx);
     m_backend->present();

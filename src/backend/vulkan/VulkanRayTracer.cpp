@@ -22,7 +22,6 @@
 void VulkanRayTracer::init(core::VulkanBackend* backend, VulkanRaster* raster)
 {
   m_backend = std::move(backend);
-  m_compiler = m_backend->get_slang_compiler();
   m_raster = raster;
 }
 
@@ -101,7 +100,8 @@ void VulkanRayTracer::createRayTracingPipeline()
     s.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
   // Compile shader, fallback to pre-compiled
-  VkShaderModuleCreateInfo shaderCode = m_compiler->compile("rtbasic.slang", rtbasic_slang);
+  VkShaderModuleCreateInfo shaderCode =
+      SlangCompiler::instance().compile("rtbasic.slang", rtbasic_slang);
 
   stages[eRaygen].pNext = &shaderCode;
   stages[eRaygen].pName = "rgenMain";

@@ -18,9 +18,7 @@ namespace core
 class VulkanBackend final : public IRenderBackend
 {
 public:
-  static std::unique_ptr<VulkanBackend>
-  create(const core::ApplicationCreateInfo& appInfo,  // Pass by const reference
-         const std::vector<std::filesystem::path>& shaderDirs);
+  static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
 
   bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 
@@ -68,12 +66,10 @@ public:
   VkDevice getDevice() const { return m_vkContext.getDevice(); }
   VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
 
-  std::shared_ptr<SlangShaderCompiler> get_slang_compiler() const { return m_compiler; }
-
   const VkExtent2D& get_view_port_size() const { return m_windowSize; }
 
 private:
-  VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler);
+  VulkanBackend() = default;
 
   void setupImGuiVulkanBackend(ImGuiConfigFlags configFlags);
   void createFrameSubmission(uint32_t numFrames);
@@ -81,8 +77,6 @@ private:
 
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
-
-  std::shared_ptr<SlangShaderCompiler> m_compiler{};
 
   // Vulkan resources
   nvvk::Context m_vkContext{};

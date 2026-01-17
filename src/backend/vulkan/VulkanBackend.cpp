@@ -19,12 +19,9 @@
 namespace core
 {
 
-std::unique_ptr<VulkanBackend>
-VulkanBackend::create(const core::ApplicationCreateInfo& appInfo,
-                      const std::vector<std::filesystem::path>& shaderDirs)
+std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
 {
-  auto compiler = std::make_shared<SlangShaderCompiler>(shaderDirs);
-  auto backend = std::unique_ptr<VulkanBackend>(new VulkanBackend(compiler));
+  auto backend = std::unique_ptr<VulkanBackend>(new VulkanBackend());
   if (!backend->initVulkan(appInfo))
   {
     return nullptr;
@@ -33,49 +30,44 @@ VulkanBackend::create(const core::ApplicationCreateInfo& appInfo,
   return backend;
 }
 
-VulkanBackend::VulkanBackend(std::shared_ptr<SlangShaderCompiler> compiler) :
-    m_compiler(std::move(compiler))
-{
-}
-
 // ------------------------------------------------------------------
 // Init Helper: Initializes the member variable directly.
 // ------------------------------------------------------------------
 bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 {
-  // Setting up the Vulkan context, instance and device extensions
-  static VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
+  // 1. Define Feature Structs
+  VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 
-  // Add ray tracing features
-  static VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
-  static VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 
-  nvvk::ContextInitInfo vkSetup{
-      .instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
-      .deviceExtensions =
-          {
-              {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
-              {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
-              {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-               &accelFeature},  // Build acceleration structures
-              {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-               &rtPipelineFeature},                              // Use vkCmdTraceRaysKHR
-              {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},  // Required by ray tracing pipeline
-          },
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+
+  // 2. Setup Validation Settings
+  nvvk::ValidationSettings validationSettings;
+  validationSettings.setPreset(nvvk::ValidationSettings::LayerPresets::eStandard);
+
+  // 3. Configure Context
+  nvvk::ContextInitInfo vkSetup;
+  vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
+  vkSetup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+  vkSetup.deviceExtensions = {
+      {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
+      {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
+      {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, &accelFeature},
+      {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, &rtPipelineFeature},
+      {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},
   };
+
   if (!appInfo.headless)
   {
     nvvk::addSurfaceExtensions(vkSetup.instanceExtensions, &vkSetup.deviceExtensions);
   }
 
-  // Adding control on the validation layers
-  static nvvk::ValidationSettings validationSettings;
-  validationSettings.setPreset(nvvk::ValidationSettings::LayerPresets::eStandard);
-  vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
-
+  // 4. Initialize
   VkResult result = m_vkContext.init(vkSetup);
   if (result != VK_SUCCESS)
   {
@@ -145,12 +137,6 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
 
   // Initialize Swapchain Resources (triggers resize logic)
   NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
-
-  // 5. Finalize High-Level Wrappers
-  // TODO context should be initialized by VulkanSceneRenderer
-  // m_context = VulkanContext::create(m_vkContext, m_descriptorPool,
-  //                                   {m_viewportSize.width, m_viewportSize.height}, m_compiler);
-  // m_render = std::make_shared<VulkanSceneRenderer>(this);
 
   // Initialization logic moved inside the constructor for true RAII
   VmaAllocatorCreateInfo allocatorInfo = {

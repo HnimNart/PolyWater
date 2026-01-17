@@ -61,7 +61,6 @@ private:
 
 private:
   core::VulkanBackend* m_backend = nullptr;
-  std::shared_ptr<SlangShaderCompiler> m_compiler = nullptr;
 
   nvvk::DescriptorPack m_descPack{};
   VkPipelineLayout m_pipelineLayout{};

@@ -25,7 +25,6 @@ VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
 {
   // Initialize unique_ptrs
   m_backend = backend;
-  m_compiler = m_backend->get_slang_compiler();
   m_resources = std::make_shared<VulkanRenderResources>(m_backend);
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();

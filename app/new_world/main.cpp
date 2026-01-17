@@ -55,9 +55,11 @@ int main(int argc, char** argv)
   cli.add(reg);
   cli.parse(argc, argv);
 
+  // Initialize compiler
+  SlangCompiler::instance().init(nvsamples::getShaderDirs());
+
   // Initialize the Vulkan context
-  std::unique_ptr<core::VulkanBackend> backend =
-      core::VulkanBackend::create(appInfo, nvsamples::getShaderDirs());
+  std::unique_ptr<core::VulkanBackend> backend = core::VulkanBackend::create(appInfo);
   assert(backend);
 
   // Setting up the application
