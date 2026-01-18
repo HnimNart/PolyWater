@@ -25,7 +25,10 @@ VulkanRaster::VulkanRaster(core::VulkanBackend* backend)
 {
   assert(backend);
   m_backend = backend;
-  createDescriptorSetLayout(m_backend->getDevice());
+}
+
+void VulkanRaster::init()
+{
   createPipelineLayout(m_backend->getDevice());
   compileShaders();
 }
@@ -37,7 +40,6 @@ VulkanRaster::~VulkanRaster()
 
 void VulkanRaster::deinit()
 {
-  m_descPack.deinit();
   vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
   vkDestroyShaderEXT(m_backend->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_backend->getDevice(), m_fragmentShader, nullptr);
@@ -109,7 +111,7 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
-      .pDescriptorSets = m_descPack.getSetPtr()};
+      .pDescriptorSets = m_descPack->getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // ** BEGIN RENDERING **
@@ -162,30 +164,15 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
 }
 
+void VulkanRaster::setDescriptorPack(nvvk::DescriptorPack* descPack)
+{
+  m_descPack = descPack;
+}
+
 void VulkanRaster::reload()
 {
   clearShaders();
   compileShaders();
-}
-
-void VulkanRaster::createDescriptorSetLayout(VkDevice device)
-{
-  nvvk::DescriptorBindings bindings;
-  bindings.addBinding({.binding = shaderio::BindingPoints::eTextures,
-                       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                       .descriptorCount = 10,
-                       .stageFlags = VK_SHADER_STAGE_ALL},
-                      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-                          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-
-  m_descPack.init(bindings, device, 1, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
-                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
-                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-
-  NVVK_DBG_NAME(m_descPack.getLayout());
-  NVVK_DBG_NAME(m_descPack.getPool());
-  NVVK_DBG_NAME(m_descPack.getSet(0));
 }
 
 void VulkanRaster::createPipelineLayout(VkDevice device)
@@ -197,7 +184,7 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = 1,
-      .pSetLayouts = m_descPack.getLayoutPtr(),
+      .pSetLayouts = m_descPack->getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
@@ -232,7 +219,7 @@ void VulkanRaster::compileShaders()
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
       .pName = "main",
       .setLayoutCount = 1,
-      .pSetLayouts = descPack().getLayoutPtr(),
+      .pSetLayouts = m_descPack->getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };

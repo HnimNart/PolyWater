@@ -3,8 +3,6 @@
 #include <GLFW/glfw3.h>
 #include <volk/volk.h>
 
-#include <iostream>
-
 #include <nvgui/style.hpp>
 #undef APIENTRY
 
@@ -31,7 +29,6 @@ Application::Application(ApplicationCreateInfo const& info,
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
-
   init(info);
 }
 

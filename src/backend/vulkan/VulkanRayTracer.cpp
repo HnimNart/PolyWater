@@ -20,10 +20,9 @@
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-VulkanRayTracer::VulkanRayTracer(core::VulkanBackend* backend, VulkanRaster* raster)
+VulkanRayTracer::VulkanRayTracer(core::VulkanBackend* backend)
 {
   m_backend = backend;
-  m_raster = raster;
 }
 
 VulkanRayTracer::~VulkanRayTracer()
@@ -35,10 +34,15 @@ void VulkanRayTracer::deinit()
 {
   vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
   vkDestroyPipeline(m_backend->getDevice(), m_pipeline, nullptr);
-  m_descPack.deinit();
+  m_RayTraceDescPack.deinit();
   m_backend->allocator().destroyBuffer(m_sbtBuffer);
   m_sbtGenerator.deinit();
   m_accel.deinit();
+}
+
+void VulkanRayTracer::init(const SceneResourcesManager& scene)
+{
+  createPipeline(scene);
 }
 
 void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
@@ -82,8 +86,8 @@ void VulkanRayTracer::createRaytraceDescriptorLayout()
                        .stageFlags = VK_SHADER_STAGE_ALL});
 
   // Creating a PUSH descriptor set and set layout from the bindings
-  m_descPack.init(bindings, m_backend->getDevice(), 0,
-                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
+  m_RayTraceDescPack.init(bindings, m_backend->getDevice(), 0,
+                          VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 }
 
 void VulkanRayTracer::createRayTracingPipeline()
@@ -154,7 +158,7 @@ void VulkanRayTracer::createRayTracingPipeline()
 
   // Descriptor sets
   std::array<VkDescriptorSetLayout, 2> layouts = {
-      {m_raster->descPack().getLayout(), m_descPack.getLayout()}};
+      {m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
   vkCreatePipelineLayout(m_backend->getDevice(), &pipeline_layout_create_info, nullptr,
@@ -216,13 +220,13 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
-      .pDescriptorSets = m_raster->descPack().getSetPtr()};
+      .pDescriptorSets = m_sharedDescPack->getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // Push descriptor sets for ray tracing
   nvvk::WriteSetContainer write{};
-  write.append(m_descPack.makeWrite(shaderio::BindingPoints::eTlas), m_accel.tlas());
-  write.append(m_descPack.makeWrite(shaderio::BindingPoints::eOutImage),
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas), m_accel.tlas());
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
                gBuffers.getColorImageView(eImgRendered), VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 1,
                             write.size(), write.data());
@@ -244,4 +248,9 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   // Memory Barrier for Tonemapper
   nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
                          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
+}
+
+void VulkanRayTracer::setDescriptorPack(nvvk::DescriptorPack* descPack)
+{
+  m_sharedDescPack = descPack;
 }

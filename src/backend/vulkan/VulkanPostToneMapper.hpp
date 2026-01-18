@@ -6,28 +6,25 @@
 
 #include <nvvk/gbuffers.hpp>
 
-#include "_autogen/tonemapper.slang.h"
 #include "backend/vulkan/VulkanBackend.hpp"
 #include "shaders/post/IToneMapper.hpp"
 
 class VulkanPostProcessor : public IPostProcessor
 {
 public:
-  VulkanPostProcessor(core::VulkanBackend* backend)
-  {
-    m_tonemapper.init(&backend->allocator(), std::span(tonemapper_slang));
-  }
+  explicit VulkanPostProcessor(core::VulkanBackend* backend);
+  ~VulkanPostProcessor() override;
 
-  ~VulkanPostProcessor() override { deinit(); }
+  void init();
+  void deinit();
+  void run(VkCommandBuffer cmd, nvvk::GBuffer& gBuffers);
 
-  void run(VkCommandBuffer cmd, nvvk::GBuffer& mGBuffers)
-  {
-    m_tonemapper.runCompute(cmd, mGBuffers.getSize(), m_tonemapperData,
-                            mGBuffers.getDescriptorImageInfo(0),
-                            mGBuffers.getDescriptorImageInfo(1));
-  }
+  // Explicitly non-copyable
+  VulkanPostProcessor(const VulkanPostProcessor&) = delete;
+  VulkanPostProcessor& operator=(const VulkanPostProcessor&) = delete;
 
 private:
-  void deinit() { m_tonemapper.deinit(); }
+  core::VulkanBackend* m_backend = nullptr;
   nvshaders::Tonemapper m_tonemapper{};
+  bool m_initialized = false;
 };

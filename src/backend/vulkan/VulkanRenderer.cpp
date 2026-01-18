@@ -25,7 +25,7 @@ VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
   m_raster = std::make_unique<VulkanRaster>(m_backend);
-  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_backend, m_raster.get());
+  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_backend);
   m_post = std::make_unique<VulkanPostProcessor>(m_backend);
 }
 
@@ -37,18 +37,27 @@ VulkanRenderer::~VulkanRenderer() = default;
 void VulkanRenderer::init(const SceneResourcesManager& scene)
 {
   initGBuffers();
-  m_resources->updateDescriptors(m_raster->descPack());
-  m_ray_tracer->createPipeline(scene);
+  createDescriptorSetLayout(m_backend->getDevice());
+  m_resources->updateDescriptors(m_descPack);
+
+  m_raster->setDescriptorPack(&m_descPack);
+  m_raster->init();
+
+  m_ray_tracer->setDescriptorPack(&m_descPack);
+  m_ray_tracer->init(scene);
+
+  m_post->init();
 }
 
 void VulkanRenderer::deinit()
 {
   m_backend->waitForDeviceIdle();
 
-  m_raster.reset();
   m_ray_tracer.reset();
+  m_raster.reset();
   m_post.reset();
 
+  m_descPack.deinit();
   m_gBuffers->deinit();
   m_resources->deinit();
 }
@@ -147,6 +156,26 @@ void VulkanRenderer::initGBuffers()
       .descriptorPool = m_backend->descriptorPool()};
 
   m_gBuffers->init(info);
+}
+
+void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
+{
+  nvvk::DescriptorBindings bindings;
+  bindings.addBinding({.binding = shaderio::BindingPoints::eTextures,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                       .descriptorCount = 10,
+                       .stageFlags = VK_SHADER_STAGE_ALL},
+                      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+                          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+
+  m_descPack.init(bindings, device, 1, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
+                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+  NVVK_DBG_NAME(m_descPack.getLayout());
+  NVVK_DBG_NAME(m_descPack.getPool());
+  NVVK_DBG_NAME(m_descPack.getSet(0));
 }
 
 // ---------------------------------------------------------------------------

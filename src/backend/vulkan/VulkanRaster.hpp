@@ -32,7 +32,8 @@ class VulkanRaster
 public:
   VulkanRaster(core::VulkanBackend* backend);
   ~VulkanRaster();
-  void resize(VkCommandBuffer cmd, VkExtent2D size);
+
+  void init();
 
   // Raster //
   //---------------------------------------------------------------------------------------------------------------
@@ -44,9 +45,10 @@ public:
               shaderio::PushConstant& pushConstants) const;
 
   void reload();
+  void resize(VkCommandBuffer cmd, VkExtent2D size);
 
   const nvvk::GBuffer& gbuffer() const;
-  nvvk::DescriptorPack& descPack() { return m_descPack; }
+  void setDescriptorPack(nvvk::DescriptorPack* descPack);
 
 private:
   void deinit();
@@ -56,7 +58,7 @@ private:
   void compileShaders();
 
   core::VulkanBackend* m_backend = nullptr;
-  nvvk::DescriptorPack m_descPack{};
+  nvvk::DescriptorPack* m_descPack = nullptr;
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};

@@ -62,13 +62,16 @@ private:
   void initGBuffers();
   shaderio::GltfSceneInfo* updateSceneBuffer(VkCommandBuffer cmd,
                                              SceneResourcesManager& scene) const;
+  void createDescriptorSetLayout(VkDevice device);
 
-private:
+  // Data
+  nvvk::DescriptorPack m_descPack{};
+
   core::VulkanBackend* m_backend = nullptr;
 
+  std::shared_ptr<VulkanRenderResources> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<VulkanRaster> m_raster;
   std::unique_ptr<VulkanRayTracer> m_ray_tracer;
   std::unique_ptr<VulkanPostProcessor> m_post;
-  std::shared_ptr<VulkanRenderResources> m_resources;
 };
