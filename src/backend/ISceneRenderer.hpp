@@ -19,10 +19,12 @@ public:
                       shaderio::PushConstant& pushValues) const = 0;
   virtual void postProcess() = 0;
   virtual void reload(bool useRaytracing) = 0;
+  virtual void onResize(const WindowSize& size) {};
 
   virtual std::shared_ptr<IDeviceResources> deviceResources() noexcept {};
-
   virtual IPostProcessor& postProcessor() noexcept = 0;
-  virtual void onResize(const WindowSize& size) {};
-  virtual core::Image getImage(uint32_t index) const = 0;
+
+  // Output
+  virtual void* getImageDescriptor(uint32_t index) const = 0;
+  virtual void saveImage(const std::filesystem::path& filename, int quality = 100) const = 0;
 };

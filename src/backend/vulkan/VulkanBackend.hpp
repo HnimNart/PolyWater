@@ -28,7 +28,7 @@ public:
 
   VkCommandBuffer startSingleTimeCmd();
   void endSingleTimeCmd(VkCommandBuffer cmd);
-  void waitForDeviceIdle();
+  void waitForDeviceIdle() override;
 
   VkCommandBuffer getActiveCmd() const;
 
@@ -37,6 +37,7 @@ public:
                    FrameContext const& frame) override;
   void endFrame(FrameContext const& frame) override;
   void present() override;
+  void advance() override;
 
   void requestScreenshot(const std::filesystem::path& filename, int quality) override;
 
@@ -64,12 +65,13 @@ private:
   VulkanBackend() = default;
   bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 
-  void setupImGuiVulkanBackend(ImGuiConfigFlags configFlags);
+  void setupImGuiVulkanBackend();
   void createFrameSubmission(uint32_t numFrames);
   void waitForFrameCompletion() const;
 
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
+  void renderToSwapchain(VkCommandBuffer cmd);
 
   // Vulkan resources
   nvvk::Context m_vkContext{};

@@ -9,6 +9,7 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
+#include <nvvk/helpers.hpp>
 #include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
@@ -25,7 +26,6 @@ std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCrea
   {
     return nullptr;
   }
-
   return backend;
 }
 
@@ -61,7 +61,8 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
       {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME},
   };
 
-  if (!appInfo.headless)
+  m_headless = appInfo.headless;
+  if (!m_headless)
   {
     nvvk::addSurfaceExtensions(vkSetup.instanceExtensions, &vkSetup.deviceExtensions);
   }
@@ -80,7 +81,7 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 void VulkanBackend::init(const core::ApplicationCreateInfo& info)
 {
   // Validate window handle before surface creation
-  if (!m_windowHandle)
+  if (!m_windowHandle && !m_headless)
   {
     throw std::runtime_error("VulkanBackend initialized without a valid GLFW window.");
   }
@@ -90,10 +91,7 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   VkInstance instance = m_vkContext.getInstance();
   const nvvk::QueueInfo& graphicsQueue = m_vkContext.getQueueInfo(0);
 
-  // 1. Create Window Surface
-  NVVK_CHECK(glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
-
-  // 2. Create Transient Command Pool
+  // 1. Create Transient Command Pool
   const VkCommandPoolCreateInfo cmdPoolInfo{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -102,7 +100,7 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   NVVK_CHECK(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &m_transientCmdPool));
   NVVK_DBG_NAME(m_transientCmdPool);
 
-  // 3. Create Descriptor Pool
+  // 2. Create Descriptor Pool
   const std::array<VkDescriptorPoolSize, 1> poolSizes{{
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_maxTexturePool},
   }};
@@ -118,26 +116,41 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   NVVK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_descriptorPool));
   NVVK_DBG_NAME(m_descriptorPool);
 
-  // 4. Create Swapchain
-  nvvk::Swapchain::InitInfo swapChainInit{
-      .physicalDevice = physicalDevice,
-      .device = device,
-      .surface = m_surface,
-      .queue = graphicsQueue,
-      .cmdPool = m_transientCmdPool,
-  };
-
-  const VkResult result = m_swapchain.init(swapChainInit);
-  if (result != VK_SUCCESS)
+  if (!m_headless)  // Could maybe check m_windohandle?
   {
-    vk_utils::reportSwapchainDiagnostics(instance, swapChainInit);
-    nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__, __LINE__);
-  }
+    // 3. Create Window Surface
+    NVVK_CHECK(glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
 
-  // Initialize Swapchain Resources (triggers resize logic)
-  VkExtent2D window_size = {m_windowSize.width, m_windowSize.height};
-  NVVK_CHECK(m_swapchain.initResources(window_size, m_vsyncWanted));
-  m_windowSize = {window_size.width, window_size.height};
+    // 4. Create Swapchain
+    nvvk::Swapchain::InitInfo swapChainInit{
+        .physicalDevice = physicalDevice,
+        .device = device,
+        .surface = m_surface,
+        .queue = graphicsQueue,
+        .cmdPool = m_transientCmdPool,
+    };
+
+    const VkResult result = m_swapchain.init(swapChainInit);
+    if (result != VK_SUCCESS)
+    {
+      vk_utils::reportSwapchainDiagnostics(instance, swapChainInit);
+      nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__, __LINE__);
+    }
+
+    // Initialize Swapchain Resources (triggers resize logic)
+    VkExtent2D window_size = {m_windowSize.width, m_windowSize.height};
+    NVVK_CHECK(m_swapchain.initResources(window_size, m_vsyncWanted));
+    m_windowSize = {window_size.width, window_size.height};
+
+    // 6. Create Frame Submission Sync Objects
+    createFrameSubmission(m_swapchain.getMaxFramesInFlight());
+  }
+  else
+  {
+    // In headless mode, there's only 2 pipeline stages (CPU and GPU, no display),
+    // so we double instead of triple-buffer.
+    createFrameSubmission(2);
+  }
 
   // Initialization logic moved inside the constructor for true RAII
   VmaAllocatorCreateInfo allocatorInfo = {
@@ -154,10 +167,7 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
   // Initialize staging uploader with the allocator
   m_stagingUploader.init(&m_allocator);
 
-  // 6. Create Frame Submission Sync Objects
-  createFrameSubmission(m_swapchain.getMaxFramesInFlight());
-
-  setupImGuiVulkanBackend(info.imguiConfigFlags);
+  setupImGuiVulkanBackend();
 }
 
 void VulkanBackend::deinit()
@@ -167,7 +177,11 @@ void VulkanBackend::deinit()
   NVVK_CHECK(vkDeviceWaitIdle(device));
 
   ImGui_ImplVulkan_Shutdown();
-  m_swapchain.deinit();
+  if (!m_headless)
+  {
+    m_swapchain.deinit();
+    vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
+  }
   for (auto& data : m_frameData)
   {
     vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
@@ -179,32 +193,22 @@ void VulkanBackend::deinit()
   vkDestroyCommandPool(device, m_transientCmdPool, nullptr);
   vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
 
-  vkDestroySurfaceKHR(m_vkContext.getInstance(), m_surface, nullptr);
-
   vkDeviceWaitIdle(device);
   m_stagingUploader.deinit();
   m_allocator.deinit();
   m_vkContext.deinit();
 }
 
-void VulkanBackend::setupImGuiVulkanBackend(ImGuiConfigFlags configFlags)
+void VulkanBackend::setupImGuiVulkanBackend()
 {
   static VkFormat imageFormats =
       VK_FORMAT_B8G8R8A8_UNORM;  // Must be static for ImGui_ImplVulkan_InitInfo
 
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags = configFlags;
-  // if (m_headless)
-  // {
-  //   io.ConfigFlags &=
-  //       ~ImGuiConfigFlags_ViewportsEnable;  // In headless mode, we don't allow other viewport
-  // }
-
-  // if (!m_headless)
-  // {
-  ImGui_ImplGlfw_InitForVulkan(m_windowHandle, true);
-  imageFormats = m_swapchain.getImageFormat();
-  // }
+  if (!m_headless)
+  {
+    ImGui_ImplGlfw_InitForVulkan(m_windowHandle, true);
+    imageFormats = m_swapchain.getImageFormat();
+  }
 
   // ImGui Initialization for Vulkan
   ImGui_ImplVulkan_InitInfo initInfo = {
@@ -245,7 +249,6 @@ void VulkanBackend::waitForFrameCompletion() const
 
 void VulkanBackend::newFrame()
 {
-  IRenderBackend::newFrame();
   ImGui_ImplVulkan_NewFrame();
 }
 
@@ -277,7 +280,7 @@ void VulkanBackend::setVsync(bool enabled)
 
 bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
 {
-  if (m_swapchain.needRebuilding())
+  if (!m_headless && m_swapchain.needRebuilding())
   {
     VkExtent2D window_size = {m_windowSize.width, m_windowSize.height};
     NVVK_CHECK(m_swapchain.reinitResources(window_size, m_vsyncWanted));
@@ -285,15 +288,20 @@ bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
   }
 
   waitForFrameCompletion();  // Wait until GPU has finished processing
-  // Acquire
+
   VkDevice device = m_vkContext.getDevice();
-  VkResult res = m_swapchain.acquireNextImage(device);
-  if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
+  if (!m_headless)
   {
-    return false;
+    // Acquire
+    VkResult res = m_swapchain.acquireNextImage(device);
+    if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
+    {
+      return false;
+    }
   }
 
-  m_frameData[m_frameRingCurrent]->frameNumber += m_swapchain.getMaxFramesInFlight();
+  // TODO is this safe?
+  m_frameData[m_frameRingCurrent]->frameNumber += m_frameData.size();
 
   // Prepare Command Buffer
   auto& frame = m_frameData[m_frameRingCurrent];
@@ -344,13 +352,20 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
   {
     e->onEndFrame(static_cast<FrameContext*>(ctx));
   }
+  if (!m_headless)
+  {
+    renderToSwapchain(cmd);
+  }
+}
 
+void VulkanBackend::renderToSwapchain(VkCommandBuffer cmd)
+{
   // Start rendering to the swapchain
   beginDynamicRenderingToSwapchain(cmd);
   {
     nvvk::DebugUtil::ScopedCmdLabel scopedCmdLabel(cmd, "ImGui");
-    // The ImGui draw commands are recorded to the command buffer, which includes the display of our
-    // GBuffer image
+    // The ImGui draw commands are recorded to the command buffer, which includes the display of
+    // our GBuffer image
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
   }
   endDynamicRenderingToSwapchain(cmd);
@@ -411,6 +426,10 @@ void VulkanBackend::endFrame(FrameContext const& /* frame */)
 void VulkanBackend::present()
 {
   m_swapchain.presentFrame(m_vkContext.getQueueInfo(0).queue);
+}
+
+void VulkanBackend::advance()
+{
   m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
 }
 

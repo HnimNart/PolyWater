@@ -30,13 +30,14 @@ public:
   void onUIMenu() override;
   void onRender(FrameContext* ctx) override;
   void onEndFrame(const FrameContext* frame) override;
+  void onLastHeadlessFrame() override;
 
   // Accessor
   CameraPtr getCameraManipulator();
 
 private:
   // Custom methods
-  void setup_scene();
+  void setupScene();
 
 private:
   // Application and core components

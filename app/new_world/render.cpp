@@ -20,7 +20,7 @@
 #include "common/timers.hpp"
 #include "core/application/App.hpp"
 
-void VulkanRendererElement::setup_scene()
+void VulkanRendererElement::setupScene()
 {
   common::ScopedTimer(__FUNCTION__);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
@@ -94,7 +94,7 @@ void VulkanRendererElement::onAttach(core::Application* app)
   assert(backend && "Backend is not VulkanBackend");
   m_renderer = std::make_shared<VulkanRenderer>(backend);
   m_scene_manager = SceneManager(m_renderer);
-  setup_scene();
+  setupScene();
 }
 
 void VulkanRendererElement::onDetach()
@@ -130,7 +130,7 @@ void VulkanRendererElement::onUIRender()
   // Display the rendering GBuffer in the ImGui window ("Viewport")
   if (ImGui::Begin("Viewport"))
   {
-    ImGui::Image(ImTextureID(m_scene_manager.getTonemapedImage().descriptor),
+    ImGui::Image(ImTextureID(m_scene_manager.getTonemapedImageDescriptor()),
                  ImGui::GetContentRegionAvail());
   }
   ImGui::End();
@@ -214,6 +214,11 @@ void VulkanRendererElement::onRender(FrameContext* ctx)
 void VulkanRendererElement::onEndFrame(const FrameContext* frame)
 {
   m_scene_manager.postProcess();
+}
+
+void VulkanRendererElement::onLastHeadlessFrame()
+{
+  m_renderer->saveImage(nvutils::getExecutablePath().replace_extension(".jpg").string());
 }
 
 CameraPtr VulkanRendererElement::getCameraManipulator()

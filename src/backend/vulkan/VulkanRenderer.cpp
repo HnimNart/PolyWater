@@ -6,6 +6,7 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/formats.hpp>
 #include <nvvk/gbuffers.hpp>
+#include <nvvk/helpers.hpp>
 
 #include "VulkanBackend.hpp"
 #include "VulkanPostToneMapper.hpp"
@@ -15,6 +16,7 @@
 #include "core/Camera.hpp"
 #include "core/Image.hpp"
 #include "scene/SceneResources.hpp"
+#include "scene/Shared.hpp"
 #include "scene/gltf/io_gltf.h"
 #include "shaders/post/IToneMapper.hpp"
 
@@ -182,13 +184,37 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
 // Accessors
 // ---------------------------------------------------------------------------
 
-core::Image VulkanRenderer::getImage(uint32_t index) const
+void* VulkanRenderer::getImageDescriptor(uint32_t index) const
 {
-  // TODO fix this
-  core::Image image;
-  image.descriptor = static_cast<void*>(m_gBuffers->getDescriptorSet(index));
-  // image.native_handle = static_cast<void*>(&m_gBuffers->getColorImage(index));
-  return image;
+  return static_cast<void*>(m_gBuffers->getDescriptorSet(index));
+}
+
+void VulkanRenderer::saveImage(const std::filesystem::path& filename, int quality) const
+{
+  VkDevice device = m_backend->getDevice();
+  VkPhysicalDevice physicalDevice = m_backend->getPhysicalDevice();
+  VkImage dstImage = {};
+  VkDeviceMemory dstImageMemory = {};
+  VkCommandBuffer cmd = m_backend->startSingleTimeCmd();
+
+  VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+  if (filename.extension() == ".hdr")
+  {
+    format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  }
+
+  auto srcImage = m_gBuffers->getColorImage(eImgTonemapped);
+  VkExtent2D size = m_gBuffers->getSize();
+  nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage, dstImageMemory,
+                      format);
+
+  m_backend->endSingleTimeCmd(cmd);
+  nvvk::saveImageToFile(device, dstImage, dstImageMemory, size, filename, quality);
+
+  // Clean up resources
+  vkUnmapMemory(device, dstImageMemory);
+  vkFreeMemory(device, dstImageMemory, nullptr);
+  vkDestroyImage(device, dstImage, nullptr);
 }
 
 IPostProcessor& VulkanRenderer::postProcessor() noexcept

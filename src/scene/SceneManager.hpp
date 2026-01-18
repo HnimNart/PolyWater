@@ -25,8 +25,7 @@ public:
   // --------------------------------------------------
   void postProcess();
   void reload(bool useRaytracing);
-  core::Image getImage(int bufferIdx);
-  core::Image getTonemapedImage();
+  void* getTonemapedImageDescriptor();
   void onResize(const WindowSize& size);
 
   // --------------------------------------------------

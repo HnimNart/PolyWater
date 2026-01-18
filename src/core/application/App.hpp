@@ -94,9 +94,10 @@ public:
 
 private:
   void runFrame();
+  void headlessRun();
 
   void initGlfw(const ApplicationCreateInfo& info);
-  void initializeImGuiContextAndSettings();
+  void initializeImGuiContextAndSettings(ImGuiConfigFlags configFlags);
   void testAndSetWindowSizeAndPos(const glm::uvec2& winSize);
   bool isWindowPosValid(const glm::ivec2& winPos);
   void setupImguiDock();
@@ -121,9 +122,12 @@ private:
 
   bool m_running = false;
   uint64_t m_frameCounter = 0;
+  // Headless
   bool m_headless{false};
   bool m_headlessClose{false};
   uint32_t m_headlessFrameCount{1};
+
+  // Screenshot
   bool m_screenShotRequested = false;
   int m_screenShotFrame = 0;
   std::filesystem::path m_screenShotFilename;

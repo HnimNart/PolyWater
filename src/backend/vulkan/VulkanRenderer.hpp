@@ -50,11 +50,12 @@ public:
 
   void postProcess() override;
   void onResize(const WindowSize& size) override;
+  void saveImage(const std::filesystem::path& filename, int quality = 100) const override;
 
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  core::Image getImage(uint32_t index) const override;
+  void* getImageDescriptor(uint32_t index) const override;
   IPostProcessor& postProcessor() noexcept override;
   std::shared_ptr<IDeviceResources> deviceResources() noexcept override;
 

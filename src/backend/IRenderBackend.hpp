@@ -34,15 +34,12 @@ public:
   //----------------------------------------------------------
   virtual void init(const core::ApplicationCreateInfo& appInfo) = 0;
   virtual void deinit() = 0;
+  virtual void waitForDeviceIdle() = 0;
 
   //----------------------------------------------------------
   // Frame loop
   //----------------------------------------------------------
-  virtual void newFrame()
-  {
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-  }
+  virtual void newFrame() = 0;
 
   // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
   virtual bool beginFrame(FrameContext& frame) = 0;
@@ -56,6 +53,7 @@ public:
 
   // Present the completed frame (no-op for headless backends)
   virtual void present() = 0;
+  virtual void advance() = 0;
 
   //----------------------------------------------------------
   // Runtime control
@@ -97,6 +95,9 @@ protected:
   // Vsync
   bool m_vsyncWanted{true};  // Wanting swapchain with vsync
   bool m_vsync{true};
+
+  // Headless
+  bool m_headless{false};
 
   // Screenshot
   bool m_screenShotRequested = false;

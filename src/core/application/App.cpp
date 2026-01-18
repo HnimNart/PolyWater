@@ -42,7 +42,8 @@ void Application::init(ApplicationCreateInfo const& info)
 
   // Resolve persistent settings (ini path, window size/pos)
   m_iniFilename = nvutils::utf8FromPath(nvutils::getExecutablePath().replace_extension(".ini"));
-  initializeImGuiContextAndSettings();
+
+  initializeImGuiContextAndSettings(info.imguiConfigFlags);
 
   // Window setup
   testAndSetWindowSizeAndPos(info.windowSize);
@@ -67,9 +68,10 @@ void Application::shutdown()
 {
   m_running = false;
 
-  // Save window state before destruction
-  if (m_windowHandle)
+  if (!m_headless)
   {
+    // Save window state before destruction
+    assert(m_windowHandle);
     glfwGetWindowPos(m_windowHandle, &m_winPos.x, &m_winPos.y);
     int w, h;
     glfwGetWindowSize(m_windowHandle, &w, &h);
@@ -80,6 +82,7 @@ void Application::shutdown()
   {
     e->onDetach();
   }
+
   m_elements.clear();
 
   if (m_backend)
@@ -87,29 +90,99 @@ void Application::shutdown()
     m_backend->deinit();
   }
 
-  ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
-  ImGui_ImplGlfw_Shutdown();
+  if (!m_headless)
+  {
+    ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
+    ImGui_ImplGlfw_Shutdown();
+  }
+
   ImGui::DestroyContext();
   if (ImPlot::GetCurrentContext())
   {
     ImPlot::DestroyContext();
   }
 
-  if (m_windowHandle)
+  if (!m_headless)
   {
     glfwDestroyWindow(m_windowHandle);
     m_windowHandle = nullptr;
+    glfwTerminate();
   }
-  glfwTerminate();
 }
 
 void Application::run()
 {
   LOGI("Running application\n");
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
+
+  // Handle headless mode
+  if (m_headless)
+  {
+    headlessRun();
+    return;
+  }
   while (!glfwWindowShouldClose(m_windowHandle) && m_running)
   {
     runOneFrame();
+  }
+}
+
+void Application::headlessRun()
+{
+  printf("Running Headless\n");
+  nvutils::ScopedTimer st(__FUNCTION__);
+  WindowSize m_viewportSize = m_windowSize;
+
+  // Set the display for Imgui
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize.x = float(m_viewportSize.width);
+  io.DisplaySize.y = float(m_viewportSize.height);
+
+  onResize(m_viewportSize);
+
+  // Need to render the UI twice: the first pass sets up the internal state and layout,
+  // and the second pass finalizes the rendering with the updated state.
+  {
+    m_backend->newFrame();
+    ImGui::NewFrame();
+    setupImguiDock();
+
+    // Call UI rendering for each element
+    for (std::shared_ptr<IAppElement>& e : m_elements)
+    {
+      e->onUIRender();
+    }
+    ImGui::EndFrame();
+  }
+
+  // Rendering n-times the scene
+  for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose; frameID++)
+  {
+    m_backend->newFrame();
+    ImGui::NewFrame();  // Even if isn't directly used, helps advancing time if query
+
+    FrameContext frameCtx{};
+    frameCtx.frameNumber = frameID;
+    frameCtx.vSyncWanted = m_vsyncWanted;
+
+    if (m_backend->beginFrame(frameCtx))
+    {
+      m_backend->renderFrame(m_elements, frameCtx);
+      m_backend->endFrame(frameCtx);
+      m_backend->advance();
+    }
+
+    ImGui::EndFrame();
+  }
+  ImGui::Render();  // This is creating the data to draw the UI (not on GPU yet)
+
+  // At this point, everything has been rendered. Let it finish.
+  m_backend->waitForDeviceIdle();
+
+  // Call back the application, such that it can do something with the rendered image
+  for (std::shared_ptr<IAppElement>& e : m_elements)
+  {
+    e->onLastHeadlessFrame();
   }
 }
 
@@ -153,6 +226,8 @@ void Application::runFrame()
 
   // 1. Begin ImGui Frame
   m_backend->newFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
 
   // 2. Docking & Menus
   setupImguiDock();
@@ -196,6 +271,7 @@ void Application::runFrame()
     m_backend->renderFrame(m_elements, frameCtx);
     m_backend->endFrame(frameCtx);
     m_backend->present();
+    m_backend->advance();
   }
 
   // 5. Finalize ImGui (Viewports)
@@ -286,7 +362,7 @@ void Application::initGlfw(const ApplicationCreateInfo& info)
                       });
 }
 
-void Application::initializeImGuiContextAndSettings()
+void Application::initializeImGuiContextAndSettings(ImGuiConfigFlags configFlags)
 {
   // Setup ImGui persistent settings
   nvgui::setStyle(false);
@@ -296,6 +372,12 @@ void Application::initializeImGuiContextAndSettings()
   m_settingsHandler.addImGuiHandler();
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
   ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags = configFlags;
+  if (m_headless)
+  {
+    io.ConfigFlags &=
+        ~ImGuiConfigFlags_ViewportsEnable;  // In headless mode, we don't allow other viewport
+  }
   // Set the ini file name
   io.IniFilename = m_iniFilename.c_str();
 

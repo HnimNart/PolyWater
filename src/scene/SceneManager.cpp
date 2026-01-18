@@ -58,14 +58,9 @@ void SceneManager::reload(bool useRaytracing)
   m_renderer->reload(useRaytracing);
 }
 
-core::Image SceneManager::getImage(int bufferIdx)
+void* SceneManager::getTonemapedImageDescriptor()
 {
-  return m_renderer->getImage(bufferIdx);
-}
-
-core::Image SceneManager::getTonemapedImage()
-{
-  return m_renderer->getImage(eImgTonemapped);
+  return m_renderer->getImageDescriptor(eImgTonemapped);
 }
 
 void SceneManager::onResize(const WindowSize& size)
