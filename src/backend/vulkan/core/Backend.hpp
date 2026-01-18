@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -9,12 +8,8 @@
 #include <nvvk/staging.hpp>
 #include <nvvk/swapchain.hpp>
 
-#include "VulkanRenderContext.hpp"
-#include "backend/IRenderBackend.hpp"
-#include "core/application/App.hpp"
-
-namespace core
-{
+#include "RenderContext.hpp"
+#include "backend/interfaces/IRenderBackend.hpp"
 
 class VulkanBackend final : public IRenderBackend
 {
@@ -32,10 +27,10 @@ public:
   // Core Frame Loop (Execution Flow)
   // ---------------------------------------------------------------------------
   void newFrame() override;
-  bool beginFrame(FrameContext& frame) override;
+  bool beginFrame(IRenderContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                   FrameContext const& frame) override;
-  void endFrame(FrameContext const& frame) override;
+                   IRenderContext const& frame) override;
+  void endFrame(IRenderContext const& frame) override;
   void present() override;
   void advance() override;
 
@@ -43,18 +38,15 @@ public:
   // Synchronization & Commands
   // ---------------------------------------------------------------------------
   void waitForDeviceIdle() override;
-
   // Single-Time Commands (e.g., used for resource uploading or layout transitions)
   VkCommandBuffer startSingleTimeCmd();
   void endSingleTimeCmd(VkCommandBuffer cmd);
-
   VkCommandBuffer getActiveCmd() const;
 
   // ---------------------------------------------------------------------------
   // Configuration & IO
   // ---------------------------------------------------------------------------
   void setVsync(bool enabled) override;
-  void requestScreenshot(const std::filesystem::path& filename, int quality) override;
 
   // ---------------------------------------------------------------------------
   // Accessors (Getters)
@@ -121,5 +113,3 @@ private:
   std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores{};
   std::vector<VkCommandBufferSubmitInfo> m_commandBuffers{};
 };
-
-}  // namespace core

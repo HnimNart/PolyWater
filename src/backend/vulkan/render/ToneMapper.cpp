@@ -1,17 +1,17 @@
-#include "VulkanPostToneMapper.hpp"
+#include "ToneMapper.hpp"
 
 #include "_autogen/tonemapper.slang.h"
 
-VulkanPostProcessor::VulkanPostProcessor(core::VulkanBackend* backend) : m_backend(backend)
+VulkanToneMapper::VulkanToneMapper(VulkanBackend* backend) : m_backend(backend)
 {
 }
 
-VulkanPostProcessor::~VulkanPostProcessor()
+VulkanToneMapper::~VulkanToneMapper()
 {
   deinit();
 }
 
-void VulkanPostProcessor::init()
+void VulkanToneMapper::init()
 {
   if (m_initialized)
   {
@@ -26,13 +26,13 @@ void VulkanPostProcessor::init()
   m_initialized = true;
 }
 
-void VulkanPostProcessor::deinit()
+void VulkanToneMapper::deinit()
 {
   m_tonemapper.deinit();
   m_initialized = false;
 }
 
-void VulkanPostProcessor::run(VkCommandBuffer cmd, nvvk::GBuffer& gBuffers)
+void VulkanToneMapper::run(VkCommandBuffer cmd, nvvk::GBuffer& gBuffers)
 {
   if (!m_initialized)
   {

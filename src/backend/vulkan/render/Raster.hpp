@@ -7,12 +7,12 @@
 #include <nvshaders_host/sky.hpp>
 #include <nvvk/descriptors.hpp>
 
-#include "VulkanBackend.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 // Forward declarations to avoid heavy includes
 
-class GltfDeviceSceneResources;
+class VulkanSceneGpuData;
 
 namespace nvvk
 {
@@ -30,7 +30,7 @@ struct PushConstant;
 class VulkanRaster
 {
 public:
-  VulkanRaster(core::VulkanBackend* backend);
+  VulkanRaster(VulkanBackend* backend);
   ~VulkanRaster();
 
   void init();
@@ -40,9 +40,9 @@ public:
   // Recording the commands to render the scene
   //
   void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const gltf::Scene& sceneResources,
-              const GltfDeviceSceneResources& deviceResources,
+              const VulkanSceneGpuData& deviceResources,
               const std::shared_ptr<nvutils::CameraManipulator>& camera,
-              shaderio::PushConstant& pushConstants) const;
+              const shaderio::PushConstant& pushConstants) const;
 
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
@@ -57,7 +57,7 @@ private:
   void clearShaders();
   void compileShaders();
 
-  core::VulkanBackend* m_backend = nullptr;
+  VulkanBackend* m_backend = nullptr;
   nvvk::DescriptorPack* m_descPack = nullptr;
   VkPipelineLayout m_pipelineLayout{};
 

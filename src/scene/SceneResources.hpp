@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "backend/IDeviceResources.hpp"
+#include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
@@ -18,23 +18,42 @@ public:
   using InstanceID = uint32_t;
   using MaterialID = uint32_t;
 
-  // Constructor/Destructor
+  // ---------------------------------------------------------------------------
+  // Lifecycle & Initialization
+  // ---------------------------------------------------------------------------
   SceneResourcesManager();
   ~SceneResourcesManager();
 
-  void init(std::shared_ptr<IDeviceResources> deviceResources);
+  void init(std::shared_ptr<IDeviceAssets> deviceResources);
+  void clear();
+
+  // ---------------------------------------------------------------------------
+  // Upload Transaction (Batching)
+  // ---------------------------------------------------------------------------
   void beginUploading();
   void endUploading();
+  void finalizeSceneResources();
 
+  // ---------------------------------------------------------------------------
+  // Asset Loading (IO)
+  // ---------------------------------------------------------------------------
   tinygltf::Model loadGltf(const std::string& filename);
-  IDeviceResources::TextureID loadTexture(const std::string& filename);
+  IDeviceAssets::TextureID loadTexture(const std::string& filename);
+
+  // ---------------------------------------------------------------------------
+  // Scene Composition
+  // ---------------------------------------------------------------------------
   InstanceID addInstance(const shaderio::GltfInstance& instance);
   MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material);
 
+  // ---------------------------------------------------------------------------
+  // Runtime Updates
+  // ---------------------------------------------------------------------------
   void updateSceneInfo(const CameraPtr& camera);
-  void finalizeSceneResources();
-  void clear();
 
+  // ---------------------------------------------------------------------------
+  // Accessors
+  // ---------------------------------------------------------------------------
   const gltf::Scene& data() const;
   gltf::Scene& data();
 
@@ -43,7 +62,5 @@ public:
 
 private:
   gltf::Scene m_resources{};
-  std::shared_ptr<IDeviceResources> m_device_resources = nullptr;
+  std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
 };
-
-;

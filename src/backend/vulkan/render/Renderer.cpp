@@ -1,4 +1,4 @@
-#include "VulkanRenderer.hpp"
+#include "Renderer.hpp"
 
 // Full headers required for implementation
 #include <nvvk/check_error.hpp>
@@ -8,30 +8,25 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/helpers.hpp>
 
-#include "VulkanBackend.hpp"
-#include "VulkanPostToneMapper.hpp"
-#include "VulkanRaster.hpp"
-#include "VulkanRayTracer.hpp"
-#include "backend/vulkan/VulkanRenderResources.hpp"
-#include "core/Camera.hpp"
-#include "core/Image.hpp"
+#include "Raster.hpp"
+#include "RayTracer.hpp"
+#include "ToneMapper.hpp"
+#include "backend/interfaces/IToneMapper.hpp"
+#include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/Shared.hpp"
 #include "scene/gltf/io_gltf.h"
-#include "shaders/post/IToneMapper.hpp"
 
-VulkanRenderer::VulkanRenderer(core::VulkanBackend* backend)
+VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 {
   m_backend = backend;
-  m_resources = std::make_shared<VulkanRenderResources>(m_backend);
+  m_resources = std::make_shared<VulkanSceneAssetManager>(m_backend);
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
   m_raster = std::make_unique<VulkanRaster>(m_backend);
   m_ray_tracer = std::make_unique<VulkanRayTracer>(m_backend);
-  m_post = std::make_unique<VulkanPostProcessor>(m_backend);
+  m_post = std::make_unique<VulkanToneMapper>(m_backend);
 }
-
-VulkanRenderer::~VulkanRenderer() = default;
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -78,7 +73,7 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
-  const GltfDeviceSceneResources& device_resources = m_resources->deviceResources();
+  const VulkanSceneGpuData& device_resources = m_resources->deviceResources();
   shaderio::GltfSceneInfo& scene_info = scene.sceneInfo();
   scene_info.instances =
       (shaderio::GltfInstance*)
@@ -108,7 +103,7 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffers(SceneResourcesManage
 }
 
 void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
-                            shaderio::PushConstant& pushValues) const
+                            const shaderio::PushConstant& pushValues) const
 {
   VkCommandBuffer cmd = m_backend->getActiveCmd();
   if (raytrace)
@@ -184,9 +179,9 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
 // Accessors
 // ---------------------------------------------------------------------------
 
-void* VulkanRenderer::getImageDescriptor(uint32_t index) const
+void* VulkanRenderer::getImageDescriptor(ISceneRenderer::RenderOutput output) const
 {
-  return static_cast<void*>(m_gBuffers->getDescriptorSet(index));
+  return static_cast<void*>(m_gBuffers->getDescriptorSet(output));
 }
 
 void VulkanRenderer::saveImage(const std::filesystem::path& filename, int quality) const
@@ -203,7 +198,7 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename, int qualit
     format = VK_FORMAT_R32G32B32A32_SFLOAT;
   }
 
-  auto srcImage = m_gBuffers->getColorImage(eImgTonemapped);
+  auto srcImage = m_gBuffers->getColorImage(ISceneRenderer::RenderOutput::ToneMapped);
   VkExtent2D size = m_gBuffers->getSize();
   nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage, dstImageMemory,
                       format);
@@ -217,12 +212,12 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename, int qualit
   vkDestroyImage(device, dstImage, nullptr);
 }
 
-IPostProcessor& VulkanRenderer::postProcessor() noexcept
+IToneMapper& VulkanRenderer::postProcessor() noexcept
 {
   return *m_post;
 }
 
-std::shared_ptr<IDeviceResources> VulkanRenderer::deviceResources() noexcept
+std::shared_ptr<IDeviceAssets> VulkanRenderer::deviceResources() noexcept
 {
   return m_resources;
 }

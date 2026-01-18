@@ -1,4 +1,4 @@
-#include "VulkanBackend.hpp"
+#include "Backend.hpp"
 
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -13,11 +13,8 @@
 #include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "backend/FrameContext.hpp"
-#include "vk_utils.hpp"
-
-namespace core
-{
+#include "Utils.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 
 std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
 {
@@ -128,12 +125,14 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
         .surface = m_surface,
         .queue = graphicsQueue,
         .cmdPool = m_transientCmdPool,
+        .preferredVsyncOffMode = VK_PRESENT_MODE_MAX_ENUM_KHR,  // No preference
+        .preferredVsyncOnMode = VK_PRESENT_MODE_MAX_ENUM_KHR,
     };
 
     const VkResult result = m_swapchain.init(swapChainInit);
     if (result != VK_SUCCESS)
     {
-      vk_utils::reportSwapchainDiagnostics(instance, swapChainInit);
+      reportSwapchainDiagnostics(instance, swapChainInit);
       nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__, __LINE__);
     }
 
@@ -278,7 +277,7 @@ void VulkanBackend::setVsync(bool enabled)
   m_swapchain.requestRebuild();
 }
 
-bool VulkanBackend::beginFrame(FrameContext& /* frame  */)
+bool VulkanBackend::beginFrame(IRenderContext& /* frame  */)
 {
   if (!m_headless && m_swapchain.needRebuilding())
   {
@@ -326,7 +325,7 @@ VkCommandBuffer VulkanBackend::getActiveCmd() const
 }
 
 void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                                FrameContext const& /* frame */)
+                                IRenderContext const& /* frame */)
 {
   for (auto& e : elements)
   {
@@ -336,21 +335,21 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
   ImGui::Render();
 
   // Call onPreRender for each element with the command buffer of the frame
-  for (const std::shared_ptr<IAppElement>& e : elements)
+  for (const std::shared_ptr<core::IAppElement>& e : elements)
   {
     e->onPreRender();
   }
 
   VulkanRenderContext* ctx = m_frameData[m_frameRingCurrent].get();
   VkCommandBuffer cmd = ctx->cmdBuffer;
-  for (const std::shared_ptr<IAppElement>& e : elements)
+  for (const std::shared_ptr<core::IAppElement>& e : elements)
   {
-    e->onRender(static_cast<FrameContext*>(ctx));
+    e->onRender(static_cast<IRenderContext*>(ctx));
   }
 
-  for (const std::shared_ptr<IAppElement>& e : elements)
+  for (const std::shared_ptr<core::IAppElement>& e : elements)
   {
-    e->onEndFrame(static_cast<FrameContext*>(ctx));
+    e->onEndFrame(static_cast<IRenderContext*>(ctx));
   }
   if (!m_headless)
   {
@@ -385,7 +384,7 @@ void VulkanBackend::renderToSwapchain(VkCommandBuffer cmd)
   });
 }
 
-void VulkanBackend::endFrame(FrameContext const& /* frame */)
+void VulkanBackend::endFrame(IRenderContext const& /* frame */)
 {
   auto& frame = m_frameData[m_frameRingCurrent];
   VkCommandBuffer cmd = frame->cmdBuffer;
@@ -491,15 +490,6 @@ void VulkanBackend::createFrameSubmission(uint32_t numFrames)
   }
 }
 
-void VulkanBackend::requestScreenshot(const std::filesystem::path& filename, int quality)
-{
-  m_screenShotRequested = true;
-  m_screenShotFilename = filename;
-  // Making sure the screenshot is taken after the swapchain loop (remove the menu after click)
-  m_screenShotFrame = (m_frameRingCurrent - 1 + m_swapchain.getMaxFramesInFlight()) %
-                      m_swapchain.getMaxFramesInFlight();
-}
-
 //-----------------------------------------------------------------------
 // We are using dynamic rendering, which is a more flexible way to render to the swapchain image.
 //
@@ -554,5 +544,3 @@ void VulkanBackend::freeResourcesQueue()
   }
   m_resourceFreeQueue[m_frameRingCurrent].clear();
 }
-
-}  // namespace core

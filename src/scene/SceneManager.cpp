@@ -1,20 +1,9 @@
 #include "SceneManager.hpp"
 
-// Implementation Headers
-#include <nvshaders_host/sky.hpp>
-#include <nvshaders_host/tonemapper.hpp>
-#include <nvslang/slang.hpp>
-#include <nvvk/acceleration_structures.hpp>
-#include <nvvk/descriptors.hpp>
-#include <nvvk/gbuffers.hpp>
-#include <nvvk/graphics_pipeline.hpp>
-#include <nvvk/sampler_pool.hpp>
-#include <nvvk/sbt_generator.hpp>
-#include <shaders/post/IToneMapper.hpp>
-
-#include "Shared.hpp"
-#include "backend/vulkan/VulkanRenderer.hpp"
+#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/interfaces/IToneMapper.hpp"
 #include "scene/gltf/io_gltf.h"
+#include "shaders/shaderio.h"
 
 SceneManager::SceneManager(std::shared_ptr<ISceneRenderer> renderer)
 {
@@ -60,7 +49,7 @@ void SceneManager::reload(bool useRaytracing)
 
 void* SceneManager::getTonemapedImageDescriptor()
 {
-  return m_renderer->getImageDescriptor(eImgTonemapped);
+  return m_renderer->getImageDescriptor(ISceneRenderer::ToneMapped);
 }
 
 void SceneManager::onResize(const WindowSize& size)

@@ -3,7 +3,7 @@
 
 #include "scene/gltf/gltf_utils.hpp"
 
-class IDeviceResources
+class IDeviceAssets
 {
 public:
   using MeshID = int;

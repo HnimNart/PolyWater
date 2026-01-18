@@ -1,9 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 
-#include "backend/FrameContext.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 #include "types.h"
 
 namespace core
@@ -46,13 +45,13 @@ struct IAppElement
   virtual void onPreRender() {}
 
   /** @brief Called at the start of the frame, before any rendering commands are issued. */
-  virtual void onBeginFrame(const FrameContext& frame) {}
+  virtual void onBeginFrame(const IRenderContext& frame) {}
 
   /** @brief Primary rendering callback. Record draw calls into the provided context. */
-  virtual void onRender(FrameContext* ctx) {}
+  virtual void onRender(IRenderContext* ctx) {}
 
   /** @brief Called after all rendering commands have been recorded for the frame. */
-  virtual void onEndFrame(const FrameContext* frame) {}
+  virtual void onEndFrame(const IRenderContext* frame) {}
 
   // --- Special Modes ---
   /** @brief Final callback for headless execution before the application exits. */

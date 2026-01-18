@@ -33,13 +33,13 @@
 #include <nvutils/parameter_parser.hpp>  // Parameter parser
 #include <nvutils/timers.hpp>            // Timers for profiling
 
-#include "backend/vulkan/VulkanBackend.hpp"
+#include "VulkanRenderElement.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "common/path_utils.hpp"
 #include "core/application/App.hpp"
 #include "core/application/elements/elem_camera.hpp"
 #include "core/application/elements/elem_default_menu.hpp"
 #include "core/application/elements/elem_default_title.hpp"
-#include "render.hpp"
 #include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
@@ -56,10 +56,10 @@ int main(int argc, char** argv)
   cli.parse(argc, argv);
 
   // Initialize compiler
-  SlangCompiler::instance().init(nvsamples::getShaderDirs());
+  SlangCompiler::instance().init(common::getShaderDirs());
 
   // Initialize the Vulkan context
-  std::unique_ptr<core::VulkanBackend> backend = core::VulkanBackend::create(appInfo);
+  std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
 
   // Setting up the application

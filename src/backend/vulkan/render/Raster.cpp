@@ -1,4 +1,4 @@
-#include "VulkanRaster.hpp"
+#include "Raster.hpp"
 
 // Implementation Includes
 #include <shaders/shaderio.h>
@@ -10,10 +10,10 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "VulkanBackend.hpp"
-#include "VulkanRenderResources.hpp"
+#include "SceneAssetManager.hpp"
+#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "common/timers.hpp"
-#include "scene/Shared.hpp"
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
@@ -21,7 +21,7 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
-VulkanRaster::VulkanRaster(core::VulkanBackend* backend)
+VulkanRaster::VulkanRaster(VulkanBackend* backend)
 {
   assert(backend);
   m_backend = backend;
@@ -53,14 +53,15 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
                           const gltf::Scene& sceneResources,
-                          const GltfDeviceSceneResources& deviceResources,
+                          const VulkanSceneGpuData& deviceResources,
                           const std::shared_ptr<nvutils::CameraManipulator>& camera,
-                          shaderio::PushConstant& pushConstants) const
+                          const shaderio::PushConstant& pushConstants) const
 {
   NVVK_DBG_SCOPE(cmd);
 
   const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
 
+  shaderio::PushConstant constants = pushConstants;
   // Define push info
   const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
@@ -68,7 +69,7 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
-      .pValues = &pushConstants,
+      .pValues = &constants,
   };
 
   // Rendering the Sky
@@ -78,14 +79,14 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
     const glm::mat4& viewMatrix = camera->getViewMatrix();
     const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
     m_skySimple.runCompute(cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
-                           gBuffers.getDescriptorImageInfo(0));
+                           gBuffers.getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
   }
 
   // Rendering to the GBuffer - Attachments
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
   colorAttachment.loadOp =
       scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.imageView = gBuffers.getColorImageView(0);
+  colorAttachment.imageView = gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear);
   colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
                                           scene_info.backgroundColor.y,
                                           scene_info.backgroundColor.z, 1.0f}};
@@ -101,8 +102,9 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   renderingInfo.pDepthAttachment = &depthAttachment;
 
   // Transition GBuffer layout
-  nvvk::cmdImageMemoryBarrier(cmd, {gBuffers.getColorImage(eImgRendered), VK_IMAGE_LAYOUT_GENERAL,
-                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+  nvvk::cmdImageMemoryBarrier(cmd,
+                              {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
+                               VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
@@ -140,9 +142,9 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
-    pushConstants.normalMatrix =
+    constants.normalMatrix =
         glm::transpose(glm::inverse(glm::mat3(sceneResources.instances[i].transform)));
-    pushConstants.instanceIndex = int(i);
+    constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
@@ -160,7 +162,7 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Transition back to GENERAL
   nvvk::cmdImageMemoryBarrier(cmd,
-                              {gBuffers.getColorImage(eImgRendered),
+                              {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
 }
 

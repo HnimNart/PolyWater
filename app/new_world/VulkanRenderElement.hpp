@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "core/Camera.hpp"  // Needed for CameraPtr
+#include "core/Camera.hpp"
 #include "core/application/IAppElement.hpp"
-#include "scene/SceneManager.hpp"  // Needed for member m_scene_manager
+#include "scene/SceneManager.hpp"
 
 // Forward declarations to reduce compile time
 namespace core
@@ -28,9 +28,10 @@ public:
   void onUIRender() override;
   void onPreRender() override;
   void onUIMenu() override;
-  void onRender(FrameContext* ctx) override;
-  void onEndFrame(const FrameContext* frame) override;
+  void onRender(IRenderContext* ctx) override;
+  void onEndFrame(const IRenderContext* frame) override;
   void onLastHeadlessFrame() override;
+  void onFileDrop(const std::filesystem::path& filename) override;
 
   // Accessor
   CameraPtr getCameraManipulator();
@@ -43,7 +44,7 @@ private:
   // Application and core components
   core::Application* m_app = nullptr;
   std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
-  SceneManager m_scene_manager;
+  SceneManager m_scene_manager{};
 
   // Ray tracing toggle
   bool m_useRayTracing = true;

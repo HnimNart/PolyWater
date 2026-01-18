@@ -4,11 +4,11 @@
 
 #include "common/timers.hpp"
 
-void SlangCompiler::init(const std::vector<std::filesystem::path>& shader_dirs)
+void SlangCompiler::init(const std::vector<std::filesystem::path>& shaderDirs)
 {
-  m_shaderDirs = std::move(shader_dirs);
+  m_shaderDirs = shaderDirs;
   // Setting up the Slang compiler for hot reload shader
-  m_slangContext.addSearchPaths(shader_dirs);
+  m_slangContext.addSearchPaths(shaderDirs);
   m_slangContext.defaultTarget();
   m_slangContext.defaultOptions();
   m_slangContext.addOption({slang::CompilerOptionName::DebugInformation,

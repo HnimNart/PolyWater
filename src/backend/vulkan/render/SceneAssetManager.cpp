@@ -1,4 +1,11 @@
-#include "VulkanRenderResources.hpp"
+#include "SceneAssetManager.hpp"
+
+#include <stb/stb_image.h>
+#include <volk.h>
+
+#include <nvutils/file_operations.hpp>
+#include <nvvk/check_error.hpp>
+#include <nvvk/default_structs.hpp>
 
 // Implementation Includes
 #include <tinygltf/tiny_gltf.h>
@@ -10,58 +17,57 @@
 #include <nvvk/formats.hpp>
 
 #include "common/timers.hpp"
-#include "nvutils/camera_manipulator.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
-#include "vk_utils.hpp"
 
-VulkanRenderResources::VulkanRenderResources(core::VulkanBackend* backend)
+VulkanSceneAssetManager::VulkanSceneAssetManager(VulkanBackend* backend)
 {
   m_backend = backend;
   // Acquiring the texture sampler which will be used for displaying the GBuffer
   m_samplerPool.init(m_backend->getDevice());
 }
 
-void VulkanRenderResources::beginUploading()
+void VulkanSceneAssetManager::beginUploading()
 {
   m_cmd = m_backend->startSingleTimeCmd();
 }
-void VulkanRenderResources::endUploading()
+void VulkanSceneAssetManager::endUploading()
 {
   assert(m_cmd != VK_NULL_HANDLE);
   m_backend->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
 
-void VulkanRenderResources::deinit()
+void VulkanSceneAssetManager::deinit()
 {
   for (auto& texture : m_textures)
   {
     m_backend->allocator().destroyImage(texture);
   }
-  m_backend->allocator().destroyBuffer(m_device_resources.bSceneInfo);
-  m_backend->allocator().destroyBuffer(m_device_resources.bMeshes);
-  m_backend->allocator().destroyBuffer(m_device_resources.bMaterials);
-  m_backend->allocator().destroyBuffer(m_device_resources.bInstances);
-  for (auto& gltfData : m_device_resources.bGltfDatas)
+  m_backend->allocator().destroyBuffer(m_data.bSceneInfo);
+  m_backend->allocator().destroyBuffer(m_data.bMeshes);
+  m_backend->allocator().destroyBuffer(m_data.bMaterials);
+  m_backend->allocator().destroyBuffer(m_data.bInstances);
+  for (auto& gltfData : m_data.bGltfDatas)
   {
     m_backend->allocator().destroyBuffer(gltfData);
   }
   m_samplerPool.deinit();
 }
 
-VulkanRenderResources::MeshID VulkanRenderResources::uploadGltfModel(const tinygltf::Model& model,
-                                                                     gltf::Scene& resources)
+VulkanSceneAssetManager::MeshID
+VulkanSceneAssetManager::uploadGltfModel(const tinygltf::Model& model, gltf::Scene& resources)
 {
-  importGltfData(resources, m_device_resources, model, m_backend->stagingUploader());
-  mesh_id_counter++;
-  return mesh_id_counter - 1;
+  importGltfData(resources, m_data, model, m_backend->stagingUploader());
+  m_meshIdCounter++;
+  return m_meshIdCounter - 1;
 }
 
-VulkanRenderResources::TextureID VulkanRenderResources::uploadTexture(const std::string& filepath)
+VulkanSceneAssetManager::TextureID
+VulkanSceneAssetManager::uploadTexture(const std::string& filepath)
 {
-  nvvk::Image texture = vk_utils::loadAndCreateImage(m_cmd, m_backend->stagingUploader(),
-                                                     m_backend->getDevice(), filepath);
+  nvvk::Image texture =
+      loadAndCreateImage(m_cmd, m_backend->stagingUploader(), m_backend->getDevice(), filepath);
 
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
@@ -69,7 +75,7 @@ VulkanRenderResources::TextureID VulkanRenderResources::uploadTexture(const std:
   return static_cast<TextureID>(m_textures.size() - 1);
 }
 
-void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptorPack)
+void VulkanSceneAssetManager::updateDescriptors(nvvk::DescriptorPack& descriptorPack)
 {
   if (m_textures.empty())
   {
@@ -85,29 +91,27 @@ void VulkanRenderResources::updateDescriptors(nvvk::DescriptorPack& descriptorPa
   vkUpdateDescriptorSets(m_backend->getDevice(), write.size(), write.data(), 0, nullptr);
 }
 
-void VulkanRenderResources::finalizeSceneResources(gltf::Scene& resources)
+void VulkanSceneAssetManager::finalizeSceneResources(gltf::Scene& resources)
 {
   createGltfSceneInfoBuffer(
-      resources, m_device_resources,
+      resources, m_data,
       m_backend->stagingUploader());  // Create buffers for the scene data (GPU buffers)
   m_backend->stagingUploader().cmdUploadAppended(m_cmd);  // Upload the scene information to the GPU
 
   // Update the pointers to uploaded data
   resources.sceneInfo.instances =
-      (shaderio::GltfInstance*)
-          m_device_resources.bInstances.address;  // Address of the instance buffer
+      (shaderio::GltfInstance*) m_data.bInstances.address;  // Address of the instance buffer
   resources.sceneInfo.meshes =
-      (shaderio::GltfMesh*) m_device_resources.bMeshes.address;  // Address of the mesh buffer
-  resources.sceneInfo.materials =
-      (shaderio::GltfMetallicRoughness*)
-          m_device_resources.bMaterials.address;  // Address of the material buffer
+      (shaderio::GltfMesh*) m_data.bMeshes.address;  // Address of the mesh buffer
+  resources.sceneInfo.materials = (shaderio::GltfMetallicRoughness*)
+                                      m_data.bMaterials.address;  // Address of the material buffer
 }
 
 // This is a utility function to convert a primitive mesh to a GltfMeshResource.
-void VulkanRenderResources::primitiveMeshToResource(gltf::Scene& sceneResource,
-                                                    GltfDeviceSceneResources& deviceResource,
-                                                    nvvk::StagingUploader& stagingUploader,
-                                                    const nvutils::PrimitiveMesh& primMesh)
+void VulkanSceneAssetManager::primitiveMeshToResource(gltf::Scene& sceneResource,
+                                                      VulkanSceneGpuData& deviceResource,
+                                                      nvvk::StagingUploader& stagingUploader,
+                                                      const nvutils::PrimitiveMesh& primMesh)
 {
 
   nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();
@@ -165,11 +169,11 @@ void VulkanRenderResources::primitiveMeshToResource(gltf::Scene& sceneResource,
 // It has strong limitations, like the mesh must have only one primitive, and the primitive must be
 // a triangle primitive. But it allow to import the GLTF data into the scene resource with a single
 // function call, and call it again to import another scene.
-void VulkanRenderResources::importGltfData(gltf::Scene& sceneResource,
-                                           GltfDeviceSceneResources& deviceResource,
-                                           const tinygltf::Model& model,
-                                           nvvk::StagingUploader& stagingUploader,
-                                           bool importInstance /*= false*/)
+void VulkanSceneAssetManager::importGltfData(gltf::Scene& sceneResource,
+                                             VulkanSceneGpuData& deviceResource,
+                                             const tinygltf::Model& model,
+                                             nvvk::StagingUploader& stagingUploader,
+                                             bool importInstance /*= false*/)
 {
   SCOPED_TIMER(__FUNCTION__);
 
@@ -370,9 +374,9 @@ void VulkanRenderResources::importGltfData(gltf::Scene& sceneResource,
 // buffer is used to pass the scene information to the shader. The mesh buffer is used to pass the
 // mesh information to the shader. The instance buffer is used to pass the instance information to
 // the shader. The material buffer is used to pass the material information to the shader.
-void VulkanRenderResources::createGltfSceneInfoBuffer(gltf::Scene& sceneResource,
-                                                      GltfDeviceSceneResources& deviceResource,
-                                                      nvvk::StagingUploader& stagingUploader)
+void VulkanSceneAssetManager::createGltfSceneInfoBuffer(gltf::Scene& sceneResource,
+                                                        VulkanSceneGpuData& deviceResource,
+                                                        nvvk::StagingUploader& stagingUploader)
 {
   SCOPED_TIMER(__FUNCTION__);
 
@@ -418,12 +422,32 @@ void VulkanRenderResources::createGltfSceneInfoBuffer(gltf::Scene& sceneResource
       std::span<const shaderio::GltfSceneInfo>(&sceneResource.sceneInfo, 1)));
 }
 
-const std::vector<nvvk::Image>& VulkanRenderResources::textures() const
+nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(VkCommandBuffer cmd,
+                                                        nvvk::StagingUploader& staging,
+                                                        VkDevice device,
+                                                        const std::filesystem::path& filename,
+                                                        bool sRgb)
 {
-  return m_textures;
-}
+  // Load the image from disk
+  int w, h, comp, req_comp{4};
+  std::string filenameUtf8 = nvutils::utf8FromPath(filename);
+  const stbi_uc* data = stbi_load(filenameUtf8.c_str(), &w, &h, &comp, req_comp);
+  assert((data != nullptr) && "Could not load texture image!");
 
-nvvk::SamplerPool& VulkanRenderResources::samplerPool()
-{
-  return m_samplerPool;
+  // Define how to create the image
+  VkImageCreateInfo imageInfo = DEFAULT_VkImageCreateInfo;
+  imageInfo.format = sRgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+  imageInfo.extent = {uint32_t(w), uint32_t(h), 1};
+  imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  nvvk::ResourceAllocator* allocator = staging.getResourceAllocator();
+
+  // Use the VMA allocator to create the image
+  const std::span dataSpan(data, w * h * req_comp);
+  nvvk::Image texture;
+  NVVK_CHECK(allocator->createImage(texture, imageInfo, DEFAULT_VkImageViewCreateInfo));
+  // texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  NVVK_CHECK(staging.appendImage(texture, dataSpan, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+
+  return texture;
 }

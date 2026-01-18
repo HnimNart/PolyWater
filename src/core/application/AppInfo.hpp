@@ -36,9 +36,6 @@ struct ApplicationCreateInfo
   std::function<void(ImGuiID)> dockSetup;  // Dock layout setup
   ImGuiConfigFlags imguiConfigFlags{ImGuiConfigFlags_NavEnableKeyboard |
                                     ImGuiConfigFlags_DockingEnable};
-
-  // Called once after initialization
-  std::function<void()> onInitialized;
 };
 
 }  // namespace core

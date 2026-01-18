@@ -1,4 +1,4 @@
-#include "VulkanRayTracer.hpp"
+#include "RayTracer.hpp"
 
 #include <shaders/shaderio.h>
 
@@ -10,17 +10,17 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/gbuffers.hpp>
 
-#include "VulkanBackend.hpp"
-#include "VulkanRaster.hpp"
+#include "Raster.hpp"
+#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/Shared.hpp"
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-VulkanRayTracer::VulkanRayTracer(core::VulkanBackend* backend)
+VulkanRayTracer::VulkanRayTracer(VulkanBackend* backend)
 {
   m_backend = backend;
 }
@@ -227,7 +227,8 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   nvvk::WriteSetContainer write{};
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas), m_accel.tlas());
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
-               gBuffers.getColorImageView(eImgRendered), VK_IMAGE_LAYOUT_GENERAL);
+               gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear),
+               VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 1,
                             write.size(), write.data());
 

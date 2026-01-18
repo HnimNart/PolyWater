@@ -5,7 +5,6 @@
 
 #include <filesystem>
 #include <span>
-#include <stdexcept>
 #include <vector>
 
 #include <nvslang/slang.hpp>
@@ -20,7 +19,7 @@ public:
     return s_instance;
   }
 
-  void init(const std::vector<std::filesystem::path>& shader_dirs);
+  void init(const std::vector<std::filesystem::path>& shaderDirs);
   VkShaderModuleCreateInfo compile(const std::filesystem::path& filename,
                                    const std::span<const uint32_t>& spirv);
 

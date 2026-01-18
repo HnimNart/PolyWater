@@ -16,12 +16,12 @@
 
 #include "AppInfo.hpp"
 #include "IAppElement.hpp"
-#include "backend/IRenderBackend.hpp"
+#include "backend/interfaces/IRenderBackend.hpp"
 #include "types.h"
 
 // Forward declarations
 struct GLFWwindow;
-class FrameContext;
+class IRenderContext;
 
 namespace core
 {
@@ -75,10 +75,8 @@ public:
   void onFileDrop(const std::filesystem::path& filename);
 
   // ---------------------------------------------------------------------------
-  // Utilities & Accessors
+  // Accessors
   // ---------------------------------------------------------------------------
-  void requestScreenshot(const std::filesystem::path& filename, int quality = 100);
-
   GLFWwindow* getWindowHandle() const { return m_windowHandle; }
   const WindowSize& getViewportSize() const { return m_backend->getViewportSize(); }
 

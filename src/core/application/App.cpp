@@ -16,8 +16,8 @@
 #include <nvutils/logger.hpp>
 #include <nvutils/timers.hpp>
 
-#include "backend/FrameContext.hpp"
-#include "backend/IRenderBackend.hpp"
+#include "backend/interfaces/IRenderBackend.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 #include "common/progress_bar.hpp"
 
 namespace core
@@ -182,7 +182,7 @@ void Application::headlessRun()
     m_backend->newFrame();
     ImGui::NewFrame();  // Even if isn't directly used, helps advancing time if query
 
-    FrameContext frameCtx{};
+    IRenderContext frameCtx{};
     frameCtx.frameNumber = frameID;
     frameCtx.vSyncWanted = m_vsyncWanted;
 
@@ -238,7 +238,7 @@ void Application::close()
 
 void Application::runFrame()
 {
-  FrameContext frameCtx{};
+  IRenderContext frameCtx{};
   frameCtx.frameNumber = m_frameCounter;
   frameCtx.vSyncWanted = m_vsyncWanted;
 
@@ -277,13 +277,6 @@ void Application::runFrame()
     onResize(viewportSize);
   }
 
-  // // Handle Screenshot Requests
-  // if(m_screenShotRequested && (m_frameRingCurrent == m_screenShotFrame))
-  // {
-  //   saveScreenShot(m_screenShotFilename, k_imageQuality);
-  //   m_screenShotRequested = false;
-  // }
-
   if (m_backend->beginFrame(frameCtx))
   {
     m_backend->renderFrame(m_elements, frameCtx);
@@ -317,12 +310,6 @@ void Application::onResize(const WindowSize& size)
   {
     e->onResize(size);
   }
-}
-
-void Application::requestScreenshot(const std::filesystem::path& filename, int quality)
-{
-  // Forwarded to backend because screenshotting requires GPU-to-CPU transfer logic
-  m_backend->requestScreenshot(filename, quality);
 }
 
 void core::Application::onFileDrop(const std::filesystem::path& filename)

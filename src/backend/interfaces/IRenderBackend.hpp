@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 
+#include "IRenderContext.hpp"
 #include "core/application/AppInfo.hpp"
 #include "core/application/IAppElement.hpp"
 #include "core/application/types.h"
@@ -42,14 +43,14 @@ public:
   virtual void newFrame() = 0;
 
   // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
-  virtual bool beginFrame(FrameContext& frame) = 0;
+  virtual bool beginFrame(IRenderContext& frame) = 0;
 
   // Render the frame
   virtual void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                           FrameContext const& frame) = 0;
+                           IRenderContext const& frame) = 0;
 
   // Complete the frame
-  virtual void endFrame(FrameContext const& frame) = 0;
+  virtual void endFrame(IRenderContext const& frame) = 0;
 
   // Present the completed frame (no-op for headless backends)
   virtual void present() = 0;
@@ -82,7 +83,6 @@ public:
   //----------------------------------------------------------
   // Utilities
   //----------------------------------------------------------
-  virtual void requestScreenshot(const std::filesystem::path& filename, int quality = 100) = 0;
   virtual void freeResourcesQueue() {};
 
 protected:

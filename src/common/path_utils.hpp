@@ -20,15 +20,16 @@
 #pragma once
 
 #include <filesystem>
-#include <nvutils/file_operations.hpp>
 #include <vector>
 
-namespace nvsamples
-{
+#include <nvutils/file_operations.hpp>
 
 // WARNING: These functions use CMake-defined macros (TARGET_EXE_TO_ROOT_DIRECTORY, etc.)
 // Only include this header from .cpp files that have the proper CMake target definitions
 // (i.e., from tutorial sample .cpp files, not from other header files)
+
+namespace common
+{
 
 inline static std::vector<std::filesystem::path> getResourcesDirs()
 {
@@ -55,4 +56,4 @@ inline static std::vector<std::filesystem::path> getShaderDirs()
   };
 }
 
-}  // namespace nvsamples
+}  // namespace common

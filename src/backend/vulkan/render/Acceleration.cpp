@@ -1,12 +1,12 @@
-#include "VulkanAcceleration.hpp"
+#include "Acceleration.hpp"
 
 #include <vector>
 
-#include "VulkanBackend.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "common/timers.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
-void AccelerationStructures::init(core::VulkanBackend* backend)
+void AccelerationStructures::init(VulkanBackend* backend)
 {
   m_asBuilder.init(&backend->allocator(), &backend->stagingUploader(), backend->getQueueInfo(0));
 }

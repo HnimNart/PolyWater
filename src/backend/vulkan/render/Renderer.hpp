@@ -4,17 +4,18 @@
 
 #include <memory>
 
-#include "VulkanAcceleration.hpp"
-#include "VulkanBackend.hpp"
-#include "VulkanPostToneMapper.hpp"
-#include "VulkanRaster.hpp"
-#include "VulkanRayTracer.hpp"
+#include "Acceleration.hpp"
+#include "Raster.hpp"
+#include "RayTracer.hpp"
+#include "ToneMapper.hpp"
+#include "backend/interfaces/IDeviceAssets.hpp"
+#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "scene/gltf/io_gltf.h"
-#include "src/backend/ISceneRenderer.hpp"
 
 class PostProcessor;
 class IRenderBackend;
-class VulkanRenderResources;
+class VulkanSceneAssetManager;
 class SceneResourcesManager;
 
 namespace shaderio
@@ -25,8 +26,8 @@ struct PushConstant;
 class VulkanRenderer final : public ISceneRenderer
 {
 public:
-  explicit VulkanRenderer(core::VulkanBackend* backend);
-  ~VulkanRenderer() override;
+  explicit VulkanRenderer(VulkanBackend* backend);
+  ~VulkanRenderer() override = default;
 
   // Delete copy/move
   VulkanRenderer(const VulkanRenderer&) = delete;
@@ -46,7 +47,7 @@ public:
   // ---------------------------------------------------------------------------
   shaderio::GltfSceneInfo* updateSceneBuffers(SceneResourcesManager& scene) override;
   void render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
-              shaderio::PushConstant& pushValues) const override;
+              const shaderio::PushConstant& pushValues) const override;
 
   void postProcess() override;
   void onResize(const WindowSize& size) override;
@@ -55,9 +56,9 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  void* getImageDescriptor(uint32_t index) const override;
-  IPostProcessor& postProcessor() noexcept override;
-  std::shared_ptr<IDeviceResources> deviceResources() noexcept override;
+  void* getImageDescriptor(ISceneRenderer::RenderOutput output) const override;
+  IToneMapper& postProcessor() noexcept override;
+  std::shared_ptr<IDeviceAssets> deviceResources() noexcept override;
 
 private:
   void initGBuffers();
@@ -68,11 +69,11 @@ private:
   // Data
   nvvk::DescriptorPack m_descPack{};
 
-  core::VulkanBackend* m_backend = nullptr;
+  VulkanBackend* m_backend = nullptr;
 
-  std::shared_ptr<VulkanRenderResources> m_resources;
+  std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<VulkanRaster> m_raster;
   std::unique_ptr<VulkanRayTracer> m_ray_tracer;
-  std::unique_ptr<VulkanPostProcessor> m_post;
+  std::unique_ptr<VulkanToneMapper> m_post;
 };

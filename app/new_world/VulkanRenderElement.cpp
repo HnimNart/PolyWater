@@ -1,4 +1,4 @@
-#include "render.hpp"
+#include "VulkanRenderElement.hpp"
 
 // Standard Libs
 #include <cstdio>
@@ -15,7 +15,7 @@
 #include <nvgui/sky.hpp>
 #include <nvgui/tonemapper.hpp>
 
-#include "backend/vulkan/VulkanRenderer.hpp"
+#include "backend/vulkan/render/Renderer.hpp"
 #include "common/path_utils.hpp"
 #include "common/timers.hpp"
 #include "core/application/App.hpp"
@@ -28,15 +28,14 @@ void VulkanRendererElement::setupScene()
 
   // Load the GLTF resources
   tinygltf::Model teapotModel =
-      scene_resources.loadGltf(nvutils::findFile("teapot.gltf", nvsamples::getResourcesDirs()));
+      scene_resources.loadGltf(nvutils::findFile("teapot.gltf", common::getResourcesDirs()));
 
   tinygltf::Model planeModel =
-      scene_resources.loadGltf(nvutils::findFile("plane.gltf", nvsamples::getResourcesDirs()));
+      scene_resources.loadGltf(nvutils::findFile("plane.gltf", common::getResourcesDirs()));
 
   // Textures
   {
-    scene_resources.loadTexture(
-        nvutils::findFile("tiled_floor.png", nvsamples::getResourcesDirs()));
+    scene_resources.loadTexture(nvutils::findFile("tiled_floor.png", common::getResourcesDirs()));
   }
 
   // Teapot material
@@ -90,7 +89,7 @@ void VulkanRendererElement::setupScene()
 void VulkanRendererElement::onAttach(core::Application* app)
 {
   m_app = app;
-  auto* backend = dynamic_cast<core::VulkanBackend*>(app->getBackend());
+  auto* backend = dynamic_cast<VulkanBackend*>(app->getBackend());
   assert(backend && "Backend is not VulkanBackend");
   m_renderer = std::make_shared<VulkanRenderer>(backend);
   m_scene_manager = SceneManager(m_renderer);
@@ -206,12 +205,12 @@ void VulkanRendererElement::onPreRender()
 {
 }
 
-void VulkanRendererElement::onRender(FrameContext* ctx)
+void VulkanRendererElement::onRender(IRenderContext* ctx)
 {
   m_scene_manager.render(m_useRayTracing);
 }
 
-void VulkanRendererElement::onEndFrame(const FrameContext* frame)
+void VulkanRendererElement::onEndFrame(const IRenderContext* frame)
 {
   m_scene_manager.postProcess();
 }
@@ -224,4 +223,9 @@ void VulkanRendererElement::onLastHeadlessFrame()
 CameraPtr VulkanRendererElement::getCameraManipulator()
 {
   return m_scene_manager.camera();
+}
+
+void VulkanRendererElement::onFileDrop(const std::filesystem::path& filename)
+{
+  std::cout << filename << std::endl;
 }

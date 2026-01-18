@@ -13,7 +13,7 @@
 SceneResourcesManager::SceneResourcesManager() = default;
 SceneResourcesManager::~SceneResourcesManager() = default;
 
-void SceneResourcesManager::init(std::shared_ptr<IDeviceResources> deviceResource)
+void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 {
   m_device_resources = std::move(deviceResource);
 }
@@ -31,13 +31,13 @@ void SceneResourcesManager::endUploading()
 tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
 {
   auto model = gltf::load(filename);
-  auto id = static_cast<IDeviceResources::MeshID>(
-      m_device_resources->uploadGltfModel(model, m_resources));
+  auto id =
+      static_cast<IDeviceAssets::MeshID>(m_device_resources->uploadGltfModel(model, m_resources));
 
   return model;
 }
 
-IDeviceResources::TextureID SceneResourcesManager::loadTexture(const std::string& filename)
+IDeviceAssets::TextureID SceneResourcesManager::loadTexture(const std::string& filename)
 {
   return m_device_resources->uploadTexture(filename);
 }

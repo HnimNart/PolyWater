@@ -2,14 +2,14 @@
 
 #include <vulkan/vulkan.h>
 
-#include "backend/FrameContext.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 
 //------------------------------------------------------------
 // VulkanFrameContext
 //------------------------------------------------------------
 // Concrete Vulkan implementation of RenderContext for a single frame.
 // Holds the Vulkan command buffer and other per-frame objects.
-class VulkanRenderContext final : public FrameContext
+class VulkanRenderContext final : public IRenderContext
 {
 public:
   VulkanRenderContext() = default;

@@ -5,10 +5,10 @@
 
 #include <nvshaders_host/tonemapper.hpp>
 
-class IPostProcessor
+class IToneMapper
 {
 public:
-  virtual ~IPostProcessor() = default;
+  virtual ~IToneMapper() = default;
   shaderio::TonemapperData& data() { return m_tonemapperData; }
 
 protected:

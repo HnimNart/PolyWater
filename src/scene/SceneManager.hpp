@@ -6,9 +6,13 @@
 #include <nvutils/camera_manipulator.hpp>
 
 #include "SceneResources.hpp"
-#include "backend/ISceneRenderer.hpp"
+#include "backend/interfaces/ISceneRenderer.hpp"
 #include "core/Camera.hpp"
-#include "core/Image.hpp"
+
+namespace shaderio
+{
+class TonemapperData;
+}
 
 class SceneManager
 {
