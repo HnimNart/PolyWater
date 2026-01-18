@@ -18,6 +18,7 @@
 
 #include "backend/FrameContext.hpp"
 #include "backend/IRenderBackend.hpp"
+#include "common/progress_bar.hpp"
 
 namespace core
 {
@@ -129,16 +130,12 @@ void Application::run()
 
 void Application::headlessRun()
 {
-  printf("Running Headless\n");
-  nvutils::ScopedTimer st(__FUNCTION__);
-  WindowSize m_viewportSize = m_windowSize;
-
+  WindowSize viewportSize = m_windowSize;
   // Set the display for Imgui
   ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize.x = float(m_viewportSize.width);
-  io.DisplaySize.y = float(m_viewportSize.height);
-
-  onResize(m_viewportSize);
+  io.DisplaySize.x = float(viewportSize.width);
+  io.DisplaySize.y = float(viewportSize.height);
+  onResize(viewportSize);
 
   // Need to render the UI twice: the first pass sets up the internal state and layout,
   // and the second pass finalizes the rendering with the updated state.
@@ -156,8 +153,10 @@ void Application::headlessRun()
   }
 
   // Rendering n-times the scene
+  ProgressBar progress("Headless");
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose; frameID++)
   {
+    progress.update(frameID, m_headlessFrameCount);
     m_backend->newFrame();
     ImGui::NewFrame();  // Even if isn't directly used, helps advancing time if query
 
@@ -175,7 +174,7 @@ void Application::headlessRun()
     ImGui::EndFrame();
   }
   ImGui::Render();  // This is creating the data to draw the UI (not on GPU yet)
-
+  progress.finish();
   // At this point, everything has been rendered. Let it finish.
   m_backend->waitForDeviceIdle();
 
@@ -188,19 +187,16 @@ void Application::headlessRun()
 
 void Application::runOneFrame()
 {
-  if (!m_headless)
+  if (m_vsyncWanted)
   {
-    if (m_vsyncWanted)
-    {
-      m_framePacer.pace();
-    }
-    glfwPollEvents();
+    m_framePacer.pace();
+  }
+  glfwPollEvents();
 
-    // Skip rendering when minimized
-    if (glfwGetWindowAttrib(m_windowHandle, GLFW_ICONIFIED))
-    {
-      return;
-    }
+  // Skip rendering when minimized
+  if (glfwGetWindowAttrib(m_windowHandle, GLFW_ICONIFIED))
+  {
+    return;
   }
 
   runFrame();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+#include <memory>
 #include <vector>
 
 #include <nvvk/context.hpp>
@@ -17,21 +19,19 @@ namespace core
 class VulkanBackend final : public IRenderBackend
 {
 public:
+  // ---------------------------------------------------------------------------
+  // Lifecycle & Initialization
+  // ---------------------------------------------------------------------------
   static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
 
-  // Lifecycle
   void init(const core::ApplicationCreateInfo& appInfo) override;
   void deinit() override;
+  void freeResourcesQueue() override;
 
-  // Frame Loop
+  // ---------------------------------------------------------------------------
+  // Core Frame Loop (Execution Flow)
+  // ---------------------------------------------------------------------------
   void newFrame() override;
-
-  VkCommandBuffer startSingleTimeCmd();
-  void endSingleTimeCmd(VkCommandBuffer cmd);
-  void waitForDeviceIdle() override;
-
-  VkCommandBuffer getActiveCmd() const;
-
   bool beginFrame(FrameContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
                    FrameContext const& frame) override;
@@ -39,64 +39,87 @@ public:
   void present() override;
   void advance() override;
 
+  // ---------------------------------------------------------------------------
+  // Synchronization & Commands
+  // ---------------------------------------------------------------------------
+  void waitForDeviceIdle() override;
+
+  // Single-Time Commands (e.g., used for resource uploading or layout transitions)
+  VkCommandBuffer startSingleTimeCmd();
+  void endSingleTimeCmd(VkCommandBuffer cmd);
+
+  VkCommandBuffer getActiveCmd() const;
+
+  // ---------------------------------------------------------------------------
+  // Configuration & IO
+  // ---------------------------------------------------------------------------
+  void setVsync(bool enabled) override;
   void requestScreenshot(const std::filesystem::path& filename, int quality) override;
 
-  void setVsync(bool enabled) override;
-
-  // Getters
+  // ---------------------------------------------------------------------------
+  // Accessors (Getters)
+  // ---------------------------------------------------------------------------
+  // Backend & Device Properties
   uint32_t getFrameCycleSize() const;
-
-  void freeResourcesQueue() override;
-
-  VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
-  nvvk::ResourceAllocator& allocator() { return m_allocator; }
-  const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
-  nvvk::StagingUploader& stagingUploader() { return m_stagingUploader; }
-  const nvvk::StagingUploader& stagingUploader() const { return m_stagingUploader; }
+  VkDevice getDevice() const { return m_vkContext.getDevice(); }
+  VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
   const nvvk::QueueInfo& getQueueInfo(uint32_t index) const
   {
     return m_vkContext.getQueueInfo(index);
   }
-  VkCommandPool transientCmdPool() const { return m_transientCmdPool; };  // The command pool
-  VkDevice getDevice() const { return m_vkContext.getDevice(); }
-  VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
+
+  // Resource Management Accessors
+  nvvk::ResourceAllocator& allocator() { return m_allocator; }
+  const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
+
+  nvvk::StagingUploader& stagingUploader() { return m_stagingUploader; }
+  const nvvk::StagingUploader& stagingUploader() const { return m_stagingUploader; }
+
+  VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
+  VkCommandPool transientCmdPool() const { return m_transientCmdPool; }
 
 private:
+  // Constructor is private to enforce use of create() factory
   VulkanBackend() = default;
-  bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 
+  // ---------------------------------------------------------------------------
+  // Internal Initialization Helpers
+  // ---------------------------------------------------------------------------
+  bool initVulkan(const core::ApplicationCreateInfo& appInfo);
   void setupImGuiVulkanBackend();
   void createFrameSubmission(uint32_t numFrames);
-  void waitForFrameCompletion() const;
 
+  // ---------------------------------------------------------------------------
+  // Internal Rendering Helpers
+  // ---------------------------------------------------------------------------
+  void waitForFrameCompletion() const;
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
   void renderToSwapchain(VkCommandBuffer cmd);
 
-  // Vulkan resources
+  // ---------------------------------------------------------------------------
+  // Member Variables
+  // ---------------------------------------------------------------------------
+
+  // 1. Core Vulkan Resources
   nvvk::Context m_vkContext{};
   nvvk::Swapchain m_swapchain{};
   VkSurfaceKHR m_surface{VK_NULL_HANDLE};
-  VkCommandPool m_transientCmdPool{};   // The command pool
-  VkDescriptorPool m_descriptorPool{};  // Application descriptor pool
+  VkCommandPool m_transientCmdPool{};
+  VkDescriptorPool m_descriptorPool{};
   nvvk::ResourceAllocator m_allocator{};
   nvvk::StagingUploader m_stagingUploader{};
-  uint32_t m_maxTexturePool{128};  // Maximum number of textures in the descriptor pool
+  uint32_t m_maxTexturePool{128};
 
-  // Concrete context storage (one per frame in flight)
+  // 2. Frame Synchronization (Ring Buffer)
   std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
-  VkSemaphore m_frameTimelineSemaphore{};  // Timeline semaphore used to synchronize CPU submission
-                                           // with GPU completion
-  uint32_t m_frameRingCurrent{0};          // Current frame index in the ring buffer (cycles through
-                                           // available frames) : static for resource free queue
-  // Fine control over the frame submission
-  std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores{};  // Possible extra frame wait semaphores
-  std::vector<VkSemaphoreSubmitInfo>
-      m_signalSemaphores{};  // Possible extra frame signal semaphores
-  std::vector<VkCommandBufferSubmitInfo>
-      m_commandBuffers{};  // Possible extra frame command buffers
+  VkSemaphore m_frameTimelineSemaphore{};
+  uint32_t m_frameRingCurrent{0};
+
+  // 3. Submission Control
+  std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores{};
+  std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores{};
+  std::vector<VkCommandBufferSubmitInfo> m_commandBuffers{};
 };
 
 }  // namespace core
-
-// namespace nvapp
