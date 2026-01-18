@@ -111,6 +111,28 @@ void Application::shutdown()
   }
 }
 
+IRenderBackend* Application::getBackend() const
+{
+  return m_backend.get();
+}
+
+void Application::setVsync(bool v)
+{
+  m_vsyncWanted = v;
+  m_backend->setVsync(m_vsyncWanted);
+}
+
+bool Application::isVsync() const
+{
+  return m_vsyncWanted;
+}
+
+void Application::addElement(const std::shared_ptr<IAppElement>& element)
+{
+  m_elements.emplace_back(element);
+  element->onAttach(this);
+}
+
 void Application::run()
 {
   LOGI("Running application\n");
