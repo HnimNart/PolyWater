@@ -19,8 +19,6 @@
 
 #include "elem_camera.hpp"
 
-#include <iostream>
-
 #include <nvgui/window.hpp>
 #include <nvutils/logger.hpp>
 

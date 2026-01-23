@@ -192,7 +192,7 @@ void VulkanBackend::deinit()
   vkDestroyCommandPool(device, m_transientCmdPool, nullptr);
   vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
 
-  vkDeviceWaitIdle(device);
+  waitForDeviceIdle();
   m_stagingUploader.deinit();
   m_allocator.deinit();
   m_vkContext.deinit();

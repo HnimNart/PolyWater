@@ -28,7 +28,7 @@
 namespace core
 {
 
-class ElementProfiler : public IAppElement
+class ElementProfiler : public core::IAppElement
 {
 public:
   typedef enum

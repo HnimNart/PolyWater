@@ -10,7 +10,6 @@
 namespace core
 {
 class Application;
-class VulkanBackend;
 }  // namespace core
 
 class VulkanRenderer;
