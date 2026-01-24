@@ -120,7 +120,7 @@ private:
   bool m_running = false;
   uint64_t m_frameCounter = 0;
   bool m_useMenubar{true};
-  bool m_vsyncWanted{true};
+  bool m_vsyncWanted{true};  // TODO figure out if this needed
 
   // 4. Headless Mode
   bool m_headless{false};

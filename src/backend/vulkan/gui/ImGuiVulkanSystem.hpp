@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "IRenderable.h"
 #include "core/application/AppInfo.hpp"
 #include "core/application/IGUISystem.hpp"
 
@@ -21,7 +22,7 @@ namespace core
 class IAppElement;
 }
 
-class ImGuiVulkanSystem : public core::IGUISystem
+class ImGuiVulkanSystem : public core::IGUISystem, public IRenderable
 {
 public:
   ImGuiVulkanSystem() = default;
@@ -37,7 +38,8 @@ public:
   void render() override;
 
   // UI Rendering
-  void renderMenu(const std::vector<std::shared_ptr<core::IAppElement>>& elements) override;
+  void renderMenu(
+      const std::vector<std::shared_ptr<core::IAppElement>>& elements) override;
   bool getWindowSize(const std::string& windowName, WindowSize& size) override;
   void setWindowSize(const WindowSize& size) override;
 
@@ -49,10 +51,10 @@ public:
   // Vulkan Backend
   void initVulkanBackend(VulkanContextManager& coreManager,
                          FrameSynchronizationManager& frameSyncManager,
-                         SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle);
+                         SwapchainRenderManager& swapchainManager,
+                         GLFWwindow* windowHandle);
 
-  using RenderCallback = std::function<void(VkCommandBuffer)>;
-  RenderCallback getRenderCallback() const;
+  void onRender(const IRenderContext& ctx) override;
 
 private:
   // Initialization Helpers
@@ -65,7 +67,8 @@ private:
   void initializeGlfwBackend(GLFWwindow* windowHandle);
   void initializeVulkanBackend(VulkanContextManager& coreManager,
                                FrameSynchronizationManager& frameSyncManager,
-                               SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle);
+                               SwapchainRenderManager& swapchainManager,
+                               GLFWwindow* windowHandle);
   void shutdownVulkanBackend();
 
   // Docking Helpers

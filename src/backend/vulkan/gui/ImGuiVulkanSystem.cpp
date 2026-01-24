@@ -64,7 +64,8 @@ void ImGuiVulkanSystem::destroyContext()
 
 void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo& info)
 {
-  m_iniFilename = nvutils::utf8FromPath(nvutils::getExecutablePath().replace_extension(".ini"));
+  m_iniFilename = nvutils::utf8FromPath(
+      nvutils::getExecutablePath().replace_extension(".ini"));
 
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
   nvgui::setStyle(false);
@@ -74,7 +75,8 @@ void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo& info)
   loadSettings(m_iniFilename.c_str());
 }
 
-void ImGuiVulkanSystem::configureImGuiIO(const core::ApplicationCreateInfo& info)
+void ImGuiVulkanSystem::configureImGuiIO(
+    const core::ApplicationCreateInfo& info)
 {
   ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags = info.imguiConfigFlags;
@@ -100,10 +102,10 @@ void ImGuiVulkanSystem::initializeFonts()
 // Vulkan Backend Initialization
 // ============================================================================
 
-void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
-                                          FrameSynchronizationManager& frameSyncManager,
-                                          SwapchainRenderManager& swapchainManager,
-                                          GLFWwindow* windowHandle)
+void ImGuiVulkanSystem::initVulkanBackend(
+    VulkanContextManager& coreManager,
+    FrameSynchronizationManager& frameSyncManager,
+    SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle)
 {
   if (m_vulkanInitialized)
   {
@@ -111,7 +113,8 @@ void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
   }
 
   initializeGlfwBackend(windowHandle);
-  initializeVulkanBackend(coreManager, frameSyncManager, swapchainManager, windowHandle);
+  initializeVulkanBackend(coreManager, frameSyncManager, swapchainManager,
+                          windowHandle);
 
   m_vulkanInitialized = true;
 }
@@ -125,10 +128,10 @@ void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow* windowHandle)
   }
 }
 
-void ImGuiVulkanSystem::initializeVulkanBackend(VulkanContextManager& coreManager,
-                                                FrameSynchronizationManager& frameSyncManager,
-                                                SwapchainRenderManager& swapchainManager,
-                                                GLFWwindow* windowHandle)
+void ImGuiVulkanSystem::initializeVulkanBackend(
+    VulkanContextManager& coreManager,
+    FrameSynchronizationManager& frameSyncManager,
+    SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle)
 {
   VkFormat imageFormat = swapchainManager.getSwapchain().getImageFormat();
   if (!windowHandle)
@@ -214,7 +217,8 @@ void ImGuiVulkanSystem::renderViewports()
 // Menu & Docking
 // ============================================================================
 
-void ImGuiVulkanSystem::renderMenu(const std::vector<std::shared_ptr<core::IAppElement>>& elements)
+void ImGuiVulkanSystem::renderMenu(
+    const std::vector<std::shared_ptr<core::IAppElement>>& elements)
 {
   setupImguiDock();
 
@@ -231,11 +235,14 @@ void ImGuiVulkanSystem::renderMenu(const std::vector<std::shared_ptr<core::IAppE
 void ImGuiVulkanSystem::setupImguiDock()
 {
   const ImGuiDockNodeFlags dockFlags =
-      ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
+      ImGuiDockNodeFlags_PassthruCentralNode |
+      ImGuiDockNodeFlags_NoDockingInCentralNode;
 
-  ImGuiID dockID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
+  ImGuiID dockID =
+      ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
 
-  if (!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() && !ImGui::FindWindowByName("Viewport"))
+  if (!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() &&
+      !ImGui::FindWindowByName("Viewport"))
   {
     setupDefaultDockLayout(dockID);
   }
@@ -244,7 +251,8 @@ void ImGuiVulkanSystem::setupImguiDock()
 void ImGuiVulkanSystem::setupDefaultDockLayout(ImGuiID dockID)
 {
   ImGui::DockBuilderDockWindow("Viewport", dockID);
-  ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;
+  ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |=
+      ImGuiDockNodeFlags_NoTabBar;
 
   if (m_dockSetup)
   {
@@ -258,7 +266,8 @@ void ImGuiVulkanSystem::setupDefaultDockLayout(ImGuiID dockID)
 
 void ImGuiVulkanSystem::createDefaultLayout(ImGuiID dockID)
 {
-  ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f, nullptr, &dockID);
+  ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f,
+                                               nullptr, &dockID);
   ImGui::DockBuilderDockWindow("Settings", leftID);
 }
 
@@ -266,7 +275,8 @@ void ImGuiVulkanSystem::createDefaultLayout(ImGuiID dockID)
 // Window Queries
 // ============================================================================
 
-bool ImGuiVulkanSystem::getWindowSize(const std::string& windowName, WindowSize& size)
+bool ImGuiVulkanSystem::getWindowSize(const std::string& windowName,
+                                      WindowSize& size)
 {
   const ImGuiWindow* viewport = ImGui::FindWindowByName(windowName.c_str());
   if (!viewport)
@@ -313,7 +323,9 @@ void ImGuiVulkanSystem::saveSettings(const char* filename)
   }
 }
 
-ImGuiVulkanSystem::RenderCallback ImGuiVulkanSystem::getRenderCallback() const
+void ImGuiVulkanSystem::onRender(const IRenderContext& ctx)
 {
-  return [](VkCommandBuffer cmd) { ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd); };
+  const VulkanRenderContext& vkContext =
+      static_cast<const VulkanRenderContext&>(ctx);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vkContext.cmdBuffer);
 }

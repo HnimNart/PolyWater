@@ -23,7 +23,8 @@ void SwapchainRenderManager::init(VulkanContextManager& coreManager,
 
   if (!m_headless && !m_windowHandle)
   {
-    throw std::runtime_error("SwapchainRenderManager initialized without a valid GLFW window.");
+    throw std::runtime_error(
+        "SwapchainRenderManager initialized without a valid GLFW window.");
   }
 
   VkDevice device = coreManager.getDevice();
@@ -34,7 +35,8 @@ void SwapchainRenderManager::init(VulkanContextManager& coreManager,
   if (!m_headless)
   {
     // Create Window Surface
-    NVVK_CHECK(glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
+    NVVK_CHECK(
+        glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
 
     // Create Swapchain
     nvvk::Swapchain::InitInfo swapChainInit{
@@ -51,15 +53,14 @@ void SwapchainRenderManager::init(VulkanContextManager& coreManager,
     if (result != VK_SUCCESS)
     {
       reportSwapchainDiagnostics(instance, swapChainInit);
-      nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__, __LINE__);
+      nvvk::CheckError::getInstance().check(result, "m_swapchain.init",
+                                            __FILE__, __LINE__);
     }
 
     // Initialize Swapchain Resources
     NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
-
   }
 }
-
 
 bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
 {
@@ -80,7 +81,8 @@ bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
   return true;
 }
 
-void SwapchainRenderManager::renderToSwapchain(VkCommandBuffer cmd, const RenderCallback &renderCallback)
+void SwapchainRenderManager::renderToSwapchain(
+    VkCommandBuffer cmd, const RenderCallback& renderCallback)
 {
   if (m_headless)
   {
@@ -89,12 +91,13 @@ void SwapchainRenderManager::renderToSwapchain(VkCommandBuffer cmd, const Render
 
   beginDynamicRenderingToSwapchain(cmd);
   {
-    renderCallback(cmd);
+    renderCallback();
   }
   endDynamicRenderingToSwapchain(cmd);
 }
 
-void SwapchainRenderManager::beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const
+void SwapchainRenderManager::beginDynamicRenderingToSwapchain(
+    VkCommandBuffer cmd) const
 {
   const VkRenderingAttachmentInfo colorAttachment{
       .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -113,19 +116,21 @@ void SwapchainRenderManager::beginDynamicRenderingToSwapchain(VkCommandBuffer cm
       .pColorAttachments = &colorAttachment,
   };
 
-  nvvk::cmdImageMemoryBarrier(cmd, {m_swapchain.getImage(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+  nvvk::cmdImageMemoryBarrier(cmd, {m_swapchain.getImage(),
+                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
   vkCmdBeginRendering(cmd, &renderingInfo);
 }
 
-void SwapchainRenderManager::endDynamicRenderingToSwapchain(VkCommandBuffer cmd) const
+void SwapchainRenderManager::endDynamicRenderingToSwapchain(
+    VkCommandBuffer cmd) const
 {
   vkCmdEndRendering(cmd);
 
-  nvvk::cmdImageMemoryBarrier(cmd,
-                              {m_swapchain.getImage(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
+  nvvk::cmdImageMemoryBarrier(cmd, {m_swapchain.getImage(),
+                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
 }
 
 void SwapchainRenderManager::present(VulkanContextManager& coreManager)
@@ -159,17 +164,19 @@ void SwapchainRenderManager::deinit(VulkanContextManager& coreManager)
 
 // Provides additional diagnostic information about which GPUs can be used with
 // the given VkSurface. Only used when handling errors.
-void SwapchainRenderManager::reportSwapchainDiagnostics(VkInstance instance,
-                                                        nvvk::Swapchain::InitInfo& swapchainParams)
+void SwapchainRenderManager::reportSwapchainDiagnostics(
+    VkInstance instance, nvvk::Swapchain::InitInfo& swapchainParams)
 {
-  LOGI("\nAvailable GPUs and presentation support for surface %p:\n", swapchainParams.surface);
+  LOGI("\nAvailable GPUs and presentation support for surface %p:\n",
+       swapchainParams.surface);
   uint32_t gpuCount = 0;
   std::vector<VkPhysicalDevice> gpus;
   if (instance == nullptr || swapchainParams.surface == VK_NULL_HANDLE)
   {
     LOGI("  <instance or surface was nullptr>\n");
   }
-  else if (VK_SUCCESS != vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr))
+  else if (VK_SUCCESS !=
+           vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr))
   {
     LOGI("  <vkEnumeratePhysicalDevices failed>\n");
   }
@@ -188,13 +195,16 @@ void SwapchainRenderManager::reportSwapchainDiagnostics(VkInstance instance,
 
       // Check which queue families on this GPU can present
       uint32_t queueFamilyCount = 0;
-      vkGetPhysicalDeviceQueueFamilyProperties(gpus[gpuIdx], &queueFamilyCount, nullptr);
+      vkGetPhysicalDeviceQueueFamilyProperties(gpus[gpuIdx], &queueFamilyCount,
+                                               nullptr);
       bool anyCanPresent = false;
       std::vector<uint32_t> presentableQueueFamilies;
-      for (uint32_t queueFamilyIdx = 0; queueFamilyIdx < queueFamilyCount; queueFamilyIdx++)
+      for (uint32_t queueFamilyIdx = 0; queueFamilyIdx < queueFamilyCount;
+           queueFamilyIdx++)
       {
         VkBool32 presentSupported = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(gpus[gpuIdx], queueFamilyIdx, swapchainParams.surface,
+        vkGetPhysicalDeviceSurfaceSupportKHR(gpus[gpuIdx], queueFamilyIdx,
+                                             swapchainParams.surface,
                                              &presentSupported);
         if (VK_TRUE == presentSupported)
         {
@@ -206,27 +216,36 @@ void SwapchainRenderManager::reportSwapchainDiagnostics(VkInstance instance,
       // TODO fix this include
       if (anyCanPresent)
       {
-        // PRINTI("  GPU {} ({}): CAN present (using queue family indices {})\n", gpuIdx,
+        // PRINTI("  GPU {} ({}): CAN present (using queue family indices
+        // {})\n", gpuIdx,
         //        deviceProps.deviceName, presentableQueueFamilies);
       }
       else
       {
-        // PRINTI("  GPU {} ({}): CANNOT present\n", gpuIdx, deviceProps.deviceName);
+        // PRINTI("  GPU {} ({}): CANNOT present\n", gpuIdx,
+        // deviceProps.deviceName);
       }
     }
   }
 
   VkPhysicalDeviceProperties chosenDeviceProps{};
-  vkGetPhysicalDeviceProperties(swapchainParams.physicalDevice, &chosenDeviceProps);
-  LOGE("Failed to create the swapchain for VkSurface %p with VkPhysicalDevice %p (%s).\n"
-       "This might happen if you're on a multi-monitor Linux system with different GPUs plugged "
-       "into different windowing system desktops, and GLFW chose a desktop not connected to the "
+  vkGetPhysicalDeviceProperties(swapchainParams.physicalDevice,
+                                &chosenDeviceProps);
+  LOGE("Failed to create the swapchain for VkSurface %p with VkPhysicalDevice "
+       "%p (%s).\n"
+       "This might happen if you're on a multi-monitor Linux system with "
+       "different GPUs plugged "
+       "into different windowing system desktops, and GLFW chose a desktop not "
+       "connected to the "
        "physical device that the sample or nvvk::Context chose.\n"
-       "To fix this, set nvvk::ContextInfo in the sample to the index of a GPU with \"CAN "
+       "To fix this, set nvvk::ContextInfo in the sample to the index of a GPU "
+       "with \"CAN "
        "Present\" listed next to it above.\n",
-       swapchainParams.surface, swapchainParams.physicalDevice, chosenDeviceProps.deviceName);
+       swapchainParams.surface, swapchainParams.physicalDevice,
+       chosenDeviceProps.deviceName);
   // Note that this is essentially a workaround for a bug that would require
-  // changing the nvpro_core2 design; to fix this, we would either need to create
-  // the window and surface before the context, or we would need to link NVVK
-  // against GLFW and have nvvk::Context call glfwGetPhysicalDevicePresentationSupport.
+  // changing the nvpro_core2 design; to fix this, we would either need to
+  // create the window and surface before the context, or we would need to link
+  // NVVK against GLFW and have nvvk::Context call
+  // glfwGetPhysicalDevicePresentationSupport.
 }

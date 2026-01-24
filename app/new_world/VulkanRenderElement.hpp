@@ -27,8 +27,8 @@ public:
   void onUIRender() override;
   void onPreRender() override;
   void onUIMenu() override;
-  void onRender(const IRenderContext* ctx) override;
-  void onEndFrame(const IRenderContext* frame) override;
+  void onRender(const IRenderContext& ctx) override;
+  void onEndFrame(const IRenderContext& frame) override;
   void onLastHeadlessFrame() override;
   void onFileDrop(const std::filesystem::path& filename) override;
 

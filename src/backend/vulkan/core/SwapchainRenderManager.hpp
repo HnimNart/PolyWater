@@ -12,15 +12,18 @@ class FrameSynchronizationManager;
 class SwapchainRenderManager
 {
 public:
-  using RenderCallback = std::function<void(VkCommandBuffer)>;
+  using RenderCallback = std::function<void()>;
 
-  void init(VulkanContextManager& coreManager, FrameSynchronizationManager& frameSyncManager,
-            GLFWwindow* windowHandle, const core::ApplicationCreateInfo& appInfo);
+  void init(VulkanContextManager& coreManager,
+            FrameSynchronizationManager& frameSyncManager,
+            GLFWwindow* windowHandle,
+            const core::ApplicationCreateInfo& appInfo);
   void deinit(VulkanContextManager& coreManager);
 
   // Swapchain management
   bool beginFrame(VulkanContextManager& coreManager);
-  void renderToSwapchain(VkCommandBuffer cmd, const RenderCallback& renderCallback);
+  void renderToSwapchain(VkCommandBuffer cmd,
+                         const RenderCallback& renderCallback);
   void present(VulkanContextManager& coreManager);
 
   // Accessors
@@ -35,7 +38,8 @@ public:
   const nvvk::Swapchain& getSwapchain() const { return m_swapchain; };
 
 private:
-  void reportSwapchainDiagnostics(VkInstance instance, nvvk::Swapchain::InitInfo& swapchainParams);
+  void reportSwapchainDiagnostics(VkInstance instance,
+                                  nvvk::Swapchain::InitInfo& swapchainParams);
   GLFWwindow* m_windowHandle = nullptr;
   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
   nvvk::Swapchain m_swapchain;
@@ -44,7 +48,8 @@ private:
   bool m_vsyncWanted = true;
   bool m_headless = false;
 
-  void setupImGuiVulkanBackend(VulkanContextManager& coreManager, uint32_t framesInFlight);
+  void setupImGuiVulkanBackend(VulkanContextManager& coreManager,
+                               uint32_t framesInFlight);
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void rebuildSwapchainIfNeeded();

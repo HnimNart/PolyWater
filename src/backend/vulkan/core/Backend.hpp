@@ -10,28 +10,27 @@
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
-
-namespace core
-{
-class IGUISystem;
-}
+#include "backend/vulkan/gui/IRenderable.h"
+#include "core/application/IGUISystem.hpp"
 
 class ImGuiVulkanSystem;
 
 class VulkanBackend : public IRenderBackend
 {
 public:
-  static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
+  static std::unique_ptr<VulkanBackend>
+  create(const core::ApplicationCreateInfo& appInfo);
 
   void init(const core::ApplicationCreateInfo& info) override;
   void deinit() override;
-  void setGUI(std::shared_ptr<core::IGUISystem> gui) override;
+  void initializeGUIBackend(core::IGUISystemPtr gui) override;
 
   // Frame lifecycle
-  bool beginFrame(IRenderContext& frame) override;
-  void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                   IRenderContext const& frame) override;
-  void endFrame(IRenderContext const& frame) override;
+  IRenderContext& getCurrentContext() override;
+  bool beginFrame(IRenderContext const& ctx) override;
+  void renderFrame(const std::vector<core::IAppElementPtr>& elements,
+                   IRenderContext const& ctx) override;
+  void endFrame(IRenderContext const& ctx) override;
   void present() override;
   void advance() override;
 
@@ -42,9 +41,10 @@ public:
   VulkanContextManager* getCoreManager() const;
   FrameSynchronizationManager* getFrameSyncManager() const;
   SwapchainRenderManager* getSwapchainManager() const;
+  RenderRegistry& getRegistry();
 
 private:
-  void initializeGUIBackend();
+  void recordRegistryCommands(IRenderContext const& frame);
   IRenderContext* getRenderContext();
   // Utility
   VkDevice getDevice() const;
@@ -58,7 +58,6 @@ private:
   std::unique_ptr<FrameSynchronizationManager> m_frameSyncManager;
   std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
 
-  ImGuiVulkanSystem* m_gui = nullptr;
-
+  RenderRegistry m_renderRegistry{};
   bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 };

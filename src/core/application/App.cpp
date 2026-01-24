@@ -69,9 +69,9 @@ void Application::initializeBackend(const ApplicationCreateInfo& info)
 {
   assert(m_backend);
   m_backend->setWindow(m_windowHandle);
-  m_backend->setGUI(m_gui);
   m_backend->init(info);
   m_backend->setWindowSize(m_windowSize);  // TODO WHY IS this here?
+  m_backend->initializeGUIBackend(m_gui);
 }
 
 /**********************************************************/
@@ -203,11 +203,11 @@ void Application::headlessRun()
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose;
        frameID++)
   {
-    progress.update(frameID, m_headlessFrameCount);
-    IRenderContext frameCtx{};
-    frameCtx.frameNumber = frameID;
+    // progress.update(frameID, m_headlessFrameCount);
+    IRenderContext& frameCtx = m_backend->getCurrentContext();
+    printf("%d %d\n", frameCtx.frameNumber, frameID);
+    // frameCtx.frameNumber = frameID;
     frameCtx.vSyncWanted = m_vsyncWanted;
-
     if (m_backend->beginFrame(frameCtx))
     {
       m_backend->renderFrame(m_elements, frameCtx);
@@ -266,9 +266,6 @@ void Application::close()
 void Application::runFrame()
 /**********************************************************/
 {
-  IRenderContext frameCtx{};
-  frameCtx.frameNumber = m_frameCounter;
-  frameCtx.vSyncWanted = m_vsyncWanted;
 
   // 1. Begin GUI Frame
   m_gui->beginFrame();
@@ -297,6 +294,9 @@ void Application::runFrame()
   }
 
   m_gui->render();
+  IRenderContext& frameCtx = m_backend->getCurrentContext();
+  frameCtx.frameNumber = m_frameCounter;  // TODO Figure if this is safe
+  frameCtx.vSyncWanted = m_vsyncWanted;
   if (m_backend->beginFrame(frameCtx))
   {
     m_backend->renderFrame(m_elements, frameCtx);

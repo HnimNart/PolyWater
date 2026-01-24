@@ -45,15 +45,17 @@ public:
   //----------------------------------------------------------
   // Frame loop
   //----------------------------------------------------------
-  // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
-  virtual bool beginFrame(IRenderContext& frame) = 0;
+  virtual IRenderContext& getCurrentContext() = 0;
+  // Begin a new frame. Returns false if frame should be skipped (e.g.,
+  // minimized).
+  virtual bool beginFrame(IRenderContext const& ctx) = 0;
 
   // Render the frame
-  virtual void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                           IRenderContext const& frame) = 0;
+  virtual void renderFrame(const std::vector<core::IAppElementPtr>& elements,
+                           IRenderContext const& ctx) = 0;
 
   // Complete the frame
-  virtual void endFrame(IRenderContext const& frame) = 0;
+  virtual void endFrame(IRenderContext const& ctx) = 0;
 
   // Present the completed frame (no-op for headless backends)
   virtual void present() = 0;
@@ -78,11 +80,17 @@ public:
     m_viewportSize = size;
   }
 
-  virtual void setGUI(std::shared_ptr<core::IGUISystem> gui) = 0;
+  virtual void initializeGUIBackend(std::shared_ptr<core::IGUISystem> gui) = 0;
 
   const WindowSize& getViewportSize() const { return m_viewportSize; }
-  virtual void setWindow(GLFWwindow* windowHandle) { m_windowHandle = windowHandle; }
-  void setWindowSize(const WindowSize& windowSize) { m_windowSize = windowSize; };
+  virtual void setWindow(GLFWwindow* windowHandle)
+  {
+    m_windowHandle = windowHandle;
+  }
+  void setWindowSize(const WindowSize& windowSize)
+  {
+    m_windowSize = windowSize;
+  };
   const WindowSize& getWindowSize() const { return m_windowSize; }
 
   //----------------------------------------------------------
