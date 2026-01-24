@@ -1,4 +1,4 @@
-#include "CoreManager.hpp"
+#include "ContextManager.hpp"
 
 #include <vulkan/vk_enum_string_helper.h>
 
@@ -8,9 +8,7 @@
 #include <nvvk/helpers.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "Utils.hpp"
-
-bool VulkanCoreManager::init(const core::ApplicationCreateInfo& appInfo)
+bool VulkanContextManager::init(const core::ApplicationCreateInfo& appInfo)
 {
   // 1. Define Feature Structs
   VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
@@ -60,7 +58,7 @@ bool VulkanCoreManager::init(const core::ApplicationCreateInfo& appInfo)
   return true;
 }
 
-void VulkanCoreManager::setupTransientCommandPool()
+void VulkanContextManager::setupTransientCommandPool()
 {
   VkDevice device = m_vkContext.getDevice();
   const nvvk::QueueInfo& graphicsQueue = m_vkContext.getQueueInfo(0);
@@ -74,7 +72,7 @@ void VulkanCoreManager::setupTransientCommandPool()
   NVVK_DBG_NAME(m_transientCmdPool);
 }
 
-void VulkanCoreManager::setupDescriptorPool()
+void VulkanContextManager::setupDescriptorPool()
 {
   VkDevice device = m_vkContext.getDevice();
 
@@ -94,7 +92,7 @@ void VulkanCoreManager::setupDescriptorPool()
   NVVK_DBG_NAME(m_descriptorPool);
 }
 
-void VulkanCoreManager::setupAllocator()
+void VulkanContextManager::setupAllocator()
 {
   VmaAllocatorCreateInfo allocatorInfo = {
       .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
@@ -108,27 +106,27 @@ void VulkanCoreManager::setupAllocator()
   m_stagingUploader.init(&m_allocator);
 }
 
-VkCommandBuffer VulkanCoreManager::startSingleTimeCmd()
+VkCommandBuffer VulkanContextManager::startSingleTimeCmd()
 {
   VkCommandBuffer cmd;
   NVVK_CHECK(nvvk::beginSingleTimeCommands(cmd, getDevice(), m_transientCmdPool));
   return cmd;
 }
 
-void VulkanCoreManager::endSingleTimeCmd(VkCommandBuffer cmd)
+void VulkanContextManager::endSingleTimeCmd(VkCommandBuffer cmd)
 {
   NVVK_CHECK(nvvk::endSingleTimeCommands(cmd, getDevice(), m_transientCmdPool,
                                          m_vkContext.getQueueInfo(0).queue));
 }
 
-void VulkanCoreManager::waitForDeviceIdle()
+void VulkanContextManager::waitForDeviceIdle()
 {
   VkDevice device = getDevice();
   assert(device != VK_NULL_HANDLE);
   NVVK_CHECK(vkDeviceWaitIdle(device));
 }
 
-void VulkanCoreManager::deinit()
+void VulkanContextManager::deinit()
 {
   VkDevice device = m_vkContext.getDevice();
   assert(device != VK_NULL_HANDLE);

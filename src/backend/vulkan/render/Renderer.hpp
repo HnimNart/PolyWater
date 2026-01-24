@@ -10,7 +10,7 @@
 #include "ToneMapper.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "scene/gltf/io_gltf.h"
 
 class PostProcessor;
@@ -70,7 +70,7 @@ private:
   // Data
   nvvk::DescriptorPack m_descPack{};
 
-  VulkanCoreManager* m_core_manager = nullptr;
+  VulkanContextManager* m_core_manager = nullptr;
   FrameSynchronizationManager* m_frame_sync_manager = nullptr;
 
   std::shared_ptr<VulkanSceneAssetManager> m_resources;

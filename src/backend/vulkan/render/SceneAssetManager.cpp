@@ -20,7 +20,7 @@
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 
-VulkanSceneAssetManager::VulkanSceneAssetManager(VulkanCoreManager* coreManager)
+VulkanSceneAssetManager::VulkanSceneAssetManager(VulkanContextManager* coreManager)
 {
   m_core_manager = coreManager;
   // Acquiring the texture sampler which will be used for displaying the GBuffer

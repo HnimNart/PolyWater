@@ -12,7 +12,7 @@
 
 #include "core/application/AppInfo.hpp"
 
-class VulkanCoreManager
+class VulkanContextManager
 {
 public:
   bool init(const core::ApplicationCreateInfo& appInfo);

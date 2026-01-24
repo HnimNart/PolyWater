@@ -13,7 +13,7 @@
 #include "Raster.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/compiler/slang.hpp"
@@ -21,7 +21,7 @@
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-VulkanRayTracer::VulkanRayTracer(VulkanCoreManager* coreManager)
+VulkanRayTracer::VulkanRayTracer(VulkanContextManager* coreManager)
 {
   m_core_manager = coreManager;
 }

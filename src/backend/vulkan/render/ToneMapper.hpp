@@ -7,12 +7,12 @@
 #include <nvvk/gbuffers.hpp>
 
 #include "backend/interfaces/IToneMapper.hpp"
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 
 class VulkanToneMapper : public IToneMapper
 {
 public:
-  explicit VulkanToneMapper(VulkanCoreManager* backend);
+  explicit VulkanToneMapper(VulkanContextManager* backend);
   ~VulkanToneMapper() override;
 
   void init();
@@ -24,7 +24,7 @@ public:
   VulkanToneMapper& operator=(const VulkanToneMapper&) = delete;
 
 private:
-  VulkanCoreManager* m_backend = nullptr;
+  VulkanContextManager* m_backend = nullptr;
   nvshaders::Tonemapper m_tonemapper{};
   bool m_initialized = false;
 };

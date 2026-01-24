@@ -6,10 +6,10 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
-#include "CoreManager.hpp"
+#include "ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 
-void FrameSynchronizationManager::init(VulkanCoreManager& coreManager, uint32_t numFrames)
+void FrameSynchronizationManager::init(VulkanContextManager& coreManager, uint32_t numFrames)
 {
   assert(numFrames >= 2);  // Must have at least 2 frames in flight
   VkDevice device = coreManager.getDevice();
@@ -31,7 +31,7 @@ void FrameSynchronizationManager::init(VulkanCoreManager& coreManager, uint32_t 
   createFrameData(coreManager, numFrames);
 }
 
-void FrameSynchronizationManager::createFrameData(VulkanCoreManager& coreManager,
+void FrameSynchronizationManager::createFrameData(VulkanContextManager& coreManager,
                                                   uint32_t numFrames)
 {
   VkDevice device = coreManager.getDevice();
@@ -150,7 +150,7 @@ void FrameSynchronizationManager::clearSemaphoresAndBuffers()
   m_commandBuffers.clear();
 }
 
-void FrameSynchronizationManager::deinit(VulkanCoreManager& coreManager)
+void FrameSynchronizationManager::deinit(VulkanContextManager& coreManager)
 {
   VkDevice device = coreManager.getDevice();
   NVVK_CHECK(vkDeviceWaitIdle(device));

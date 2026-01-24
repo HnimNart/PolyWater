@@ -6,20 +6,20 @@
 
 #include "core/application/AppInfo.hpp"
 
-class VulkanCoreManager;
+class VulkanContextManager;
 class FrameSynchronizationManager;
 
 class SwapchainRenderManager
 {
 public:
-  void init(VulkanCoreManager& coreManager, FrameSynchronizationManager& frameSyncManager,
+  void init(VulkanContextManager& coreManager, FrameSynchronizationManager& frameSyncManager,
             GLFWwindow* windowHandle, const core::ApplicationCreateInfo& appInfo);
-  void deinit(VulkanCoreManager& coreManager);
+  void deinit(VulkanContextManager& coreManager);
 
   // Swapchain management
-  bool beginFrame(VulkanCoreManager& coreManager);
+  bool beginFrame(VulkanContextManager& coreManager);
   void renderToSwapchain(VkCommandBuffer cmd);
-  void present(VulkanCoreManager& coreManager);
+  void present(VulkanContextManager& coreManager);
 
   // Accessors
   bool isHeadless() const { return m_headless; }
@@ -42,7 +42,7 @@ private:
   bool m_vsyncWanted = true;
   bool m_headless = false;
 
-  void setupImGuiVulkanBackend(VulkanCoreManager& coreManager, uint32_t framesInFlight);
+  void setupImGuiVulkanBackend(VulkanContextManager& coreManager, uint32_t framesInFlight);
   void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void endDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
   void rebuildSwapchainIfNeeded();

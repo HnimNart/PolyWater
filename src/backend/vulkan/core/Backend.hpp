@@ -6,20 +6,15 @@
 
 #include <nvvk/queue.hpp>
 
-#include "CoreManager.hpp"
+#include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
-
-// class VulkanCoreManager;
-// class FrameSynchronizationManager;
-// class SwapchainRenderManager;
 
 class VulkanBackend : public IRenderBackend
 {
 public:
   static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
-  // ~VulkanBackend() override = default;
 
   void init(const core::ApplicationCreateInfo& info) override;
   void deinit() override;
@@ -33,29 +28,25 @@ public:
   void present() override;
   void advance() override;
 
+  void waitForDeviceIdle() override;
+  void setVsync(bool enabled) override;
+
   // Manager accessors
-  VulkanCoreManager* getCoreManager() const;
+  VulkanContextManager* getCoreManager() const;
   FrameSynchronizationManager* getFrameSyncManager() const;
   SwapchainRenderManager* getSwapchainManager() const;
 
+private:
+  IRenderContext* getRenderContext();
   // Utility
   VkDevice getDevice() const;
   VkPhysicalDevice getPhysicalDevice() const;
   VkInstance getInstance() const;
   const nvvk::QueueInfo& getQueueInfo(uint32_t index) const;
 
-  void waitForDeviceIdle() override;
-  void setVsync(bool enabled) override;
-
-  VkCommandBuffer startSingleTimeCmd();
-  void endSingleTimeCmd(VkCommandBuffer cmd);
-
-private:
-  IRenderContext* getRenderContext();
-
   VulkanBackend() = default;
 
-  std::unique_ptr<VulkanCoreManager> m_coreManager;
+  std::unique_ptr<VulkanContextManager> m_coreManager;
   std::unique_ptr<FrameSynchronizationManager> m_frameSyncManager;
   std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
 

@@ -1,18 +1,10 @@
 #include "Backend.hpp"
 
-#include <imgui/backends/imgui_impl_vulkan.h>
-
-#include <nvvk/check_error.hpp>
-#include <nvvk/commands.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/helpers.hpp>
-#include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "CoreManager.hpp"
+#include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
-#include "backend/vulkan/core/RenderContext.hpp"
 
 std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
 {
@@ -26,7 +18,7 @@ std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCrea
 
 bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 {
-  m_coreManager = std::make_unique<VulkanCoreManager>();
+  m_coreManager = std::make_unique<VulkanContextManager>();
   return m_coreManager->init(appInfo);
 }
 
@@ -180,7 +172,7 @@ const nvvk::QueueInfo& VulkanBackend::getQueueInfo(uint32_t index) const
   return m_coreManager->getQueueInfo(index);
 }
 
-VulkanCoreManager* VulkanBackend::getCoreManager() const
+VulkanContextManager* VulkanBackend::getCoreManager() const
 {
   assert(m_coreManager != nullptr);
   return m_coreManager.get();
@@ -207,14 +199,4 @@ void VulkanBackend::setVsync(bool enabled)
 {
   IRenderBackend::setVsync(enabled);
   m_swapchainManager->setVsync(enabled);
-}
-
-VkCommandBuffer VulkanBackend::startSingleTimeCmd()
-{
-  return m_coreManager->startSingleTimeCmd();
-}
-
-void VulkanBackend::endSingleTimeCmd(VkCommandBuffer cmd)
-{
-  m_coreManager->endSingleTimeCmd(cmd);
 }

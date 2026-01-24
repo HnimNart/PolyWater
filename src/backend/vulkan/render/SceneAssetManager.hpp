@@ -11,7 +11,7 @@
 
 // Project Includes
 #include "backend/interfaces/IDeviceAssets.hpp"
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 // Forward Declarations
@@ -52,7 +52,7 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  explicit VulkanSceneAssetManager(VulkanCoreManager* backend);
+  explicit VulkanSceneAssetManager(VulkanContextManager* backend);
 
   void deinit() override;
 
@@ -100,7 +100,7 @@ private:
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
-  VulkanCoreManager* m_core_manager = nullptr;
+  VulkanContextManager* m_core_manager = nullptr;
   VulkanSceneGpuData m_data{};
   std::vector<nvvk::Image> m_textures{};
   nvvk::SamplerPool m_samplerPool{};

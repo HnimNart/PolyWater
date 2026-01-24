@@ -30,7 +30,7 @@ struct PushConstant;
 class VulkanRaster
 {
 public:
-  VulkanRaster(VulkanCoreManager* coreManager);
+  VulkanRaster(VulkanContextManager* coreManager);
   ~VulkanRaster();
 
   void init();
@@ -57,7 +57,7 @@ private:
   void clearShaders();
   void compileShaders();
 
-  VulkanCoreManager* m_core_manager = nullptr;
+  VulkanContextManager* m_core_manager = nullptr;
   nvvk::DescriptorPack* m_descPack = nullptr;
   VkPipelineLayout m_pipelineLayout{};
 

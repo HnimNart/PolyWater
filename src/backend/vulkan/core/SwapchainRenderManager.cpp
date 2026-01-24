@@ -10,11 +10,10 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/helpers.hpp>
 
-#include "CoreManager.hpp"
+#include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
-#include "Utils.hpp"
 
-void SwapchainRenderManager::init(VulkanCoreManager& coreManager,
+void SwapchainRenderManager::init(VulkanContextManager& coreManager,
                                   FrameSynchronizationManager& frameSyncManager,
                                   GLFWwindow* windowHandle,
                                   const core::ApplicationCreateInfo& appInfo)
@@ -62,7 +61,7 @@ void SwapchainRenderManager::init(VulkanCoreManager& coreManager,
   }
 }
 
-void SwapchainRenderManager::setupImGuiVulkanBackend(VulkanCoreManager& coreManager,
+void SwapchainRenderManager::setupImGuiVulkanBackend(VulkanContextManager& coreManager,
                                                      uint32_t framesInFlight)
 {
   static VkFormat imageFormats = VK_FORMAT_B8G8R8A8_UNORM;
@@ -94,7 +93,7 @@ void SwapchainRenderManager::setupImGuiVulkanBackend(VulkanCoreManager& coreMana
   ImGui_ImplVulkan_Init(&initInfo);
 }
 
-bool SwapchainRenderManager::beginFrame(VulkanCoreManager& coreManager)
+bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
 {
   if (!m_headless && m_swapchain.needRebuilding())
   {
@@ -162,7 +161,7 @@ void SwapchainRenderManager::endDynamicRenderingToSwapchain(VkCommandBuffer cmd)
                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
 }
 
-void SwapchainRenderManager::present(VulkanCoreManager& coreManager)
+void SwapchainRenderManager::present(VulkanContextManager& coreManager)
 {
   if (!m_headless)
   {
@@ -179,7 +178,7 @@ void SwapchainRenderManager::setVsync(bool enabled)
   }
 }
 
-void SwapchainRenderManager::deinit(VulkanCoreManager& coreManager)
+void SwapchainRenderManager::deinit(VulkanContextManager& coreManager)
 {
   VkDevice device = coreManager.getDevice();
   NVVK_CHECK(vkDeviceWaitIdle(device));

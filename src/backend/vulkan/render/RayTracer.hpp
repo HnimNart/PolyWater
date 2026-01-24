@@ -9,7 +9,7 @@
 
 // Forward Declarations
 class SceneResourcesManager;
-class VulkanCoreManager;
+class VulkanContextManager;
 
 namespace nvvk
 {
@@ -26,7 +26,7 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  explicit VulkanRayTracer(VulkanCoreManager* coreManager);
+  explicit VulkanRayTracer(VulkanContextManager* coreManager);
   ~VulkanRayTracer();
 
   void init(const SceneResourcesManager& scene);
@@ -60,7 +60,7 @@ private:
   // -------------------------------------------------------------------------
   // Member Variables
   // -------------------------------------------------------------------------
-  VulkanCoreManager* m_core_manager = nullptr;
+  VulkanContextManager* m_core_manager = nullptr;
   nvvk::DescriptorPack* m_sharedDescPack = nullptr;  // Pointer to external Scene descriptor
 
   // Pipeline State

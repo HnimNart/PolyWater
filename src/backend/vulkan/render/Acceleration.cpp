@@ -2,11 +2,11 @@
 
 #include <vector>
 
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
-void AccelerationStructures::init(VulkanCoreManager* coreManager)
+void AccelerationStructures::init(VulkanContextManager* coreManager)
 {
   m_asBuilder.init(&coreManager->getAllocator(), &coreManager->getStagingUploader(),
                    coreManager->getQueueInfo(0));

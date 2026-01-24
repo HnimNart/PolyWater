@@ -6,13 +6,13 @@
 #include <vector>
 
 #include "RenderContext.hpp"
-class VulkanCoreManager;
+class VulkanContextManager;
 
 class FrameSynchronizationManager
 {
 public:
-  void init(VulkanCoreManager& coreManager, uint32_t numFrames);
-  void deinit(VulkanCoreManager& coreManager);
+  void init(VulkanContextManager& coreManager, uint32_t numFrames);
+  void deinit(VulkanContextManager& coreManager);
 
   // Frame lifecycle
   void waitForFrameCompletion() const;
@@ -55,5 +55,5 @@ private:
   std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores;
   std::vector<VkCommandBufferSubmitInfo> m_commandBuffers;
 
-  void createFrameData(VulkanCoreManager& coreManager, uint32_t numFrames);
+  void createFrameData(VulkanContextManager& coreManager, uint32_t numFrames);
 };

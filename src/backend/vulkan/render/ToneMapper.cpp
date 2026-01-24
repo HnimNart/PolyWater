@@ -2,7 +2,7 @@
 
 #include "_autogen/tonemapper.slang.h"
 
-VulkanToneMapper::VulkanToneMapper(VulkanCoreManager* backend) : m_backend(backend)
+VulkanToneMapper::VulkanToneMapper(VulkanContextManager* backend) : m_backend(backend)
 {
 }
 

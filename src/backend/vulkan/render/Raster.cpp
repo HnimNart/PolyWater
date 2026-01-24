@@ -13,7 +13,7 @@
 #include "SceneAssetManager.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/core/CoreManager.hpp"
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "shaders/compiler/slang.hpp"
 
@@ -22,7 +22,7 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
-VulkanRaster::VulkanRaster(VulkanCoreManager* coreManager)
+VulkanRaster::VulkanRaster(VulkanContextManager* coreManager)
 {
   assert(coreManager);
   m_core_manager = coreManager;
