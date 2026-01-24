@@ -27,9 +27,12 @@
 namespace core
 {
 
-Application::Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend,
+/**********************************************************/
+Application::Application(ApplicationCreateInfo const& info,
+                         std::unique_ptr<IRenderBackend> backend,
                          std::shared_ptr<IGUISystem> gui) :
     m_backend(std::move(backend)), m_gui(std::move(gui))
+/**********************************************************/
 {
   if (glfwInit() != GLFW_TRUE)
   {
@@ -38,7 +41,9 @@ Application::Application(ApplicationCreateInfo const& info, std::unique_ptr<IRen
   init(info);
 }
 
+/**********************************************************/
 void Application::init(ApplicationCreateInfo const& info)
+/**********************************************************/
 {
   m_useMenubar = info.useMenu;
   m_vsyncWanted = info.vSync;
@@ -52,23 +57,26 @@ void Application::init(ApplicationCreateInfo const& info)
   {
     initGlfw(info);
   }
-
   setupDefaultSettings();
   ImPlot::CreateContext();  // TODO WHAT IS THIS???
-
-  // Initialize backend
-  if (m_backend)
-  {
-    m_backend->setWindow(m_windowHandle);
-    m_backend->setGUI(m_gui);
-    m_backend->init(info);
-    m_backend->setWindowSize(m_windowSize);  // TODO WHY IS this here?
-  }
-
+  initializeBackend(info);
   m_running = true;
 }
 
+/**********************************************************/
+void Application::initializeBackend(const ApplicationCreateInfo& info)
+/**********************************************************/
+{
+  assert(m_backend);
+  m_backend->setWindow(m_windowHandle);
+  m_backend->setGUI(m_gui);
+  m_backend->init(info);
+  m_backend->setWindowSize(m_windowSize);  // TODO WHY IS this here?
+}
+
+/**********************************************************/
 void Application::setupDefaultSettings()
+/**********************************************************/
 {
   m_settingsHandler.setHandlerName("Application");
   m_settingsHandler.setSetting("Size", &m_winSize);
@@ -76,7 +84,9 @@ void Application::setupDefaultSettings()
   m_settingsHandler.addImGuiHandler();
 }
 
+/**********************************************************/
 void Application::shutdown()
+/**********************************************************/
 {
   m_running = false;
 
@@ -120,29 +130,39 @@ void Application::shutdown()
   glfwTerminate();
 }
 
+/**********************************************************/
 IRenderBackend* Application::getBackend() const
+/**********************************************************/
 {
   return m_backend.get();
 }
 
+/**********************************************************/
 void Application::setVsync(bool v)
+/**********************************************************/
 {
   m_vsyncWanted = v;
   m_backend->setVsync(m_vsyncWanted);
 }
 
+/**********************************************************/
 bool Application::isVsync() const
+/**********************************************************/
 {
   return m_vsyncWanted;
 }
 
+/**********************************************************/
 void Application::addElement(const std::shared_ptr<IAppElement>& element)
+/**********************************************************/
 {
   m_elements.emplace_back(element);
   element->onAttach(this);
 }
 
+/**********************************************************/
 void Application::run()
+/**********************************************************/
 {
   LOGI("Running application\n");
 
@@ -158,7 +178,9 @@ void Application::run()
   }
 }
 
+/**********************************************************/
 void Application::headlessRun()
+/**********************************************************/
 {
   m_gui->setWindowSize(m_windowSize);
   onResize(m_windowSize);
@@ -178,7 +200,8 @@ void Application::headlessRun()
 
   // Rendering n-times the scene
   ProgressBar progress("Rendering");
-  for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose; frameID++)
+  for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose;
+       frameID++)
   {
     progress.update(frameID, m_headlessFrameCount);
     IRenderContext frameCtx{};
@@ -205,7 +228,9 @@ void Application::headlessRun()
   }
 }
 
+/**********************************************************/
 void Application::runOneFrame()
+/**********************************************************/
 {
   if (m_vsyncWanted)
   {
@@ -222,7 +247,10 @@ void Application::runOneFrame()
   runFrame();
   m_frameCounter++;
 }
+
+/**********************************************************/
 void Application::close()
+/**********************************************************/
 {
   if (m_headless)
   {
@@ -234,7 +262,9 @@ void Application::close()
   }
 }
 
+/**********************************************************/
 void Application::runFrame()
+/**********************************************************/
 {
   IRenderContext frameCtx{};
   frameCtx.frameNumber = m_frameCounter;
@@ -279,16 +309,23 @@ void Application::runFrame()
   m_gui->endFrame();
 }
 
+/**********************************************************/
 bool Application::isRunning() const noexcept
+/**********************************************************/
 {
   return m_running;
 }
+
+/**********************************************************/
 bool Application::isHeadless() const noexcept
+/**********************************************************/
 {
   return m_headless;
 }
 
+/**********************************************************/
 void Application::onResize(const WindowSize& size)
+/**********************************************************/
 {
   m_backend->onResize(size);
   for (const std::shared_ptr<core::IAppElement>& e : m_elements)
@@ -297,7 +334,9 @@ void Application::onResize(const WindowSize& size)
   }
 }
 
+/**********************************************************/
 void core::Application::onFileDrop(const std::filesystem::path& filename)
+/**********************************************************/
 {
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {
@@ -305,15 +344,19 @@ void core::Application::onFileDrop(const std::filesystem::path& filename)
   }
 }
 
+/**********************************************************/
 void Application::initGlfw(const ApplicationCreateInfo& info)
+/**********************************************************/
 {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-  m_windowHandle = glfwCreateWindow(m_windowSize.width, m_windowSize.height, info.name.c_str(),
-                                    nullptr, nullptr);
+  m_windowHandle = glfwCreateWindow(m_windowSize.width, m_windowSize.height,
+                                    info.name.c_str(), nullptr, nullptr);
 
-  glfwSetWindowSize(m_windowHandle, m_windowSize.width,
-                    m_windowSize.height);  // Sets the size of the window using the DPI scaling
+  glfwSetWindowSize(
+      m_windowHandle, m_windowSize.width,
+      m_windowSize
+          .height);  // Sets the size of the window using the DPI scaling
   glfwSetWindowPos(m_windowHandle, m_winPos.x, m_winPos.y);
 
   // Link to file drop callback (standard GLFW logic)
@@ -321,20 +364,24 @@ void Application::initGlfw(const ApplicationCreateInfo& info)
   glfwSetDropCallback(m_windowHandle,
                       [](GLFWwindow* window, int count, const char** paths)
                       {
-                        auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+                        auto* app = static_cast<Application*>(
+                            glfwGetWindowUserPointer(window));
                         for (int i = 0; i < count; i++)
                           app->onFileDrop(paths[i]);
                       });
 }
 
+/**********************************************************/
 void core::Application::testAndSetWindowSizeAndPos(const glm::uvec2& winSize)
+/**********************************************************/
 {
   bool centerWindow = false;
   // If winSize is provided, use it
   if (winSize.x != 0 && winSize.y != 0)
   {
     m_winSize = winSize;
-    centerWindow = true;  // When the window size is requested, it will be centered
+    centerWindow =
+        true;  // When the window size is requested, it will be centered
   }
 
   // If m_winSize is still (0,0), set defaults
@@ -380,8 +427,10 @@ void core::Application::testAndSetWindowSizeAndPos(const glm::uvec2& winSize)
   m_windowSize = {m_winSize.x, m_winSize.y};
 }
 
+/**********************************************************/
 // Check if window position is within visible monitor bounds
 bool Application::isWindowPosValid(const glm::ivec2& winPos)
+/**********************************************************/
 {
   int monitorCount;
   GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);

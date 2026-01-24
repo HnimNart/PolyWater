@@ -30,7 +30,8 @@ public:
   // ---------------------------------------------------------------------------
   // Lifecycle & Constructors
   // ---------------------------------------------------------------------------
-  Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend,
+  Application(ApplicationCreateInfo const& info,
+              std::unique_ptr<IRenderBackend> backend,
               std::shared_ptr<IGUISystem> gui);
   ~Application() = default;
 
@@ -77,7 +78,10 @@ public:
   // Accessors
   // ---------------------------------------------------------------------------
   GLFWwindow* getWindowHandle() const { return m_windowHandle; }
-  const WindowSize& getViewportSize() const { return m_backend->getViewportSize(); }
+  const WindowSize& getViewportSize() const
+  {
+    return m_backend->getViewportSize();
+  }
 
 private:
   // ---------------------------------------------------------------------------
@@ -90,6 +94,7 @@ private:
   // Initialization Helpers
   // ---------------------------------------------------------------------------
   void initGlfw(const ApplicationCreateInfo& info);
+  void initializeBackend(const ApplicationCreateInfo& info);
 
   // Window placement logic
   void testAndSetWindowSizeAndPos(const glm::uvec2& winSize);
