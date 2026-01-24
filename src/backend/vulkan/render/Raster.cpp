@@ -13,6 +13,7 @@
 #include "SceneAssetManager.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/core/CoreManager.hpp"
 #include "common/timers.hpp"
 #include "shaders/compiler/slang.hpp"
 
@@ -21,15 +22,15 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
-VulkanRaster::VulkanRaster(VulkanBackend* backend)
+VulkanRaster::VulkanRaster(VulkanCoreManager* coreManager)
 {
-  assert(backend);
-  m_backend = backend;
+  assert(coreManager);
+  m_core_manager = coreManager;
 }
 
 void VulkanRaster::init()
 {
-  createPipelineLayout(m_backend->getDevice());
+  createPipelineLayout(m_core_manager->getDevice());
   compileShaders();
 }
 
@@ -40,9 +41,9 @@ VulkanRaster::~VulkanRaster()
 
 void VulkanRaster::deinit()
 {
-  vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyShaderEXT(m_backend->getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(m_backend->getDevice(), m_fragmentShader, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
@@ -197,8 +198,8 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
 void VulkanRaster::clearShaders()
 {
   // Cleanup old shaders
-  vkDestroyShaderEXT(m_backend->getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(m_backend->getDevice(), m_fragmentShader, nullptr);
+  vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
@@ -232,7 +233,7 @@ void VulkanRaster::compileShaders()
   shaderInfo.pName = "vertexMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_backend->getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
+  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
   // Fragment Shader
@@ -241,9 +242,9 @@ void VulkanRaster::compileShaders()
   shaderInfo.pName = "fragmentMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_backend->getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
+  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 
   // Sky
-  m_skySimple.init(&m_backend->allocator(), std::span(sky_simple_slang));
+  m_skySimple.init(&m_core_manager->getAllocator(), std::span(sky_simple_slang));
 }

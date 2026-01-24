@@ -10,13 +10,14 @@
 #include "ToneMapper.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
-#include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/core/CoreManager.hpp"
 #include "scene/gltf/io_gltf.h"
 
 class PostProcessor;
 class IRenderBackend;
 class VulkanSceneAssetManager;
 class SceneResourcesManager;
+class FrameSynchronizationManager;
 
 namespace shaderio
 {
@@ -69,7 +70,8 @@ private:
   // Data
   nvvk::DescriptorPack m_descPack{};
 
-  VulkanBackend* m_backend = nullptr;
+  VulkanCoreManager* m_core_manager = nullptr;
+  FrameSynchronizationManager* m_frame_sync_manager = nullptr;
 
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;

@@ -13,6 +13,7 @@
 #include "Raster.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/core/CoreManager.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/compiler/slang.hpp"
@@ -20,9 +21,9 @@
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
-VulkanRayTracer::VulkanRayTracer(VulkanBackend* backend)
+VulkanRayTracer::VulkanRayTracer(VulkanCoreManager* coreManager)
 {
-  m_backend = backend;
+  m_core_manager = coreManager;
 }
 
 VulkanRayTracer::~VulkanRayTracer()
@@ -32,10 +33,10 @@ VulkanRayTracer::~VulkanRayTracer()
 
 void VulkanRayTracer::deinit()
 {
-  vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyPipeline(m_backend->getDevice(), m_pipeline, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
   m_RayTraceDescPack.deinit();
-  m_backend->allocator().destroyBuffer(m_sbtBuffer);
+  m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);
   m_sbtGenerator.deinit();
   m_accel.deinit();
 }
@@ -50,13 +51,13 @@ void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
   // Get ray tracing properties
   VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   prop2.pNext = &m_properties;
-  vkGetPhysicalDeviceProperties2(m_backend->getPhysicalDevice(), &prop2);
+  vkGetPhysicalDeviceProperties2(m_core_manager->getPhysicalDevice(), &prop2);
 
   // Initialize acceleration structure builder
-  m_accel.init(m_backend);
+  m_accel.init(m_core_manager);
 
   // Initialize SBT generator
-  m_sbtGenerator.init(m_backend->getDevice(), m_properties);
+  m_sbtGenerator.init(m_core_manager->getDevice(), m_properties);
 
   createRayTracingPipeline(scene);
 }
@@ -86,7 +87,7 @@ void VulkanRayTracer::createRaytraceDescriptorLayout()
                        .stageFlags = VK_SHADER_STAGE_ALL});
 
   // Creating a PUSH descriptor set and set layout from the bindings
-  m_RayTraceDescPack.init(bindings, m_backend->getDevice(), 0,
+  m_RayTraceDescPack.init(bindings, m_core_manager->getDevice(), 0,
                           VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 }
 
@@ -94,8 +95,8 @@ void VulkanRayTracer::createRayTracingPipeline()
 {
   SCOPED_TIMER(__FUNCTION__);
   // For re-creation
-  vkDestroyPipeline(m_backend->getDevice(), m_pipeline, nullptr);
-  vkDestroyPipelineLayout(m_backend->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
 
   // Creating all shaders
   enum StageIndices
@@ -161,7 +162,7 @@ void VulkanRayTracer::createRayTracingPipeline()
       {m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
-  vkCreatePipelineLayout(m_backend->getDevice(), &pipeline_layout_create_info, nullptr,
+  vkCreatePipelineLayout(m_core_manager->getDevice(), &pipeline_layout_create_info, nullptr,
                          &m_pipelineLayout);
   NVVK_DBG_NAME(m_pipelineLayout);
 
@@ -174,7 +175,7 @@ void VulkanRayTracer::createRayTracingPipeline()
   rtPipelineInfo.pGroups = shader_groups.data();
   rtPipelineInfo.maxPipelineRayRecursionDepth = std::max(3U, m_properties.maxRayRecursionDepth);
   rtPipelineInfo.layout = m_pipelineLayout;
-  vkCreateRayTracingPipelinesKHR(m_backend->getDevice(), {}, {}, 1, &rtPipelineInfo, nullptr,
+  vkCreateRayTracingPipelinesKHR(m_core_manager->getDevice(), {}, {}, 1, &rtPipelineInfo, nullptr,
                                  &m_pipeline);
   NVVK_DBG_NAME(m_pipeline);
 
@@ -187,13 +188,13 @@ void VulkanRayTracer::createShaderBindingTable(
 {
   SCOPED_TIMER(__FUNCTION__);
 
-  m_backend->allocator().destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
+  m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
 
   // Calculate required SBT buffer size
   size_t bufferSize = m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
   // Create SBT buffer
-  NVVK_CHECK(m_backend->allocator().createBuffer(
+  NVVK_CHECK(m_core_manager->getAllocator().createBuffer(
       m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
       VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
       VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -242,7 +243,7 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Ray trace
   const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
-  const WindowSize& size = m_backend->getViewportSize();
+  const VkExtent2D& size = gBuffers.getSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit, &regions.callable,
                     size.width, size.height, 1);
 

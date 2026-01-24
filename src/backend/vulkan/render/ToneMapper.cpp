@@ -2,7 +2,7 @@
 
 #include "_autogen/tonemapper.slang.h"
 
-VulkanToneMapper::VulkanToneMapper(VulkanBackend* backend) : m_backend(backend)
+VulkanToneMapper::VulkanToneMapper(VulkanCoreManager* backend) : m_backend(backend)
 {
 }
 
@@ -20,7 +20,7 @@ void VulkanToneMapper::init()
 
   // Initialize the tonemapper using the shader bytecode from the autogen header
   m_tonemapper.init(
-      &m_backend->allocator(),
+      &m_backend->getAllocator(),
       std::span<const uint32_t>(tonemapper_slang, sizeof(tonemapper_slang) / sizeof(uint32_t)));
 
   m_initialized = true;

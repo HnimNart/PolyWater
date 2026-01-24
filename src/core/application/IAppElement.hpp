@@ -48,6 +48,7 @@ struct IAppElement
   virtual void onBeginFrame(const IRenderContext& frame) {}
 
   /** @brief Primary rendering callback. Record draw calls into the provided context. */
+  // TODO make this consts?
   virtual void onRender(IRenderContext* ctx) {}
 
   /** @brief Called after all rendering commands have been recorded for the frame. */

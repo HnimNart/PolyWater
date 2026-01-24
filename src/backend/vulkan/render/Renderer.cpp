@@ -13,19 +13,21 @@
 #include "ToneMapper.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/gltf/io_gltf.h"
 
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 {
-  m_backend = backend;
-  m_resources = std::make_shared<VulkanSceneAssetManager>(m_backend);
+  m_core_manager = backend->getCoreManager();
+  m_frame_sync_manager = backend->getFrameSyncManager();
+  m_resources = std::make_shared<VulkanSceneAssetManager>(m_core_manager);
 
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
-  m_raster = std::make_unique<VulkanRaster>(m_backend);
-  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_backend);
-  m_post = std::make_unique<VulkanToneMapper>(m_backend);
+  m_raster = std::make_unique<VulkanRaster>(m_core_manager);
+  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_core_manager);
+  m_post = std::make_unique<VulkanToneMapper>(m_core_manager);
 }
 
 // ---------------------------------------------------------------------------
@@ -34,7 +36,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 void VulkanRenderer::init(const SceneResourcesManager& scene)
 {
   initGBuffers();
-  createDescriptorSetLayout(m_backend->getDevice());
+  createDescriptorSetLayout(m_core_manager->getDevice());
   m_resources->updateDescriptors(m_descPack);
 
   m_raster->setDescriptorPack(&m_descPack);
@@ -48,7 +50,7 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
 
 void VulkanRenderer::deinit()
 {
-  m_backend->waitForDeviceIdle();
+  m_core_manager->waitForDeviceIdle();
 
   m_ray_tracer.reset();
   m_raster.reset();
@@ -61,7 +63,7 @@ void VulkanRenderer::deinit()
 
 void VulkanRenderer::reload(bool useRaytracing)
 {
-  m_backend->waitForDeviceIdle();
+  m_core_manager->waitForDeviceIdle();
   useRaytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
 }
 
@@ -98,14 +100,15 @@ shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
 
 shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffers(SceneResourcesManager& scene)
 {
-  VkCommandBuffer cmd = m_backend->getActiveCmd();
+  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
   return updateSceneBuffer(cmd, scene);
 }
 
 void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
                             const shaderio::PushConstant& pushValues) const
 {
-  VkCommandBuffer cmd = m_backend->getActiveCmd();
+  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
+  shaderio::PushConstant pushVals = pushValues;
   if (raytrace)
   {
     m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
@@ -119,7 +122,7 @@ void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene
 
 void VulkanRenderer::postProcess()
 {
-  VkCommandBuffer cmd = m_backend->getActiveCmd();
+  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
   m_post->run(cmd, *m_gBuffers);
   // Barrier to make sure the image is ready for been display
@@ -129,10 +132,10 @@ void VulkanRenderer::postProcess()
 
 void VulkanRenderer::onResize(const WindowSize& size)
 {
-  m_backend->waitForDeviceIdle();
-  VkCommandBuffer cmd = m_backend->startSingleTimeCmd();
+  m_core_manager->waitForDeviceIdle();
+  VkCommandBuffer cmd = m_core_manager->startSingleTimeCmd();
   NVVK_CHECK(m_gBuffers->update(cmd, {size.width, size.height}));
-  m_backend->endSingleTimeCmd(cmd);
+  m_core_manager->endSingleTimeCmd(cmd);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,11 +149,11 @@ void VulkanRenderer::initGBuffers()
   NVVK_DBG_NAME(linearSampler);
 
   nvvk::GBufferInitInfo info{
-      .allocator = &m_backend->allocator(),
+      .allocator = &m_core_manager->getAllocator(),
       .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM},
-      .depthFormat = nvvk::findDepthFormat(m_backend->getPhysicalDevice()),
+      .depthFormat = nvvk::findDepthFormat(m_core_manager->getPhysicalDevice()),
       .imageSampler = linearSampler,
-      .descriptorPool = m_backend->descriptorPool()};
+      .descriptorPool = m_core_manager->getDescriptorPool()};
 
   m_gBuffers->init(info);
 }
@@ -186,11 +189,11 @@ void* VulkanRenderer::getImageDescriptor(ISceneRenderer::RenderOutput output) co
 
 void VulkanRenderer::saveImage(const std::filesystem::path& filename, int quality) const
 {
-  VkDevice device = m_backend->getDevice();
-  VkPhysicalDevice physicalDevice = m_backend->getPhysicalDevice();
+  VkDevice device = m_core_manager->getDevice();
+  VkPhysicalDevice physicalDevice = m_core_manager->getPhysicalDevice();
   VkImage dstImage = {};
   VkDeviceMemory dstImageMemory = {};
-  VkCommandBuffer cmd = m_backend->startSingleTimeCmd();
+  VkCommandBuffer cmd = m_core_manager->startSingleTimeCmd();
 
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
   if (filename.extension() == ".hdr")
@@ -203,7 +206,7 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename, int qualit
   nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage, dstImageMemory,
                       format);
 
-  m_backend->endSingleTimeCmd(cmd);
+  m_core_manager->endSingleTimeCmd(cmd);
   nvvk::saveImageToFile(device, dstImage, dstImageMemory, size, filename, quality);
 
   // Clean up resources

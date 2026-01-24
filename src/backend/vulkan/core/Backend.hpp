@@ -1,31 +1,30 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
 #include <memory>
-#include <vector>
 
-#include <nvvk/context.hpp>
-#include <nvvk/resource_allocator.hpp>
-#include <nvvk/staging.hpp>
-#include <nvvk/swapchain.hpp>
+#include <nvvk/queue.hpp>
 
-#include "RenderContext.hpp"
+#include "CoreManager.hpp"
+#include "FrameSynchronizationManager.hpp"
+#include "SwapchainRenderManager.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 
-class VulkanBackend final : public IRenderBackend
+// class VulkanCoreManager;
+// class FrameSynchronizationManager;
+// class SwapchainRenderManager;
+
+class VulkanBackend : public IRenderBackend
 {
 public:
-  // ---------------------------------------------------------------------------
-  // Lifecycle & Initialization
-  // ---------------------------------------------------------------------------
   static std::unique_ptr<VulkanBackend> create(const core::ApplicationCreateInfo& appInfo);
+  // ~VulkanBackend() override = default;
 
-  void init(const core::ApplicationCreateInfo& appInfo) override;
+  void init(const core::ApplicationCreateInfo& info) override;
   void deinit() override;
-  void freeResourcesQueue() override;
 
-  // ---------------------------------------------------------------------------
-  // Core Frame Loop (Execution Flow)
-  // ---------------------------------------------------------------------------
+  // Frame lifecycle
   void newFrame() override;
   bool beginFrame(IRenderContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
@@ -34,82 +33,31 @@ public:
   void present() override;
   void advance() override;
 
-  // ---------------------------------------------------------------------------
-  // Synchronization & Commands
-  // ---------------------------------------------------------------------------
-  void waitForDeviceIdle() override;
-  // Single-Time Commands (e.g., used for resource uploading or layout transitions)
-  VkCommandBuffer startSingleTimeCmd();
-  void endSingleTimeCmd(VkCommandBuffer cmd);
-  VkCommandBuffer getActiveCmd() const;
+  // Manager accessors
+  VulkanCoreManager* getCoreManager() const;
+  FrameSynchronizationManager* getFrameSyncManager() const;
+  SwapchainRenderManager* getSwapchainManager() const;
 
-  // ---------------------------------------------------------------------------
-  // Configuration & IO
-  // ---------------------------------------------------------------------------
+  // Utility
+  VkDevice getDevice() const;
+  VkPhysicalDevice getPhysicalDevice() const;
+  VkInstance getInstance() const;
+  const nvvk::QueueInfo& getQueueInfo(uint32_t index) const;
+
+  void waitForDeviceIdle() override;
   void setVsync(bool enabled) override;
 
-  // ---------------------------------------------------------------------------
-  // Accessors (Getters)
-  // ---------------------------------------------------------------------------
-  // Backend & Device Properties
-  uint32_t getFrameCycleSize() const;
-  VkDevice getDevice() const { return m_vkContext.getDevice(); }
-  VkPhysicalDevice getPhysicalDevice() const { return m_vkContext.getPhysicalDevice(); }
-  const nvvk::QueueInfo& getQueueInfo(uint32_t index) const
-  {
-    return m_vkContext.getQueueInfo(index);
-  }
-
-  // Resource Management Accessors
-  nvvk::ResourceAllocator& allocator() { return m_allocator; }
-  const nvvk::ResourceAllocator& allocator() const { return m_allocator; }
-
-  nvvk::StagingUploader& stagingUploader() { return m_stagingUploader; }
-  const nvvk::StagingUploader& stagingUploader() const { return m_stagingUploader; }
-
-  VkDescriptorPool descriptorPool() const { return m_descriptorPool; }
-  VkCommandPool transientCmdPool() const { return m_transientCmdPool; }
+  VkCommandBuffer startSingleTimeCmd();
+  void endSingleTimeCmd(VkCommandBuffer cmd);
 
 private:
-  // Constructor is private to enforce use of create() factory
+  IRenderContext* getRenderContext();
+
   VulkanBackend() = default;
 
-  // ---------------------------------------------------------------------------
-  // Internal Initialization Helpers
-  // ---------------------------------------------------------------------------
+  std::unique_ptr<VulkanCoreManager> m_coreManager;
+  std::unique_ptr<FrameSynchronizationManager> m_frameSyncManager;
+  std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
+
   bool initVulkan(const core::ApplicationCreateInfo& appInfo);
-  void setupImGuiVulkanBackend();
-  void createFrameSubmission(uint32_t numFrames);
-
-  // ---------------------------------------------------------------------------
-  // Internal Rendering Helpers
-  // ---------------------------------------------------------------------------
-  void waitForFrameCompletion() const;
-  void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
-  void endDynamicRenderingToSwapchain(VkCommandBuffer cmd);
-  void renderToSwapchain(VkCommandBuffer cmd);
-
-  // ---------------------------------------------------------------------------
-  // Member Variables
-  // ---------------------------------------------------------------------------
-
-  // 1. Core Vulkan Resources
-  nvvk::Context m_vkContext{};
-  nvvk::Swapchain m_swapchain{};
-  VkSurfaceKHR m_surface{VK_NULL_HANDLE};
-  VkCommandPool m_transientCmdPool{};
-  VkDescriptorPool m_descriptorPool{};
-  nvvk::ResourceAllocator m_allocator{};
-  nvvk::StagingUploader m_stagingUploader{};
-  uint32_t m_maxTexturePool{128};
-
-  // 2. Frame Synchronization (Ring Buffer)
-  std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData{};
-  VkSemaphore m_frameTimelineSemaphore{};
-  uint32_t m_frameRingCurrent{0};
-
-  // 3. Submission Control
-  std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores{};
-  std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores{};
-  std::vector<VkCommandBufferSubmitInfo> m_commandBuffers{};
 };

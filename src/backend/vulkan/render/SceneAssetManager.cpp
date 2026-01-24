@@ -20,21 +20,21 @@
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 
-VulkanSceneAssetManager::VulkanSceneAssetManager(VulkanBackend* backend)
+VulkanSceneAssetManager::VulkanSceneAssetManager(VulkanCoreManager* coreManager)
 {
-  m_backend = backend;
+  m_core_manager = coreManager;
   // Acquiring the texture sampler which will be used for displaying the GBuffer
-  m_samplerPool.init(m_backend->getDevice());
+  m_samplerPool.init(m_core_manager->getDevice());
 }
 
 void VulkanSceneAssetManager::beginUploading()
 {
-  m_cmd = m_backend->startSingleTimeCmd();
+  m_cmd = m_core_manager->startSingleTimeCmd();
 }
 void VulkanSceneAssetManager::endUploading()
 {
   assert(m_cmd != VK_NULL_HANDLE);
-  m_backend->endSingleTimeCmd(m_cmd);
+  m_core_manager->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
 
@@ -42,15 +42,15 @@ void VulkanSceneAssetManager::deinit()
 {
   for (auto& texture : m_textures)
   {
-    m_backend->allocator().destroyImage(texture);
+    m_core_manager->getAllocator().destroyImage(texture);
   }
-  m_backend->allocator().destroyBuffer(m_data.bSceneInfo);
-  m_backend->allocator().destroyBuffer(m_data.bMeshes);
-  m_backend->allocator().destroyBuffer(m_data.bMaterials);
-  m_backend->allocator().destroyBuffer(m_data.bInstances);
+  m_core_manager->getAllocator().destroyBuffer(m_data.bSceneInfo);
+  m_core_manager->getAllocator().destroyBuffer(m_data.bMeshes);
+  m_core_manager->getAllocator().destroyBuffer(m_data.bMaterials);
+  m_core_manager->getAllocator().destroyBuffer(m_data.bInstances);
   for (auto& gltfData : m_data.bGltfDatas)
   {
-    m_backend->allocator().destroyBuffer(gltfData);
+    m_core_manager->getAllocator().destroyBuffer(gltfData);
   }
   m_samplerPool.deinit();
 }
@@ -58,7 +58,7 @@ void VulkanSceneAssetManager::deinit()
 VulkanSceneAssetManager::MeshID
 VulkanSceneAssetManager::uploadGltfModel(const tinygltf::Model& model, gltf::Scene& resources)
 {
-  importGltfData(resources, m_data, model, m_backend->stagingUploader());
+  importGltfData(resources, m_data, model, m_core_manager->getStagingUploader());
   m_meshIdCounter++;
   return m_meshIdCounter - 1;
 }
@@ -66,8 +66,8 @@ VulkanSceneAssetManager::uploadGltfModel(const tinygltf::Model& model, gltf::Sce
 VulkanSceneAssetManager::TextureID
 VulkanSceneAssetManager::uploadTexture(const std::string& filepath)
 {
-  nvvk::Image texture =
-      loadAndCreateImage(m_cmd, m_backend->stagingUploader(), m_backend->getDevice(), filepath);
+  nvvk::Image texture = loadAndCreateImage(m_cmd, m_core_manager->getStagingUploader(),
+                                           m_core_manager->getDevice(), filepath);
 
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
@@ -88,15 +88,16 @@ void VulkanSceneAssetManager::updateDescriptors(nvvk::DescriptorPack& descriptor
 
   write.append(write_set, m_textures.data());
 
-  vkUpdateDescriptorSets(m_backend->getDevice(), write.size(), write.data(), 0, nullptr);
+  vkUpdateDescriptorSets(m_core_manager->getDevice(), write.size(), write.data(), 0, nullptr);
 }
 
 void VulkanSceneAssetManager::finalizeSceneResources(gltf::Scene& resources)
 {
   createGltfSceneInfoBuffer(
       resources, m_data,
-      m_backend->stagingUploader());  // Create buffers for the scene data (GPU buffers)
-  m_backend->stagingUploader().cmdUploadAppended(m_cmd);  // Upload the scene information to the GPU
+      m_core_manager->getStagingUploader());  // Create buffers for the scene data (GPU buffers)
+  m_core_manager->getStagingUploader().cmdUploadAppended(
+      m_cmd);  // Upload the scene information to the GPU
 
   // Update the pointers to uploaded data
   resources.sceneInfo.instances =

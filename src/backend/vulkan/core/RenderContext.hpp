@@ -25,4 +25,5 @@ public:
   // ------------------------------------------------------------------------
   VkCommandBuffer cmdBuffer{};
   VkCommandPool cmdPool{};
+  VkDevice device{};
 };
