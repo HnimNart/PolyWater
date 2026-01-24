@@ -12,11 +12,14 @@
 #include <imgui_internal.h>
 #include <implot/implot.h>
 #define NVLOGGER_ENABLE_FMT
+#include <utility>
+
 #include <nvgui/fonts.hpp>
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 #include <nvutils/timers.hpp>
 
+#include "IGUISystem.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 #include "backend/interfaces/IRenderContext.hpp"
 #include "common/progress_bar.hpp"
@@ -24,13 +27,14 @@
 namespace core
 {
 
-Application::Application(ApplicationCreateInfo const& info,
-                         std::unique_ptr<IRenderBackend> backend) : m_backend(std::move(backend))
+Application::Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend,
+                         std::shared_ptr<IGUISystem> gui) :
+    m_backend(std::move(backend)), m_gui(std::move(gui))
 {
-  glfwInit();
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImPlot::CreateContext();
+  if (glfwInit() != GLFW_TRUE)
+  {
+    throw std::runtime_error("failed to initialize GLFW");
+  }
   init(info);
 }
 
@@ -38,14 +42,8 @@ void Application::init(ApplicationCreateInfo const& info)
 {
   m_useMenubar = info.useMenu;
   m_vsyncWanted = info.vSync;
-  m_dockSetup = info.dockSetup;
   m_headless = info.headless;
   m_headlessFrameCount = info.headlessFrameCount;
-
-  // Resolve persistent settings (ini path, window size/pos)
-  m_iniFilename = nvutils::utf8FromPath(nvutils::getExecutablePath().replace_extension(".ini"));
-
-  initializeImGuiContextAndSettings(info.imguiConfigFlags);
 
   // Window setup
   testAndSetWindowSizeAndPos(info.windowSize);
@@ -55,15 +53,27 @@ void Application::init(ApplicationCreateInfo const& info)
     initGlfw(info);
   }
 
+  setupDefaultSettings();
+  ImPlot::CreateContext();  // TODO WHAT IS THIS???
+
   // Initialize backend
   if (m_backend)
   {
     m_backend->setWindow(m_windowHandle);
+    m_backend->setGUI(m_gui);
     m_backend->init(info);
-    m_backend->setWindowSize(m_windowSize);
+    m_backend->setWindowSize(m_windowSize);  // TODO WHY IS this here?
   }
 
   m_running = true;
+}
+
+void Application::setupDefaultSettings()
+{
+  m_settingsHandler.setHandlerName("Application");
+  m_settingsHandler.setSetting("Size", &m_winSize);
+  m_settingsHandler.setSetting("Pos", &m_winPos);
+  m_settingsHandler.addImGuiHandler();
 }
 
 void Application::shutdown()
@@ -84,21 +94,19 @@ void Application::shutdown()
   {
     e->onDetach();
   }
-
   m_elements.clear();
+
+  // Shutdown order: GUI -> Backend -> ImPlot -> GLFW
+  if (m_gui)
+  {
+    m_gui->deinit();
+  }
 
   if (m_backend)
   {
     m_backend->deinit();
   }
 
-  if (!m_headless)
-  {
-    ImGui::SaveIniSettingsToDisk(m_iniFilename.c_str());
-    ImGui_ImplGlfw_Shutdown();
-  }
-
-  ImGui::DestroyContext();
   if (ImPlot::GetCurrentContext())
   {
     ImPlot::DestroyContext();
@@ -108,8 +116,8 @@ void Application::shutdown()
   {
     glfwDestroyWindow(m_windowHandle);
     m_windowHandle = nullptr;
-    glfwTerminate();
   }
+  glfwTerminate();
 }
 
 IRenderBackend* Application::getBackend() const
@@ -137,7 +145,6 @@ void Application::addElement(const std::shared_ptr<IAppElement>& element)
 void Application::run()
 {
   LOGI("Running application\n");
-  ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
 
   // Handle headless mode
   if (m_headless)
@@ -153,36 +160,27 @@ void Application::run()
 
 void Application::headlessRun()
 {
-  WindowSize viewportSize = m_windowSize;
-  // Set the display for Imgui
-  ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize.x = float(viewportSize.width);
-  io.DisplaySize.y = float(viewportSize.height);
-  onResize(viewportSize);
+  m_gui->setWindowSize(m_windowSize);
+  onResize(m_windowSize);
 
-  // Need to render the UI twice: the first pass sets up the internal state and layout,
-  // and the second pass finalizes the rendering with the updated state.
+  // Need to render the UI twice: the first pass sets up the internal state
+  // and layout, and the second pass finalizes the rendering with the
+  // updated state.
   {
-    m_backend->newFrame();
-    ImGui::NewFrame();
-    setupImguiDock();
-
-    // Call UI rendering for each element
+    m_gui->beginFrame();
     for (std::shared_ptr<IAppElement>& e : m_elements)
     {
       e->onUIRender();
     }
-    ImGui::EndFrame();
+    m_gui->render();
+    m_gui->endFrame();
   }
 
   // Rendering n-times the scene
-  ProgressBar progress("Headless");
+  ProgressBar progress("Rendering");
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose; frameID++)
   {
     progress.update(frameID, m_headlessFrameCount);
-    m_backend->newFrame();
-    ImGui::NewFrame();  // Even if isn't directly used, helps advancing time if query
-
     IRenderContext frameCtx{};
     frameCtx.frameNumber = frameID;
     frameCtx.vSyncWanted = m_vsyncWanted;
@@ -193,15 +191,14 @@ void Application::headlessRun()
       m_backend->endFrame(frameCtx);
       m_backend->advance();
     }
-
-    ImGui::EndFrame();
   }
-  ImGui::Render();  // This is creating the data to draw the UI (not on GPU yet)
+
   progress.finish();
   // At this point, everything has been rendered. Let it finish.
   m_backend->waitForDeviceIdle();
 
-  // Call back the application, such that it can do something with the rendered image
+  // Call back the application, such that it can do something with the
+  // rendered image
   for (std::shared_ptr<IAppElement>& e : m_elements)
   {
     e->onLastHeadlessFrame();
@@ -243,34 +240,20 @@ void Application::runFrame()
   frameCtx.frameNumber = m_frameCounter;
   frameCtx.vSyncWanted = m_vsyncWanted;
 
-  // 1. Begin ImGui Frame
-  m_backend->newFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
+  // 1. Begin GUI Frame
+  m_gui->beginFrame();
 
   // 2. Docking & Menus
-  setupImguiDock();
-  if (m_useMenubar && ImGui::BeginMainMenuBar())
+  if (m_useMenubar)
   {
-    for (auto& e : m_elements)
-    {
-      e->onUIMenu();
-    }
-    ImGui::EndMainMenuBar();
+    m_gui->renderMenu(m_elements);
   }
 
   // Handle Viewport Updates
-  m_windowSize = m_backend->getWindowSize();  // We have to ask the backend as it might resize it
+  m_windowSize = m_backend->getWindowSize();  // We have to ask the backend
+                                              // as it might resize it
   WindowSize viewportSize = m_windowSize;
-  const ImGuiWindow* viewport = ImGui::FindWindowByName("Viewport");
-  if (viewport)
-  {
-    viewportSize = {uint32_t(viewport->Size.x), uint32_t(viewport->Size.y)};
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Viewport");
-    ImGui::End();
-    ImGui::PopStyleVar();
-  }
+  bool ok = m_gui->getWindowSize("Viewport", viewportSize);
 
   // Update viewport if size changed
   if (m_backend->getViewportSize() != viewportSize)
@@ -278,6 +261,12 @@ void Application::runFrame()
     onResize(viewportSize);
   }
 
+  for (auto& e : m_elements)
+  {
+    e->onUIRender();
+  }
+
+  m_gui->render();
   if (m_backend->beginFrame(frameCtx))
   {
     m_backend->renderFrame(m_elements, frameCtx);
@@ -287,12 +276,7 @@ void Application::runFrame()
   }
 
   // 5. Finalize ImGui (Viewports)
-  ImGui::EndFrame();
-  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-  {
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault();
-  }
+  m_gui->endFrame();
 }
 
 bool Application::isRunning() const noexcept
@@ -321,31 +305,6 @@ void core::Application::onFileDrop(const std::filesystem::path& filename)
   }
 }
 
-void core::Application::setupImguiDock()
-{
-  const ImGuiDockNodeFlags dockFlags =
-      ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
-  ImGuiID dockID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
-  // Docking layout, must be done only if it doesn't exist
-  if (!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() && !ImGui::FindWindowByName("Viewport"))
-  {
-    ImGui::DockBuilderDockWindow("Viewport", dockID);  // Dock "Viewport" to  central node
-    ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |=
-        ImGuiDockNodeFlags_NoTabBar;  // Remove "Tab" from the central node
-    if (m_dockSetup)
-    {
-      // This override allow to create the layout of windows by default.
-      m_dockSetup(dockID);
-    }
-    else
-    {
-      ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f, nullptr,
-                                                   &dockID);  // Split the central node
-      ImGui::DockBuilderDockWindow("Settings", leftID);       // Dock "Settings" to the left node
-    }
-  }
-}
-
 void Application::initGlfw(const ApplicationCreateInfo& info)
 {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -368,31 +327,6 @@ void Application::initGlfw(const ApplicationCreateInfo& info)
                       });
 }
 
-void Application::initializeImGuiContextAndSettings(ImGuiConfigFlags configFlags)
-{
-  // Setup ImGui persistent settings
-  nvgui::setStyle(false);
-  m_settingsHandler.setHandlerName("Application");
-  m_settingsHandler.setSetting("Size", &m_winSize);
-  m_settingsHandler.setSetting("Pos", &m_winPos);
-  m_settingsHandler.addImGuiHandler();
-  ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags = configFlags;
-  if (m_headless)
-  {
-    io.ConfigFlags &=
-        ~ImGuiConfigFlags_ViewportsEnable;  // In headless mode, we don't allow other viewport
-  }
-  // Set the ini file name
-  io.IniFilename = m_iniFilename.c_str();
-
-  // Initialize fonts
-  nvgui::addDefaultFont();
-  io.FontDefault = nvgui::getDefaultFont();
-  nvgui::addMonospaceFont();
-}
-
 void core::Application::testAndSetWindowSizeAndPos(const glm::uvec2& winSize)
 {
   bool centerWindow = false;
@@ -404,7 +338,8 @@ void core::Application::testAndSetWindowSizeAndPos(const glm::uvec2& winSize)
   }
 
   // If m_winSize is still (0,0), set defaults
-  // Could be not zero if the user set it in the settings (see loading of the ini file)
+  // Could be not zero if the user set it in the settings (see loading of
+  // the ini file)
   if (m_winSize.x == 0 && m_winSize.y == 0)
   {
     if (m_headless)

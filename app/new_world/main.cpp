@@ -19,6 +19,7 @@
 
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
+#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_IMPLEMENTATION
 #define VMA_LEAK_LOG_FORMAT(format, ...)                                                           \
@@ -62,11 +63,15 @@ int main(int argc, char** argv)
   std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
 
+  // Initialize vulkan imgui system
+  auto gui = std::make_shared<ImGuiVulkanSystem>();
+  gui->init(appInfo);
+
   // Setting up the application
   appInfo.name = "New World";
 
   // Create the application
-  core::Application application(appInfo, std::move(backend));
+  core::Application application(appInfo, std::move(backend), gui);
 
   // Elements added to the application
   auto tutorial = std::make_shared<VulkanRendererElement>();  // Our tutorial element

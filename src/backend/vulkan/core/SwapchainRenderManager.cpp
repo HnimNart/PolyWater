@@ -57,41 +57,9 @@ void SwapchainRenderManager::init(VulkanContextManager& coreManager,
     // Initialize Swapchain Resources
     NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
 
-    setupImGuiVulkanBackend(coreManager, frameSyncManager.getFrameCycleSize());
   }
 }
 
-void SwapchainRenderManager::setupImGuiVulkanBackend(VulkanContextManager& coreManager,
-                                                     uint32_t framesInFlight)
-{
-  static VkFormat imageFormats = VK_FORMAT_B8G8R8A8_UNORM;
-
-  if (!m_headless)
-  {
-    ImGui_ImplGlfw_InitForVulkan(m_windowHandle, true);
-    imageFormats = m_swapchain.getImageFormat();
-  }
-
-  ImGui_ImplVulkan_InitInfo initInfo = {
-      .ApiVersion = VK_API_VERSION_1_4,
-      .Instance = coreManager.getInstance(),
-      .PhysicalDevice = coreManager.getPhysicalDevice(),
-      .Device = coreManager.getDevice(),
-      .QueueFamily = coreManager.getQueueInfo(0).familyIndex,
-      .Queue = coreManager.getQueueInfo(0).queue,
-      .DescriptorPool = coreManager.getDescriptorPool(),
-      .MinImageCount = 2U,
-      .ImageCount = std::max(framesInFlight, 2U),
-      .UseDynamicRendering = true,
-      .PipelineRenderingCreateInfo =
-          {
-              .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-              .colorAttachmentCount = 1,
-              .pColorAttachmentFormats = &imageFormats,
-          },
-  };
-  ImGui_ImplVulkan_Init(&initInfo);
-}
 
 bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
 {
@@ -112,7 +80,7 @@ bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
   return true;
 }
 
-void SwapchainRenderManager::renderToSwapchain(VkCommandBuffer cmd)
+void SwapchainRenderManager::renderToSwapchain(VkCommandBuffer cmd, const RenderCallback &renderCallback)
 {
   if (m_headless)
   {
@@ -121,8 +89,7 @@ void SwapchainRenderManager::renderToSwapchain(VkCommandBuffer cmd)
 
   beginDynamicRenderingToSwapchain(cmd);
   {
-    nvvk::DebugUtil::ScopedCmdLabel scopedCmdLabel(cmd, "ImGui");
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+    renderCallback(cmd);
   }
   endDynamicRenderingToSwapchain(cmd);
 }
@@ -182,8 +149,6 @@ void SwapchainRenderManager::deinit(VulkanContextManager& coreManager)
 {
   VkDevice device = coreManager.getDevice();
   NVVK_CHECK(vkDeviceWaitIdle(device));
-
-  ImGui_ImplVulkan_Shutdown();
 
   if (!m_headless)
   {

@@ -1,10 +1,14 @@
 #include "Backend.hpp"
 
+#include <backends/imgui_impl_vulkan.h>
+
 #include <nvvk/validation_settings.hpp>
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
+#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
+#include "core/application/IGUISystem.hpp"
 
 std::unique_ptr<VulkanBackend> VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
 {
@@ -31,6 +35,32 @@ void VulkanBackend::init(const core::ApplicationCreateInfo& info)
 
   m_swapchainManager = std::make_unique<SwapchainRenderManager>();
   m_swapchainManager->init(*m_coreManager, *m_frameSyncManager, m_windowHandle, info);
+
+  initializeGUIBackend();
+}
+
+void VulkanBackend::setGUI(std::shared_ptr<core::IGUISystem> gui)
+{
+  assert(gui);
+  m_gui = dynamic_cast<ImGuiVulkanSystem*>(gui.get());
+  if (!m_gui)
+  {
+    throw std::runtime_error("GUI system given VulkanBackend is not a ImGuiVulkanSystem");
+  }
+}
+
+void VulkanBackend::initializeGUIBackend()
+{
+  assert(m_coreManager);
+  assert(m_frameSyncManager);
+  assert(m_swapchainManager);
+  if (!m_gui)
+  {
+    return;
+  }
+  // Initialize ImGui Vulkan backend with Vulkan resources
+  m_gui->initVulkanBackend(*m_coreManager, *m_frameSyncManager, *m_swapchainManager,
+                           m_headless ? nullptr : m_windowHandle);
 }
 
 void VulkanBackend::deinit()
@@ -56,11 +86,6 @@ void VulkanBackend::deinit()
   }
 }
 
-void VulkanBackend::newFrame()
-{
-  ImGui_ImplVulkan_NewFrame();
-}
-
 bool VulkanBackend::beginFrame(IRenderContext& /* frame */)
 {
   m_frameSyncManager->waitForFrameCompletion();
@@ -76,20 +101,13 @@ bool VulkanBackend::beginFrame(IRenderContext& /* frame */)
 }
 
 void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-                                IRenderContext const& /* frame */)
+                                IRenderContext const& frame)
 {
-  for (auto& e : elements)
-  {
-    e->onUIRender();
-  }
-  ImGui::Render();
 
   for (const std::shared_ptr<core::IAppElement>& e : elements)
   {
     e->onPreRender();
   }
-
-  VkCommandBuffer cmd = m_frameSyncManager->getActiveCommandBuffer();
 
   for (const std::shared_ptr<core::IAppElement>& e : elements)
   {
@@ -101,8 +119,12 @@ void VulkanBackend::renderFrame(const std::vector<std::shared_ptr<core::IAppElem
     e->onEndFrame(getRenderContext());
   }
 
-  // Render to swapchain and setup synchronization
-  m_swapchainManager->renderToSwapchain(cmd);
+  // Render to swapchain
+  VkCommandBuffer cmd = m_frameSyncManager->getActiveCommandBuffer();
+  if (m_gui)
+  {
+    m_swapchainManager->renderToSwapchain(cmd, m_gui->getRenderCallback());
+  }
 
   // Add swapchain semaphores
   if (!m_swapchainManager->isHeadless())

@@ -205,12 +205,12 @@ void VulkanRendererElement::onPreRender()
 {
 }
 
-void VulkanRendererElement::onRender(IRenderContext* ctx)
+void VulkanRendererElement::onRender(const IRenderContext* /*ctx */)
 {
   m_scene_manager.render(m_useRayTracing);
 }
 
-void VulkanRendererElement::onEndFrame(const IRenderContext* frame)
+void VulkanRendererElement::onEndFrame(const IRenderContext* /*frame*/)
 {
   m_scene_manager.postProcess();
 }

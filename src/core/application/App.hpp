@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -31,7 +30,8 @@ public:
   // ---------------------------------------------------------------------------
   // Lifecycle & Constructors
   // ---------------------------------------------------------------------------
-  Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend);
+  Application(ApplicationCreateInfo const& info, std::unique_ptr<IRenderBackend> backend,
+              std::shared_ptr<IGUISystem> gui);
   ~Application() = default;
 
   // Non-copyable / Non-movable
@@ -90,12 +90,11 @@ private:
   // Initialization Helpers
   // ---------------------------------------------------------------------------
   void initGlfw(const ApplicationCreateInfo& info);
-  void initializeImGuiContextAndSettings(ImGuiConfigFlags configFlags);
-  void setupImguiDock();
 
   // Window placement logic
   void testAndSetWindowSizeAndPos(const glm::uvec2& winSize);
   bool isWindowPosValid(const glm::ivec2& winPos);
+  void setupDefaultSettings();
 
   // ---------------------------------------------------------------------------
   // Member Variables
@@ -105,7 +104,6 @@ private:
   std::unique_ptr<IRenderBackend> m_backend{};
   std::vector<std::shared_ptr<IAppElement>> m_elements{};
   nvapp::FramePacer m_framePacer;  // Low-latency system
-  nvgui::SettingsHandler m_settingsHandler;
 
   // 2. Windowing State
   GLFWwindow* m_windowHandle{nullptr};
@@ -128,10 +126,10 @@ private:
   bool m_screenShotRequested = false;
   int m_screenShotFrame = 0;
   std::filesystem::path m_screenShotFilename;
-  std::string m_iniFilename;  // UTF-8 filename for ImGui
 
-  // 6. Callbacks & Queues
-  std::function<void(ImGuiID)> m_dockSetup;  // Custom docking layout callback
+  // Imgui
+  std::shared_ptr<IGUISystem> m_gui;
+  nvgui::SettingsHandler m_settingsHandler;
 
   // Queue of functions to free resources (double buffered or per-frame)
   std::vector<std::vector<std::function<void()>>> m_resourceFreeQueue;

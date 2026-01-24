@@ -14,6 +14,11 @@
 #include "core/application/IAppElement.hpp"
 #include "core/application/types.h"
 
+namespace core
+{
+class IGUISystem;
+}
+
 //------------------------------------------------------------
 // IRenderBackend
 //------------------------------------------------------------
@@ -40,8 +45,6 @@ public:
   //----------------------------------------------------------
   // Frame loop
   //----------------------------------------------------------
-  virtual void newFrame() = 0;
-
   // Begin a new frame. Returns false if frame should be skipped (e.g., minimized).
   virtual bool beginFrame(IRenderContext& frame) = 0;
 
@@ -75,6 +78,8 @@ public:
     m_viewportSize = size;
   }
 
+  virtual void setGUI(std::shared_ptr<core::IGUISystem> gui) = 0;
+
   const WindowSize& getViewportSize() const { return m_viewportSize; }
   virtual void setWindow(GLFWwindow* windowHandle) { m_windowHandle = windowHandle; }
   void setWindowSize(const WindowSize& windowSize) { m_windowSize = windowSize; };
@@ -106,4 +111,6 @@ protected:
 
   std::vector<std::vector<std::function<void()>>>
       m_resourceFreeQueue;  // Queue of functions to free resources
+
+  std::shared_ptr<core::IGUISystem> m_gui = nullptr;
 };

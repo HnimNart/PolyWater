@@ -11,6 +11,13 @@
 #include "SwapchainRenderManager.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 
+namespace core
+{
+class IGUISystem;
+}
+
+class ImGuiVulkanSystem;
+
 class VulkanBackend : public IRenderBackend
 {
 public:
@@ -18,9 +25,9 @@ public:
 
   void init(const core::ApplicationCreateInfo& info) override;
   void deinit() override;
+  void setGUI(std::shared_ptr<core::IGUISystem> gui) override;
 
   // Frame lifecycle
-  void newFrame() override;
   bool beginFrame(IRenderContext& frame) override;
   void renderFrame(const std::vector<std::shared_ptr<core::IAppElement>>& elements,
                    IRenderContext const& frame) override;
@@ -37,6 +44,7 @@ public:
   SwapchainRenderManager* getSwapchainManager() const;
 
 private:
+  void initializeGUIBackend();
   IRenderContext* getRenderContext();
   // Utility
   VkDevice getDevice() const;
@@ -49,6 +57,8 @@ private:
   std::unique_ptr<VulkanContextManager> m_coreManager;
   std::unique_ptr<FrameSynchronizationManager> m_frameSyncManager;
   std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
+
+  ImGuiVulkanSystem* m_gui = nullptr;
 
   bool initVulkan(const core::ApplicationCreateInfo& appInfo);
 };

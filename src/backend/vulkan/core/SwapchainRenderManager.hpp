@@ -12,13 +12,15 @@ class FrameSynchronizationManager;
 class SwapchainRenderManager
 {
 public:
+  using RenderCallback = std::function<void(VkCommandBuffer)>;
+
   void init(VulkanContextManager& coreManager, FrameSynchronizationManager& frameSyncManager,
             GLFWwindow* windowHandle, const core::ApplicationCreateInfo& appInfo);
   void deinit(VulkanContextManager& coreManager);
 
   // Swapchain management
   bool beginFrame(VulkanContextManager& coreManager);
-  void renderToSwapchain(VkCommandBuffer cmd);
+  void renderToSwapchain(VkCommandBuffer cmd, const RenderCallback& renderCallback);
   void present(VulkanContextManager& coreManager);
 
   // Accessors
