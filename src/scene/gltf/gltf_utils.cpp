@@ -85,7 +85,7 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
 /**********************************************************/
 {
   std::string baseName = filename.filename().string();
-  common::ScopedTimer _timer(fmt::format("Loaded glTF file: {}", baseName));
+  SCOPED_TIMER(fmt::format("Loaded glTF file: {}", baseName));
 
   tinygltf::TinyGLTF tinyLoader;
   tinygltf::Model model;

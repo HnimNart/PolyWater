@@ -235,7 +235,7 @@ void VulkanRaster::clearShaders()
 void VulkanRaster::compileShaders()
 /**********************************************************/
 {
-  common::ScopedTimer(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
 
   // Compile Shader
   VkShaderModuleCreateInfo shaderCode =

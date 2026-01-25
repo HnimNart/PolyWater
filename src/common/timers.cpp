@@ -1,5 +1,10 @@
 #include "timers.hpp"
 
+#include <cassert>
+#include <cstdarg>
+
+#include <nvutils/logger.hpp>
+
 // PerformanceTimer platform headers
 #if defined(_WIN32)
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -42,13 +47,15 @@ PerformanceTimer::TimeValue PerformanceTimer::now() const
   // On Linux, CLOCK_MONOTONIC does not include suspend time; see
   // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=810fb07a9b504ac22b95899cf8b39d25a5f3e5c5
   // . On Apple platforms, CLOCK_MONOTONIC includes suspend time (according to
-  // https://www.manpagez.com/man/3/clock_gettime/), so we use CLOCK_UPTIME_RAW instead.
+  // https://www.manpagez.com/man/3/clock_gettime/), so we use CLOCK_UPTIME_RAW
+  // instead.
 #  ifdef __APPLE__
   constexpr clockid_t clockID = CLOCK_UPTIME_RAW;
 #  else
   constexpr clockid_t clockID = CLOCK_MONOTONIC;
 #  endif
-  static_assert(sizeof(time_t) >= 4);  // Make sure we aren't setting up for a Year 2038 bug
+  static_assert(sizeof(time_t) >=
+                4);  // Make sure we aren't setting up for a Year 2038 bug
   timespec tv{};
   clock_gettime(clockID, &tv);
   return {.seconds = static_cast<int64_t>(tv.tv_sec),
@@ -60,10 +67,78 @@ PerformanceTimer::TimeValue PerformanceTimer::now() const
   {
     const std::chrono::steady_clock::duration time =
         std::chrono::steady_clock::now().time_since_epoch();
-    using ns100 = std::chrono::duration<int64_t, std::ratio<1i64, 10'000'000i64>>;
+    using ns100 =
+        std::chrono::duration<int64_t, std::ratio<1i64, 10'000'000i64>>;
     return {.ticks_100ns = std::chrono::duration_cast<ns100>(time).count()};
   }
 
 #endif
 }
+
+//-------------------------------------------------------------------------------------------------
+// ScopedTimer
+
+ScopedTimer::ScopedTimer(const char* fmt, ...)
+{
+  std::string str(256, '\0');  // initial guess. ideally the first try fits
+  va_list args1, args2;
+  va_start(args1, fmt);
+  va_copy(args2, args1);  // make a backup as vsnprintf may consume args1
+  int rc = vsnprintf(str.data(), str.size(), fmt, args1);
+  if (rc >= 0 && static_cast<size_t>(rc + 1) > str.size())
+  {
+    str.resize(rc + 1);  // include storage for '\0'
+    rc = vsnprintf(str.data(), str.size(), fmt, args2);
+  }
+  va_end(args1);
+  assert(rc >= 0 && "vsnprintf error");
+  str.resize(rc >= 0 ? static_cast<size_t>(rc) : 0);
+  init_(str);
+}
+
+ScopedTimer::ScopedTimer(const std::string& str)
+{
+  init_(str);
+}
+
+void ScopedTimer::init_(const std::string& str)
+{
+  // If nesting timers, break the newline of the previous one
+  if (s_openNewline)
+  {
+    assert(s_nesting > 0);
+    LOGI("\n");
+  }
+
+  m_manualIndent =
+      !str.empty() && (str[0] == ' ' || str[0] == '-' || str[0] == '|');
+
+  // Add indentation automatically if not already in str.
+  if (s_nesting > 0 && !m_manualIndent)
+  {
+    LOGI("%s", indent().c_str());
+  }
+
+  LOGI("%s", str.c_str());
+  s_openNewline = str.empty() || str[str.size() - 1] != '\n';
+  ++s_nesting;
+}
+
+ScopedTimer::~ScopedTimer()
+{
+  --s_nesting;
+  // If nesting timers and this is the second destructor in a row, indent and
+  // print "Total" as it won't be on the same line.
+  if (!s_openNewline && !m_manualIndent)
+  {
+    LOGI("%s|", indent().c_str());
+  }
+  else
+  {
+    LOGI(" ");
+  }
+  LOGI("-> %.3f ms\n", m_timer.getMilliseconds());
+  s_openNewline = false;
+}
+
 }  // namespace common

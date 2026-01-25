@@ -27,7 +27,6 @@ VulkanSceneAssetManager::VulkanSceneAssetManager(
 /**********************************************************/
 {
   m_core_manager = coreManager;
-  // Acquiring the texture sampler which will be used for displaying the GBuffer
   m_samplerPool.init(m_core_manager->getDevice());
 }
 
@@ -35,6 +34,11 @@ VulkanSceneAssetManager::VulkanSceneAssetManager(
 void VulkanSceneAssetManager::beginUploading()
 /**********************************************************/
 {
+  if (m_cmd != VK_NULL_HANDLE)
+  {
+    throw std::runtime_error(
+        "Begin uploading called while another upload is already in progress.");
+  }
   m_cmd = m_core_manager->startSingleTimeCmd();
 }
 
@@ -209,7 +213,7 @@ void VulkanSceneAssetManager::createGltfSceneInfoBuffer(
     gltf::Scene& sceneResource)
 /**********************************************************/
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
 
   auto& stagingUploader = m_core_manager->getStagingUploader();
   nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();

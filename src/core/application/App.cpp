@@ -17,7 +17,6 @@
 #include <nvgui/fonts.hpp>
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
-#include <nvutils/timers.hpp>
 
 #include "IGUISystem.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"

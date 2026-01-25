@@ -14,6 +14,7 @@
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
+#include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/gltf/io_gltf.h"
 
@@ -39,6 +40,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 void VulkanRenderer::init(const SceneResourcesManager& scene)
 /**********************************************************/
 {
+  SCOPED_TIMER_FUNC();
   initGBuffers();
   createDescriptorSetLayout(m_core_manager->getDevice());
   m_resources->updateDescriptors(m_descPack);

@@ -25,7 +25,8 @@
 void VulkanRendererElement::setupScene()
 /**********************************************************/
 {
-  common::ScopedTimer(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
+  sleep(1);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
 
   // Load the GLTF resources
@@ -64,7 +65,6 @@ void VulkanRendererElement::setupScene()
                       glm::vec3(2.f)),
        .materialIndex = plane_id,
        .meshIndex = 1});
-  scene_resources.finalizeSceneResources();
 
   // Scene information
   shaderio::GltfSceneInfo& sceneInfo = m_scene_manager.sceneInfo();
@@ -80,6 +80,8 @@ void VulkanRendererElement::setupScene()
   sceneInfo.punctualLights[0].type = shaderio::GltfLightType::ePoint;
   sceneInfo.punctualLights[0].coneAngle =
       0.9f;  // Cone angle for spot lights (0 for point and directional lights)
+
+  scene_resources.finalizeSceneResources();
 
   // Default camera
   m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});

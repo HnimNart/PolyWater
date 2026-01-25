@@ -1,4 +1,5 @@
 #include <chrono>
+#include <format>
 #include <iostream>
 #include <string>
 
@@ -24,8 +25,8 @@ namespace common
 //
 // On other systems, this falls back to std::chrono::steady_clock.
 //
-// Exact precision and dependency depends on the platform; Windows, for instance,
-// will attempt to correct for innacuracies
+// Exact precision and dependency depends on the platform; Windows, for
+// instance, will attempt to correct for innacuracies
 // (https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps#low-level-hardware-clock-characteristics),
 // and on Unix we choose a method that's synced to Network Time Protocol (at
 // the expense of a higher chance of non-monotonicity).
@@ -43,15 +44,25 @@ public:
   {
 #ifdef __unix__
     const TimeValue t = now();
-    const double delta = 1e-9 * static_cast<double>(t.nanoseconds - m_start.nanoseconds)  //
-                         + static_cast<double>(t.seconds - m_start.seconds);
-    return delta >= 0 ? delta : 0.;
+
+    // 1. Calculate integer differences
+    int64_t diff_s = t.seconds - m_start.seconds;
+    int64_t diff_ns = t.nanoseconds - m_start.nanoseconds;
+
+    // 2. Handle the "borrow" if nanoseconds wrapped around
+    if (diff_ns < 0)
+    {
+      diff_s -= 1;
+      diff_ns += 1000000000LL;
+    }
+
+    // 3. Convert to double only at the very last step
+    return static_cast<double>(diff_s) + (static_cast<double>(diff_ns) * 1e-9);
 #else
     const int64_t delta = now().ticks_100ns - m_start.ticks_100ns;
     return delta >= 0 ? static_cast<double>(delta) * 1e-7 : 0.;
 #endif
   }
-
   // Convenience functions returning total time in different units
   double getMilliseconds() const { return getSeconds() * 1e3; }
   double getMicroseconds() const { return getSeconds() * 1e6; }
@@ -79,47 +90,33 @@ private:
   TimeValue now() const;
 };
 
+struct TimerResult
+{
+  int depth;
+  std::string name;
+  double timeMs;
+};
+
 class ScopedTimer
 {
 public:
-  explicit ScopedTimer(const std::string& name) : m_name(name)
+  ScopedTimer(const std::string& str);
+  ScopedTimer(const char* fmt, ...);
+  void init_(const std::string& str);
+  ~ScopedTimer();
+  static std::string indent()
   {
-    // Track nesting but DON'T print yet
-    s_nesting++;
-  }
-
-  ~ScopedTimer()
-  {
-
-    const double time = m_timer.getMicroseconds();
-    // Decrement nesting level before printing our line
-    s_nesting--;
-
-    // Construct the output string
-    // If s_openNewline is false, it means a child timer just printed
-    // on its own line, so we should prefix with a pipe to show the "Total".
-    std::string prefix = indent();
-    if (!s_openNewline)
-    {
-      prefix += "| ";
-    }
-
-    // Print everything at once: Name + Duration
-    printf("%s%s -> %.3f us\n", prefix.c_str(), m_name.c_str(), time);
-
-    // Inform any parent timer that we've taken up a line
-    s_openNewline = false;
+    std::string result(static_cast<size_t>(s_nesting * 2), ' ');
+    for (int i = 0; i < s_nesting * 2; i += 2)
+      result[i] = '|';
+    return result;
   }
 
 private:
-  std::string m_name;
-  PerformanceTimer m_timer{};
-
-  // Static state to track hierarchy
-  static inline int s_nesting = 0;
-  static inline bool s_openNewline = true;
-
-  std::string indent() const { return std::string(s_nesting * 2, ' '); }
+  PerformanceTimer m_timer;
+  bool m_manualIndent = false;
+  static inline thread_local int s_nesting = 0;
+  static inline thread_local bool s_openNewline = false;
 };
 
 }  // namespace common
@@ -132,6 +129,6 @@ private:
 #  define FUNC_SIG __func__
 #endif
 
-#define SCOPED_TIMER_SIG() auto _timer_##__LINE__ = common::ScopedTimer(FUNC_SIG)
-#define SCOPED_TIMER(name) auto scopedTimer##__LINE__ = common::ScopedTimer(name)
-#define SCOPED_TIMER_FUNC() auto scopedTimer##__LINE__ = common::ScopedTimer(__FUNCTION__)
+#define SCOPED_TIMER_SIG() common::ScopedTimer _timer_##__LINE__(FUNC_SIG)
+#define SCOPED_TIMER(name) common::ScopedTimer _timer_##__LINE__(name)
+#define SCOPED_TIMER_FUNC() common::ScopedTimer _timer_##__LINE__(__FUNCTION__)

@@ -92,7 +92,7 @@ void VulkanRayTracer::createRayTracingPipeline(
 void VulkanRayTracer::createRaytraceDescriptorLayout()
 /**********************************************************/
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
   nvvk::DescriptorBindings bindings;
   bindings.addBinding(
       {.binding = shaderio::BindingPoints::eTlas,
@@ -114,7 +114,7 @@ void VulkanRayTracer::createRaytraceDescriptorLayout()
 void VulkanRayTracer::createRayTracingPipeline()
 /**********************************************************/
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
   // For re-creation
   vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
   vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
@@ -213,7 +213,7 @@ void VulkanRayTracer::createShaderBindingTable(
     const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
 /**********************************************************/
 {
-  SCOPED_TIMER(__FUNCTION__);
+  SCOPED_TIMER_FUNC();
 
   m_core_manager->getAllocator().destroyBuffer(
       m_sbtBuffer);  // Cleanup when re-creating
