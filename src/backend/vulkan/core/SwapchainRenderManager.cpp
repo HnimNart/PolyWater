@@ -1,6 +1,7 @@
 #include "SwapchainRenderManager.hpp"
 
 #include <GLFW/glfw3.h>
+
 #undef APIENTRY
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -14,14 +15,9 @@
 #include "FrameSynchronizationManager.hpp"
 
 void SwapchainRenderManager::init(VulkanContextManager& coreManager,
-                                  FrameSynchronizationManager& frameSyncManager,
-                                  GLFWwindow* windowHandle,
-                                  const core::ApplicationCreateInfo& appInfo)
+                                  GLFWwindow* windowHandle)
 {
-  m_windowHandle = windowHandle;
-  m_headless = appInfo.headless;
-
-  if (!m_headless && !m_windowHandle)
+  if (!windowHandle)
   {
     throw std::runtime_error(
         "SwapchainRenderManager initialized without a valid GLFW window.");
@@ -32,50 +28,44 @@ void SwapchainRenderManager::init(VulkanContextManager& coreManager,
   VkInstance instance = coreManager.getInstance();
   const nvvk::QueueInfo& graphicsQueue = coreManager.getQueueInfo(0);
 
-  if (!m_headless)
+  // Create Window Surface
+  NVVK_CHECK(
+      glfwCreateWindowSurface(instance, windowHandle, nullptr, &m_surface));
+
+  // Create Swapchain
+  nvvk::Swapchain::InitInfo swapChainInit{
+      .physicalDevice = physicalDevice,
+      .device = device,
+      .surface = m_surface,
+      .queue = graphicsQueue,
+      .cmdPool = coreManager.getTransientCmdPool(),
+      .preferredVsyncOffMode = VK_PRESENT_MODE_MAX_ENUM_KHR,
+      .preferredVsyncOnMode = VK_PRESENT_MODE_MAX_ENUM_KHR,
+  };
+
+  const VkResult result = m_swapchain.init(swapChainInit);
+  if (result != VK_SUCCESS)
   {
-    // Create Window Surface
-    NVVK_CHECK(
-        glfwCreateWindowSurface(instance, m_windowHandle, nullptr, &m_surface));
-
-    // Create Swapchain
-    nvvk::Swapchain::InitInfo swapChainInit{
-        .physicalDevice = physicalDevice,
-        .device = device,
-        .surface = m_surface,
-        .queue = graphicsQueue,
-        .cmdPool = coreManager.getTransientCmdPool(),
-        .preferredVsyncOffMode = VK_PRESENT_MODE_MAX_ENUM_KHR,
-        .preferredVsyncOnMode = VK_PRESENT_MODE_MAX_ENUM_KHR,
-    };
-
-    const VkResult result = m_swapchain.init(swapChainInit);
-    if (result != VK_SUCCESS)
-    {
-      reportSwapchainDiagnostics(instance, swapChainInit);
-      nvvk::CheckError::getInstance().check(result, "m_swapchain.init",
-                                            __FILE__, __LINE__);
-    }
-
-    // Initialize Swapchain Resources
-    NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
+    reportSwapchainDiagnostics(instance, swapChainInit);
+    nvvk::CheckError::getInstance().check(result, "m_swapchain.init", __FILE__,
+                                          __LINE__);
   }
+
+  // Initialize Swapchain Resources
+  NVVK_CHECK(m_swapchain.initResources(m_windowSize, m_vsyncWanted));
 }
 
 bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
 {
-  if (!m_headless && m_swapchain.needRebuilding())
+  if (m_swapchain.needRebuilding())
   {
     NVVK_CHECK(m_swapchain.reinitResources(m_windowSize, m_vsyncWanted));
   }
 
-  if (!m_headless)
+  VkResult res = m_swapchain.acquireNextImage(coreManager.getDevice());
+  if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
   {
-    VkResult res = m_swapchain.acquireNextImage(coreManager.getDevice());
-    if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR))
-    {
-      return false;
-    }
+    return false;
   }
 
   return true;
@@ -84,10 +74,6 @@ bool SwapchainRenderManager::beginFrame(VulkanContextManager& coreManager)
 void SwapchainRenderManager::renderToSwapchain(
     VkCommandBuffer cmd, const RenderCallback& renderCallback)
 {
-  if (m_headless)
-  {
-    return;
-  }
 
   beginDynamicRenderingToSwapchain(cmd);
   {
@@ -135,31 +121,22 @@ void SwapchainRenderManager::endDynamicRenderingToSwapchain(
 
 void SwapchainRenderManager::present(VulkanContextManager& coreManager)
 {
-  if (!m_headless)
-  {
-    m_swapchain.presentFrame(coreManager.getQueueInfo(0).queue);
-  }
+
+  m_swapchain.presentFrame(coreManager.getQueueInfo(0).queue);
 }
 
 void SwapchainRenderManager::setVsync(bool enabled)
 {
   m_vsyncWanted = enabled;
-  if (!m_headless)
-  {
-    m_swapchain.requestRebuild();
-  }
+  m_swapchain.requestRebuild();
 }
 
 void SwapchainRenderManager::deinit(VulkanContextManager& coreManager)
 {
   VkDevice device = coreManager.getDevice();
   NVVK_CHECK(vkDeviceWaitIdle(device));
-
-  if (!m_headless)
-  {
-    m_swapchain.deinit();
-    vkDestroySurfaceKHR(coreManager.getInstance(), m_surface, nullptr);
-  }
+  m_swapchain.deinit();
+  vkDestroySurfaceKHR(coreManager.getInstance(), m_surface, nullptr);
 }
 
 // Provides additional diagnostic information about which GPUs can be used with

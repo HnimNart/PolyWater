@@ -21,9 +21,8 @@ public:
   static std::unique_ptr<VulkanBackend>
   create(const core::ApplicationCreateInfo& appInfo);
 
-  void init(const core::ApplicationCreateInfo& info) override;
+  void initPresentation(GLFWwindow* window, core::IGUISystemPtr gui) override;
   void deinit() override;
-  void initializeGUIBackend(core::IGUISystemPtr gui) override;
 
   // Frame lifecycle
   IRenderContext& getCurrentContext() override;

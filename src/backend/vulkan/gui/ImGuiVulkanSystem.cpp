@@ -1,3 +1,22 @@
+/******************************************************************************
+ * Copyright (c) 2024-2026, NVIDIA CORPORATION. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION.
+ * SPDX-License-Identifier: Apache-2.0
+ *****************************************************************************/
+
 #include "ImGuiVulkanSystem.hpp"
 
 #include <GLFW/glfw3.h>
@@ -15,16 +34,16 @@
 #include "backend/vulkan/core/SwapchainRenderManager.hpp"
 #include "core/application/AppInfo.hpp"
 
-// ============================================================================
-// Lifecycle
-// ============================================================================
-
+/**********************************************************/
 ImGuiVulkanSystem::~ImGuiVulkanSystem()
+/**********************************************************/
 {
   deinit();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::init(const core::ApplicationCreateInfo& info)
+/**********************************************************/
 {
   if (m_contextCreated)
   {
@@ -40,14 +59,18 @@ void ImGuiVulkanSystem::init(const core::ApplicationCreateInfo& info)
   setupImGui(info);
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::deinit()
+/**********************************************************/
 {
   saveSettings(m_iniFilename.c_str());
   shutdownVulkanBackend();
   destroyContext();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::destroyContext()
+/**********************************************************/
 {
   if (!m_contextCreated)
   {
@@ -58,11 +81,13 @@ void ImGuiVulkanSystem::destroyContext()
   m_contextCreated = false;
 }
 
-// ============================================================================
-// ImGui Setup
-// ============================================================================
+/******************************************************************************
+ * ImGui Setup
+ *****************************************************************************/
 
+/**********************************************************/
 void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo& info)
+/**********************************************************/
 {
   m_iniFilename = nvutils::utf8FromPath(
       nvutils::getExecutablePath().replace_extension(".ini"));
@@ -75,8 +100,10 @@ void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo& info)
   loadSettings(m_iniFilename.c_str());
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::configureImGuiIO(
     const core::ApplicationCreateInfo& info)
+/**********************************************************/
 {
   ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags = info.imguiConfigFlags;
@@ -89,7 +116,9 @@ void ImGuiVulkanSystem::configureImGuiIO(
   io.IniFilename = m_iniFilename.c_str();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::initializeFonts()
+/**********************************************************/
 {
   ImGuiIO& io = ImGui::GetIO();
 
@@ -98,14 +127,16 @@ void ImGuiVulkanSystem::initializeFonts()
   nvgui::addMonospaceFont();
 }
 
-// ============================================================================
-// Vulkan Backend Initialization
-// ============================================================================
+/******************************************************************************
+ * Vulkan Backend Initialization
+ *****************************************************************************/
 
-void ImGuiVulkanSystem::initVulkanBackend(
-    VulkanContextManager& coreManager,
-    FrameSynchronizationManager& frameSyncManager,
-    SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle)
+/**********************************************************/
+void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
+                                          uint max_frames_in_flight,
+                                          VkFormat _imageFormat,
+                                          GLFWwindow* windowHandle)
+/**********************************************************/
 {
   if (m_vulkanInitialized)
   {
@@ -113,13 +144,14 @@ void ImGuiVulkanSystem::initVulkanBackend(
   }
 
   initializeGlfwBackend(windowHandle);
-  initializeVulkanBackend(coreManager, frameSyncManager, swapchainManager,
-                          windowHandle);
+  initializeVulkanBackend(coreManager, max_frames_in_flight, _imageFormat);
 
   m_vulkanInitialized = true;
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow* windowHandle)
+/**********************************************************/
 {
   if (windowHandle)
   {
@@ -128,17 +160,13 @@ void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow* windowHandle)
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::initializeVulkanBackend(
-    VulkanContextManager& coreManager,
-    FrameSynchronizationManager& frameSyncManager,
-    SwapchainRenderManager& swapchainManager, GLFWwindow* windowHandle)
+    VulkanContextManager& coreManager, uint max_frames_in_flight,
+    VkFormat _imageFormat)
+/**********************************************************/
 {
-  VkFormat imageFormat = swapchainManager.getSwapchain().getImageFormat();
-  if (!windowHandle)
-  {
-    imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
-  }
-
+  static VkFormat imageFormat = _imageFormat;
   ImGui_ImplVulkan_InitInfo initInfo{
       .ApiVersion = VK_API_VERSION_1_4,
       .Instance = coreManager.getInstance(),
@@ -148,7 +176,7 @@ void ImGuiVulkanSystem::initializeVulkanBackend(
       .Queue = coreManager.getQueueInfo(0).queue,
       .DescriptorPool = coreManager.getDescriptorPool(),
       .MinImageCount = 2U,
-      .ImageCount = std::max(frameSyncManager.getFrameCycleSize(), 2U),
+      .ImageCount = max_frames_in_flight,
       .UseDynamicRendering = true,
       .PipelineRenderingCreateInfo =
           VkPipelineRenderingCreateInfo{
@@ -161,7 +189,9 @@ void ImGuiVulkanSystem::initializeVulkanBackend(
   ImGui_ImplVulkan_Init(&initInfo);
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::shutdownVulkanBackend()
+/**********************************************************/
 {
   if (!m_vulkanInitialized)
   {
@@ -175,11 +205,13 @@ void ImGuiVulkanSystem::shutdownVulkanBackend()
   m_vulkanInitialized = false;
 }
 
-// ============================================================================
-// Frame Operations
-// ============================================================================
+/******************************************************************************
+ * Frame Operations
+ *****************************************************************************/
 
+/**********************************************************/
 void ImGuiVulkanSystem::beginFrame()
+/**********************************************************/
 {
   if (m_vulkanInitialized)
   {
@@ -193,18 +225,24 @@ void ImGuiVulkanSystem::beginFrame()
   ImGui::NewFrame();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::endFrame()
+/**********************************************************/
 {
   ImGui::EndFrame();
   renderViewports();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::render()
+/**********************************************************/
 {
   ImGui::Render();
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::renderViewports()
+/**********************************************************/
 {
   if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
   {
@@ -213,12 +251,23 @@ void ImGuiVulkanSystem::renderViewports()
   }
 }
 
-// ============================================================================
-// Menu & Docking
-// ============================================================================
+/**********************************************************/
+void ImGuiVulkanSystem::onRender(const IRenderContext& ctx)
+/**********************************************************/
+{
+  const VulkanRenderContext& vkContext =
+      static_cast<const VulkanRenderContext&>(ctx);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vkContext.cmdBuffer);
+}
 
+/******************************************************************************
+ * Menu & Docking
+ *****************************************************************************/
+
+/**********************************************************/
 void ImGuiVulkanSystem::renderMenu(
     const std::vector<std::shared_ptr<core::IAppElement>>& elements)
+/**********************************************************/
 {
   setupImguiDock();
 
@@ -232,7 +281,9 @@ void ImGuiVulkanSystem::renderMenu(
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::setupImguiDock()
+/**********************************************************/
 {
   const ImGuiDockNodeFlags dockFlags =
       ImGuiDockNodeFlags_PassthruCentralNode |
@@ -248,7 +299,9 @@ void ImGuiVulkanSystem::setupImguiDock()
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::setupDefaultDockLayout(ImGuiID dockID)
+/**********************************************************/
 {
   ImGui::DockBuilderDockWindow("Viewport", dockID);
   ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |=
@@ -264,19 +317,23 @@ void ImGuiVulkanSystem::setupDefaultDockLayout(ImGuiID dockID)
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::createDefaultLayout(ImGuiID dockID)
+/**********************************************************/
 {
   ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f,
                                                nullptr, &dockID);
   ImGui::DockBuilderDockWindow("Settings", leftID);
 }
 
-// ============================================================================
-// Window Queries
-// ============================================================================
+/******************************************************************************
+ * Window Queries & Configuration
+ *****************************************************************************/
 
+/**********************************************************/
 bool ImGuiVulkanSystem::getWindowSize(const std::string& windowName,
                                       WindowSize& size)
+/**********************************************************/
 {
   const ImGuiWindow* viewport = ImGui::FindWindowByName(windowName.c_str());
   if (!viewport)
@@ -288,18 +345,18 @@ bool ImGuiVulkanSystem::getWindowSize(const std::string& windowName,
   return true;
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::setWindowSize(const WindowSize& size)
+/**********************************************************/
 {
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize.x = float(size.width);
   io.DisplaySize.y = float(size.height);
 }
 
-// ============================================================================
-// Configuration
-// ============================================================================
-
+/**********************************************************/
 void ImGuiVulkanSystem::setConfigFlags(unsigned int flags)
+/**********************************************************/
 {
   if (m_contextCreated)
   {
@@ -307,7 +364,9 @@ void ImGuiVulkanSystem::setConfigFlags(unsigned int flags)
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::loadSettings(const char* filename)
+/**********************************************************/
 {
   if (m_contextCreated)
   {
@@ -315,17 +374,12 @@ void ImGuiVulkanSystem::loadSettings(const char* filename)
   }
 }
 
+/**********************************************************/
 void ImGuiVulkanSystem::saveSettings(const char* filename)
+/**********************************************************/
 {
   if (m_contextCreated)
   {
     ImGui::SaveIniSettingsToDisk(filename);
   }
-}
-
-void ImGuiVulkanSystem::onRender(const IRenderContext& ctx)
-{
-  const VulkanRenderContext& vkContext =
-      static_cast<const VulkanRenderContext&>(ctx);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vkContext.cmdBuffer);
 }

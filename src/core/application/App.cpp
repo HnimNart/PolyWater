@@ -67,10 +67,7 @@ void Application::initializeBackend(const ApplicationCreateInfo& info)
 /**********************************************************/
 {
   assert(m_backend);
-  m_backend->setWindow(m_windowHandle);
-  m_backend->init(info);
-  m_backend->setWindowSize(m_windowSize);  // TODO WHY IS this here?
-  m_backend->initializeGUIBackend(m_gui);
+  m_backend->initPresentation(m_windowHandle, m_gui);
 }
 
 /**********************************************************/

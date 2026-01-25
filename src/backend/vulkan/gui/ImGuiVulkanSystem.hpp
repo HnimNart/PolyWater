@@ -38,8 +38,7 @@ public:
   void render() override;
 
   // UI Rendering
-  void renderMenu(
-      const std::vector<std::shared_ptr<core::IAppElement>>& elements) override;
+  void renderMenu(const std::vector<core::IAppElementPtr>& elements) override;
   bool getWindowSize(const std::string& windowName, WindowSize& size) override;
   void setWindowSize(const WindowSize& size) override;
 
@@ -50,8 +49,7 @@ public:
 
   // Vulkan Backend
   void initVulkanBackend(VulkanContextManager& coreManager,
-                         FrameSynchronizationManager& frameSyncManager,
-                         SwapchainRenderManager& swapchainManager,
+                         uint max_frames_in_flight, VkFormat _imageFormat,
                          GLFWwindow* windowHandle);
 
   void onRender(const IRenderContext& ctx) override;
@@ -66,9 +64,9 @@ private:
   // Vulkan Backend Helpers
   void initializeGlfwBackend(GLFWwindow* windowHandle);
   void initializeVulkanBackend(VulkanContextManager& coreManager,
-                               FrameSynchronizationManager& frameSyncManager,
-                               SwapchainRenderManager& swapchainManager,
-                               GLFWwindow* windowHandle);
+                               uint max_frames_in_flight,
+                               VkFormat _imageFormat);
+
   void shutdownVulkanBackend();
 
   // Docking Helpers

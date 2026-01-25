@@ -20,6 +20,7 @@ VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
   {
     return nullptr;
   }
+
   return backend;
 }
 
@@ -28,40 +29,46 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 /**********************************************************/
 {
   m_coreManager = std::make_unique<VulkanContextManager>();
-  return m_coreManager->init(appInfo);
-}
-
-/**********************************************************/
-void VulkanBackend::init(const core::ApplicationCreateInfo& info)
-/**********************************************************/
-{
-  // Initialize managers in correct order
+  bool ok = m_coreManager->init(appInfo);
+  if (!ok)
+  {
+    return false;
+  }
   m_frameSyncManager = std::make_unique<FrameSynchronizationManager>();
-  uint32_t numFrames = info.headless ? 2 : 3;
+  uint32_t numFrames = appInfo.headless ? 2 : 3;
   m_frameSyncManager->init(*m_coreManager, numFrames);
-
-  m_swapchainManager = std::make_unique<SwapchainRenderManager>();
-  m_swapchainManager->init(*m_coreManager, *m_frameSyncManager, m_windowHandle,
-                           info);
+  return ok;
 }
 
 /**********************************************************/
-void VulkanBackend::initializeGUIBackend(std::shared_ptr<core::IGUISystem> gui)
+void VulkanBackend::initPresentation(GLFWwindow* windowHandle,
+                                     std::shared_ptr<core::IGUISystem> gui)
 /**********************************************************/
 {
-  assert(m_coreManager);
-  assert(m_frameSyncManager);
-  assert(m_swapchainManager);
-  assert(gui);
+  m_windowHandle = windowHandle;
+  if (m_windowHandle)
+  {
+    m_swapchainManager = std::make_unique<SwapchainRenderManager>();
+    m_swapchainManager->init(*m_coreManager, m_windowHandle);
+  }
+
+  if (!gui)
+  {
+    return;
+  }
   auto vulkan_gui = dynamic_pointer_cast<ImGuiVulkanSystem>(gui);
   if (!vulkan_gui)
   {
     throw std::runtime_error(
         "GUI system given VulkanBackend is not a ImGuiVulkanSystem");
   }
-  vulkan_gui->initVulkanBackend(*m_coreManager, *m_frameSyncManager,
-                                *m_swapchainManager,
-                                m_headless ? nullptr : m_windowHandle);
+
+  uint numFrames = m_frameSyncManager->getFrameCycleSize();
+  VkFormat imageFormat =
+      m_windowHandle ? m_swapchainManager->getSwapchain().getImageFormat()
+                     : VK_FORMAT_B8G8R8A8_UNORM;
+  vulkan_gui->initVulkanBackend(*m_coreManager, numFrames, imageFormat,
+                                m_windowHandle);
 
   m_renderRegistry.registerElement(vulkan_gui);
 }
@@ -103,7 +110,7 @@ IRenderContext* VulkanBackend::beginFrame()
 /**********************************************************/
 {
   m_frameSyncManager->waitForFrameCompletion();
-  if (!m_swapchainManager->beginFrame(*m_coreManager))
+  if (m_swapchainManager && !m_swapchainManager->beginFrame(*m_coreManager))
   {
     return nullptr;
   }
@@ -132,16 +139,16 @@ void VulkanBackend::renderFrame(
     e->onEndFrame(frame);
   }
 
-  // Render to swapchain
-  VkCommandBuffer cmd = m_frameSyncManager->getActiveCommandBuffer();
-
-  auto callback =
-      std::bind(&VulkanBackend::recordRegistryCommands, this, std::cref(frame));
-  m_swapchainManager->renderToSwapchain(cmd, callback);
-
   // Add swapchain semaphores
-  if (!m_swapchainManager->isHeadless())
+  if (m_windowHandle)
   {
+    // Render to swapchain
+    VkCommandBuffer cmd = m_frameSyncManager->getActiveCommandBuffer();
+
+    auto callback = std::bind(&VulkanBackend::recordRegistryCommands, this,
+                              std::cref(frame));
+    m_swapchainManager->renderToSwapchain(cmd, callback);
+
     m_frameSyncManager->addWaitSemaphore({
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .semaphore =
@@ -275,5 +282,8 @@ void VulkanBackend::setVsync(bool enabled)
 /**********************************************************/
 {
   IRenderBackend::setVsync(enabled);
-  m_swapchainManager->setVsync(enabled);
+  if (m_swapchainManager)
+  {
+    m_swapchainManager->setVsync(enabled);
+  }
 }

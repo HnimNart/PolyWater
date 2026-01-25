@@ -12,12 +12,8 @@
 #include "IRenderContext.hpp"
 #include "core/application/AppInfo.hpp"
 #include "core/application/IAppElement.hpp"
+#include "core/application/IGUISystem.hpp"
 #include "core/application/types.h"
-
-namespace core
-{
-class IGUISystem;
-}
 
 //------------------------------------------------------------
 // IRenderBackend
@@ -38,7 +34,8 @@ public:
   //----------------------------------------------------------
   // Lifecycle
   //----------------------------------------------------------
-  virtual void init(const core::ApplicationCreateInfo& appInfo) = 0;
+  virtual void initPresentation(GLFWwindow* window,
+                                core::IGUISystemPtr gui) = 0;
   virtual void deinit() = 0;
   virtual void waitForDeviceIdle() = 0;
 
@@ -57,7 +54,7 @@ public:
   // Complete the frame
   virtual void endFrame(IRenderContext const& ctx) = 0;
 
-  // Present the completed frame (no-op for headless backends)
+  // Present the completed frame (dont' call for headless backends)
   virtual void present() = 0;
   virtual void advance() = 0;
 
@@ -79,8 +76,6 @@ public:
     m_dpiScale = xscale;
     m_viewportSize = size;
   }
-
-  virtual void initializeGUIBackend(std::shared_ptr<core::IGUISystem> gui) = 0;
 
   const WindowSize& getViewportSize() const { return m_viewportSize; }
   virtual void setWindow(GLFWwindow* windowHandle)
@@ -109,16 +104,8 @@ protected:
   bool m_vsyncWanted{true};  // Wanting swapchain with vsync
   bool m_vsync{true};
 
-  // Headless
-  bool m_headless{false};
-
-  // Screenshot
-  bool m_screenShotRequested = false;
-  int m_screenShotFrame = 0;
-  std::filesystem::path m_screenShotFilename;
-
   std::vector<std::vector<std::function<void()>>>
       m_resourceFreeQueue;  // Queue of functions to free resources
 
-  std::shared_ptr<core::IGUISystem> m_gui = nullptr;
+  core::IGUISystemPtr m_gui = nullptr;
 };
