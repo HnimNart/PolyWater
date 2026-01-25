@@ -68,6 +68,8 @@ void VulkanRendererElement::setupScene()
        .materialIndex = plane_id,
        .meshIndex = 1});
   scene_resources.finalizeSceneResources();
+  // Finish uploading command
+  scene_resources.endUploading();
 
   // Scene information
   shaderio::GltfSceneInfo& sceneInfo = m_scene_manager.sceneInfo();
@@ -89,8 +91,6 @@ void VulkanRendererElement::setupScene()
   m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F},
                                       {0.0F, 1.0F, 0.0F});
 
-  // Finish uploading command
-  scene_resources.endUploading();
   // build scene
   m_scene_manager.postInit();
 }

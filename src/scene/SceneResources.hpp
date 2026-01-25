@@ -21,8 +21,8 @@ public:
   // ---------------------------------------------------------------------------
   // Lifecycle & Initialization
   // ---------------------------------------------------------------------------
-  SceneResourcesManager();
-  ~SceneResourcesManager();
+  SceneResourcesManager() = default;
+  ~SceneResourcesManager() = default;
 
   void init(std::shared_ptr<IDeviceAssets> deviceResources);
   void clear();

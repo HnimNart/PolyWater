@@ -62,8 +62,18 @@ public:
   void beginUploading() override;
   void endUploading() override;
 
-  MeshID uploadGltfModel(const tinygltf::Model& model, gltf::Scene& resources) override;
+  // Meshes
+  std::pair<BufferAddr, BufferID>
+  uploadGltfBuffer(const tinygltf::Model& model) override;
+  std::pair<BufferAddr, BufferID>
+  uploadPrimitiveMeshBuffer(const nvutils::PrimitiveMesh& primMesh,
+                            uint32_t* vertexOffset = nullptr) override;
+  void addMeshes(size_t count, BufferID bufferIndex) override;
+
+  // Textures
   TextureID uploadTexture(const std::string& filepath) override;
+
+  // Wrap up
   void finalizeSceneResources(gltf::Scene& resources) override;
 
   // -------------------------------------------------------------------------
@@ -80,22 +90,17 @@ private:
   // -------------------------------------------------------------------------
   // Internal Static Helpers (Upload Logic)
   // -------------------------------------------------------------------------
-  static void importGltfData(gltf::Scene& sceneResource, VulkanSceneGpuData& deviceResource,
-                             const tinygltf::Model& model, nvvk::StagingUploader& stagingUploader,
-                             bool importInstance = false);
+  void createGltfSceneInfoBuffer(gltf::Scene& sceneResources);
 
-  static void createGltfSceneInfoBuffer(gltf::Scene& sceneResources,
-                                        VulkanSceneGpuData& deviceResources,
-                                        nvvk::StagingUploader& stagingUploader);
-
-  static void primitiveMeshToResource(gltf::Scene& sceneResource,
-                                      VulkanSceneGpuData& deviceResources,
-                                      nvvk::StagingUploader& stagingUploader,
-                                      const nvutils::PrimitiveMesh& primMesh);
-
-  static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd, nvvk::StagingUploader& staging,
-                                        VkDevice device, const std::filesystem::path& filename,
+  static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd,
+                                        nvvk::StagingUploader& staging,
+                                        VkDevice device,
+                                        const std::filesystem::path& filename,
                                         bool sRgb = true);
+
+  static void processGltfNodes(gltf::Scene& sceneResource,
+                               const tinygltf::Model& model,
+                               uint32_t meshOffset);
 
   // -------------------------------------------------------------------------
   // Members

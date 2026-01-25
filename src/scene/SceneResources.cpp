@@ -10,63 +10,91 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/sampler_pool.hpp>
 
-SceneResourcesManager::SceneResourcesManager() = default;
-SceneResourcesManager::~SceneResourcesManager() = default;
-
+/**********************************************************/
 void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
+/**********************************************************/
 {
   m_device_resources = std::move(deviceResource);
 }
 
+/**********************************************************/
 void SceneResourcesManager::beginUploading()
+/**********************************************************/
 {
   m_device_resources->beginUploading();
 }
 
+/**********************************************************/
 void SceneResourcesManager::endUploading()
+/**********************************************************/
 {
   m_device_resources->endUploading();
 }
 
+/**********************************************************/
 tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
+/**********************************************************/
 {
-  auto model = gltf::load(filename);
-  auto id = static_cast<IDeviceAssets::MeshID>(
-      m_device_resources->uploadGltfModel(model, m_resources));
+  tinygltf::Model model = gltf::loadModel(filename);
 
+  auto [bufferAddr, bufferIndex] = m_device_resources->uploadGltfBuffer(model);
+
+  size_t startSize = m_resources.meshes.size();
+  m_resources.meshes.reserve(startSize + model.meshes.size());
+
+  for (size_t i = 0; i < model.meshes.size(); i++)
+  {
+    auto mesh = gltf::extractGltfMesh(model, i);
+    mesh.gltfBuffer = bufferAddr;  // Assign the BDA (Buffer Device Address)
+    m_resources.meshes.emplace_back(mesh);
+  }
+
+  m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
   return model;
 }
 
+/**********************************************************/
 IDeviceAssets::TextureID
 SceneResourcesManager::loadTexture(const std::string& filename)
+/**********************************************************/
 {
   return m_device_resources->uploadTexture(filename);
 }
 
+/**********************************************************/
 SceneResourcesManager::InstanceID
 SceneResourcesManager::addInstance(const shaderio::GltfInstance& instance)
+/**********************************************************/
 {
   m_resources.instances.push_back(instance);
   return static_cast<InstanceID>(m_resources.instances.size() - 1);
 }
 
+/**********************************************************/
 SceneResourcesManager::MaterialID SceneResourcesManager::addMaterial(
     const shaderio::GltfMetallicRoughness& material)
+/**********************************************************/
 {
   m_resources.materials.push_back(material);
   return static_cast<MaterialID>(m_resources.materials.size() - 1);
 }
 
+/**********************************************************/
 void SceneResourcesManager::finalizeSceneResources()
+/**********************************************************/
 {
   m_device_resources->finalizeSceneResources(m_resources);
 }
 
+/**********************************************************/
 void SceneResourcesManager::clear()
+/**********************************************************/
 {
 }
 
+/**********************************************************/
 void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
+/**********************************************************/
 {
   const glm::mat4& viewMatrix = camera->getViewMatrix();
   const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
@@ -79,22 +107,30 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
   m_resources.sceneInfo.cameraPosition = camera->getEye();
 }
 
+/**********************************************************/
 const gltf::Scene& SceneResourcesManager::data() const
+/**********************************************************/
 {
   return m_resources;
 }
 
+/**********************************************************/
 gltf::Scene& SceneResourcesManager::data()
+/**********************************************************/
 {
   return m_resources;
 }
 
+/**********************************************************/
 shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo()
+/**********************************************************/
 {
   return m_resources.sceneInfo;
 }
 
+/**********************************************************/
 const shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo() const
+/**********************************************************/
 {
   return m_resources.sceneInfo;
 }
