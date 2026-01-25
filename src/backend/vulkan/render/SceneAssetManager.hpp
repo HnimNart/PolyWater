@@ -46,9 +46,6 @@ struct VulkanSceneGpuData
 class VulkanSceneAssetManager final : public IDeviceAssets
 {
 public:
-  using MeshID = int;
-  using TextureID = uint32_t;
-
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
@@ -71,7 +68,8 @@ public:
   void addMeshes(size_t count, BufferID bufferIndex) override;
 
   // Textures
-  TextureID uploadTexture(const std::string& filepath) override;
+  unsigned int reserveTextureSlot() override;
+  TextureID uploadTexture(const std::string& filepath, TextureID = -1) override;
 
   // Wrap up
   void finalizeSceneResources(gltf::Scene& resources) override;

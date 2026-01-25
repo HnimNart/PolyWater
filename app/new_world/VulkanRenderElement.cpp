@@ -27,7 +27,6 @@ void VulkanRendererElement::setupScene()
 {
   common::ScopedTimer(__FUNCTION__);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
-  scene_resources.beginUploading();
 
   // Load the GLTF resources
   tinygltf::Model teapotModel = scene_resources.loadGltf(
@@ -37,10 +36,8 @@ void VulkanRendererElement::setupScene()
       nvutils::findFile("plane.gltf", common::getResourcesDirs()));
 
   // Textures
-  {
-    scene_resources.loadTexture(
-        nvutils::findFile("tiled_floor.png", common::getResourcesDirs()));
-  }
+  IDeviceAssets::TextureID texture_id = scene_resources.loadTexture(
+      nvutils::findFile("tiled_floor.png", common::getResourcesDirs()));
 
   // Teapot material
   SceneResourcesManager::MaterialID teapot_id = scene_resources.addMaterial(
@@ -52,7 +49,7 @@ void VulkanRendererElement::setupScene()
       {.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
        .metallicFactor = 0.1f,
        .roughnessFactor = 0.8f,
-       .baseColorTextureIndex = 1});
+       .baseColorTextureIndex = static_cast<int>(texture_id)});
 
   // Teapot
   scene_resources.addInstance(
@@ -68,8 +65,6 @@ void VulkanRendererElement::setupScene()
        .materialIndex = plane_id,
        .meshIndex = 1});
   scene_resources.finalizeSceneResources();
-  // Finish uploading command
-  scene_resources.endUploading();
 
   // Scene information
   shaderio::GltfSceneInfo& sceneInfo = m_scene_manager.sceneInfo();

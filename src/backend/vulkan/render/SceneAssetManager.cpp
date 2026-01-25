@@ -68,7 +68,8 @@ void VulkanSceneAssetManager::deinit()
 
 /**********************************************************/
 VulkanSceneAssetManager::TextureID
-VulkanSceneAssetManager::uploadTexture(const std::string& filepath)
+VulkanSceneAssetManager::uploadTexture(const std::string& filepath,
+                                       VulkanSceneAssetManager::TextureID id)
 /**********************************************************/
 {
   nvvk::Image texture =
@@ -77,8 +78,27 @@ VulkanSceneAssetManager::uploadTexture(const std::string& filepath)
 
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
-  m_textures.emplace_back(texture);
-  return static_cast<TextureID>(m_textures.size() - 1);
+
+  if (id == -1)
+  {
+    m_textures.emplace_back(texture);
+    return static_cast<TextureID>(m_textures.size() - 1);
+  }
+  else
+  {
+    assert(id < m_textures.size());
+    m_textures[id] = texture;
+    return id;
+  }
+}
+
+/**********************************************************/
+IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
+/**********************************************************/
+{
+  TextureID id = static_cast<TextureID>(m_textures.size());
+  m_textures.emplace_back();
+  return static_cast<TextureID>(id);
 }
 
 /**********************************************************/

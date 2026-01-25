@@ -62,8 +62,8 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
 
 
 // Vertex  Shader
-[shader("vertex")]
-VSout vertexMain(VSin input, uint vertexIndex: SV_VertexID)
+[shader("vertex")] VSout vertexMain(VSin input, uint vertexIndex
+                                    : SV_VertexID)
 {
   int instanceIndex = pushConst.instanceIndex;
 
@@ -90,39 +90,42 @@ VSout vertexMain(VSin input, uint vertexIndex: SV_VertexID)
   return output;
 }
 
-// Fragment Shader
-[shader("pixel")]
-PSout fragmentMain(VSout stage)
+    // Fragment Shader
+    [shader("pixel")] PSout fragmentMain(VSout stage)
 {
-  GltfSceneInfo         sceneInfo = pushConst.sceneInfoAddress[0];
-  GltfInstance          instance  = sceneInfo.instances[pushConst.instanceIndex];
-  GltfMetallicRoughness material  = sceneInfo.materials[instance.materialIndex];
+  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  GltfInstance instance = sceneInfo.instances[pushConst.instanceIndex];
+  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];
 
-  GltfPunctual light = sceneInfo.punctualLights[0];  // Assuming we only use the first light for simplicity
+  GltfPunctual light =
+      sceneInfo.punctualLights[0];  // Assuming we only use the first light for
+                                    // simplicity
 
-  if(sceneInfo.useSky == 1)
+  if (sceneInfo.useSky == 1)
   {
     light.direction = sceneInfo.skySimpleParam.sunDirection;
-    light.color     = sceneInfo.skySimpleParam.sunColor;
+    light.color = sceneInfo.skySimpleParam.sunColor;
     light.intensity = sceneInfo.skySimpleParam.sunIntensity;
-    light.type      = GltfLightType::eDirectional;
+    light.type = GltfLightType::eDirectional;
   }
 
-  if(light.type == GltfLightType::ePoint)
+  if (light.type == GltfLightType::ePoint)
   {
     light.direction = light.position - stage.worldPos;
-    float d         = length(light.direction);
+    float d = length(light.direction);
     light.intensity /= (d * d);
   }
-  else if(light.type == GltfLightType::eSpot)
+  else if (light.type == GltfLightType::eSpot)
   {
     // For spot lights, we need to calculate the direction and apply attenuation
     float3 lightDir = light.position - stage.worldPos;
-    float  d        = length(lightDir);
+    float d = length(lightDir);
     light.intensity /= (d * d);
     // Cone attenuation can be applied here if needed
-    float theta         = (dot(normalize(lightDir), normalize(light.direction)));
-    float spotIntensity = clamp((theta - cos(light.coneAngle)) / (1.0 - cos(light.coneAngle)), 0.0, 1.0);
+    float theta = (dot(normalize(lightDir), normalize(light.direction)));
+    float spotIntensity =
+        clamp((theta - cos(light.coneAngle)) / (1.0 - cos(light.coneAngle)),
+              0.0, 1.0);
     light.intensity *= spotIntensity;
     light.direction = lightDir;
   }
@@ -133,17 +136,19 @@ PSout fragmentMain(VSout stage)
 
   // Get base color from material or texture
   float3 albedo = material.baseColorFactor.xyz;
-  if(material.baseColorTextureIndex > 0)
+  if (material.baseColorTextureIndex > 0)
   {
-    albedo *= textures[material.baseColorTextureIndex].Sample(stage.worldTexCoord).xyz;
+    albedo *= textures[material.baseColorTextureIndex]
+                  .Sample(stage.worldTexCoord)
+                  .xyz;
   }
 
   // Get metallic and roughness from material
-  float metallic  = material.metallicFactor;
+  float metallic = material.metallicFactor;
   float roughness = material.roughnessFactor;
-  if(pushConst.metallicRoughnessOverride.x >= 0.0)
+  if (pushConst.metallicRoughnessOverride.x >= 0.0)
     metallic = pushConst.metallicRoughnessOverride.x;
-  if(pushConst.metallicRoughnessOverride.y >= 0.0)
+  if (pushConst.metallicRoughnessOverride.y >= 0.0)
     roughness = pushConst.metallicRoughnessOverride.y;
 
   // Calculate PBR lighting with sun's color and intensity
@@ -153,17 +158,16 @@ PSout fragmentMain(VSout stage)
 
   // Apply ambient
   float3 ambient = sceneInfo.backgroundColor;
-  if(sceneInfo.useSky == 1)
+  if (sceneInfo.useSky == 1)
   {
     // Add ambient lighting (sky effect)
-    float3 skyUpDir    = float3(0, 1, 0);
+    float3 skyUpDir = float3(0, 1, 0);
     float3 groundColor = sceneInfo.skySimpleParam.groundColor;
-    float3 skyColor    = sceneInfo.skySimpleParam.skyColor;
-    float3 ambient     = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
+    float3 skyColor = sceneInfo.skySimpleParam.skyColor;
+    float3 ambient = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
   }
   // Add ambient to final color
   color += ambient * albedo * 0.025;
-
 
   PSout output;
   output.color = float4(clamp(color, float3(0.0), float3(1.0)), 1.0);

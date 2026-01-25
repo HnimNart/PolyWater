@@ -6,11 +6,7 @@
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
 #include "scene/gltf/gltf_utils.hpp"
-
-namespace tinygltf
-{
-class Model;
-}
+#include "tiny_gltf.h"
 
 class SceneResourcesManager
 {
@@ -30,8 +26,6 @@ public:
   // ---------------------------------------------------------------------------
   // Upload Transaction (Batching)
   // ---------------------------------------------------------------------------
-  void beginUploading();
-  void endUploading();
   void finalizeSceneResources();
 
   // ---------------------------------------------------------------------------
@@ -63,4 +57,14 @@ public:
 private:
   gltf::Scene m_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
+
+  // Things to be uploaded to gpu
+  std::vector<tinygltf::Model> m_pendingModels{};
+
+  struct PendingTexture
+  {
+    std::string filename;
+    IDeviceAssets::TextureID id;
+  };
+  std::vector<PendingTexture> m_pendingTextures{};
 };
