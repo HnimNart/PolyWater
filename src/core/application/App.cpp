@@ -57,8 +57,8 @@ void Application::init(ApplicationCreateInfo const& info)
   {
     initGlfw(info);
   }
+
   setupDefaultSettings();
-  ImPlot::CreateContext();  // TODO WHAT IS THIS???
   initializeBackend(info);
   m_running = true;
 }
@@ -115,11 +115,6 @@ void Application::shutdown()
   if (m_backend)
   {
     m_backend->deinit();
-  }
-
-  if (ImPlot::GetCurrentContext())
-  {
-    ImPlot::DestroyContext();
   }
 
   if (!m_headless)
@@ -203,19 +198,15 @@ void Application::headlessRun()
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose;
        frameID++)
   {
-    // progress.update(frameID, m_headlessFrameCount);
-    IRenderContext& frameCtx = m_backend->getCurrentContext();
-    printf("%d %d\n", frameCtx.frameNumber, frameID);
-    // frameCtx.frameNumber = frameID;
-    frameCtx.vSyncWanted = m_vsyncWanted;
-    if (m_backend->beginFrame(frameCtx))
+    progress.update(frameID, m_headlessFrameCount);
+    IRenderContext* frameCtx = nullptr;
+    if ((frameCtx = m_backend->beginFrame()))
     {
-      m_backend->renderFrame(m_elements, frameCtx);
-      m_backend->endFrame(frameCtx);
+      m_backend->renderFrame(m_elements, *frameCtx);
+      m_backend->endFrame(*frameCtx);
       m_backend->advance();
     }
   }
-
   progress.finish();
   // At this point, everything has been rendered. Let it finish.
   m_backend->waitForDeviceIdle();
@@ -266,7 +257,6 @@ void Application::close()
 void Application::runFrame()
 /**********************************************************/
 {
-
   // 1. Begin GUI Frame
   m_gui->beginFrame();
 
@@ -277,11 +267,8 @@ void Application::runFrame()
   }
 
   // Handle Viewport Updates
-  m_windowSize = m_backend->getWindowSize();  // We have to ask the backend
-                                              // as it might resize it
   WindowSize viewportSize = m_windowSize;
   bool ok = m_gui->getWindowSize("Viewport", viewportSize);
-
   // Update viewport if size changed
   if (m_backend->getViewportSize() != viewportSize)
   {
@@ -294,13 +281,11 @@ void Application::runFrame()
   }
 
   m_gui->render();
-  IRenderContext& frameCtx = m_backend->getCurrentContext();
-  frameCtx.frameNumber = m_frameCounter;  // TODO Figure if this is safe
-  frameCtx.vSyncWanted = m_vsyncWanted;
-  if (m_backend->beginFrame(frameCtx))
+  IRenderContext* frameCtx = nullptr;
+  if ((frameCtx = m_backend->beginFrame()))
   {
-    m_backend->renderFrame(m_elements, frameCtx);
-    m_backend->endFrame(frameCtx);
+    m_backend->renderFrame(m_elements, *frameCtx);
+    m_backend->endFrame(*frameCtx);
     m_backend->present();
     m_backend->advance();
   }

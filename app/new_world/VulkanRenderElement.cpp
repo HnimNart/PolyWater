@@ -2,6 +2,7 @@
 
 // Standard Libs
 #include <cstdio>
+#include <iostream>
 
 // Third Party
 #include <imgui/imgui.h>
@@ -20,7 +21,9 @@
 #include "common/timers.hpp"
 #include "core/application/App.hpp"
 
+/**********************************************************/
 void VulkanRendererElement::setupScene()
+/**********************************************************/
 {
   common::ScopedTimer(__FUNCTION__);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
@@ -92,7 +95,9 @@ void VulkanRendererElement::setupScene()
   m_scene_manager.postInit();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onAttach(core::Application* app)
+/**********************************************************/
 {
   m_app = app;
   auto* backend = dynamic_cast<VulkanBackend*>(app->getBackend());
@@ -102,17 +107,23 @@ void VulkanRendererElement::onAttach(core::Application* app)
   setupScene();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onDetach()
+/**********************************************************/
 {
   m_scene_manager.clear();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onResize(WindowSize size)
+/**********************************************************/
 {
   m_scene_manager.onResize(size);
 }
 
+/**********************************************************/
 void VulkanRendererElement::onUIMenu()
+/**********************************************************/
 {
   bool reload = false;
   if (ImGui::BeginMenu("Tools"))
@@ -124,15 +135,16 @@ void VulkanRendererElement::onUIMenu()
 
   if (reload)
   {
-    m_scene_manager.reload(m_useRayTracing);
+    m_scene_manager.reload(m_renderMode == SceneManager::RenderMode::RAYTRACE);
   }
 }
 
+/**********************************************************/
 void VulkanRendererElement::onUIRender()
+/**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
 
-  // Display the rendering GBuffer in the ImGui window ("Viewport")
   if (ImGui::Begin("Viewport"))
   {
     ImGui::Image(ImTextureID(m_scene_manager.getTonemapedImageDescriptor()),
@@ -140,20 +152,36 @@ void VulkanRendererElement::onUIRender()
   }
   ImGui::End();
 
-  // Setting panel
   if (ImGui::Begin("Settings"))
   {
-    // Ray tracing toggle
-    ImGui::Checkbox("Use Ray Tracing", &m_useRayTracing);
+    using RenderMode = SceneManager::RenderMode;
+    const char* preview = SceneManager::renderModeToString(m_renderMode);
+
+    if (ImGui::BeginCombo("Render Mode", preview))
+    {
+      for (int n = 0; n < static_cast<int>(RenderMode::COUNT); n++)
+      {
+        auto mode = static_cast<RenderMode>(n);
+        bool isSelected = (m_renderMode == mode);
+        if (ImGui::Selectable(SceneManager::renderModeToString(mode),
+                              isSelected))
+        {
+          m_renderMode = mode;
+        }
+        if (isSelected)
+        {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
     if (ImGui::CollapsingHeader("Camera"))
     {
       nvgui::CameraWidget(m_scene_manager.camera());
     }
     if (ImGui::CollapsingHeader("Environment"))
     {
-      // Capture by reference so ImGui updates the original data
       auto& sceneInfo = m_scene_manager.sceneInfo();
-
       ImGui::Checkbox("Use Sky", (bool*) &sceneInfo.useSky);
       if (sceneInfo.useSky)
       {
@@ -165,9 +193,7 @@ void VulkanRendererElement::onUIRender()
         PE::ColorEdit3("Background", (float*) &sceneInfo.backgroundColor);
         PE::end();
 
-        // Light - Reference the first light for clarity
         auto& light = sceneInfo.punctualLights[0];
-
         PE::begin();
         if (light.type == shaderio::GltfLightType::ePoint ||
             light.type == shaderio::GltfLightType::eSpot)
@@ -183,18 +209,14 @@ void VulkanRendererElement::onUIRender()
                            -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None,
                            "Direction of the light");
         }
-
         PE::SliderFloat("Light Intensity", &light.intensity, 0.0f, 1000.0f,
                         "%.2f", ImGuiSliderFlags_Logarithmic,
                         "Intensity of the light");
-
         PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
                        ImGuiColorEditFlags_NoInputs, "Color of the light");
-
         PE::Combo("Light Type", (int*) &light.type,
                   "Point\0Spot\0Directional\0", 3,
                   "Type of the light (Point, Spot, Directional) ");
-
         if (light.type == shaderio::GltfLightType::eSpot)
         {
           PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f, "%.2f",
@@ -212,32 +234,44 @@ void VulkanRendererElement::onUIRender()
   ImGui::End();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onPreRender()
+/**********************************************************/
 {
 }
 
+/**********************************************************/
 void VulkanRendererElement::onRender(const IRenderContext& /*ctx */)
+/**********************************************************/
 {
-  m_scene_manager.render(m_useRayTracing);
+  m_scene_manager.render(m_renderMode);
 }
 
+/**********************************************************/
 void VulkanRendererElement::onEndFrame(const IRenderContext& /*frame*/)
+/**********************************************************/
 {
   m_scene_manager.postProcess();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onLastHeadlessFrame()
+/**********************************************************/
 {
   m_renderer->saveImage(
       nvutils::getExecutablePath().replace_extension(".jpg").string());
 }
 
+/**********************************************************/
 CameraPtr VulkanRendererElement::getCameraManipulator()
+/**********************************************************/
 {
   return m_scene_manager.camera();
 }
 
+/**********************************************************/
 void VulkanRendererElement::onFileDrop(const std::filesystem::path& filename)
+/**********************************************************/
 {
-  std::cout << filename << std::endl;
+  std::cout << "File dropped: " << filename << std::endl;
 }

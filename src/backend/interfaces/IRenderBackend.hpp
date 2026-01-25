@@ -46,9 +46,9 @@ public:
   // Frame loop
   //----------------------------------------------------------
   virtual IRenderContext& getCurrentContext() = 0;
-  // Begin a new frame. Returns false if frame should be skipped (e.g.,
+  // Begin a new frame. Returns a nullptr if frame should be skipped (e.g.,
   // minimized).
-  virtual bool beginFrame(IRenderContext const& ctx) = 0;
+  virtual IRenderContext* beginFrame() = 0;
 
   // Render the frame
   virtual void renderFrame(const std::vector<core::IAppElementPtr>& elements,

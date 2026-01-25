@@ -39,9 +39,9 @@ public:
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers, const gltf::Scene& sceneResources,
+  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
+              const gltf::Scene& sceneResources,
               const VulkanSceneGpuData& deviceResources,
-              const std::shared_ptr<nvutils::CameraManipulator>& camera,
               const shaderio::PushConstant& pushConstants) const;
 
   void reload();

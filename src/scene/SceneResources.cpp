@@ -31,13 +31,14 @@ void SceneResourcesManager::endUploading()
 tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
 {
   auto model = gltf::load(filename);
-  auto id =
-      static_cast<IDeviceAssets::MeshID>(m_device_resources->uploadGltfModel(model, m_resources));
+  auto id = static_cast<IDeviceAssets::MeshID>(
+      m_device_resources->uploadGltfModel(model, m_resources));
 
   return model;
 }
 
-IDeviceAssets::TextureID SceneResourcesManager::loadTexture(const std::string& filename)
+IDeviceAssets::TextureID
+SceneResourcesManager::loadTexture(const std::string& filename)
 {
   return m_device_resources->uploadTexture(filename);
 }
@@ -49,8 +50,8 @@ SceneResourcesManager::addInstance(const shaderio::GltfInstance& instance)
   return static_cast<InstanceID>(m_resources.instances.size() - 1);
 }
 
-SceneResourcesManager::MaterialID
-SceneResourcesManager::addMaterial(const shaderio::GltfMetallicRoughness& material)
+SceneResourcesManager::MaterialID SceneResourcesManager::addMaterial(
+    const shaderio::GltfMetallicRoughness& material)
 {
   m_resources.materials.push_back(material);
   return static_cast<MaterialID>(m_resources.materials.size() - 1);
@@ -70,6 +71,8 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
   const glm::mat4& viewMatrix = camera->getViewMatrix();
   const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
 
+  m_resources.sceneInfo.viewMatrix = viewMatrix;
+  m_resources.sceneInfo.projMatrix = projMatrix;
   m_resources.sceneInfo.viewProjMatrix = projMatrix * viewMatrix;
   m_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);

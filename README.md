@@ -1,5 +1,15 @@
 # VulkanRenderer
 
+
+
+## TODOS
+- Scene loader and scene specifier
+- Lazy loading for rasterization
+- RenderGraph implementation
+- Fix crash in debug mode
+- See how profiler can be used? NSIGHT?
+- COncurrent rendering?
+
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a strong focus on modularity, extensibility, and maintainability.
 

@@ -27,7 +27,7 @@ public:
 
   // Frame lifecycle
   IRenderContext& getCurrentContext() override;
-  bool beginFrame(IRenderContext const& ctx) override;
+  IRenderContext* beginFrame() override;
   void renderFrame(const std::vector<core::IAppElementPtr>& elements,
                    IRenderContext const& ctx) override;
   void endFrame(IRenderContext const& ctx) override;

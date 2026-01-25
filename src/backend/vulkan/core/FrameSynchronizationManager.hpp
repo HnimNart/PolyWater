@@ -16,15 +16,18 @@ public:
 
   // Frame lifecycle
   void waitForFrameCompletion() const;
-  void beginFrame();
-  void endFrame();
+  VulkanRenderContext* beginFrame();
+  void endFrame(VulkanRenderContext const&);
   void advance();
 
   // Accessors
   VkCommandBuffer getActiveCommandBuffer() const;
   VulkanRenderContext* getActiveFrameContext();
   const VulkanRenderContext* getActiveFrameContext() const;
-  uint32_t getFrameCycleSize() const { return static_cast<uint32_t>(m_frameData.size()); }
+  uint32_t getFrameCycleSize() const
+  {
+    return static_cast<uint32_t>(m_frameData.size());
+  }
   uint32_t getCurrentFrameIndex() const { return m_frameRingCurrent; }
 
   // Semaphore management
@@ -32,7 +35,10 @@ public:
   void addSignalSemaphore(const VkSemaphoreSubmitInfo& semaphore);
   void addCommandBuffer(const VkCommandBufferSubmitInfo& cmdBuffer);
 
-  const std::vector<VkSemaphoreSubmitInfo>& getWaitSemaphores() const { return m_waitSemaphores; }
+  const std::vector<VkSemaphoreSubmitInfo>& getWaitSemaphores() const
+  {
+    return m_waitSemaphores;
+  }
   const std::vector<VkSemaphoreSubmitInfo>& getSignalSemaphores() const
   {
     return m_signalSemaphores;
@@ -43,7 +49,10 @@ public:
   }
 
   void clearSemaphoresAndBuffers();
-  VkSemaphore getFrameTimelineSemaphore() const { return m_frameTimelineSemaphore; }
+  VkSemaphore getFrameTimelineSemaphore() const
+  {
+    return m_frameTimelineSemaphore;
+  }
 
 private:
   std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData;

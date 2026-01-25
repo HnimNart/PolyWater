@@ -9,12 +9,14 @@
 #include "ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 
-void FrameSynchronizationManager::init(VulkanContextManager& coreManager, uint32_t numFrames)
+void FrameSynchronizationManager::init(VulkanContextManager& coreManager,
+                                       uint32_t numFrames)
 {
   assert(numFrames >= 2);  // Must have at least 2 frames in flight
   VkDevice device = coreManager.getDevice();
 
-  // Initialize timeline semaphore with (numFrames - 1) to allow concurrent frame submission
+  // Initialize timeline semaphore with (numFrames - 1) to allow concurrent
+  // frame submission
   const uint64_t initialValue = (static_cast<uint64_t>(numFrames) - 1);
   VkSemaphoreTypeCreateInfo timelineCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -23,16 +25,18 @@ void FrameSynchronizationManager::init(VulkanContextManager& coreManager, uint32
       .initialValue = initialValue,
   };
 
-  const VkSemaphoreCreateInfo semaphoreCreateInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-                                                  .pNext = &timelineCreateInfo};
-  NVVK_CHECK(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &m_frameTimelineSemaphore));
+  const VkSemaphoreCreateInfo semaphoreCreateInfo{
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+      .pNext = &timelineCreateInfo};
+  NVVK_CHECK(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr,
+                               &m_frameTimelineSemaphore));
   NVVK_DBG_NAME(m_frameTimelineSemaphore);
 
   createFrameData(coreManager, numFrames);
 }
 
-void FrameSynchronizationManager::createFrameData(VulkanContextManager& coreManager,
-                                                  uint32_t numFrames)
+void FrameSynchronizationManager::createFrameData(
+    VulkanContextManager& coreManager, uint32_t numFrames)
 {
   VkDevice device = coreManager.getDevice();
   const VkCommandPoolCreateInfo cmdPoolCreateInfo{
@@ -47,7 +51,8 @@ void FrameSynchronizationManager::createFrameData(VulkanContextManager& coreMana
     m_frameData[i]->frameNumber = i;
     m_frameData[i]->device = coreManager.getDevice();
 
-    NVVK_CHECK(vkCreateCommandPool(device, &cmdPoolCreateInfo, nullptr, &m_frameData[i]->cmdPool));
+    NVVK_CHECK(vkCreateCommandPool(device, &cmdPoolCreateInfo, nullptr,
+                                   &m_frameData[i]->cmdPool));
     NVVK_DBG_NAME(m_frameData[i]->cmdPool);
 
     const VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
@@ -56,8 +61,8 @@ void FrameSynchronizationManager::createFrameData(VulkanContextManager& coreMana
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = 1,
     };
-    NVVK_CHECK(
-        vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &m_frameData[i]->cmdBuffer));
+    NVVK_CHECK(vkAllocateCommandBuffers(device, &commandBufferAllocateInfo,
+                                        &m_frameData[i]->cmdBuffer));
     NVVK_DBG_NAME(m_frameData[i]->cmdBuffer);
   }
 }
@@ -74,41 +79,43 @@ void FrameSynchronizationManager::waitForFrameCompletion() const
   vkWaitSemaphores(device, &waitInfo, std::numeric_limits<uint64_t>::max());
 }
 
-void FrameSynchronizationManager::beginFrame()
+VulkanRenderContext* FrameSynchronizationManager::beginFrame()
 {
-  m_frameData[m_frameRingCurrent]->frameNumber += m_frameData.size();
-
   auto& frame = m_frameData[m_frameRingCurrent];
+  frame->frameNumber += m_frameData.size();
   VkDevice device = frame->device;
 
   NVVK_CHECK(vkResetCommandPool(device, frame->cmdPool, 0));
 
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  VkCommandBufferBeginInfo beginInfo{
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   vkBeginCommandBuffer(frame->cmdBuffer, &beginInfo);
 
   clearSemaphoresAndBuffers();
+  return frame.get();
 }
 
-void FrameSynchronizationManager::endFrame()
+void FrameSynchronizationManager::endFrame(const VulkanRenderContext& frameCtx)
 {
-  auto& frame = m_frameData[m_frameRingCurrent];
-  VkCommandBuffer cmd = frame->cmdBuffer;
+  VkCommandBuffer cmd = frameCtx.cmdBuffer;
   NVVK_CHECK(vkEndCommandBuffer(cmd));
 
   m_signalSemaphores.push_back({
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
       .semaphore = m_frameTimelineSemaphore,
-      .value = frame->frameNumber,
+      .value = frameCtx.frameNumber,
       .stageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
   });
 
   m_commandBuffers.push_back(
-      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = cmd});
+      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+       .commandBuffer = cmd});
 }
 
 void FrameSynchronizationManager::advance()
 {
+  // TODO make this thread-saef?
   m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
 }
 
@@ -123,22 +130,26 @@ VulkanRenderContext* FrameSynchronizationManager::getActiveFrameContext()
   return m_frameData[m_frameRingCurrent].get();
 }
 
-const VulkanRenderContext* FrameSynchronizationManager::getActiveFrameContext() const
+const VulkanRenderContext*
+FrameSynchronizationManager::getActiveFrameContext() const
 {
   return m_frameData[m_frameRingCurrent].get();
 }
 
-void FrameSynchronizationManager::addWaitSemaphore(const VkSemaphoreSubmitInfo& semaphore)
+void FrameSynchronizationManager::addWaitSemaphore(
+    const VkSemaphoreSubmitInfo& semaphore)
 {
   m_waitSemaphores.push_back(semaphore);
 }
 
-void FrameSynchronizationManager::addSignalSemaphore(const VkSemaphoreSubmitInfo& semaphore)
+void FrameSynchronizationManager::addSignalSemaphore(
+    const VkSemaphoreSubmitInfo& semaphore)
 {
   m_signalSemaphores.push_back(semaphore);
 }
 
-void FrameSynchronizationManager::addCommandBuffer(const VkCommandBufferSubmitInfo& cmdBuffer)
+void FrameSynchronizationManager::addCommandBuffer(
+    const VkCommandBufferSubmitInfo& cmdBuffer)
 {
   m_commandBuffers.push_back(cmdBuffer);
 }

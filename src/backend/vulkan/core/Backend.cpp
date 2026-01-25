@@ -99,19 +99,15 @@ IRenderContext& VulkanBackend::getCurrentContext()
 }
 
 /**********************************************************/
-bool VulkanBackend::beginFrame(IRenderContext const& ctx)
+IRenderContext* VulkanBackend::beginFrame()
 /**********************************************************/
 {
   m_frameSyncManager->waitForFrameCompletion();
-
   if (!m_swapchainManager->beginFrame(*m_coreManager))
   {
-    return false;
+    return nullptr;
   }
-
-  m_frameSyncManager->beginFrame();
-
-  return true;
+  return m_frameSyncManager->beginFrame();
 }
 
 /**********************************************************/
@@ -162,10 +158,11 @@ void VulkanBackend::renderFrame(
 }
 
 /**********************************************************/
-void VulkanBackend::endFrame(IRenderContext const& /* frame */)
+void VulkanBackend::endFrame(IRenderContext const& frameCtx)
 /**********************************************************/
 {
-  m_frameSyncManager->endFrame();
+  m_frameSyncManager->endFrame(
+      static_cast<VulkanRenderContext const&>(frameCtx));
 
   const VkSubmitInfo2 submitInfo{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,

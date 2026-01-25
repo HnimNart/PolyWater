@@ -21,19 +21,26 @@
 // Generated Shader
 #include "build/_autogen/rtbasic.slang.h"
 
+/**********************************************************/
 VulkanRayTracer::VulkanRayTracer(VulkanContextManager* coreManager)
+/**********************************************************/
 {
   m_core_manager = coreManager;
 }
 
+/**********************************************************/
 VulkanRayTracer::~VulkanRayTracer()
+/**********************************************************/
 {
   deinit();
 }
 
+/**********************************************************/
 void VulkanRayTracer::deinit()
+/**********************************************************/
 {
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
+                          nullptr);
   vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
   m_RayTraceDescPack.deinit();
   m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);
@@ -41,15 +48,20 @@ void VulkanRayTracer::deinit()
   m_accel.deinit();
 }
 
+/**********************************************************/
 void VulkanRayTracer::init(const SceneResourcesManager& scene)
+/**********************************************************/
 {
   createPipeline(scene);
 }
 
+/**********************************************************/
 void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
+/**********************************************************/
 {
   // Get ray tracing properties
-  VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+  VkPhysicalDeviceProperties2 prop2{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   prop2.pNext = &m_properties;
   vkGetPhysicalDeviceProperties2(m_core_manager->getPhysicalDevice(), &prop2);
 
@@ -62,7 +74,10 @@ void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
   createRayTracingPipeline(scene);
 }
 
-void VulkanRayTracer::createRayTracingPipeline(const SceneResourcesManager& scene)
+/**********************************************************/
+void VulkanRayTracer::createRayTracingPipeline(
+    const SceneResourcesManager& scene)
+/**********************************************************/
 {
   // Set up acceleration structure infrastructure
   m_accel.buildBLAS(scene.data());  // Set up BLAS infrastructure
@@ -73,30 +88,37 @@ void VulkanRayTracer::createRayTracingPipeline(const SceneResourcesManager& scen
   createRayTracingPipeline();        // Create pipeline structure and SBT
 }
 
+/**********************************************************/
 void VulkanRayTracer::createRaytraceDescriptorLayout()
+/**********************************************************/
 {
   SCOPED_TIMER(__FUNCTION__);
   nvvk::DescriptorBindings bindings;
-  bindings.addBinding({.binding = shaderio::BindingPoints::eTlas,
-                       .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-                       .descriptorCount = 1,
-                       .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding(
+      {.binding = shaderio::BindingPoints::eTlas,
+       .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+       .descriptorCount = 1,
+       .stageFlags = VK_SHADER_STAGE_ALL});
   bindings.addBinding({.binding = shaderio::BindingPoints::eOutImage,
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
 
   // Creating a PUSH descriptor set and set layout from the bindings
-  m_RayTraceDescPack.init(bindings, m_core_manager->getDevice(), 0,
-                          VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
+  m_RayTraceDescPack.init(
+      bindings, m_core_manager->getDevice(), 0,
+      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 }
 
+/**********************************************************/
 void VulkanRayTracer::createRayTracingPipeline()
+/**********************************************************/
 {
   SCOPED_TIMER(__FUNCTION__);
   // For re-creation
   vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
+                          nullptr);
 
   // Creating all shaders
   enum StageIndices
@@ -150,7 +172,8 @@ void VulkanRayTracer::createRayTracingPipeline()
   shader_groups.push_back(group);
 
   // Push constant
-  const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0, sizeof(shaderio::PushConstant)};
+  const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0,
+                                          sizeof(shaderio::PushConstant)};
 
   VkPipelineLayoutCreateInfo pipeline_layout_create_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -162,7 +185,8 @@ void VulkanRayTracer::createRayTracingPipeline()
       {m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
-  vkCreatePipelineLayout(m_core_manager->getDevice(), &pipeline_layout_create_info, nullptr,
+  vkCreatePipelineLayout(m_core_manager->getDevice(),
+                         &pipeline_layout_create_info, nullptr,
                          &m_pipelineLayout);
   NVVK_DBG_NAME(m_pipelineLayout);
 
@@ -173,41 +197,49 @@ void VulkanRayTracer::createRayTracingPipeline()
   rtPipelineInfo.pStages = stages.data();
   rtPipelineInfo.groupCount = static_cast<uint32_t>(shader_groups.size());
   rtPipelineInfo.pGroups = shader_groups.data();
-  rtPipelineInfo.maxPipelineRayRecursionDepth = std::max(3U, m_properties.maxRayRecursionDepth);
+  rtPipelineInfo.maxPipelineRayRecursionDepth =
+      std::max(3U, m_properties.maxRayRecursionDepth);
   rtPipelineInfo.layout = m_pipelineLayout;
-  vkCreateRayTracingPipelinesKHR(m_core_manager->getDevice(), {}, {}, 1, &rtPipelineInfo, nullptr,
-                                 &m_pipeline);
+  vkCreateRayTracingPipelinesKHR(m_core_manager->getDevice(), {}, {}, 1,
+                                 &rtPipelineInfo, nullptr, &m_pipeline);
   NVVK_DBG_NAME(m_pipeline);
 
   // Create SBT
   createShaderBindingTable(rtPipelineInfo);
 }
 
+/**********************************************************/
 void VulkanRayTracer::createShaderBindingTable(
     const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
+/**********************************************************/
 {
   SCOPED_TIMER(__FUNCTION__);
 
-  m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);  // Cleanup when re-creating
+  m_core_manager->getAllocator().destroyBuffer(
+      m_sbtBuffer);  // Cleanup when re-creating
 
   // Calculate required SBT buffer size
-  size_t bufferSize = m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
+  size_t bufferSize =
+      m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
   // Create SBT buffer
   NVVK_CHECK(m_core_manager->getAllocator().createBuffer(
       m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
       VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-      VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+      VMA_ALLOCATION_CREATE_MAPPED_BIT |
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
       m_sbtGenerator.getBufferAlignment()));
   NVVK_DBG_NAME(m_sbtBuffer.buffer);
 
   // Populate the SBT buffer
-  NVVK_CHECK(
-      m_sbtGenerator.populateSBTBuffer(m_sbtBuffer.address, bufferSize, m_sbtBuffer.mapping));
+  NVVK_CHECK(m_sbtGenerator.populateSBTBuffer(m_sbtBuffer.address, bufferSize,
+                                              m_sbtBuffer.mapping));
 }
 
+/**********************************************************/
 void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
                              const shaderio::PushConstant& pushValues) const
+/**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);
 
@@ -226,15 +258,17 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Push descriptor sets for ray tracing
   nvvk::WriteSetContainer write{};
-  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas), m_accel.tlas());
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas),
+               m_accel.tlas());
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
                gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear),
                VK_IMAGE_LAYOUT_GENERAL);
-  vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 1,
-                            write.size(), write.data());
+  vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+                            m_pipelineLayout, 1, write.size(), write.data());
 
   // Push constants
-  const VkPushConstantsInfo pushInfo{.sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
+  const VkPushConstantsInfo pushInfo{.sType =
+                                         VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
                                      .layout = m_pipelineLayout,
                                      .stageFlags = VK_SHADER_STAGE_ALL,
                                      .size = sizeof(shaderio::PushConstant),
@@ -244,15 +278,17 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   // Ray trace
   const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
   const VkExtent2D& size = gBuffers.getSize();
-  vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit, &regions.callable,
-                    size.width, size.height, 1);
+  vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
+                    &regions.callable, size.width, size.height, 1);
 
   // Memory Barrier for Tonemapper
   nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
                          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
 }
 
+/**********************************************************/
 void VulkanRayTracer::setDescriptorPack(nvvk::DescriptorPack* descPack)
+/**********************************************************/
 {
   m_sharedDescPack = descPack;
 }

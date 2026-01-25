@@ -22,41 +22,54 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
+/**********************************************************/
 VulkanRaster::VulkanRaster(VulkanContextManager* coreManager)
+/**********************************************************/
 {
   assert(coreManager);
   m_core_manager = coreManager;
 }
 
+/**********************************************************/
 void VulkanRaster::init()
+/**********************************************************/
 {
   createPipelineLayout(m_core_manager->getDevice());
   compileShaders();
 }
 
+/**********************************************************/
 VulkanRaster::~VulkanRaster()
+/**********************************************************/
 {
   deinit();
 }
 
+/**********************************************************/
 void VulkanRaster::deinit()
+/**********************************************************/
 {
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
+                          nullptr);
   vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
+/**********************************************************/
 void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
+/**********************************************************/
 {
-  // Implementation for resize if needed, otherwise empty as per original code context
+  // Implementation for resize if needed, otherwise empty as per original code
+  // context
 }
 
+/**********************************************************/
 void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
                           const gltf::Scene& sceneResources,
                           const VulkanSceneGpuData& deviceResources,
-                          const std::shared_ptr<nvutils::CameraManipulator>& camera,
                           const shaderio::PushConstant& pushConstants) const
+/**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);
 
@@ -74,27 +87,30 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   };
 
   // Rendering the Sky
-  VkExtent2D size = {camera->getWindowSize().x, camera->getWindowSize().y};
+  const VkExtent2D& size = gBuffers.getSize();
   if (scene_info.useSky)
   {
-    const glm::mat4& viewMatrix = camera->getViewMatrix();
-    const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
-    m_skySimple.runCompute(cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
-                           gBuffers.getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
+    const glm::mat4& viewMatrix = scene_info.viewMatrix;
+    const glm::mat4& projMatrix = scene_info.projMatrix;
+    m_skySimple.runCompute(
+        cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
+        gBuffers.getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
   }
 
   // Rendering to the GBuffer - Attachments
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
-  colorAttachment.loadOp =
-      scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.imageView = gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear);
+  colorAttachment.loadOp = scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD
+                                             : VK_ATTACHMENT_LOAD_OP_CLEAR;
+  colorAttachment.imageView =
+      gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear);
   colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
                                           scene_info.backgroundColor.y,
                                           scene_info.backgroundColor.z, 1.0f}};
 
   VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
   depthAttachment.imageView = gBuffers.getDepthImageView();
-  depthAttachment.clearValue = {.depthStencil = DEFAULT_VkClearDepthStencilValue};
+  depthAttachment.clearValue = {.depthStencil =
+                                    DEFAULT_VkClearDepthStencilValue};
 
   VkRenderingInfo renderingInfo = DEFAULT_VkRenderingInfo;
   renderingInfo.renderArea = DEFAULT_VkRect2D(gBuffers.getSize());
@@ -103,9 +119,9 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   renderingInfo.pDepthAttachment = &depthAttachment;
 
   // Transition GBuffer layout
-  nvvk::cmdImageMemoryBarrier(cmd,
-                              {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
-                               VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+  nvvk::cmdImageMemoryBarrier(
+      cmd, {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
+            VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
@@ -128,7 +144,8 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   vkCmdSetDepthTestEnable(cmd, VK_TRUE);
 
   // Bind Shaders
-  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
+  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_VERTEX_BIT,
+                                          VK_SHADER_STAGE_FRAGMENT_BIT};
   const VkShaderEXT shaders[] = {m_vertexShader, m_fragmentShader};
   vkCmdBindShadersEXT(cmd, 2, stages, shaders);
 
@@ -143,8 +160,8 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
-    constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(sceneResources.instances[i].transform)));
+    constants.normalMatrix = glm::transpose(
+        glm::inverse(glm::mat3(sceneResources.instances[i].transform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
@@ -152,7 +169,8 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
     uint32_t bufferIndex = deviceResources.meshToBufferIndex[meshIndex];
     const nvvk::Buffer& v = deviceResources.bGltfDatas[bufferIndex];
 
-    vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset, VkIndexType(gltfMesh.indexType));
+    vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
+                         VkIndexType(gltfMesh.indexType));
 
     // Draw
     vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);
@@ -162,27 +180,34 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   vkCmdEndRendering(cmd);
 
   // Transition back to GENERAL
-  nvvk::cmdImageMemoryBarrier(cmd,
-                              {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
-                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
+  nvvk::cmdImageMemoryBarrier(
+      cmd, {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
 }
 
+/**********************************************************/
 void VulkanRaster::setDescriptorPack(nvvk::DescriptorPack* descPack)
+/**********************************************************/
 {
   m_descPack = descPack;
 }
 
+/**********************************************************/
 void VulkanRaster::reload()
+/**********************************************************/
 {
   clearShaders();
   compileShaders();
 }
 
+/**********************************************************/
 void VulkanRaster::createPipelineLayout(VkDevice device)
+/**********************************************************/
 {
-  const VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-                                              .offset = 0,
-                                              .size = sizeof(shaderio::PushConstant)};
+  const VkPushConstantRange pushConstantRange{
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .offset = 0,
+      .size = sizeof(shaderio::PushConstant)};
 
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -191,11 +216,14 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
-  NVVK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+  NVVK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr,
+                                    &m_pipelineLayout));
   NVVK_DBG_NAME(m_pipelineLayout);
 }
 
+/**********************************************************/
 void VulkanRaster::clearShaders()
+/**********************************************************/
 {
   // Cleanup old shaders
   vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
@@ -203,7 +231,9 @@ void VulkanRaster::clearShaders()
   m_skySimple.deinit();
 }
 
+/**********************************************************/
 void VulkanRaster::compileShaders()
+/**********************************************************/
 {
   common::ScopedTimer(__FUNCTION__);
 
@@ -233,7 +263,8 @@ void VulkanRaster::compileShaders()
   shaderInfo.pName = "vertexMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr, &m_vertexShader);
+  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr,
+                     &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
   // Fragment Shader
@@ -242,9 +273,11 @@ void VulkanRaster::compileShaders()
   shaderInfo.pName = "fragmentMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr, &m_fragmentShader);
+  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr,
+                     &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 
   // Sky
-  m_skySimple.init(&m_core_manager->getAllocator(), std::span(sky_simple_slang));
+  m_skySimple.init(&m_core_manager->getAllocator(),
+                   std::span(sky_simple_slang));
 }

@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 
-// Full headers required for implementation
 #include <nvvk/check_error.hpp>
 #include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
@@ -18,7 +17,9 @@
 #include "scene/SceneResources.hpp"
 #include "scene/gltf/io_gltf.h"
 
+/**********************************************************/
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
+/**********************************************************/
 {
   m_core_manager = backend->getCoreManager();
   m_frame_sync_manager = backend->getFrameSyncManager();
@@ -33,7 +34,10 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
+
+/**********************************************************/
 void VulkanRenderer::init(const SceneResourcesManager& scene)
+/**********************************************************/
 {
   initGBuffers();
   createDescriptorSetLayout(m_core_manager->getDevice());
@@ -48,7 +52,9 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
   m_post->init();
 }
 
+/**********************************************************/
 void VulkanRenderer::deinit()
+/**********************************************************/
 {
   m_core_manager->waitForDeviceIdle();
 
@@ -61,7 +67,9 @@ void VulkanRenderer::deinit()
   m_resources->deinit();
 }
 
+/**********************************************************/
 void VulkanRenderer::reload(bool useRaytracing)
+/**********************************************************/
 {
   m_core_manager->waitForDeviceIdle();
   useRaytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
@@ -70,57 +78,70 @@ void VulkanRenderer::reload(bool useRaytracing)
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
-shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
-                                                           SceneResourcesManager& scene) const
+
+/**********************************************************/
+shaderio::GltfSceneInfo*
+VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
+                                  SceneResourcesManager& scene) const
+/**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   const VulkanSceneGpuData& device_resources = m_resources->deviceResources();
   shaderio::GltfSceneInfo& scene_info = scene.sceneInfo();
   scene_info.instances =
-      (shaderio::GltfInstance*)
-          device_resources.bInstances.address;  // Get the address of the instance buffer
-  scene_info.meshes =
-      (shaderio::GltfMesh*) device_resources.bMeshes.address;  // Get the address of the mesh buffer
+      (shaderio::GltfInstance*) device_resources.bInstances
+          .address;  // Get the address of the instance buffer
+  scene_info.meshes = (shaderio::GltfMesh*) device_resources.bMeshes
+                          .address;  // Get the address of the mesh buffer
   scene_info.materials =
-      (shaderio::GltfMetallicRoughness*)
-          device_resources.bMaterials.address;  // Get the address of the material buffer
+      (shaderio::GltfMetallicRoughness*) device_resources.bMaterials
+          .address;  // Get the address of the material buffer
 
   // Making sure the scene information buffer is updated before rendering
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-  vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0, sizeof(shaderio::GltfSceneInfo),
-                    &scene.sceneInfo());
+  vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0,
+                    sizeof(shaderio::GltfSceneInfo), &scene.sceneInfo());
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
-  return reinterpret_cast<shaderio::GltfSceneInfo*>(device_resources.bSceneInfo.address);
+  return reinterpret_cast<shaderio::GltfSceneInfo*>(
+      device_resources.bSceneInfo.address);
 }
 
-shaderio::GltfSceneInfo* VulkanRenderer::updateSceneBuffers(SceneResourcesManager& scene)
+/**********************************************************/
+shaderio::GltfSceneInfo*
+VulkanRenderer::updateSceneBuffers(SceneResourcesManager& scene)
+/**********************************************************/
 {
   VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
   return updateSceneBuffer(cmd, scene);
 }
 
-void VulkanRenderer::render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
-                            const shaderio::PushConstant& pushValues) const
+/**********************************************************/
+void VulkanRenderer::raytrace(const SceneResourcesManager& scene,
+                              const shaderio::PushConstant& pushValues) const
+/**********************************************************/
 {
   VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
-  shaderio::PushConstant pushVals = pushValues;
-  if (raytrace)
-  {
-    m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
-  }
-  else
-  {
-    m_raster->render(cmd, *m_gBuffers, scene.data(), m_resources->deviceResources(), camera,
-                     pushValues);
-  }
+  m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
 }
 
+/**********************************************************/
+void VulkanRenderer::raster(const SceneResourcesManager& scene,
+                            const shaderio::PushConstant& pushValues) const
+/**********************************************************/
+{
+  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
+  m_raster->render(cmd, *m_gBuffers, scene.data(),
+                   m_resources->deviceResources(), pushValues);
+}
+
+/**********************************************************/
 void VulkanRenderer::postProcess()
+/**********************************************************/
 {
   VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
@@ -130,7 +151,9 @@ void VulkanRenderer::postProcess()
                          VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT);
 }
 
+/**********************************************************/
 void VulkanRenderer::onResize(const WindowSize& size)
+/**********************************************************/
 {
   m_core_manager->waitForDeviceIdle();
   VkCommandBuffer cmd = m_core_manager->startSingleTimeCmd();
@@ -142,7 +165,9 @@ void VulkanRenderer::onResize(const WindowSize& size)
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**********************************************************/
 void VulkanRenderer::initGBuffers()
+/**********************************************************/
 {
   VkSampler linearSampler{};
   NVVK_CHECK(m_resources->samplerPool().acquireSampler(linearSampler));
@@ -158,18 +183,22 @@ void VulkanRenderer::initGBuffers()
   m_gBuffers->init(info);
 }
 
+/**********************************************************/
 void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
+/**********************************************************/
 {
   nvvk::DescriptorBindings bindings;
-  bindings.addBinding({.binding = shaderio::BindingPoints::eTextures,
-                       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                       .descriptorCount = 10,
-                       .stageFlags = VK_SHADER_STAGE_ALL},
-                      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-                          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+  bindings.addBinding(
+      {.binding = shaderio::BindingPoints::eTextures,
+       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+       .descriptorCount = 10,
+       .stageFlags = VK_SHADER_STAGE_ALL},
+      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
 
-  m_descPack.init(bindings, device, 1, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+  m_descPack.init(bindings, device, 1,
+                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
                   VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
                       VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
@@ -182,12 +211,18 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
 // Accessors
 // ---------------------------------------------------------------------------
 
-void* VulkanRenderer::getImageDescriptor(ISceneRenderer::RenderOutput output) const
+/**********************************************************/
+void* VulkanRenderer::getImageDescriptor(
+    ISceneRenderer::RenderOutput output) const
+/**********************************************************/
 {
   return static_cast<void*>(m_gBuffers->getDescriptorSet(output));
 }
 
-void VulkanRenderer::saveImage(const std::filesystem::path& filename, int quality) const
+/**********************************************************/
+void VulkanRenderer::saveImage(const std::filesystem::path& filename,
+                               int quality) const
+/**********************************************************/
 {
   VkDevice device = m_core_manager->getDevice();
   VkPhysicalDevice physicalDevice = m_core_manager->getPhysicalDevice();
@@ -201,13 +236,15 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename, int qualit
     format = VK_FORMAT_R32G32B32A32_SFLOAT;
   }
 
-  auto srcImage = m_gBuffers->getColorImage(ISceneRenderer::RenderOutput::ToneMapped);
+  auto srcImage =
+      m_gBuffers->getColorImage(ISceneRenderer::RenderOutput::ToneMapped);
   VkExtent2D size = m_gBuffers->getSize();
-  nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage, dstImageMemory,
-                      format);
+  nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage,
+                      dstImageMemory, format);
 
   m_core_manager->endSingleTimeCmd(cmd);
-  nvvk::saveImageToFile(device, dstImage, dstImageMemory, size, filename, quality);
+  nvvk::saveImageToFile(device, dstImage, dstImageMemory, size, filename,
+                        quality);
 
   // Clean up resources
   vkUnmapMemory(device, dstImageMemory);
@@ -215,12 +252,16 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename, int qualit
   vkDestroyImage(device, dstImage, nullptr);
 }
 
+/**********************************************************/
 IToneMapper& VulkanRenderer::postProcessor() noexcept
+/**********************************************************/
 {
   return *m_post;
 }
 
+/**********************************************************/
 std::shared_ptr<IDeviceAssets> VulkanRenderer::deviceResources() noexcept
+/**********************************************************/
 {
   return m_resources;
 }

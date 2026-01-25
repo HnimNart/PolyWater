@@ -18,27 +18,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #ifndef IO_GLTF_H
 #define IO_GLTF_H
 
 #ifdef __cplusplus
-#define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
+#  define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
 #elif defined(__SLANG__)
-#define CHECK_STRUCT_ALIGNMENT(_s)
+#  define CHECK_STRUCT_ALIGNMENT(_s)
 #else
-#define CHECK_STRUCT_ALIGNMENT(_s)
+#  define CHECK_STRUCT_ALIGNMENT(_s)
 
 // This is a utility to define a buffer reference in GLSL.
-// Usage: declare the buffer reference type with: BUFFER_REF_DECL(type), where type is the type of the buffer (vec3, float, Material).
-// Then use the buffer reference in the shader with: BUFFER_REF(type, address), where address is the address of the buffer in the shader.
-#define BUFFER_REF_DECL(_type)                                                                                         \
-  layout(buffer_reference, scalar) buffer _type##Buffer                                                                \
-  {                                                                                                                    \
-    _type o[];                                                                                                         \
-  };
+// Usage: declare the buffer reference type with: BUFFER_REF_DECL(type), where
+// type is the type of the buffer (vec3, float, Material). Then use the buffer
+// reference in the shader with: BUFFER_REF(type, address), where address is the
+// address of the buffer in the shader.
+#  define BUFFER_REF_DECL(_type)                                               \
+    layout(buffer_reference, scalar) buffer _type##Buffer                      \
+    {                                                                          \
+      _type o[];                                                               \
+    };
 
-#define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
+#  define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
 
 #endif
 
@@ -50,7 +51,8 @@ struct BufferView
 {
   uint32_t offset;      // Offset in the buffer where the data starts (in bytes)
   uint32_t count;       // Number of elements in the buffer view
-  uint32_t byteStride;  // Stride in bytes between consecutive elements (0 if tightly packed)
+  uint32_t byteStride;  // Stride in bytes between consecutive elements (0 if
+                        // tightly packed)
 };
 
 struct TriangleMesh
@@ -65,17 +67,19 @@ struct TriangleMesh
 
 struct GltfMetallicRoughness
 {
-  float4 baseColorFactor;        // Base color factor (RGBA)
-  float  metallicFactor;         // Metallic factor (0.0 = non-metallic, 1.0 = metallic)
-  float  roughnessFactor;        // Roughness factor (0.0 = smooth, 1.0 = rough)
-  int    baseColorTextureIndex;  // Index of the base color texture in the GLTF file (optional)
+  float4 baseColorFactor;  // Base color factor (RGBA)
+  float metallicFactor;  // Metallic factor (0.0 = non-metallic, 1.0 = metallic)
+  float roughnessFactor;      // Roughness factor (0.0 = smooth, 1.0 = rough)
+  int baseColorTextureIndex;  // Index of the base color texture in the GLTF
+                              // file (optional)
 };
 
 struct GltfMesh
 {
-  uint8_t*     gltfBuffer = nullptr;  // Buffer to the data (index, position, normal, ...)
-  TriangleMesh triMesh;               // Mesh data
-  int          indexType;             // Index type (uint16_t or uint32_t)
+  uint8_t* gltfBuffer =
+      nullptr;           // Buffer to the data (index, position, normal, ...)
+  TriangleMesh triMesh;  // Mesh data
+  int indexType;         // Index type (uint16_t or uint32_t)
   // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
   // the pointer), the GPU treats it as though it has a stride of 84.
@@ -84,21 +88,21 @@ struct GltfMesh
 
 enum GltfLightType
 {
-  ePoint       = 0,  // Point light type
-  eSpot        = 1,  // Spot light type
-  eDirectional = 2   // Directional light type
+  ePoint = 0,       // Point light type
+  eSpot = 1,        // Spot light type
+  eDirectional = 2  // Directional light type
 };
 
 struct GltfPunctual
 {
   float3 position;   // Position of the punctual light in world space
-  float  intensity;  // Intensity of the light
+  float intensity;   // Intensity of the light
   float3 direction;  // Direction of the light (for spot and directional lights)
-  int    type;       // Type of the light (0 = point, 1 = spot, 2 = directional)
+  int type;          // Type of the light (0 = point, 1 = spot, 2 = directional)
   float3 color;      // Color of the light (RGB)
-  float  coneAngle;  // Cone angle for spot lights (in radians, 0 for point and directional lights)
+  float coneAngle;   // Cone angle for spot lights (in radians, 0 for point and
+                     // directional lights)
 };
-
 
 struct GltfInstance
 {
@@ -110,18 +114,23 @@ CHECK_STRUCT_ALIGNMENT(GltfInstance)
 
 struct GltfSceneInfo
 {
-  float4x4               viewProjMatrix;     // View projection matrix for the scene
-  float4x4               projInvMatrix;      // Inverse projection matrix for the scene
-  float4x4               viewInvMatrix;      // Inverse view matrix for the scene
-  float3                 cameraPosition;     // Camera position in world space
-  int                    useSky;             // Whether to use the sky rendering
-  float3                 backgroundColor;    // Background color of the scene (used when not using sky)
-  int                    numLights;          // Number of punctual lights in the scene (up to 2)
-  GltfInstance*          instances;          // Address of the instance buffer containing GltfInstance data
-  GltfMesh*              meshes;             // Address of the mesh buffer containing GltfMesh data
-  GltfMetallicRoughness* materials;          // Material properties for the instance
-  GltfPunctual           punctualLights[2];  // Array of punctual lights in the scene (up to 2)
-  SkySimpleParameters    skySimpleParam;     // Parameters for the sky rendering
+  float4x4 viewMatrix;      // View matrix for the scene
+  float4x4 projMatrix;      // projection matrix for the scene
+  float4x4 viewProjMatrix;  // View projection matrix for the scene
+  float4x4 projInvMatrix;   // Inverse projection matrix for the scene
+  float4x4 viewInvMatrix;   // Inverse view matrix for the scene
+  float3 cameraPosition;    // Camera position in world space
+  int useSky;               // Whether to use the sky rendering
+  float3 backgroundColor;  // Background color of the scene (used when not using
+                           // sky)
+  int numLights;           // Number of punctual lights in the scene (up to 2)
+  GltfInstance*
+      instances;  // Address of the instance buffer containing GltfInstance data
+  GltfMesh* meshes;  // Address of the mesh buffer containing GltfMesh data
+  GltfMetallicRoughness* materials;  // Material properties for the instance
+  GltfPunctual
+      punctualLights[2];  // Array of punctual lights in the scene (up to 2)
+  SkySimpleParameters skySimpleParam;  // Parameters for the sky rendering
 };
 CHECK_STRUCT_ALIGNMENT(GltfSceneInfo)
 

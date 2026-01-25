@@ -46,13 +46,17 @@ public:
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  shaderio::GltfSceneInfo* updateSceneBuffers(SceneResourcesManager& scene) override;
-  void render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
+  shaderio::GltfSceneInfo*
+  updateSceneBuffers(SceneResourcesManager& scene) override;
+  void raster(const SceneResourcesManager& scene,
               const shaderio::PushConstant& pushValues) const override;
+  void raytrace(const SceneResourcesManager& scene,
+                const shaderio::PushConstant& pushValues) const override;
 
   void postProcess() override;
   void onResize(const WindowSize& size) override;
-  void saveImage(const std::filesystem::path& filename, int quality = 100) const override;
+  void saveImage(const std::filesystem::path& filename,
+                 int quality = 100) const override;
 
   // ---------------------------------------------------------------------------
   // Accessors
@@ -63,8 +67,8 @@ public:
 
 private:
   void initGBuffers();
-  shaderio::GltfSceneInfo* updateSceneBuffer(VkCommandBuffer cmd,
-                                             SceneResourcesManager& scene) const;
+  shaderio::GltfSceneInfo*
+  updateSceneBuffer(VkCommandBuffer cmd, SceneResourcesManager& scene) const;
   void createDescriptorSetLayout(VkDevice device);
 
   // Data

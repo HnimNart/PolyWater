@@ -18,14 +18,16 @@
  */
 
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
-// #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the application)
+// #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the
+// application)
 #include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
+#include "core/application/elements/elem_logger.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_IMPLEMENTATION
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                                           \
-  {                                                                                                \
-    printf((format), __VA_ARGS__);                                                                 \
-    printf("\n");                                                                                  \
+#define VMA_LEAK_LOG_FORMAT(format, ...)                                       \
+  {                                                                            \
+    printf((format), __VA_ARGS__);                                             \
+    printf("\n");                                                              \
   }
 
 // 2. Include the library headers that need implementation
@@ -74,23 +76,29 @@ int main(int argc, char** argv)
   core::Application application(appInfo, std::move(backend), gui);
 
   // Elements added to the application
-  auto tutorial = std::make_shared<VulkanRendererElement>();  // Our tutorial element
+  auto tutorial =
+      std::make_shared<VulkanRendererElement>();  // Our tutorial element
   auto elemCamera =
-      std::make_shared<core::ElementCamera>();  // Element to control the camera movement
-  auto windowTitle =
-      std::make_shared<core::ElementDefaultWindowTitle>();  // Element displaying the window title
-                                                            // with application name and size
-  auto windowMenu = std::make_shared<core::ElementDefaultMenu>();  // Element displaying a menu,
-                                                                   // File->Exit ...
+      std::make_shared<core::ElementCamera>();  // Element to control the camera
+                                                // movement
+  auto windowTitle = std::make_shared<
+      core::ElementDefaultWindowTitle>();  // Element displaying the window
+                                           // title with application name and
+                                           // size
+  auto windowMenu =
+      std::make_shared<core::ElementDefaultMenu>();  // Element displaying a
+  // menu, File->Exit ...
+  auto logger = std::make_shared<core::ElementLogger>();
 
   // Adding all elements
   application.addElement(windowMenu);
   application.addElement(windowTitle);
   application.addElement(tutorial);
   application.addElement(elemCamera);
+  application.addElement(logger);
   elemCamera->setCameraManipulator(tutorial->getCameraManipulator());
 
-  application.run();       // Start the application, loop until the window is closed
+  application.run();  // Start the application, loop until the window is closed
   application.shutdown();  // Closing application
 
   return 0;

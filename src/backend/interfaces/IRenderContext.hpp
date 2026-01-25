@@ -22,6 +22,6 @@ public:
   IRenderContext& operator=(IRenderContext&&) = delete;
 
 public:
-  uint64_t frameNumber{0};   // Timeline value for synchronization (increases each frame)
-  bool vSyncWanted = false;  //
+  uint64_t frameNumber{
+      0};  // Timeline value for synchronization (increases each frame)
 };

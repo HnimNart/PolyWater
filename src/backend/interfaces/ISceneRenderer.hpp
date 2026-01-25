@@ -34,17 +34,22 @@ public:
   // -------------------------------------------------------------------------
   virtual void init(const SceneResourcesManager& scene) = 0;
   virtual void deinit() = 0;
-  virtual void onResize(const WindowSize& size) = 0;  // Make pure virtual to force implementation
+  virtual void onResize(
+      const WindowSize& size) = 0;  // Make pure virtual to force implementation
   virtual void reload(bool useRaytracing) = 0;
 
   // -------------------------------------------------------------------------
   // Execution Cycle
   // -------------------------------------------------------------------------
-  // Updates GPU buffers (lights, matrices). Returns pointer to the mapped info for debugging/GUI.
-  virtual shaderio::GltfSceneInfo* updateSceneBuffers(SceneResourcesManager& scene) = 0;
+  // Updates GPU buffers (lights, matrices). Returns pointer to the mapped info
+  // for debugging/GUI.
+  virtual shaderio::GltfSceneInfo*
+  updateSceneBuffers(SceneResourcesManager& scene) = 0;
 
   // Main render pass.
-  virtual void render(CameraPtr camera, const SceneResourcesManager& scene, bool raytrace,
+  virtual void raytrace(const SceneResourcesManager& scene,
+                        const shaderio::PushConstant& pushValues) const = 0;
+  virtual void raster(const SceneResourcesManager& scene,
                       const shaderio::PushConstant& pushValues) const = 0;
 
   // Runs the post-processing pipeline (Tonemapping, Bloom, etc.)
@@ -60,5 +65,6 @@ public:
   // Output / IO
   // -------------------------------------------------------------------------
   virtual void* getImageDescriptor(RenderOutput output) const = 0;
-  virtual void saveImage(const std::filesystem::path& filename, int quality = 100) const = 0;
+  virtual void saveImage(const std::filesystem::path& filename,
+                         int quality = 100) const = 0;
 };

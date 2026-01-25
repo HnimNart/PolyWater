@@ -17,12 +17,31 @@ class TonemapperData;
 class SceneManager
 {
 public:
+  enum class RenderMode
+  {
+    RAYTRACE = 0,
+    RASTER = 1,
+    COUNT = 2,
+  };
+  static inline const char* renderModeToString(RenderMode mode)
+  {
+    switch (mode)
+    {
+      case RenderMode::RAYTRACE:
+        return "Raytracing";
+      case RenderMode::RASTER:
+        return "Rasterization";
+      default:
+        return "Unknown";
+    }
+  }
+
   SceneManager() = default;
   explicit SceneManager(std::shared_ptr<ISceneRenderer> renderer);
 
   void clear();
   void postInit();
-  void render(bool raytrace);
+  void render(RenderMode mode);
 
   // --------------------------------------------------
   // Rendering / Post-processing
