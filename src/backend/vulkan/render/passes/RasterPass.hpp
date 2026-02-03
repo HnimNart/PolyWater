@@ -28,22 +28,18 @@ namespace shaderio
 struct PushConstant;
 }
 
-class VulkanRaster : public IRenderPass
+class RasterPass : public IRenderPass
 {
 public:
-  VulkanRaster(nvvk::DescriptorPack* descPack);
-  ~VulkanRaster() = default;
+  RasterPass(nvvk::DescriptorPack* descPack);
+  ~RasterPass() = default;
 
   void init(VulkanContextManager* coreManager,
             const SceneResourcesManager& scene) override;
   void deinit(VulkanContextManager* coreManager) override;
 
   // Raster //
-  //---------------------------------------------------------------------------------------------------------------
-  // Recording the commands to render the scene
-  //
   void execute(const IRenderContext& ctx) override;
-
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 

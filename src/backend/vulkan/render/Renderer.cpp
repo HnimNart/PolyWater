@@ -7,14 +7,14 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/helpers.hpp>
 
-#include "Raster.hpp"
-#include "RayTracer.hpp"
-#include "ToneMapper.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "common/timers.hpp"
+#include "passes/RasterPass.hpp"
+#include "passes/SkyPass.hpp"
+#include "passes/ToneMapPass.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/gltf/io_gltf.h"
 
@@ -50,6 +50,7 @@ void VulkanRenderer::deinit()
   m_post = nullptr;
 
   m_graph.deinit(m_core_manager);
+  m_accel.reset();
 
   m_descPack.deinit();
   m_gBuffers->deinit();
@@ -116,6 +117,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
+
   // 1. Clear existing passes
   m_graph.deinit(m_core_manager);
 
@@ -123,36 +125,33 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   if (m_render_mode == RenderMode::RASTER)
   {
     // Raster Configuration: Sky -> Geometry -> ToneMap
-    // m_graph.addPass(std::make_unique<SkyRenderPass>());
-    auto raster = std::make_unique<VulkanRaster>(&m_descPack);
-    m_graph.addPass(std::move(raster));
+    m_graph.addPass(std::make_unique<SkyPass>());
+    m_graph.addPass(std::make_unique<RasterPass>(&m_descPack));
   }
   else
   {
-    std::unique_ptr<VulkanRayTracer> raytracer =
-        std::make_unique<VulkanRayTracer>(&m_descPack);
-    m_graph.addPass(std::move(raytracer));
+    m_accel = AccelerationStructures::create(m_core_manager, scene.data());
+    m_graph.addPass(std::make_unique<RayTracePass>(&m_descPack));
   }
 
   // Common: Post Processing
-  auto tonePass = std::make_unique<VulkanToneMapper>();
+  auto tonePass = std::make_unique<ToneMapPass>();
   m_post = tonePass.get();  // Cache pointer for UI access
   m_graph.addPass(std::move(tonePass));
 
-  // 3. Initialize the whole chain
   m_graph.init(m_core_manager, scene);
 }
 
 /**********************************************************/
-void VulkanRenderer::render(const IRenderContext& ctx) const
+void VulkanRenderer::render(IRenderContext& ctx) const
 /**********************************************************/
 {
-  const auto& vkCtx = VulkanRenderContext::get(ctx);
-  VulkanRenderContext& vkCtx_ref = const_cast<VulkanRenderContext&>(vkCtx);
-  vkCtx_ref.gBuffers = m_gBuffers.get();
-  vkCtx_ref.deviceResources = &m_resources->deviceResources();
-  vkCtx_ref.pushValues.sceneInfoAddress =
+  auto& vkCtx = VulkanRenderContext::get(ctx);
+  vkCtx.gBuffers = m_gBuffers.get();
+  vkCtx.deviceResources = &m_resources->deviceResources();
+  vkCtx.pushValues.sceneInfoAddress =
       updateSceneBuffer(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
+  vkCtx.bvh = m_accel.get();
   m_graph.execute(ctx);
 }
 

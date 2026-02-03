@@ -7,6 +7,27 @@
 #include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
+std::unique_ptr<AccelerationStructures>
+AccelerationStructures::create(VulkanContextManager* core,
+                               const gltf::Scene& sceneData)
+/**********************************************************/
+{
+  auto m_accel =
+      std::unique_ptr<AccelerationStructures>(new AccelerationStructures());
+  m_accel->init(core);
+  // Set up acceleration structure infrastructure
+  m_accel->buildBLAS(sceneData);  // Set up BLAS infrastructure
+  m_accel->buildTLAS(sceneData);  // Set up TLAS infrastructure
+  return m_accel;
+}
+
+/**********************************************************/
+AccelerationStructures::~AccelerationStructures()
+/**********************************************************/
+{
+  deinit();
+}
+/**********************************************************/
 void AccelerationStructures::init(VulkanContextManager* coreManager)
 /**********************************************************/
 {

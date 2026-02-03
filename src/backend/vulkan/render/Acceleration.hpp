@@ -18,15 +18,21 @@ class VulkanContextManager;
 class AccelerationStructures
 {
 public:
+  static std::unique_ptr<AccelerationStructures>
+  create(VulkanContextManager* core, const gltf::Scene& scene);
+
+  ~AccelerationStructures();
+
+  nvvk::AccelerationStructure tlas() const;
+
+private:
   void init(VulkanContextManager* backend);
   void deinit();
 
   void buildBLAS(const gltf::Scene& scene);
   void buildTLAS(const gltf::Scene& scene);
 
-  nvvk::AccelerationStructure tlas() const;
-
-private:
-  nvvk::AccelerationStructureGeometryInfo primitiveToGeometry(const shaderio::GltfMesh& mesh);
+  nvvk::AccelerationStructureGeometryInfo
+  primitiveToGeometry(const shaderio::GltfMesh& mesh);
   nvvk::AccelerationStructureHelper m_asBuilder{};
 };

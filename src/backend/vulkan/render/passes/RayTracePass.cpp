@@ -1,4 +1,4 @@
-#include "RayTracer.hpp"
+#include "RayTracePass.hpp"
 
 #include <shaders/shaderio.h>
 
@@ -10,9 +10,9 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/gbuffers.hpp>
 
-#include "Raster.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "backend/vulkan/core/RenderContext.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/compiler/slang.hpp"
@@ -21,15 +21,15 @@
 #include "build/_autogen/rtbasic.slang.h"
 
 /**********************************************************/
-VulkanRayTracer::VulkanRayTracer(nvvk::DescriptorPack* descPack)
+RayTracePass::RayTracePass(nvvk::DescriptorPack* descPack)
 /**********************************************************/
 {
   m_sharedDescPack = descPack;
 }
 
 /**********************************************************/
-void VulkanRayTracer::init(VulkanContextManager* coreManager,
-                           const SceneResourcesManager& scene)
+void RayTracePass::init(VulkanContextManager* coreManager,
+                        const SceneResourcesManager& scene)
 /**********************************************************/
 {
   m_core_manager = coreManager;
@@ -37,7 +37,7 @@ void VulkanRayTracer::init(VulkanContextManager* coreManager,
 }
 
 /**********************************************************/
-void VulkanRayTracer::deinit(VulkanContextManager* /* coreManager */)
+void RayTracePass::deinit(VulkanContextManager* /* coreManager */)
 /**********************************************************/
 {
   vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
@@ -46,18 +46,17 @@ void VulkanRayTracer::deinit(VulkanContextManager* /* coreManager */)
   m_RayTraceDescPack.deinit();
   m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);
   m_sbtGenerator.deinit();
-  m_accel.deinit();
 }
 
 /**********************************************************/
-void VulkanRayTracer::createScene(const SceneResourcesManager& scene)
+void RayTracePass::createScene(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   createPipeline(scene);
 }
 
 /**********************************************************/
-void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
+void RayTracePass::createPipeline(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   // Get ray tracing properties
@@ -66,9 +65,6 @@ void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
   prop2.pNext = &m_properties;
   vkGetPhysicalDeviceProperties2(m_core_manager->getPhysicalDevice(), &prop2);
 
-  // Initialize acceleration structure builder
-  m_accel.init(m_core_manager);
-
   // Initialize SBT generator
   m_sbtGenerator.init(m_core_manager->getDevice(), m_properties);
 
@@ -76,21 +72,16 @@ void VulkanRayTracer::createPipeline(const SceneResourcesManager& scene)
 }
 
 /**********************************************************/
-void VulkanRayTracer::createRayTracingPipeline(
-    const SceneResourcesManager& scene)
+void RayTracePass::createRayTracingPipeline(const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  // Set up acceleration structure infrastructure
-  m_accel.buildBLAS(scene.data());  // Set up BLAS infrastructure
-  m_accel.buildTLAS(scene.data());  // Set up TLAS infrastructure
-
   // Set up ray tracing pipeline infrastructure
   createRaytraceDescriptorLayout();  // Create descriptor layout
   createRayTracingPipeline();        // Create pipeline structure and SBT
 }
 
 /**********************************************************/
-void VulkanRayTracer::createRaytraceDescriptorLayout()
+void RayTracePass::createRaytraceDescriptorLayout()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -112,7 +103,7 @@ void VulkanRayTracer::createRaytraceDescriptorLayout()
 }
 
 /**********************************************************/
-void VulkanRayTracer::createRayTracingPipeline()
+void RayTracePass::createRayTracingPipeline()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -210,7 +201,7 @@ void VulkanRayTracer::createRayTracingPipeline()
 }
 
 /**********************************************************/
-void VulkanRayTracer::createShaderBindingTable(
+void RayTracePass::createShaderBindingTable(
     const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
 /**********************************************************/
 {
@@ -238,13 +229,14 @@ void VulkanRayTracer::createShaderBindingTable(
 }
 
 /**********************************************************/
-void VulkanRayTracer::execute(const IRenderContext& ctx)
+void RayTracePass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
 
   const auto& vkCtx = VulkanRenderContext::get(ctx);
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
   shaderio::PushConstant constants = vkCtx.pushValues;
+  const AccelerationStructures* bvh = vkCtx.bvh;
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
 
@@ -266,7 +258,7 @@ void VulkanRayTracer::execute(const IRenderContext& ctx)
   // Push descriptor sets for ray tracing
   nvvk::WriteSetContainer write{};
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas),
-               m_accel.tlas());
+               bvh->tlas());
   write.append(
       m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
       gBuffers->getColorImageView(ISceneRenderer::RenderOutput::Linear),
@@ -289,7 +281,6 @@ void VulkanRayTracer::execute(const IRenderContext& ctx)
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
                     &regions.callable, size.width, size.height, 1);
 
-  // Memory Barrier for Tonemapper
   nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
                          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
 }

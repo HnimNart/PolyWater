@@ -5,6 +5,7 @@
 #include <nvvk/gbuffers.hpp>
 
 #include "backend/interfaces/IRenderContext.hpp"
+#include "backend/vulkan/render/Acceleration.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 
 //------------------------------------------------------------
@@ -43,4 +44,5 @@ public:
 
   const nvvk::GBuffer* gBuffers{};
   const VulkanSceneGpuData* deviceResources{};
+  const AccelerationStructures* bvh{};
 };

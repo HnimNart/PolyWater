@@ -1,4 +1,4 @@
-#include "Raster.hpp"
+#include "RasterPass.hpp"
 
 // Implementation Includes
 #include <shaders/shaderio.h>
@@ -10,27 +10,26 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "SceneAssetManager.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "common/timers.hpp"
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
 #include "_autogen/foundation.slang.h"
-#include "_autogen/sky_simple.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
-VulkanRaster::VulkanRaster(nvvk::DescriptorPack* descPack)
+RasterPass::RasterPass(nvvk::DescriptorPack* descPack)
 /**********************************************************/
 {
   m_descPack = descPack;
 }
 
 /**********************************************************/
-void VulkanRaster::init(VulkanContextManager* coreManager,
-                        const SceneResourcesManager& /*scene*/)
+void RasterPass::init(VulkanContextManager* coreManager,
+                      const SceneResourcesManager& /*scene*/)
 /**********************************************************/
 {
   m_core_manager = coreManager;
@@ -39,17 +38,15 @@ void VulkanRaster::init(VulkanContextManager* coreManager,
 }
 
 /**********************************************************/
-void VulkanRaster::deinit(VulkanContextManager* coreManager)
+void RasterPass::deinit(VulkanContextManager* coreManager)
 /**********************************************************/
 {
   vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyShaderEXT(coreManager->getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(coreManager->getDevice(), m_fragmentShader, nullptr);
-  m_skySimple.deinit();
+  clearShaders();
 }
 
 /**********************************************************/
-void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
+void RasterPass::resize(VkCommandBuffer cmd, VkExtent2D size)
 /**********************************************************/
 {
   // Implementation for resize if needed, otherwise empty as per original code
@@ -57,7 +54,7 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 /**********************************************************/
-void VulkanRaster::execute(const IRenderContext& ctx)
+void RasterPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -70,6 +67,7 @@ void VulkanRaster::execute(const IRenderContext& ctx)
   shaderio::PushConstant constants = vkCtx.pushValues;
   const gltf::Scene& sceneResources = *vkCtx.sceneResources;
   const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
+  const VkExtent2D& size = gBuffers->getSize();
 
   NVVK_DBG_SCOPE(cmd);
 
@@ -82,17 +80,6 @@ void VulkanRaster::execute(const IRenderContext& ctx)
       .size = sizeof(shaderio::PushConstant),
       .pValues = &constants,
   };
-
-  // Rendering the Sky
-  const VkExtent2D& size = gBuffers->getSize();
-  if (scene_info.useSky)
-  {
-    const glm::mat4& viewMatrix = scene_info.viewMatrix;
-    const glm::mat4& projMatrix = scene_info.projMatrix;
-    m_skySimple.runCompute(
-        cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
-        gBuffers->getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
-  }
 
   // Rendering to the GBuffer - Attachments
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
@@ -134,6 +121,7 @@ void VulkanRaster::execute(const IRenderContext& ctx)
   vkCmdBeginRendering(cmd, &renderingInfo);
 
   // Dynamic states
+
   nvvk::GraphicsPipelineState pipelineState{};
   pipelineState.rasterizationState.cullMode = VK_CULL_MODE_NONE;
   pipelineState.cmdApplyAllStates(cmd);
@@ -183,7 +171,7 @@ void VulkanRaster::execute(const IRenderContext& ctx)
 }
 
 /**********************************************************/
-void VulkanRaster::reload()
+void RasterPass::reload()
 /**********************************************************/
 {
   clearShaders();
@@ -191,7 +179,7 @@ void VulkanRaster::reload()
 }
 
 /**********************************************************/
-void VulkanRaster::createPipelineLayout(VkDevice device)
+void RasterPass::createPipelineLayout(VkDevice device)
 /**********************************************************/
 {
   const VkPushConstantRange pushConstantRange{
@@ -212,17 +200,16 @@ void VulkanRaster::createPipelineLayout(VkDevice device)
 }
 
 /**********************************************************/
-void VulkanRaster::clearShaders()
+void RasterPass::clearShaders()
 /**********************************************************/
 {
   // Cleanup old shaders
   vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
-  m_skySimple.deinit();
 }
 
 /**********************************************************/
-void VulkanRaster::compileShaders()
+void RasterPass::compileShaders()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -266,8 +253,4 @@ void VulkanRaster::compileShaders()
   vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
-
-  // Sky
-  m_skySimple.init(&m_core_manager->getAllocator(),
-                   std::span(sky_simple_slang));
 }

@@ -5,13 +5,12 @@
 #include <memory>
 
 #include "Acceleration.hpp"
-#include "Raster.hpp"
-#include "RayTracer.hpp"
-#include "ToneMapper.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "passes/RasterPass.hpp"
+#include "passes/RayTracePass.hpp"
 #include "scene/SceneManager.hpp"
 #include "scene/gltf/io_gltf.h"
 
@@ -20,6 +19,7 @@ class IRenderBackend;
 class VulkanSceneAssetManager;
 class SceneResourcesManager;
 class FrameSynchronizationManager;
+class ToneMapPass;
 
 namespace shaderio
 {
@@ -53,7 +53,7 @@ public:
                     shaderio::GltfSceneInfo& sceneInfo) const;
   void setRenderMode(RenderMode mode,
                      const SceneResourcesManager& scene) override;
-  void render(const IRenderContext& ctx) const override;
+  void render(IRenderContext& ctx) const override;
   void onResize(const WindowSize& size) override;
   void saveImage(const std::filesystem::path& filename,
                  int quality = 100) const override;
@@ -78,7 +78,9 @@ private:
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
 
-  // TODO Remove these?
-  VulkanToneMapper* m_post = nullptr;
+  std::unique_ptr<AccelerationStructures> m_accel{};
+
+  // Reference to post for UI
+  ToneMapPass* m_post = nullptr;
   RenderGraph m_graph;
 };

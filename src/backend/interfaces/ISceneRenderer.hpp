@@ -63,7 +63,7 @@ public:
   virtual void setRenderMode(RenderMode mode,
                              const SceneResourcesManager& scene) = 0;
   // Main render pass.
-  virtual void render(const IRenderContext& ctx) const = 0;
+  virtual void render(IRenderContext& ctx) const = 0;
 
   // -------------------------------------------------------------------------
   // Accessors & Resources

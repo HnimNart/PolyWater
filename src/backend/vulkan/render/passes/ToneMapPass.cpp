@@ -1,18 +1,24 @@
-#include "ToneMapper.hpp"
+#include "ToneMapPass.hpp"
 
 #include "_autogen/tonemapper.slang.h"
 #include "backend/vulkan/core/RenderContext.hpp"
 
-VulkanToneMapper::VulkanToneMapper()
+/**********************************************************/
+ToneMapPass::ToneMapPass()
+/**********************************************************/
 {
 }
 
-VulkanToneMapper::~VulkanToneMapper()
+/**********************************************************/
+ToneMapPass::~ToneMapPass()
+/**********************************************************/
 {
 }
 
-void VulkanToneMapper::init(VulkanContextManager* core,
-                            const SceneResourcesManager& /*scene*/)
+/**********************************************************/
+void ToneMapPass::init(VulkanContextManager* core,
+                       const SceneResourcesManager& /*scene*/)
+/**********************************************************/
 {
   if (m_initialized)
   {
@@ -28,15 +34,18 @@ void VulkanToneMapper::init(VulkanContextManager* core,
   m_initialized = true;
 }
 
-void VulkanToneMapper::deinit(VulkanContextManager* /* core */)
+/**********************************************************/
+void ToneMapPass::deinit(VulkanContextManager* /* core */)
+/**********************************************************/
 {
   m_tonemapper.deinit();
   m_initialized = false;
 }
 
-void VulkanToneMapper::execute(const IRenderContext& ctx)
+/**********************************************************/
+void ToneMapPass::execute(const IRenderContext& ctx)
+/**********************************************************/
 {
-
   const auto& vkCtx = VulkanRenderContext::get(ctx);
 
   if (!m_initialized)

@@ -5,8 +5,8 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/sbt_generator.hpp>
 
-#include "Acceleration.hpp"
 #include "backend/interfaces/IRenderGraph.hpp"
+#include "backend/vulkan/render/Acceleration.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;
@@ -21,14 +21,14 @@ namespace shaderio
 struct PushConstant;
 }
 
-class VulkanRayTracer : public IRenderPass
+class RayTracePass : public IRenderPass
 {
 public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  VulkanRayTracer(nvvk::DescriptorPack* descPack);
-  ~VulkanRayTracer() = default;
+  RayTracePass(nvvk::DescriptorPack* descPack);
+  ~RayTracePass() = default;
 
   void init(VulkanContextManager* coreManager,
             const SceneResourcesManager& scene) override;
@@ -74,9 +74,6 @@ private:
   // Shader Binding Table (SBT)
   nvvk::SBTGenerator m_sbtGenerator{};
   nvvk::Buffer m_sbtBuffer{};
-
-  // Acceleration Structure
-  AccelerationStructures m_accel;
 
   // Properties
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_properties{
