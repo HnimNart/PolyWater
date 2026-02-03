@@ -37,7 +37,7 @@ public:
   void setVsync(bool enabled) override;
 
   // Manager accessors
-  VulkanContextManager* getCoreManager() const;
+  VulkanContextManager* getContextManager() const;
   FrameSynchronizationManager* getFrameSyncManager() const;
   SwapchainRenderManager* getSwapchainManager() const;
   RenderRegistry& getRegistry();

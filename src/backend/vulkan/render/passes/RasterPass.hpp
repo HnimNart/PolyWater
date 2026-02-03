@@ -51,7 +51,7 @@ private:
   void clearShaders();
   void compileShaders();
 
-  VulkanContextManager* m_core_manager = nullptr;
+  VulkanContextManager* m_context_manager = nullptr;
   nvvk::DescriptorPack* m_descPack = nullptr;
   VkPipelineLayout m_pipelineLayout{};
 

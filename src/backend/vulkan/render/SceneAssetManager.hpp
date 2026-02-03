@@ -103,7 +103,7 @@ private:
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
-  VulkanContextManager* m_core_manager = nullptr;
+  VulkanContextManager* m_context_manager = nullptr;
   VulkanSceneGpuData m_data{};
   std::vector<nvvk::Image> m_textures{};
   nvvk::SamplerPool m_samplerPool{};

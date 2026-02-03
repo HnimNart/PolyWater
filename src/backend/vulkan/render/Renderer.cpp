@@ -22,8 +22,8 @@
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 /**********************************************************/
 {
-  m_core_manager = backend->getCoreManager();
-  m_resources = std::make_shared<VulkanSceneAssetManager>(m_core_manager);
+  m_context_manager = backend->getContextManager();
+  m_resources = std::make_shared<VulkanSceneAssetManager>(m_context_manager);
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 }
 
@@ -37,7 +37,7 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
 {
   SCOPED_TIMER_FUNC();
   initGBuffers();
-  createDescriptorSetLayout(m_core_manager->getDevice());
+  createDescriptorSetLayout(m_context_manager->getDevice());
   m_resources->updateDescriptors(m_descPack);
   buildGraph(scene);
 }
@@ -46,10 +46,10 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
 void VulkanRenderer::deinit()
 /**********************************************************/
 {
-  m_core_manager->waitForDeviceIdle();
+  m_context_manager->waitForDeviceIdle();
   m_post = nullptr;
 
-  m_graph.deinit(m_core_manager);
+  m_graph.deinit(m_context_manager);
   m_accel.reset();
 
   m_descPack.deinit();
@@ -61,7 +61,7 @@ void VulkanRenderer::deinit()
 void VulkanRenderer::reload(const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  m_core_manager->waitForDeviceIdle();
+  m_context_manager->waitForDeviceIdle();
   buildGraph(scene);
 }
 
@@ -106,7 +106,7 @@ void VulkanRenderer::setRenderMode(RenderMode mode,
 {
   if (m_render_mode != mode)
   {
-    m_core_manager->waitForDeviceIdle();
+    m_context_manager->waitForDeviceIdle();
     m_render_mode = mode;
     buildGraph(scene);
   }
@@ -119,7 +119,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   SCOPED_TIMER_FUNC();
 
   // 1. Clear existing passes
-  m_graph.deinit(m_core_manager);
+  m_graph.deinit(m_context_manager);
 
   // 2. Add passes based on mode
   if (m_render_mode == RenderMode::RASTER)
@@ -130,7 +130,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   }
   else
   {
-    m_accel = AccelerationStructures::create(m_core_manager, scene.data());
+    m_accel = AccelerationStructures::create(m_context_manager, scene.data());
     m_graph.addPass(std::make_unique<RayTracePass>(&m_descPack));
   }
 
@@ -139,7 +139,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   m_post = tonePass.get();  // Cache pointer for UI access
   m_graph.addPass(std::move(tonePass));
 
-  m_graph.init(m_core_manager, scene);
+  m_graph.init(m_context_manager, scene);
 }
 
 /**********************************************************/
@@ -159,10 +159,10 @@ void VulkanRenderer::render(IRenderContext& ctx) const
 void VulkanRenderer::onResize(const WindowSize& size)
 /**********************************************************/
 {
-  m_core_manager->waitForDeviceIdle();
-  VkCommandBuffer cmd = m_core_manager->startSingleTimeCmd();
+  m_context_manager->waitForDeviceIdle();
+  VkCommandBuffer cmd = m_context_manager->startSingleTimeCmd();
   NVVK_CHECK(m_gBuffers->update(cmd, {size.width, size.height}));
-  m_core_manager->endSingleTimeCmd(cmd);
+  m_context_manager->endSingleTimeCmd(cmd);
 }
 
 // ---------------------------------------------------------------------------
@@ -178,11 +178,12 @@ void VulkanRenderer::initGBuffers()
   NVVK_DBG_NAME(linearSampler);
 
   nvvk::GBufferInitInfo info{
-      .allocator = &m_core_manager->getAllocator(),
+      .allocator = &m_context_manager->getAllocator(),
       .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM},
-      .depthFormat = nvvk::findDepthFormat(m_core_manager->getPhysicalDevice()),
+      .depthFormat =
+          nvvk::findDepthFormat(m_context_manager->getPhysicalDevice()),
       .imageSampler = linearSampler,
-      .descriptorPool = m_core_manager->getDescriptorPool()};
+      .descriptorPool = m_context_manager->getDescriptorPool()};
 
   m_gBuffers->init(info);
 }
@@ -228,11 +229,11 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename,
                                int quality) const
 /**********************************************************/
 {
-  VkDevice device = m_core_manager->getDevice();
-  VkPhysicalDevice physicalDevice = m_core_manager->getPhysicalDevice();
+  VkDevice device = m_context_manager->getDevice();
+  VkPhysicalDevice physicalDevice = m_context_manager->getPhysicalDevice();
   VkImage dstImage = {};
   VkDeviceMemory dstImageMemory = {};
-  VkCommandBuffer cmd = m_core_manager->startSingleTimeCmd();
+  VkCommandBuffer cmd = m_context_manager->startSingleTimeCmd();
 
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
   if (filename.extension() == ".hdr")
@@ -246,7 +247,7 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename,
   nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage,
                       dstImageMemory, format);
 
-  m_core_manager->endSingleTimeCmd(cmd);
+  m_context_manager->endSingleTimeCmd(cmd);
   nvvk::saveImageToFile(device, dstImage, dstImageMemory, size, filename,
                         quality);
 

@@ -28,12 +28,12 @@ RasterPass::RasterPass(nvvk::DescriptorPack* descPack)
 }
 
 /**********************************************************/
-void RasterPass::init(VulkanContextManager* coreManager,
+void RasterPass::init(VulkanContextManager* contextManager,
                       const SceneResourcesManager& /*scene*/)
 /**********************************************************/
 {
-  m_core_manager = coreManager;
-  createPipelineLayout(m_core_manager->getDevice());
+  m_context_manager = contextManager;
+  createPipelineLayout(m_context_manager->getDevice());
   compileShaders();
 }
 
@@ -204,8 +204,8 @@ void RasterPass::clearShaders()
 /**********************************************************/
 {
   // Cleanup old shaders
-  vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
 }
 
 /**********************************************************/
@@ -240,7 +240,7 @@ void RasterPass::compileShaders()
   shaderInfo.pName = "vertexMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr,
+  vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
@@ -250,7 +250,7 @@ void RasterPass::compileShaders()
   shaderInfo.pName = "fragmentMain";
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_core_manager->getDevice(), 1U, &shaderInfo, nullptr,
+  vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 }

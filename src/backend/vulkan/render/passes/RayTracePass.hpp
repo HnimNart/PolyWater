@@ -62,7 +62,7 @@ private:
   // -------------------------------------------------------------------------
   // Member Variables
   // -------------------------------------------------------------------------
-  VulkanContextManager* m_core_manager = nullptr;
+  VulkanContextManager* m_context_manager = nullptr;
   nvvk::DescriptorPack* m_sharedDescPack =
       nullptr;  // Pointer to external Scene descriptor
 

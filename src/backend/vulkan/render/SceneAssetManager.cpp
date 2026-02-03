@@ -23,11 +23,11 @@
 
 /**********************************************************/
 VulkanSceneAssetManager::VulkanSceneAssetManager(
-    VulkanContextManager* coreManager)
+    VulkanContextManager* contextManager)
 /**********************************************************/
 {
-  m_core_manager = coreManager;
-  m_samplerPool.init(m_core_manager->getDevice());
+  m_context_manager = contextManager;
+  m_samplerPool.init(m_context_manager->getDevice());
 }
 
 /**********************************************************/
@@ -39,7 +39,7 @@ void VulkanSceneAssetManager::beginUploading()
     throw std::runtime_error(
         "Begin uploading called while another upload is already in progress.");
   }
-  m_cmd = m_core_manager->startSingleTimeCmd();
+  m_cmd = m_context_manager->startSingleTimeCmd();
 }
 
 /**********************************************************/
@@ -47,7 +47,7 @@ void VulkanSceneAssetManager::endUploading()
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE);
-  m_core_manager->endSingleTimeCmd(m_cmd);
+  m_context_manager->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
 
@@ -57,15 +57,15 @@ void VulkanSceneAssetManager::deinit()
 {
   for (auto& texture : m_textures)
   {
-    m_core_manager->getAllocator().destroyImage(texture);
+    m_context_manager->getAllocator().destroyImage(texture);
   }
-  m_core_manager->getAllocator().destroyBuffer(m_data.bSceneInfo);
-  m_core_manager->getAllocator().destroyBuffer(m_data.bMeshes);
-  m_core_manager->getAllocator().destroyBuffer(m_data.bMaterials);
-  m_core_manager->getAllocator().destroyBuffer(m_data.bInstances);
+  m_context_manager->getAllocator().destroyBuffer(m_data.bSceneInfo);
+  m_context_manager->getAllocator().destroyBuffer(m_data.bMeshes);
+  m_context_manager->getAllocator().destroyBuffer(m_data.bMaterials);
+  m_context_manager->getAllocator().destroyBuffer(m_data.bInstances);
   for (auto& gltfData : m_data.bGltfDatas)
   {
-    m_core_manager->getAllocator().destroyBuffer(gltfData);
+    m_context_manager->getAllocator().destroyBuffer(gltfData);
   }
   m_samplerPool.deinit();
 }
@@ -77,8 +77,8 @@ VulkanSceneAssetManager::uploadTexture(const std::string& filepath,
 /**********************************************************/
 {
   nvvk::Image texture =
-      loadAndCreateImage(m_cmd, m_core_manager->getStagingUploader(),
-                         m_core_manager->getDevice(), filepath);
+      loadAndCreateImage(m_cmd, m_context_manager->getStagingUploader(),
+                         m_context_manager->getDevice(), filepath);
 
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
@@ -121,7 +121,7 @@ void VulkanSceneAssetManager::updateDescriptors(
                                static_cast<uint32_t>(m_textures.size()));
 
   write.append(write_set, m_textures.data());
-  vkUpdateDescriptorSets(m_core_manager->getDevice(), write.size(),
+  vkUpdateDescriptorSets(m_context_manager->getDevice(), write.size(),
                          write.data(), 0, nullptr);
 }
 
@@ -131,7 +131,7 @@ void VulkanSceneAssetManager::finalizeSceneResources(gltf::Scene& resources)
 {
   createGltfSceneInfoBuffer(resources);
   // data (GPU buffers)
-  m_core_manager->getStagingUploader().cmdUploadAppended(
+  m_context_manager->getStagingUploader().cmdUploadAppended(
       m_cmd);  // Upload the scene information to the GPU
 }
 
@@ -141,7 +141,7 @@ VulkanSceneAssetManager::uploadPrimitiveMeshBuffer(
     const nvutils::PrimitiveMesh& primMesh, uint32_t* vertexOffset)
 /**********************************************************/
 {
-  auto& stagingUploader = m_core_manager->getStagingUploader();
+  auto& stagingUploader = m_context_manager->getStagingUploader();
   nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();
 
   // Calculate buffer sizes
@@ -179,7 +179,7 @@ VulkanSceneAssetManager::uploadGltfBuffer(const tinygltf::Model& model)
 {
   nvvk::Buffer bGltfData;
   nvvk::ResourceAllocator* allocator =
-      m_core_manager->getStagingUploader().getResourceAllocator();
+      m_context_manager->getStagingUploader().getResourceAllocator();
 
   // We can only handle one buffer for now
   assert(model.buffers.size() == 1);
@@ -191,7 +191,7 @@ VulkanSceneAssetManager::uploadGltfBuffer(const tinygltf::Model& model)
           VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
           VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR));
 
-  NVVK_CHECK(m_core_manager->getStagingUploader().appendBuffer(
+  NVVK_CHECK(m_context_manager->getStagingUploader().appendBuffer(
       bGltfData, 0, std::span<const unsigned char>(model.buffers[0].data)));
   NVVK_DBG_NAME(bGltfData.buffer);
 
@@ -215,7 +215,7 @@ void VulkanSceneAssetManager::createGltfSceneInfoBuffer(
 {
   SCOPED_TIMER_FUNC();
 
-  auto& stagingUploader = m_core_manager->getStagingUploader();
+  auto& stagingUploader = m_context_manager->getStagingUploader();
   nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();
 
   // 1. Define common usage flags to avoid clutter

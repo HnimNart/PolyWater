@@ -74,7 +74,7 @@ private:
 
   // Data
   nvvk::DescriptorPack m_descPack{};
-  VulkanContextManager* m_core_manager = nullptr;
+  VulkanContextManager* m_context_manager = nullptr;
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
 

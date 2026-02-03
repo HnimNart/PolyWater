@@ -28,11 +28,11 @@ RayTracePass::RayTracePass(nvvk::DescriptorPack* descPack)
 }
 
 /**********************************************************/
-void RayTracePass::init(VulkanContextManager* coreManager,
+void RayTracePass::init(VulkanContextManager* contextManager,
                         const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  m_core_manager = coreManager;
+  m_context_manager = contextManager;
   createScene(scene);
 }
 
@@ -40,11 +40,11 @@ void RayTracePass::init(VulkanContextManager* coreManager,
 void RayTracePass::deinit(VulkanContextManager* /* coreManager */)
 /**********************************************************/
 {
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
+  vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
-  vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
+  vkDestroyPipeline(m_context_manager->getDevice(), m_pipeline, nullptr);
   m_RayTraceDescPack.deinit();
-  m_core_manager->getAllocator().destroyBuffer(m_sbtBuffer);
+  m_context_manager->getAllocator().destroyBuffer(m_sbtBuffer);
   m_sbtGenerator.deinit();
 }
 
@@ -63,10 +63,11 @@ void RayTracePass::createPipeline(const SceneResourcesManager& scene)
   VkPhysicalDeviceProperties2 prop2{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   prop2.pNext = &m_properties;
-  vkGetPhysicalDeviceProperties2(m_core_manager->getPhysicalDevice(), &prop2);
+  vkGetPhysicalDeviceProperties2(m_context_manager->getPhysicalDevice(),
+                                 &prop2);
 
   // Initialize SBT generator
-  m_sbtGenerator.init(m_core_manager->getDevice(), m_properties);
+  m_sbtGenerator.init(m_context_manager->getDevice(), m_properties);
 
   createRayTracingPipeline(scene);
 }
@@ -98,7 +99,7 @@ void RayTracePass::createRaytraceDescriptorLayout()
 
   // Creating a PUSH descriptor set and set layout from the bindings
   m_RayTraceDescPack.init(
-      bindings, m_core_manager->getDevice(), 0,
+      bindings, m_context_manager->getDevice(), 0,
       VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 }
 
@@ -108,8 +109,8 @@ void RayTracePass::createRayTracingPipeline()
 {
   SCOPED_TIMER_FUNC();
   // For re-creation
-  vkDestroyPipeline(m_core_manager->getDevice(), m_pipeline, nullptr);
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
+  vkDestroyPipeline(m_context_manager->getDevice(), m_pipeline, nullptr);
+  vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
 
   // Creating all shaders
@@ -177,7 +178,7 @@ void RayTracePass::createRayTracingPipeline()
       {m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
-  vkCreatePipelineLayout(m_core_manager->getDevice(),
+  vkCreatePipelineLayout(m_context_manager->getDevice(),
                          &pipeline_layout_create_info, nullptr,
                          &m_pipelineLayout);
   NVVK_DBG_NAME(m_pipelineLayout);
@@ -192,7 +193,7 @@ void RayTracePass::createRayTracingPipeline()
   rtPipelineInfo.maxPipelineRayRecursionDepth =
       std::max(3U, m_properties.maxRayRecursionDepth);
   rtPipelineInfo.layout = m_pipelineLayout;
-  vkCreateRayTracingPipelinesKHR(m_core_manager->getDevice(), {}, {}, 1,
+  vkCreateRayTracingPipelinesKHR(m_context_manager->getDevice(), {}, {}, 1,
                                  &rtPipelineInfo, nullptr, &m_pipeline);
   NVVK_DBG_NAME(m_pipeline);
 
@@ -207,7 +208,7 @@ void RayTracePass::createShaderBindingTable(
 {
   SCOPED_TIMER_FUNC();
 
-  m_core_manager->getAllocator().destroyBuffer(
+  m_context_manager->getAllocator().destroyBuffer(
       m_sbtBuffer);  // Cleanup when re-creating
 
   // Calculate required SBT buffer size
@@ -215,7 +216,7 @@ void RayTracePass::createShaderBindingTable(
       m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
   // Create SBT buffer
-  NVVK_CHECK(m_core_manager->getAllocator().createBuffer(
+  NVVK_CHECK(m_context_manager->getAllocator().createBuffer(
       m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
       VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
       VMA_ALLOCATION_CREATE_MAPPED_BIT |

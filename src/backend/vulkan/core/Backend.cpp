@@ -240,7 +240,7 @@ const nvvk::QueueInfo& VulkanBackend::getQueueInfo(uint32_t index) const
 }
 
 /**********************************************************/
-VulkanContextManager* VulkanBackend::getCoreManager() const
+VulkanContextManager* VulkanBackend::getContextManager() const
 /**********************************************************/
 {
   assert(m_coreManager != nullptr);
