@@ -6,6 +6,7 @@
 #include <nvvk/sbt_generator.hpp>
 
 #include "Acceleration.hpp"
+#include "backend/interfaces/IRenderGraph.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;
@@ -20,21 +21,23 @@ namespace shaderio
 struct PushConstant;
 }
 
-class VulkanRayTracer
+class VulkanRayTracer : public IRenderPass
 {
 public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  explicit VulkanRayTracer(VulkanContextManager* coreManager);
-  ~VulkanRayTracer();
+  VulkanRayTracer(nvvk::DescriptorPack* descPack);
+  ~VulkanRayTracer() = default;
 
-  void init(const SceneResourcesManager& scene);
+  void init(VulkanContextManager* coreManager,
+            const SceneResourcesManager& scene) override;
+  void deinit(VulkanContextManager* coreManager) override;
 
   // -------------------------------------------------------------------------
   // Setup & Configuration
   // -------------------------------------------------------------------------
-  void setDescriptorPack(nvvk::DescriptorPack* descPack);
+  void createScene(const SceneResourcesManager& scene);
 
   // Pipeline Creation Methods
   void createRaytraceDescriptorLayout();
@@ -47,21 +50,21 @@ public:
   // -------------------------------------------------------------------------
   // Execution
   // -------------------------------------------------------------------------
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-              const shaderio::PushConstant& pushValues) const;
+  void execute(const IRenderContext& ctx) override;
 
 private:
   // -------------------------------------------------------------------------
   // Internal Helpers
   // -------------------------------------------------------------------------
-  void deinit();
-  void createShaderBindingTable(const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
+  void createShaderBindingTable(
+      const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
 
   // -------------------------------------------------------------------------
   // Member Variables
   // -------------------------------------------------------------------------
   VulkanContextManager* m_core_manager = nullptr;
-  nvvk::DescriptorPack* m_sharedDescPack = nullptr;  // Pointer to external Scene descriptor
+  nvvk::DescriptorPack* m_sharedDescPack =
+      nullptr;  // Pointer to external Scene descriptor
 
   // Pipeline State
   nvvk::DescriptorPack m_RayTraceDescPack{};

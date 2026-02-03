@@ -14,40 +14,23 @@ namespace shaderio
 class TonemapperData;
 }
 
+class IRenderContext;
+
 class SceneManager
 {
 public:
-  enum class RenderMode
-  {
-    RAYTRACE = 0,
-    RASTER = 1,
-    COUNT = 2,
-  };
-  static inline const char* renderModeToString(RenderMode mode)
-  {
-    switch (mode)
-    {
-      case RenderMode::RAYTRACE:
-        return "Raytracing";
-      case RenderMode::RASTER:
-        return "Rasterization";
-      default:
-        return "Unknown";
-    }
-  }
-
   SceneManager() = default;
   explicit SceneManager(std::shared_ptr<ISceneRenderer> renderer);
 
   void clear();
   void postInit();
-  void render(RenderMode mode);
+  void render(RenderMode mode, const IRenderContext& ctx);
 
   // --------------------------------------------------
   // Rendering / Post-processing
   // --------------------------------------------------
-  void postProcess();
-  void reload(bool useRaytracing);
+  void postProcess(const IRenderContext& ctx);
+  void reload();
   void* getTonemapedImageDescriptor();
   void onResize(const WindowSize& size);
 
@@ -61,6 +44,7 @@ public:
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
+  void setRenderMode(RenderMode mode);
   shaderio::TonemapperData& tonemapper();
   glm::vec2& metallicRoughness();
   shaderio::GltfSceneInfo& sceneInfo();

@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <memory>
 
-#include "core/Camera.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;
@@ -17,6 +17,26 @@ struct PushConstant;
 }  // namespace shaderio
 class IDeviceAssets;
 class IToneMapper;
+
+enum class RenderMode
+{
+  RAYTRACE = 0,
+  RASTER = 1,
+  COUNT = 2,
+};
+
+static inline const char* renderModeToString(RenderMode mode)
+{
+  switch (mode)
+  {
+    case RenderMode::RAYTRACE:
+      return "Raytracing";
+    case RenderMode::RASTER:
+      return "Rasterization";
+    default:
+      return "Unknown";
+  }
+}
 
 class ISceneRenderer
 {
@@ -34,26 +54,16 @@ public:
   // -------------------------------------------------------------------------
   virtual void init(const SceneResourcesManager& scene) = 0;
   virtual void deinit() = 0;
-  virtual void onResize(
-      const WindowSize& size) = 0;  // Make pure virtual to force implementation
-  virtual void reload(bool useRaytracing) = 0;
+  virtual void onResize(const WindowSize& size) = 0;
+  virtual void reload(const SceneResourcesManager& scene) = 0;
 
   // -------------------------------------------------------------------------
   // Execution Cycle
   // -------------------------------------------------------------------------
-  // Updates GPU buffers (lights, matrices). Returns pointer to the mapped info
-  // for debugging/GUI.
-  virtual shaderio::GltfSceneInfo*
-  updateSceneBuffers(SceneResourcesManager& scene) = 0;
-
+  virtual void setRenderMode(RenderMode mode,
+                             const SceneResourcesManager& scene) = 0;
   // Main render pass.
-  virtual void raytrace(const SceneResourcesManager& scene,
-                        const shaderio::PushConstant& pushValues) const = 0;
-  virtual void raster(const SceneResourcesManager& scene,
-                      const shaderio::PushConstant& pushValues) const = 0;
-
-  // Runs the post-processing pipeline (Tonemapping, Bloom, etc.)
-  virtual void postProcess() = 0;
+  virtual void render(const IRenderContext& ctx) const = 0;
 
   // -------------------------------------------------------------------------
   // Accessors & Resources
@@ -67,4 +77,7 @@ public:
   virtual void* getImageDescriptor(RenderOutput output) const = 0;
   virtual void saveImage(const std::filesystem::path& filename,
                          int quality = 100) const = 0;
+
+protected:
+  RenderMode m_render_mode = RenderMode::RAYTRACE;
 };

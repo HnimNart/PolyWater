@@ -1,5 +1,6 @@
 #include "SceneManager.hpp"
 
+#include "backend/interfaces/IRenderContext.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "scene/gltf/io_gltf.h"
@@ -29,30 +30,18 @@ void SceneManager::postInit()
 }
 
 /**********************************************************/
-void SceneManager::render(RenderMode mode)
+void SceneManager::render(RenderMode mode, const IRenderContext& ctx)
 /**********************************************************/
 {
   m_scene_resources.updateSceneInfo(m_camera);
-  shaderio::GltfSceneInfo* addr =
-      m_renderer->updateSceneBuffers(m_scene_resources);
   shaderio::PushConstant pushValues{
-      .sceneInfoAddress = addr,
       .metallicRoughnessOverride = m_metallicRoughnessOverride,
   };
 
-  switch (mode)
-  {
-    case RenderMode::RAYTRACE:
-    {
-      m_renderer->raytrace(m_scene_resources, pushValues);
-      break;
-    }
-    case RenderMode::RASTER:
-    {
-      m_renderer->raster(m_scene_resources, pushValues);
-      break;
-    }
-  }
+  IRenderContext& ctx_ref = const_cast<IRenderContext&>(ctx);
+  ctx_ref.pushValues = pushValues;
+  ctx_ref.sceneResources = &m_scene_resources.data();
+  m_renderer->render(ctx_ref);
 }
 
 // --------------------------------------------------
@@ -60,17 +49,10 @@ void SceneManager::render(RenderMode mode)
 // --------------------------------------------------
 
 /**********************************************************/
-void SceneManager::postProcess()
+void SceneManager::reload()
 /**********************************************************/
 {
-  m_renderer->postProcess();
-}
-
-/**********************************************************/
-void SceneManager::reload(bool useRaytracing)
-/**********************************************************/
-{
-  m_renderer->reload(useRaytracing);
+  m_renderer->reload(m_scene_resources);
 }
 
 /**********************************************************/
@@ -115,6 +97,13 @@ SceneResourcesManager& SceneManager::sceneResources()
 // --------------------------------------------------
 // Rendering parameters
 // --------------------------------------------------
+
+/**********************************************************/
+void SceneManager::setRenderMode(RenderMode mode)
+/**********************************************************/
+{
+  m_renderer->setRenderMode(mode, m_scene_resources);
+}
 
 /**********************************************************/
 shaderio::TonemapperData& SceneManager::tonemapper()

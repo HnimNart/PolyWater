@@ -2,6 +2,9 @@
 
 #include <cstdint>
 
+#include "scene/gltf/gltf_utils.hpp"
+#include "shaders/shaderio.h"
+
 //------------------------------------------------------------
 // FrameContext
 //------------------------------------------------------------
@@ -24,4 +27,7 @@ public:
 public:
   uint64_t frameNumber{
       0};  // Timeline value for synchronization (increases each frame)
+
+  gltf::Scene* sceneResources = nullptr;
+  shaderio::PushConstant pushValues;
 };

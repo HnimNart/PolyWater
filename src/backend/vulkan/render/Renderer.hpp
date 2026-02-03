@@ -9,8 +9,10 @@
 #include "RayTracer.hpp"
 #include "ToneMapper.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
+#include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "scene/SceneManager.hpp"
 #include "scene/gltf/io_gltf.h"
 
 class PostProcessor;
@@ -41,19 +43,17 @@ public:
   // ---------------------------------------------------------------------------
   void init(const SceneResourcesManager& scene) override;
   void deinit() override;
-  void reload(bool useRaytracing) override;
+  void reload(const SceneResourcesManager& scene) override;
 
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
   shaderio::GltfSceneInfo*
-  updateSceneBuffers(SceneResourcesManager& scene) override;
-  void raster(const SceneResourcesManager& scene,
-              const shaderio::PushConstant& pushValues) const override;
-  void raytrace(const SceneResourcesManager& scene,
-                const shaderio::PushConstant& pushValues) const override;
-
-  void postProcess() override;
+  updateSceneBuffer(VkCommandBuffer cmd,
+                    shaderio::GltfSceneInfo& sceneInfo) const;
+  void setRenderMode(RenderMode mode,
+                     const SceneResourcesManager& scene) override;
+  void render(const IRenderContext& ctx) const override;
   void onResize(const WindowSize& size) override;
   void saveImage(const std::filesystem::path& filename,
                  int quality = 100) const override;
@@ -67,19 +67,18 @@ public:
 
 private:
   void initGBuffers();
+  void buildGraph(const SceneResourcesManager& scene);
   shaderio::GltfSceneInfo*
   updateSceneBuffer(VkCommandBuffer cmd, SceneResourcesManager& scene) const;
   void createDescriptorSetLayout(VkDevice device);
 
   // Data
   nvvk::DescriptorPack m_descPack{};
-
   VulkanContextManager* m_core_manager = nullptr;
-  FrameSynchronizationManager* m_frame_sync_manager = nullptr;
-
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
-  std::unique_ptr<VulkanRaster> m_raster;
-  std::unique_ptr<VulkanRayTracer> m_ray_tracer;
-  std::unique_ptr<VulkanToneMapper> m_post;
+
+  // TODO Remove these?
+  VulkanToneMapper* m_post = nullptr;
+  RenderGraph m_graph;
 };

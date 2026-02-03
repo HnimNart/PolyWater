@@ -26,7 +26,6 @@ void VulkanRendererElement::setupScene()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  sleep(1);
   SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
 
   // Load the GLTF resources
@@ -132,7 +131,7 @@ void VulkanRendererElement::onUIMenu()
 
   if (reload)
   {
-    m_scene_manager.reload(m_renderMode == SceneManager::RenderMode::RAYTRACE);
+    m_scene_manager.reload();
   }
 }
 
@@ -151,8 +150,8 @@ void VulkanRendererElement::onUIRender()
 
   if (ImGui::Begin("Settings"))
   {
-    using RenderMode = SceneManager::RenderMode;
-    const char* preview = SceneManager::renderModeToString(m_renderMode);
+    using RenderMode = RenderMode;
+    const char* preview = renderModeToString(m_renderMode);
 
     if (ImGui::BeginCombo("Render Mode", preview))
     {
@@ -160,10 +159,10 @@ void VulkanRendererElement::onUIRender()
       {
         auto mode = static_cast<RenderMode>(n);
         bool isSelected = (m_renderMode == mode);
-        if (ImGui::Selectable(SceneManager::renderModeToString(mode),
-                              isSelected))
+        if (ImGui::Selectable(renderModeToString(mode), isSelected))
         {
           m_renderMode = mode;
+          m_scene_manager.setRenderMode(m_renderMode);
         }
         if (isSelected)
         {
@@ -238,17 +237,16 @@ void VulkanRendererElement::onPreRender()
 }
 
 /**********************************************************/
-void VulkanRendererElement::onRender(const IRenderContext& /*ctx */)
+void VulkanRendererElement::onRender(const IRenderContext& ctx)
 /**********************************************************/
 {
-  m_scene_manager.render(m_renderMode);
+  m_scene_manager.render(m_renderMode, ctx);
 }
 
 /**********************************************************/
-void VulkanRendererElement::onEndFrame(const IRenderContext& /*frame*/)
+void VulkanRendererElement::onEndFrame(const IRenderContext& ctx)
 /**********************************************************/
 {
-  m_scene_manager.postProcess();
 }
 
 /**********************************************************/

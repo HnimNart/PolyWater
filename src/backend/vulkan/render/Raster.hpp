@@ -7,6 +7,7 @@
 #include <nvshaders_host/sky.hpp>
 #include <nvvk/descriptors.hpp>
 
+#include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
@@ -27,31 +28,28 @@ namespace shaderio
 struct PushConstant;
 }
 
-class VulkanRaster
+class VulkanRaster : public IRenderPass
 {
 public:
-  VulkanRaster(VulkanContextManager* coreManager);
-  ~VulkanRaster();
+  VulkanRaster(nvvk::DescriptorPack* descPack);
+  ~VulkanRaster() = default;
 
-  void init();
+  void init(VulkanContextManager* coreManager,
+            const SceneResourcesManager& scene) override;
+  void deinit(VulkanContextManager* coreManager) override;
 
   // Raster //
   //---------------------------------------------------------------------------------------------------------------
   // Recording the commands to render the scene
   //
-  void render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-              const gltf::Scene& sceneResources,
-              const VulkanSceneGpuData& deviceResources,
-              const shaderio::PushConstant& pushConstants) const;
+  void execute(const IRenderContext& ctx) override;
 
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
   const nvvk::GBuffer& gbuffer() const;
-  void setDescriptorPack(nvvk::DescriptorPack* descPack);
 
 private:
-  void deinit();
   void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
   void clearShaders();

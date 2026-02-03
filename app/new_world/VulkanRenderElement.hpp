@@ -46,5 +46,5 @@ private:
   SceneManager m_scene_manager{};
 
   // Ray tracing toggle
-  SceneManager::RenderMode m_renderMode = SceneManager::RenderMode::RAYTRACE;
+  RenderMode m_renderMode = RenderMode::RAYTRACE;
 };

@@ -3,15 +3,20 @@
 
 
 ## TODOS
-- Scene loader and scene specifier
-- Lazy loading for rasterization
-- RenderGraph implementation
-- Fix crash in debug mode
-- See how profiler can be used? NSIGHT?
-- COncurrent rendering?
+[ ] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
+
+[x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
+
+[ ] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
+
+[ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
+
+[ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
+
+[ ] Concurrent Rendering: Explore multi-queue submission or async compute.
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
-It can be used for both **rasterization** and **ray tracing**, with a strong focus on modularity, extensibility, and maintainability.
+It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
 
 ---
 

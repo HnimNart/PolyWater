@@ -12,7 +12,6 @@
 
 #include "SceneAssetManager.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
-#include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "shaders/compiler/slang.hpp"
@@ -23,36 +22,29 @@
 #include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
-VulkanRaster::VulkanRaster(VulkanContextManager* coreManager)
+VulkanRaster::VulkanRaster(nvvk::DescriptorPack* descPack)
 /**********************************************************/
 {
-  assert(coreManager);
-  m_core_manager = coreManager;
+  m_descPack = descPack;
 }
 
 /**********************************************************/
-void VulkanRaster::init()
+void VulkanRaster::init(VulkanContextManager* coreManager,
+                        const SceneResourcesManager& /*scene*/)
 /**********************************************************/
 {
+  m_core_manager = coreManager;
   createPipelineLayout(m_core_manager->getDevice());
   compileShaders();
 }
 
 /**********************************************************/
-VulkanRaster::~VulkanRaster()
+void VulkanRaster::deinit(VulkanContextManager* coreManager)
 /**********************************************************/
 {
-  deinit();
-}
-
-/**********************************************************/
-void VulkanRaster::deinit()
-/**********************************************************/
-{
-  vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
-                          nullptr);
-  vkDestroyShaderEXT(m_core_manager->getDevice(), m_vertexShader, nullptr);
-  vkDestroyShaderEXT(m_core_manager->getDevice(), m_fragmentShader, nullptr);
+  vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyShaderEXT(coreManager->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(coreManager->getDevice(), m_fragmentShader, nullptr);
   m_skySimple.deinit();
 }
 
@@ -65,17 +57,22 @@ void VulkanRaster::resize(VkCommandBuffer cmd, VkExtent2D size)
 }
 
 /**********************************************************/
-void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                          const gltf::Scene& sceneResources,
-                          const VulkanSceneGpuData& deviceResources,
-                          const shaderio::PushConstant& pushConstants) const
+void VulkanRaster::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
 
+  VkCommandBuffer cmd = vkCtx.cmdBuffer;
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
+  const VulkanSceneGpuData& deviceResources = *vkCtx.deviceResources;
+
+  // Host stuff
+  shaderio::PushConstant constants = vkCtx.pushValues;
+  const gltf::Scene& sceneResources = *vkCtx.sceneResources;
   const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
 
-  shaderio::PushConstant constants = pushConstants;
+  NVVK_DBG_SCOPE(cmd);
+
   // Define push info
   const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
@@ -87,14 +84,14 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   };
 
   // Rendering the Sky
-  const VkExtent2D& size = gBuffers.getSize();
+  const VkExtent2D& size = gBuffers->getSize();
   if (scene_info.useSky)
   {
     const glm::mat4& viewMatrix = scene_info.viewMatrix;
     const glm::mat4& projMatrix = scene_info.projMatrix;
     m_skySimple.runCompute(
         cmd, size, viewMatrix, projMatrix, scene_info.skySimpleParam,
-        gBuffers.getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
+        gBuffers->getDescriptorImageInfo(ISceneRenderer::RenderOutput::Linear));
   }
 
   // Rendering to the GBuffer - Attachments
@@ -102,25 +99,25 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   colorAttachment.loadOp = scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD
                                              : VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.imageView =
-      gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear);
+      gBuffers->getColorImageView(ISceneRenderer::RenderOutput::Linear);
   colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
                                           scene_info.backgroundColor.y,
                                           scene_info.backgroundColor.z, 1.0f}};
 
   VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
-  depthAttachment.imageView = gBuffers.getDepthImageView();
+  depthAttachment.imageView = gBuffers->getDepthImageView();
   depthAttachment.clearValue = {.depthStencil =
                                     DEFAULT_VkClearDepthStencilValue};
 
   VkRenderingInfo renderingInfo = DEFAULT_VkRenderingInfo;
-  renderingInfo.renderArea = DEFAULT_VkRect2D(gBuffers.getSize());
+  renderingInfo.renderArea = DEFAULT_VkRect2D(gBuffers->getSize());
   renderingInfo.colorAttachmentCount = 1;
   renderingInfo.pColorAttachments = &colorAttachment;
   renderingInfo.pDepthAttachment = &depthAttachment;
 
   // Transition GBuffer layout
   nvvk::cmdImageMemoryBarrier(
-      cmd, {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
+      cmd, {gBuffers->getColorImage(ISceneRenderer::RenderOutput::Linear),
             VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
   // Bind Descriptor Sets
@@ -181,15 +178,8 @@ void VulkanRaster::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
 
   // Transition back to GENERAL
   nvvk::cmdImageMemoryBarrier(
-      cmd, {gBuffers.getColorImage(ISceneRenderer::RenderOutput::Linear),
+      cmd, {gBuffers->getColorImage(ISceneRenderer::RenderOutput::Linear),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
-}
-
-/**********************************************************/
-void VulkanRaster::setDescriptorPack(nvvk::DescriptorPack* descPack)
-/**********************************************************/
-{
-  m_descPack = descPack;
 }
 
 /**********************************************************/

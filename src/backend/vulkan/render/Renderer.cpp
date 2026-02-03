@@ -23,13 +23,8 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 /**********************************************************/
 {
   m_core_manager = backend->getCoreManager();
-  m_frame_sync_manager = backend->getFrameSyncManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_core_manager);
-
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
-  m_raster = std::make_unique<VulkanRaster>(m_core_manager);
-  m_ray_tracer = std::make_unique<VulkanRayTracer>(m_core_manager);
-  m_post = std::make_unique<VulkanToneMapper>(m_core_manager);
 }
 
 // ---------------------------------------------------------------------------
@@ -44,14 +39,7 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
   initGBuffers();
   createDescriptorSetLayout(m_core_manager->getDevice());
   m_resources->updateDescriptors(m_descPack);
-
-  m_raster->setDescriptorPack(&m_descPack);
-  m_raster->init();
-
-  m_ray_tracer->setDescriptorPack(&m_descPack);
-  m_ray_tracer->init(scene);
-
-  m_post->init();
+  buildGraph(scene);
 }
 
 /**********************************************************/
@@ -59,10 +47,9 @@ void VulkanRenderer::deinit()
 /**********************************************************/
 {
   m_core_manager->waitForDeviceIdle();
+  m_post = nullptr;
 
-  m_ray_tracer.reset();
-  m_raster.reset();
-  m_post.reset();
+  m_graph.deinit(m_core_manager);
 
   m_descPack.deinit();
   m_gBuffers->deinit();
@@ -70,11 +57,11 @@ void VulkanRenderer::deinit()
 }
 
 /**********************************************************/
-void VulkanRenderer::reload(bool useRaytracing)
+void VulkanRenderer::reload(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   m_core_manager->waitForDeviceIdle();
-  useRaytracing ? m_ray_tracer->createRayTracingPipeline() : m_raster->reload();
+  buildGraph(scene);
 }
 
 // ---------------------------------------------------------------------------
@@ -84,19 +71,17 @@ void VulkanRenderer::reload(bool useRaytracing)
 /**********************************************************/
 shaderio::GltfSceneInfo*
 VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
-                                  SceneResourcesManager& scene) const
+                                  shaderio::GltfSceneInfo& sceneInfo) const
 /**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   const VulkanSceneGpuData& device_resources = m_resources->deviceResources();
-  shaderio::GltfSceneInfo& scene_info = scene.sceneInfo();
-  scene_info.instances =
-      (shaderio::GltfInstance*) device_resources.bInstances
-          .address;  // Get the address of the instance buffer
-  scene_info.meshes = (shaderio::GltfMesh*) device_resources.bMeshes
-                          .address;  // Get the address of the mesh buffer
-  scene_info.materials =
+  sceneInfo.instances = (shaderio::GltfInstance*) device_resources.bInstances
+                            .address;  // Get the address of the instance buffer
+  sceneInfo.meshes = (shaderio::GltfMesh*) device_resources.bMeshes
+                         .address;  // Get the address of the mesh buffer
+  sceneInfo.materials =
       (shaderio::GltfMetallicRoughness*) device_resources.bMaterials
           .address;  // Get the address of the material buffer
 
@@ -105,7 +90,7 @@ VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
   vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0,
-                    sizeof(shaderio::GltfSceneInfo), &scene.sceneInfo());
+                    sizeof(shaderio::GltfSceneInfo), &sceneInfo);
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
@@ -114,43 +99,61 @@ VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
 }
 
 /**********************************************************/
-shaderio::GltfSceneInfo*
-VulkanRenderer::updateSceneBuffers(SceneResourcesManager& scene)
+void VulkanRenderer::setRenderMode(RenderMode mode,
+                                   const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
-  return updateSceneBuffer(cmd, scene);
+  if (m_render_mode != mode)
+  {
+    m_core_manager->waitForDeviceIdle();
+    m_render_mode = mode;
+    buildGraph(scene);
+  }
 }
 
 /**********************************************************/
-void VulkanRenderer::raytrace(const SceneResourcesManager& scene,
-                              const shaderio::PushConstant& pushValues) const
+void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
-  m_ray_tracer->render(cmd, *m_gBuffers, pushValues);
+  SCOPED_TIMER_FUNC();
+  // 1. Clear existing passes
+  m_graph.deinit(m_core_manager);
+
+  // 2. Add passes based on mode
+  if (m_render_mode == RenderMode::RASTER)
+  {
+    // Raster Configuration: Sky -> Geometry -> ToneMap
+    // m_graph.addPass(std::make_unique<SkyRenderPass>());
+    auto raster = std::make_unique<VulkanRaster>(&m_descPack);
+    m_graph.addPass(std::move(raster));
+  }
+  else
+  {
+    std::unique_ptr<VulkanRayTracer> raytracer =
+        std::make_unique<VulkanRayTracer>(&m_descPack);
+    m_graph.addPass(std::move(raytracer));
+  }
+
+  // Common: Post Processing
+  auto tonePass = std::make_unique<VulkanToneMapper>();
+  m_post = tonePass.get();  // Cache pointer for UI access
+  m_graph.addPass(std::move(tonePass));
+
+  // 3. Initialize the whole chain
+  m_graph.init(m_core_manager, scene);
 }
 
 /**********************************************************/
-void VulkanRenderer::raster(const SceneResourcesManager& scene,
-                            const shaderio::PushConstant& pushValues) const
+void VulkanRenderer::render(const IRenderContext& ctx) const
 /**********************************************************/
 {
-  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
-  m_raster->render(cmd, *m_gBuffers, scene.data(),
-                   m_resources->deviceResources(), pushValues);
-}
-
-/**********************************************************/
-void VulkanRenderer::postProcess()
-/**********************************************************/
-{
-  VkCommandBuffer cmd = m_frame_sync_manager->getActiveCommandBuffer();
-  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
-  m_post->run(cmd, *m_gBuffers);
-  // Barrier to make sure the image is ready for been display
-  nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  VulkanRenderContext& vkCtx_ref = const_cast<VulkanRenderContext&>(vkCtx);
+  vkCtx_ref.gBuffers = m_gBuffers.get();
+  vkCtx_ref.deviceResources = &m_resources->deviceResources();
+  vkCtx_ref.pushValues.sceneInfoAddress =
+      updateSceneBuffer(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
+  m_graph.execute(ctx);
 }
 
 /**********************************************************/

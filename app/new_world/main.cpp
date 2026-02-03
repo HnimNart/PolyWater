@@ -46,7 +46,6 @@
 #include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
-// The main function, entry point of the application
 int main(int argc, char** argv)
 {
   core::ApplicationCreateInfo appInfo{};
@@ -61,6 +60,9 @@ int main(int argc, char** argv)
   // Initialize compiler
   SlangCompiler::instance().init(common::getShaderDirs());
 
+  // Setting up the application
+  appInfo.name = "New World";
+
   // Initialize the Vulkan context
   std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
@@ -68,9 +70,6 @@ int main(int argc, char** argv)
   // Initialize vulkan imgui system
   auto gui = std::make_shared<ImGuiVulkanSystem>();
   gui->init(appInfo);
-
-  // Setting up the application
-  appInfo.name = "New World";
 
   // Create the application
   core::Application application(appInfo, std::move(backend), gui);

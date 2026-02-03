@@ -2,7 +2,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include <nvvk/gbuffers.hpp>
+
 #include "backend/interfaces/IRenderContext.hpp"
+#include "backend/vulkan/render/SceneAssetManager.hpp"
 
 //------------------------------------------------------------
 // VulkanFrameContext
@@ -20,10 +23,24 @@ public:
   VulkanRenderContext(VulkanRenderContext&&) = delete;
   VulkanRenderContext& operator=(VulkanRenderContext&&) = delete;
 
+  // Static helper to cast from the interface
+  static const VulkanRenderContext& get(const IRenderContext& ctx)
+  {
+    return static_cast<const VulkanRenderContext&>(ctx);
+  }
+
+  static VulkanRenderContext& get(IRenderContext& ctx)
+  {
+    return static_cast<VulkanRenderContext&>(ctx);
+  }
+
   // ------------------------------------------------------------------------
   // Vulkan-specific per-frame members
   // ------------------------------------------------------------------------
   VkCommandBuffer cmdBuffer{};
   VkCommandPool cmdPool{};
   VkDevice device{};
+
+  const nvvk::GBuffer* gBuffers{};
+  const VulkanSceneGpuData* deviceResources{};
 };

@@ -12,7 +12,6 @@
 
 #include "Raster.hpp"
 #include "backend/interfaces/ISceneRenderer.hpp"
-#include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
@@ -22,21 +21,23 @@
 #include "build/_autogen/rtbasic.slang.h"
 
 /**********************************************************/
-VulkanRayTracer::VulkanRayTracer(VulkanContextManager* coreManager)
+VulkanRayTracer::VulkanRayTracer(nvvk::DescriptorPack* descPack)
+/**********************************************************/
+{
+  m_sharedDescPack = descPack;
+}
+
+/**********************************************************/
+void VulkanRayTracer::init(VulkanContextManager* coreManager,
+                           const SceneResourcesManager& scene)
 /**********************************************************/
 {
   m_core_manager = coreManager;
+  createScene(scene);
 }
 
 /**********************************************************/
-VulkanRayTracer::~VulkanRayTracer()
-/**********************************************************/
-{
-  deinit();
-}
-
-/**********************************************************/
-void VulkanRayTracer::deinit()
+void VulkanRayTracer::deinit(VulkanContextManager* /* coreManager */)
 /**********************************************************/
 {
   vkDestroyPipelineLayout(m_core_manager->getDevice(), m_pipelineLayout,
@@ -49,7 +50,7 @@ void VulkanRayTracer::deinit()
 }
 
 /**********************************************************/
-void VulkanRayTracer::init(const SceneResourcesManager& scene)
+void VulkanRayTracer::createScene(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   createPipeline(scene);
@@ -237,10 +238,16 @@ void VulkanRayTracer::createShaderBindingTable(
 }
 
 /**********************************************************/
-void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
-                             const shaderio::PushConstant& pushValues) const
+void VulkanRayTracer::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
+
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
+  shaderio::PushConstant constants = vkCtx.pushValues;
+
+  VkCommandBuffer cmd = vkCtx.cmdBuffer;
+
   NVVK_DBG_SCOPE(cmd);
 
   // Ray trace pipeline binding
@@ -260,9 +267,10 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
   nvvk::WriteSetContainer write{};
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas),
                m_accel.tlas());
-  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
-               gBuffers.getColorImageView(ISceneRenderer::RenderOutput::Linear),
-               VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
+      gBuffers->getColorImageView(ISceneRenderer::RenderOutput::Linear),
+      VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                             m_pipelineLayout, 1, write.size(), write.data());
 
@@ -272,23 +280,16 @@ void VulkanRayTracer::render(VkCommandBuffer cmd, const nvvk::GBuffer& gBuffers,
                                      .layout = m_pipelineLayout,
                                      .stageFlags = VK_SHADER_STAGE_ALL,
                                      .size = sizeof(shaderio::PushConstant),
-                                     .pValues = &pushValues};
+                                     .pValues = &vkCtx.pushValues};
   vkCmdPushConstants2(cmd, &pushInfo);
 
   // Ray trace
   const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
-  const VkExtent2D& size = gBuffers.getSize();
+  const VkExtent2D& size = gBuffers->getSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
                     &regions.callable, size.width, size.height, 1);
 
   // Memory Barrier for Tonemapper
   nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
                          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
-}
-
-/**********************************************************/
-void VulkanRayTracer::setDescriptorPack(nvvk::DescriptorPack* descPack)
-/**********************************************************/
-{
-  m_sharedDescPack = descPack;
 }
