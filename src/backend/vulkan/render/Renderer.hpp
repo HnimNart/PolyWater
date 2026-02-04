@@ -7,7 +7,7 @@
 #include "Acceleration.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/interfaces/IRenderGraph.hpp"
-#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/RayTracePass.hpp"
@@ -26,7 +26,7 @@ namespace shaderio
 struct PushConstant;
 }
 
-class VulkanRenderer final : public ISceneRenderer
+class VulkanRenderer final : public IRenderer
 {
 public:
   explicit VulkanRenderer(VulkanBackend* backend);
@@ -69,7 +69,8 @@ private:
   void initGBuffers();
   void buildGraph(const SceneResourcesManager& scene);
   shaderio::GltfSceneInfo*
-  updateSceneBuffer(VkCommandBuffer cmd, SceneResourcesManager& scene) const;
+  updateSceneBuffer(VkCommandBuffer cmd,
+                    const SceneResourcesManager& scene) const;
   void createDescriptorSetLayout(VkDevice device);
 
   // Data

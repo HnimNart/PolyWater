@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "backend/interfaces/IRenderContext.hpp"
+#include "scene/SceneManager.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;
@@ -37,10 +38,10 @@ static inline const char* renderModeToString(RenderMode mode)
   }
 }
 
-class ISceneRenderer
+class IRenderer
 {
 public:
-  virtual ~ISceneRenderer() = default;
+  virtual ~IRenderer() = default;
 
   // -------------------------------------------------------------------------
   // Lifecycle

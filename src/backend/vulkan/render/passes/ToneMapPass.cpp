@@ -3,7 +3,7 @@
 #include <nvvk/debug_util.hpp>
 
 #include "_autogen/tonemapper.slang.h"
-#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/

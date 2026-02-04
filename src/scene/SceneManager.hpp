@@ -6,7 +6,7 @@
 #include <nvutils/camera_manipulator.hpp>
 
 #include "SceneResources.hpp"
-#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 #include "core/Camera.hpp"
 
 namespace shaderio
@@ -14,38 +14,27 @@ namespace shaderio
 class TonemapperData;
 }
 
+class IRenderer;
 class IRenderContext;
 
 class SceneManager
 {
 public:
   SceneManager() = default;
-  explicit SceneManager(std::shared_ptr<ISceneRenderer> renderer);
-
+  explicit SceneManager(const std::shared_ptr<IRenderer>& renderer);
   void clear();
-  void postInit();
-  void render(RenderMode mode, const IRenderContext& ctx);
-
-  // --------------------------------------------------
-  // Rendering / Post-processing
-  // --------------------------------------------------
-  void postProcess(const IRenderContext& ctx);
-  void reload();
-  void* getTonemapedImageDescriptor();
-  void onResize(const WindowSize& size);
 
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
+  gltf::Scene* getScenePtr();
   gltf::Scene& gltfResources();
   const gltf::Scene& gltfResources() const;
-  SceneResourcesManager& sceneResources();
+  SceneResourcesManager& sceneResourceManager();
 
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
-  void setRenderMode(RenderMode mode);
-  shaderio::TonemapperData& tonemapper();
   glm::vec2& metallicRoughness();
   shaderio::GltfSceneInfo& sceneInfo();
 
@@ -58,7 +47,6 @@ public:
 private:
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
   SceneResourcesManager m_scene_resources{};
-  std::shared_ptr<ISceneRenderer> m_renderer = nullptr;
   glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 };
 

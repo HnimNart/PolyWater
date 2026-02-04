@@ -16,6 +16,7 @@
 #include <nvgui/sky.hpp>
 #include <nvgui/tonemapper.hpp>
 
+#include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
 #include "common/path_utils.hpp"
 #include "common/timers.hpp"
@@ -26,7 +27,8 @@ void VulkanRendererElement::setupScene()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  SceneResourcesManager& scene_resources = m_scene_manager.sceneResources();
+  SceneResourcesManager& scene_resources =
+      m_scene_manager.sceneResourceManager();
 
   // Load the GLTF resources
   tinygltf::Model teapotModel = scene_resources.loadGltf(
@@ -88,7 +90,7 @@ void VulkanRendererElement::setupScene()
                                       {0.0F, 1.0F, 0.0F});
 
   // build scene
-  m_scene_manager.postInit();
+  m_renderer->init(m_scene_manager.sceneResourceManager());
 }
 
 /**********************************************************/
@@ -107,6 +109,7 @@ void VulkanRendererElement::onAttach(core::Application* app)
 void VulkanRendererElement::onDetach()
 /**********************************************************/
 {
+  m_renderer->deinit();
   m_scene_manager.clear();
 }
 
@@ -114,7 +117,7 @@ void VulkanRendererElement::onDetach()
 void VulkanRendererElement::onResize(WindowSize size)
 /**********************************************************/
 {
-  m_scene_manager.onResize(size);
+  m_renderer->onResize(size);
 }
 
 /**********************************************************/
@@ -131,7 +134,7 @@ void VulkanRendererElement::onUIMenu()
 
   if (reload)
   {
-    m_scene_manager.reload();
+    m_renderer->reload(m_scene_manager.sceneResourceManager());
   }
 }
 
@@ -143,14 +146,14 @@ void VulkanRendererElement::onUIRender()
 
   if (ImGui::Begin("Viewport"))
   {
-    ImGui::Image(ImTextureID(m_scene_manager.getTonemapedImageDescriptor()),
-                 ImGui::GetContentRegionAvail());
+    ImGui::Image(
+        ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped)),
+        ImGui::GetContentRegionAvail());
   }
   ImGui::End();
 
   if (ImGui::Begin("Settings"))
   {
-    using RenderMode = RenderMode;
     const char* preview = renderModeToString(m_renderMode);
 
     if (ImGui::BeginCombo("Render Mode", preview))
@@ -162,7 +165,8 @@ void VulkanRendererElement::onUIRender()
         if (ImGui::Selectable(renderModeToString(mode), isSelected))
         {
           m_renderMode = mode;
-          m_scene_manager.setRenderMode(m_renderMode);
+          m_renderer->setRenderMode(m_renderMode,
+                                    m_scene_manager.sceneResourceManager());
         }
         if (isSelected)
         {
@@ -224,7 +228,7 @@ void VulkanRendererElement::onUIRender()
     }
     if (ImGui::CollapsingHeader("Tonemapper"))
     {
-      nvgui::tonemapperWidget(m_scene_manager.tonemapper());
+      nvgui::tonemapperWidget(m_renderer->postProcessor().data());
     }
   }
   ImGui::End();
@@ -240,7 +244,13 @@ void VulkanRendererElement::onPreRender()
 void VulkanRendererElement::onRender(const IRenderContext& ctx)
 /**********************************************************/
 {
-  m_scene_manager.render(m_renderMode, ctx);
+  shaderio::PushConstant pushValues{.metallicRoughnessOverride =
+                                        m_scene_manager.metallicRoughness()};
+
+  IRenderContext& ctx_ref = const_cast<IRenderContext&>(ctx);
+  ctx_ref.pushValues = pushValues;
+  ctx_ref.sceneResources = m_scene_manager.getScenePtr();
+  m_renderer->render(ctx_ref);
 }
 
 /**********************************************************/

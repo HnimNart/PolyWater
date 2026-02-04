@@ -1,17 +1,13 @@
 #include "SceneManager.hpp"
 
-#include "backend/interfaces/IRenderContext.hpp"
-#include "backend/interfaces/ISceneRenderer.hpp"
-#include "backend/interfaces/IToneMapper.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 #include "scene/gltf/io_gltf.h"
-#include "shaders/shaderio.h"
 
 /**********************************************************/
-SceneManager::SceneManager(std::shared_ptr<ISceneRenderer> renderer)
+SceneManager::SceneManager(const std::shared_ptr<IRenderer>& renderer)
 /**********************************************************/
 {
-  m_renderer = std::move(renderer);
-  m_scene_resources.init(m_renderer->deviceResources());
+  m_scene_resources.init(renderer->deviceResources());
 }
 
 /**********************************************************/
@@ -19,54 +15,14 @@ void SceneManager::clear()
 /**********************************************************/
 {
   m_scene_resources.clear();
-  m_renderer->deinit();
 }
 
 /**********************************************************/
-void SceneManager::postInit()
-/**********************************************************/
-{
-  m_renderer->init(m_scene_resources);
-}
-
-/**********************************************************/
-void SceneManager::render(RenderMode mode, const IRenderContext& ctx)
+gltf::Scene* SceneManager::getScenePtr()
 /**********************************************************/
 {
   m_scene_resources.updateSceneInfo(m_camera);
-  shaderio::PushConstant pushValues{
-      .metallicRoughnessOverride = m_metallicRoughnessOverride,
-  };
-
-  IRenderContext& ctx_ref = const_cast<IRenderContext&>(ctx);
-  ctx_ref.pushValues = pushValues;
-  ctx_ref.sceneResources = &m_scene_resources.data();
-  m_renderer->render(ctx_ref);
-}
-
-// --------------------------------------------------
-// Rendering / Post-processing
-// --------------------------------------------------
-
-/**********************************************************/
-void SceneManager::reload()
-/**********************************************************/
-{
-  m_renderer->reload(m_scene_resources);
-}
-
-/**********************************************************/
-void* SceneManager::getTonemapedImageDescriptor()
-/**********************************************************/
-{
-  return m_renderer->getImageDescriptor(RenderOutput::ToneMapped);
-}
-
-/**********************************************************/
-void SceneManager::onResize(const WindowSize& size)
-/**********************************************************/
-{
-  m_renderer->onResize(size);
+  return &gltfResources();
 }
 
 // --------------------------------------------------
@@ -88,28 +44,10 @@ const gltf::Scene& SceneManager::gltfResources() const
 }
 
 /**********************************************************/
-SceneResourcesManager& SceneManager::sceneResources()
+SceneResourcesManager& SceneManager::sceneResourceManager()
 /**********************************************************/
 {
   return m_scene_resources;
-}
-
-// --------------------------------------------------
-// Rendering parameters
-// --------------------------------------------------
-
-/**********************************************************/
-void SceneManager::setRenderMode(RenderMode mode)
-/**********************************************************/
-{
-  m_renderer->setRenderMode(mode, m_scene_resources);
-}
-
-/**********************************************************/
-shaderio::TonemapperData& SceneManager::tonemapper()
-/**********************************************************/
-{
-  return m_renderer->postProcessor().data();
 }
 
 /**********************************************************/

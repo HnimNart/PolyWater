@@ -10,7 +10,7 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "backend/interfaces/ISceneRenderer.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "common/timers.hpp"
@@ -75,8 +75,8 @@ void RasterPass::execute(const IRenderContext& ctx)
   const VulkanSceneGpuData& deviceResources = *vkCtx.deviceResources;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const gltf::Scene& sceneResources = *vkCtx.sceneResources;
-  const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
+  const gltf::Scene* sceneResources = vkCtx.sceneResources;
+  const shaderio::GltfSceneInfo& scene_info = sceneResources->sceneInfo;
   const VkExtent2D& size = gBuffers->getSize();
 
   NVVK_DBG_SCOPE(cmd);
@@ -143,15 +143,15 @@ void RasterPass::execute(const IRenderContext& ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
-  for (size_t i = 0; i < sceneResources.instances.size(); i++)
+  for (size_t i = 0; i < sceneResources->instances.size(); i++)
   {
-    uint32_t meshIndex = sceneResources.instances[i].meshIndex;
-    const shaderio::GltfMesh& gltfMesh = sceneResources.meshes[meshIndex];
+    uint32_t meshIndex = sceneResources->instances[i].meshIndex;
+    const shaderio::GltfMesh& gltfMesh = sceneResources->meshes[meshIndex];
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
     constants.normalMatrix = glm::transpose(
-        glm::inverse(glm::mat3(sceneResources.instances[i].transform)));
+        glm::inverse(glm::mat3(sceneResources->instances[i].transform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
