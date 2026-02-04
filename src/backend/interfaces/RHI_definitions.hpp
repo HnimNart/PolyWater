@@ -37,7 +37,8 @@ enum RenderOutput : uint8_t
   Linear = 0,       // HDR, raw output
   ToneMapped = 1,   // SDR, final output for presentation
   DepthBuffer = 2,  // Depth buffer
-  Count = 3,
+  Swapchain = 3,    //
+  Count = 4,
 };
 
 // 3. A Generic Barrier "Instruction" calculated by the Graph

@@ -50,6 +50,8 @@ void VulkanBackend::initPresentation(GLFWwindow* windowHandle,
   {
     m_swapchainManager = std::make_unique<SwapchainRenderManager>();
     m_swapchainManager->init(*m_coreManager, m_windowHandle);
+    m_swapchainManager->setUICallback(std::bind(
+        &VulkanBackend::recordRegistryCommands, this, std::placeholders::_1));
   }
 
   if (!gui)
@@ -142,13 +144,6 @@ void VulkanBackend::renderFrame(
   // Add swapchain semaphores
   if (m_windowHandle)
   {
-    // Render to swapchain
-    VkCommandBuffer cmd = m_frameSyncManager->getActiveCommandBuffer();
-
-    auto callback = std::bind(&VulkanBackend::recordRegistryCommands, this,
-                              std::cref(frame));
-    m_swapchainManager->renderToSwapchain(cmd, callback);
-
     m_frameSyncManager->addWaitSemaphore({
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .semaphore =

@@ -49,7 +49,7 @@ public:
 
   // Vulkan Backend
   void initVulkanBackend(VulkanContextManager& coreManager,
-                         uint max_frames_in_flight, VkFormat _imageFormat,
+                         uint maxFramesInFlight, VkFormat imageFormat,
                          GLFWwindow* windowHandle);
 
   void onRender(const IRenderContext& ctx) override;
@@ -64,8 +64,7 @@ private:
   // Vulkan Backend Helpers
   void initializeGlfwBackend(GLFWwindow* windowHandle);
   void initializeVulkanBackend(VulkanContextManager& coreManager,
-                               uint max_frames_in_flight,
-                               VkFormat _imageFormat);
+                               uint maxFramesInFlight, VkFormat imageFormat);
 
   void shutdownVulkanBackend();
 

@@ -15,6 +15,8 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 
     case RenderOutput::DepthBuffer:
       return gBuffers->getDepthImage();
+    case RenderOutput::Swapchain:
+      return this->swapchainImage;
 
     default:
       // Log warning: "Unknown RenderOutput resource requested"

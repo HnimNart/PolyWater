@@ -2,36 +2,45 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <functional>
+
 #include <nvvk/swapchain.hpp>
 
-#include "core/application/AppInfo.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
 
 class VulkanContextManager;
 class FrameSynchronizationManager;
+class GLFWwindow;
 
 class SwapchainRenderManager
 {
 public:
-  using RenderCallback = std::function<void()>;
+  SwapchainRenderManager() = default;
+  ~SwapchainRenderManager() = default;
 
+  // Initialization & Cleanup
   void init(VulkanContextManager& coreManager, GLFWwindow* windowHandle);
   void deinit(VulkanContextManager& coreManager);
 
-  // Swapchain management
+  // Frame Lifecycle
   bool beginFrame(VulkanContextManager& coreManager);
-  void renderToSwapchain(VkCommandBuffer cmd,
-                         const RenderCallback& renderCallback);
   void present(VulkanContextManager& coreManager);
 
-  // Accessors
+  // Getters
+  VkImage getOutputImage() const;
+  VkImageView getOutputImageView() const;
   VkExtent2D getWindowSize() const { return m_windowSize; }
-  void setWindowSize(VkExtent2D size) { m_windowSize = size; }
-
-  // Vsync control
-  void setVsync(bool enabled);
   bool getVsync() const { return m_vsyncWanted; }
 
-  const nvvk::Swapchain& getSwapchain() const { return m_swapchain; };
+  const nvvk::Swapchain& getSwapchain() const { return m_swapchain; }
+
+  // Setters
+  void setWindowSize(VkExtent2D size) { m_windowSize = size; }
+  void setVsync(bool enabled);
+
+  using RenderCallback = std::function<void(const IRenderContext& ctx)>;
+  void setUICallback(const RenderCallback& renderCallback);
+  RenderCallback getUICallback() const { return m_uiCallback; }
 
 private:
   void reportSwapchainDiagnostics(VkInstance instance,
@@ -42,9 +51,5 @@ private:
   VkExtent2D m_windowSize = {1280, 720};
   bool m_vsyncWanted = true;
 
-  void setupImGuiVulkanBackend(VulkanContextManager& coreManager,
-                               uint32_t framesInFlight);
-  void beginDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
-  void endDynamicRenderingToSwapchain(VkCommandBuffer cmd) const;
-  void rebuildSwapchainIfNeeded();
+  RenderCallback m_uiCallback = nullptr;
 };

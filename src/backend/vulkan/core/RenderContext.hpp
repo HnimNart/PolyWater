@@ -50,6 +50,12 @@ public:
   const VulkanSceneGpuData* deviceResources{};
   const AccelerationStructures* bvh{};
 
+  // --- Swapchain Integration ---
+  // These are updated every frame by the SwapchainRenderManager
+  VkImage swapchainImage{};  // For pipeline barriers (Layout transitions)
+  VkImageView swapchainImageView{};  // For VkRenderingAttachmentInfo (Drawing)
+  VkExtent2D screenSize{};           // For setting viewports and render areas
+
 private:
   VkImage getResourceImage(RenderOutput resource) const;
 };

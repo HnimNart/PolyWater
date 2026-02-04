@@ -133,8 +133,8 @@ void ImGuiVulkanSystem::initializeFonts()
 
 /**********************************************************/
 void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
-                                          uint max_frames_in_flight,
-                                          VkFormat _imageFormat,
+                                          uint maxFramesInFlight,
+                                          VkFormat imageFormat,
                                           GLFWwindow* windowHandle)
 /**********************************************************/
 {
@@ -144,7 +144,7 @@ void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
   }
 
   initializeGlfwBackend(windowHandle);
-  initializeVulkanBackend(coreManager, max_frames_in_flight, _imageFormat);
+  initializeVulkanBackend(coreManager, maxFramesInFlight, imageFormat);
 
   m_vulkanInitialized = true;
 }
@@ -255,8 +255,7 @@ void ImGuiVulkanSystem::renderViewports()
 void ImGuiVulkanSystem::onRender(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const VulkanRenderContext& vkContext =
-      static_cast<const VulkanRenderContext&>(ctx);
+  const VulkanRenderContext& vkContext = VulkanRenderContext::get(ctx);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vkContext.cmdBuffer);
 }
 

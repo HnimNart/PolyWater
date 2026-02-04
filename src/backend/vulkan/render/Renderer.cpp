@@ -15,6 +15,7 @@
 #include "passes/RasterPass.hpp"
 #include "passes/SkyPass.hpp"
 #include "passes/ToneMapPass.hpp"
+#include "passes/UIPass.hpp"
 #include "scene/SceneResources.hpp"
 #include "scene/gltf/io_gltf.h"
 
@@ -23,6 +24,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
 /**********************************************************/
 {
   m_context_manager = backend->getContextManager();
+  m_swapchain_manager = backend->getSwapchainManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_context_manager);
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 }
@@ -139,6 +141,12 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   m_post = tonePass.get();  // Cache pointer for UI access
   m_graph.addPass(std::move(tonePass));
 
+  if (m_swapchain_manager)
+  {
+    m_graph.addPass(
+        std::make_unique<UIPass>(m_swapchain_manager->getUICallback()));
+  }
+
   m_graph.init(m_context_manager, scene);
   m_graph.compile();
 }
@@ -153,6 +161,13 @@ void VulkanRenderer::render(IRenderContext& ctx) const
   vkCtx.pushValues.sceneInfoAddress =
       updateSceneBuffer(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
   vkCtx.bvh = m_accel.get();
+  if (m_swapchain_manager)
+  {
+    vkCtx.swapchainImage = m_swapchain_manager->getSwapchain().getImage();
+    vkCtx.swapchainImageView =
+        m_swapchain_manager->getSwapchain().getImageView();
+    vkCtx.screenSize = m_swapchain_manager->getWindowSize();
+  }
   m_graph.execute(ctx);
 }
 
