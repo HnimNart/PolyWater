@@ -46,11 +46,22 @@ void RasterPass::deinit(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
+void RasterPass::setup(PassBuilder& builder)
+/**********************************************************/
+{
+  // Declare intention to write to the Linear color buffer as a render target
+  builder.write(RenderOutput::Linear, PipelineStage::RenderTarget,
+                ResourceState::RenderTarget);
+
+  // Declare intention to write to the Depth buffer
+  builder.write(RenderOutput::DepthBuffer, PipelineStage::RenderTarget,
+                ResourceState::DepthWrite);
+}
+
+/**********************************************************/
 void RasterPass::resize(VkCommandBuffer cmd, VkExtent2D size)
 /**********************************************************/
 {
-  // Implementation for resize if needed, otherwise empty as per original code
-  // context
 }
 
 /**********************************************************/
@@ -63,7 +74,6 @@ void RasterPass::execute(const IRenderContext& ctx)
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
   const VulkanSceneGpuData& deviceResources = *vkCtx.deviceResources;
 
-  // Host stuff
   shaderio::PushConstant constants = vkCtx.pushValues;
   const gltf::Scene& sceneResources = *vkCtx.sceneResources;
   const shaderio::GltfSceneInfo& scene_info = sceneResources.sceneInfo;
@@ -85,8 +95,7 @@ void RasterPass::execute(const IRenderContext& ctx)
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
   colorAttachment.loadOp = scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD
                                              : VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.imageView =
-      gBuffers->getColorImageView(ISceneRenderer::RenderOutput::Linear);
+  colorAttachment.imageView = gBuffers->getColorImageView(RenderOutput::Linear);
   colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
                                           scene_info.backgroundColor.y,
                                           scene_info.backgroundColor.z, 1.0f}};
@@ -102,10 +111,8 @@ void RasterPass::execute(const IRenderContext& ctx)
   renderingInfo.pColorAttachments = &colorAttachment;
   renderingInfo.pDepthAttachment = &depthAttachment;
 
-  // Transition GBuffer layout
-  nvvk::cmdImageMemoryBarrier(
-      cmd, {gBuffers->getColorImage(ISceneRenderer::RenderOutput::Linear),
-            VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+  // NOTE: Manual image memory barriers removed.
+  // The Smart Render Graph handles layout transitions via setup() declarations.
 
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
@@ -119,8 +126,6 @@ void RasterPass::execute(const IRenderContext& ctx)
 
   // ** BEGIN RENDERING **
   vkCmdBeginRendering(cmd, &renderingInfo);
-
-  // Dynamic states
 
   nvvk::GraphicsPipelineState pipelineState{};
   pipelineState.rasterizationState.cullMode = VK_CULL_MODE_NONE;
@@ -163,11 +168,6 @@ void RasterPass::execute(const IRenderContext& ctx)
 
   // ** END RENDERING **
   vkCmdEndRendering(cmd);
-
-  // Transition back to GENERAL
-  nvvk::cmdImageMemoryBarrier(
-      cmd, {gBuffers->getColorImage(ISceneRenderer::RenderOutput::Linear),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL});
 }
 
 /**********************************************************/
@@ -203,7 +203,6 @@ void RasterPass::createPipelineLayout(VkDevice device)
 void RasterPass::clearShaders()
 /**********************************************************/
 {
-  // Cleanup old shaders
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
 }
@@ -214,7 +213,6 @@ void RasterPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
-  // Compile Shader
   VkShaderModuleCreateInfo shaderCode =
       SlangCompiler::instance().compile("foundation.slang", foundation_slang);
 

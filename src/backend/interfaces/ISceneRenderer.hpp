@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <memory>
 
@@ -41,12 +40,6 @@ static inline const char* renderModeToString(RenderMode mode)
 class ISceneRenderer
 {
 public:
-  enum RenderOutput : uint8_t
-  {
-    Linear = 0,     // HDR, raw output
-    ToneMapped = 1  // SDR, final output for presentation
-  };
-
   virtual ~ISceneRenderer() = default;
 
   // -------------------------------------------------------------------------

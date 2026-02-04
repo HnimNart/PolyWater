@@ -32,6 +32,7 @@ public:
 
   void init(VulkanContextManager* coreManager,
             const SceneResourcesManager& scene) override;
+  void setup(PassBuilder& builder) override;
   void deinit(VulkanContextManager* coreManager) override;
 
   // -------------------------------------------------------------------------

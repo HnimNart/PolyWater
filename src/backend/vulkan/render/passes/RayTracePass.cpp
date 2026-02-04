@@ -49,6 +49,19 @@ void RayTracePass::deinit(VulkanContextManager* /* coreManager */)
 }
 
 /**********************************************************/
+void RayTracePass::setup(PassBuilder& builder)
+/**********************************************************/
+{
+  // Ray tracing output: writing to the Linear Color buffer
+  // We use General state because it's a Storage Image write
+  builder.write(RenderOutput::Linear, PipelineStage::RayTracing,
+                ResourceState::General);
+
+  // Ray tracing input: The TLAS is an acceleration structure (Read)
+  // Note: If your PassBuilder supports buffer/AS tracking, add it here
+}
+
+/**********************************************************/
 void RayTracePass::createScene(const SceneResourcesManager& scene)
 /**********************************************************/
 {
@@ -233,10 +246,8 @@ void RayTracePass::createShaderBindingTable(
 void RayTracePass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-
   const auto& vkCtx = VulkanRenderContext::get(ctx);
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
-  shaderio::PushConstant constants = vkCtx.pushValues;
   const AccelerationStructures* bvh = vkCtx.bvh;
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
@@ -260,10 +271,9 @@ void RayTracePass::execute(const IRenderContext& ctx)
   nvvk::WriteSetContainer write{};
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas),
                bvh->tlas());
-  write.append(
-      m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
-      gBuffers->getColorImageView(ISceneRenderer::RenderOutput::Linear),
-      VK_IMAGE_LAYOUT_GENERAL);
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
+               gBuffers->getColorImageView(RenderOutput::Linear),
+               VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                             m_pipelineLayout, 1, write.size(), write.data());
 
@@ -281,7 +291,4 @@ void RayTracePass::execute(const IRenderContext& ctx)
   const VkExtent2D& size = gBuffers->getSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
                     &regions.callable, size.width, size.height, 1);
-
-  nvvk::cmdMemoryBarrier(cmd, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
 }

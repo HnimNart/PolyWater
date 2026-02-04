@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "RHI_definitions.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 
@@ -23,6 +24,8 @@ public:
   IRenderContext& operator=(IRenderContext const&) = delete;
   IRenderContext(IRenderContext&&) = delete;
   IRenderContext& operator=(IRenderContext&&) = delete;
+
+  virtual void submitBarriers(const std::vector<BarrierInfo>& barriers) = 0;
 
 public:
   uint64_t frameNumber{

@@ -1,6 +1,9 @@
 #include "ToneMapPass.hpp"
 
+#include <nvvk/debug_util.hpp>
+
 #include "_autogen/tonemapper.slang.h"
+#include "backend/interfaces/ISceneRenderer.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/
@@ -35,6 +38,20 @@ void ToneMapPass::init(VulkanContextManager* core,
 }
 
 /**********************************************************/
+void ToneMapPass::setup(PassBuilder& builder)
+/**********************************************************/
+{
+  // 1. Read the HDR "Linear" color buffer produced by Raster/RayTrace
+  // We need it in 'ShaderResource' state so the compute shader can sample it.
+  builder.read(RenderOutput::Linear, PipelineStage::Compute,
+               ResourceState::ShaderResource);
+
+  // 2. Write to the LDR "ToneMapped" color buffer
+  builder.write(RenderOutput::ToneMapped, PipelineStage::Compute,
+                ResourceState::General);
+}
+
+/**********************************************************/
 void ToneMapPass::deinit(VulkanContextManager* /* core */)
 /**********************************************************/
 {
@@ -52,13 +69,11 @@ void ToneMapPass::execute(const IRenderContext& ctx)
   {
     return;
   }
-
-  VkDescriptorImageInfo inputColor = vkCtx.gBuffers->getDescriptorImageInfo(0);
-  VkDescriptorImageInfo outputColor = vkCtx.gBuffers->getDescriptorImageInfo(1);
+  NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
+  VkDescriptorImageInfo inputColor =
+      vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::Linear);
+  VkDescriptorImageInfo outputColor =
+      vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::ToneMapped);
   m_tonemapper.runCompute(vkCtx.cmdBuffer, vkCtx.gBuffers->getSize(),
                           m_tonemapperData, inputColor, outputColor);
-
-  nvvk::cmdMemoryBarrier(vkCtx.cmdBuffer,
-                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT);
 }

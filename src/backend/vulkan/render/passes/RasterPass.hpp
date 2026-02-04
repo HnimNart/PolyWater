@@ -38,6 +38,8 @@ public:
             const SceneResourcesManager& scene) override;
   void deinit(VulkanContextManager* coreManager) override;
 
+  void setup(PassBuilder& builder) override;
+
   // Raster //
   void execute(const IRenderContext& ctx) override;
   void reload();

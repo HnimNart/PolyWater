@@ -59,7 +59,7 @@ void SceneManager::reload()
 void* SceneManager::getTonemapedImageDescriptor()
 /**********************************************************/
 {
-  return m_renderer->getImageDescriptor(ISceneRenderer::ToneMapped);
+  return m_renderer->getImageDescriptor(RenderOutput::ToneMapped);
 }
 
 /**********************************************************/

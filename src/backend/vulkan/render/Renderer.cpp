@@ -140,6 +140,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   m_graph.addPass(std::move(tonePass));
 
   m_graph.init(m_context_manager, scene);
+  m_graph.compile();
 }
 
 /**********************************************************/
@@ -217,8 +218,7 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void* VulkanRenderer::getImageDescriptor(
-    ISceneRenderer::RenderOutput output) const
+void* VulkanRenderer::getImageDescriptor(RenderOutput output) const
 /**********************************************************/
 {
   return static_cast<void*>(m_gBuffers->getDescriptorSet(output));
@@ -241,8 +241,7 @@ void VulkanRenderer::saveImage(const std::filesystem::path& filename,
     format = VK_FORMAT_R32G32B32A32_SFLOAT;
   }
 
-  auto srcImage =
-      m_gBuffers->getColorImage(ISceneRenderer::RenderOutput::ToneMapped);
+  auto srcImage = m_gBuffers->getColorImage(RenderOutput::ToneMapped);
   VkExtent2D size = m_gBuffers->getSize();
   nvvk::imageToLinear(cmd, device, physicalDevice, srcImage, size, dstImage,
                       dstImageMemory, format);
