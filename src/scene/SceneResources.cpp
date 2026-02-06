@@ -1,5 +1,7 @@
 #include "SceneResources.hpp"
 
+#include <nvutils/logger.hpp>
+
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -92,6 +94,13 @@ void SceneResourcesManager::finalizeSceneResources()
 void SceneResourcesManager::clear()
 /**********************************************************/
 {
+}
+
+/**********************************************************/
+void SceneResourcesManager::update(const CameraPtr& camera)
+/**********************************************************/
+{
+  updateSceneInfo(camera);
 }
 
 /**********************************************************/

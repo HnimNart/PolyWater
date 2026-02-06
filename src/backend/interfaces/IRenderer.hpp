@@ -50,6 +50,7 @@ public:
   virtual void deinit() = 0;
   virtual void onResize(const WindowSize& size) = 0;
   virtual void reload(const SceneResourcesManager& scene) = 0;
+  virtual void update(const SceneResourcesManager& scene) = 0;
 
   // -------------------------------------------------------------------------
   // Execution Cycle

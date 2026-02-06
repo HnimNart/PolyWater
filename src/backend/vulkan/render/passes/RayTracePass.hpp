@@ -27,7 +27,8 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(nvvk::DescriptorPack* descPack);
+  RayTracePass(nvvk::DescriptorPack* descPack,
+               MaterialManager* materialManager);
   ~RayTracePass() = default;
 
   void init(VulkanContextManager* coreManager,
@@ -38,15 +39,13 @@ public:
   // -------------------------------------------------------------------------
   // Setup & Configuration
   // -------------------------------------------------------------------------
-  void createScene(const SceneResourcesManager& scene);
-
   // Pipeline Creation Methods
-  void createRaytraceDescriptorLayout();
   void createPipeline(const SceneResourcesManager& scene);
 
   // Specific internal pipeline creators (exposed public as per original)
   void createRayTracingPipeline(const SceneResourcesManager& scene);
-  void createRayTracingPipeline();
+  void createDescriptorLayout();
+  void createPipelineSBT(const SceneResourcesManager& scene);
 
   // -------------------------------------------------------------------------
   // Execution
@@ -79,4 +78,6 @@ private:
   // Properties
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_properties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
+
+  MaterialManager* m_materialManager = nullptr;
 };

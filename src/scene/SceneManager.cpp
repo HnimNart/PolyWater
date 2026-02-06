@@ -18,10 +18,16 @@ void SceneManager::clear()
 }
 
 /**********************************************************/
+void SceneManager::update()
+/**********************************************************/
+{
+  m_scene_resources.update(m_camera);
+}
+
+/**********************************************************/
 gltf::Scene* SceneManager::getScenePtr()
 /**********************************************************/
 {
-  m_scene_resources.updateSceneInfo(m_camera);
   return &gltfResources();
 }
 

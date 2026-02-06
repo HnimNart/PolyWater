@@ -21,10 +21,12 @@
 #include "build/_autogen/rtbasic.slang.h"
 
 /**********************************************************/
-RayTracePass::RayTracePass(nvvk::DescriptorPack* descPack)
+RayTracePass::RayTracePass(nvvk::DescriptorPack* descPack,
+                           MaterialManager* materialManager)
 /**********************************************************/
 {
   m_sharedDescPack = descPack;
+  m_materialManager = materialManager;
 }
 
 /**********************************************************/
@@ -33,7 +35,7 @@ void RayTracePass::init(VulkanContextManager* contextManager,
 /**********************************************************/
 {
   m_context_manager = contextManager;
-  createScene(scene);
+  createPipeline(scene);
 }
 
 /**********************************************************/
@@ -62,13 +64,6 @@ void RayTracePass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void RayTracePass::createScene(const SceneResourcesManager& scene)
-/**********************************************************/
-{
-  createPipeline(scene);
-}
-
-/**********************************************************/
 void RayTracePass::createPipeline(const SceneResourcesManager& scene)
 /**********************************************************/
 {
@@ -90,12 +85,12 @@ void RayTracePass::createRayTracingPipeline(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   // Set up ray tracing pipeline infrastructure
-  createRaytraceDescriptorLayout();  // Create descriptor layout
-  createRayTracingPipeline();        // Create pipeline structure and SBT
+  createDescriptorLayout();  // Create descriptor layout
+  createPipelineSBT(scene);  // Create pipeline structure and SBT
 }
 
 /**********************************************************/
-void RayTracePass::createRaytraceDescriptorLayout()
+void RayTracePass::createDescriptorLayout()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -117,86 +112,104 @@ void RayTracePass::createRaytraceDescriptorLayout()
 }
 
 /**********************************************************/
-void RayTracePass::createRayTracingPipeline()
+void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  // For re-creation
+
+  // Cleanup
   vkDestroyPipeline(m_context_manager->getDevice(), m_pipeline, nullptr);
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
 
-  // Creating all shaders
-  enum StageIndices
-  {
-    eRaygen,
-    eMiss,
-    eClosestHit,
-    eShaderGroupCount
-  };
-  std::array<VkPipelineShaderStageCreateInfo, eShaderGroupCount> stages{};
-  for (auto& s : stages)
-    s.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
-  // Compile shader, fallback to pre-compiled
+  // 1. Setup Base Stages (Raygen and Miss)
+  std::vector<VkPipelineShaderStageCreateInfo> stages;
   VkShaderModuleCreateInfo shaderCode =
       SlangCompiler::instance().compile("rtbasic.slang", rtbasic_slang);
 
-  stages[eRaygen].pNext = &shaderCode;
-  stages[eRaygen].pName = "rgenMain";
-  stages[eRaygen].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-  stages[eMiss].pNext = &shaderCode;
-  stages[eMiss].pName = "rmissMain";
-  stages[eMiss].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-  stages[eClosestHit].pNext = &shaderCode;
-  stages[eClosestHit].pName = "rchitMain";
-  stages[eClosestHit].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+  // Raygen Stage (Index 0)
+  stages.push_back(
+      {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+       .pNext = &shaderCode,
+       .stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+       .pName = "rgenMain"});
 
-  // Shader groups
-  VkRayTracingShaderGroupCreateInfoKHR group{
-      VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR};
-  group.anyHitShader = VK_SHADER_UNUSED_KHR;
-  group.closestHitShader = VK_SHADER_UNUSED_KHR;
-  group.generalShader = VK_SHADER_UNUSED_KHR;
-  group.intersectionShader = VK_SHADER_UNUSED_KHR;
+  // Miss Stage (Index 1)
+  stages.push_back(
+      {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+       .pNext = &shaderCode,
+       .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
+       .pName = "rmissMain"});
 
+  // 2. Setup Hit Groups from Material Registry
+  // We'll store the hit group indices back into the manager so the TLAS knows
+  // what to use
   std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_groups;
-  // Raygen
-  group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  group.generalShader = eRaygen;
-  shader_groups.push_back(group);
 
-  // Miss
-  group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  group.generalShader = eMiss;
-  shader_groups.push_back(group);
+  // Add Raygen Group
+  shader_groups.push_back(
+      {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+       .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+       .generalShader = 0,  // Points to Raygen stage
+       .closestHitShader = VK_SHADER_UNUSED_KHR,
+       .anyHitShader = VK_SHADER_UNUSED_KHR,
+       .intersectionShader = VK_SHADER_UNUSED_KHR});
 
-  // closest hit shader
-  group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-  group.generalShader = VK_SHADER_UNUSED_KHR;
-  group.closestHitShader = eClosestHit;
-  shader_groups.push_back(group);
+  // Add Miss Group
+  shader_groups.push_back(
+      {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+       .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+       .generalShader = 1,  // Points to Miss stage
+       .closestHitShader = VK_SHADER_UNUSED_KHR,
+       .anyHitShader = VK_SHADER_UNUSED_KHR,
+       .intersectionShader = VK_SHADER_UNUSED_KHR});
 
-  // Push constant
+  // Add Hit Groups for each material
+  for (auto& [type, entry] : m_materialManager->getRegistry())
+  {
+    uint32_t currentStageIndex = static_cast<uint32_t>(stages.size());
+
+    // Add the CHIT stage for this material
+    stages.push_back({
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = &shaderCode,
+        .stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .pName = entry.closestHitSymbol.c_str()  // e.g., "rchitGlass"
+    });
+
+    // Add the Hit Group
+    // The entry.sbtIndex is the index within the 'Hit' section of the SBT.
+    // Since Raygen and Miss are usually separate regions, we record
+    // the relative index among hit groups.
+    entry.sbtIndex = static_cast<uint32_t>(shader_groups.size()) -
+                     2;  // -2 to skip Raygen/Miss
+
+    shader_groups.push_back(
+        {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+         .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+         .generalShader = VK_SHADER_UNUSED_KHR,
+         .closestHitShader = currentStageIndex,
+         .anyHitShader = VK_SHADER_UNUSED_KHR,
+         .intersectionShader = VK_SHADER_UNUSED_KHR});
+  }
+
+  // 3. Pipeline Layout and Creation (Same as before, using dynamic sizes)
   const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0,
                                           sizeof(shaderio::PushConstant)};
+  std::array<VkDescriptorSetLayout, 2> layouts = {
+      m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()};
 
   VkPipelineLayoutCreateInfo pipeline_layout_create_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
   pipeline_layout_create_info.pushConstantRangeCount = 1;
   pipeline_layout_create_info.pPushConstantRanges = &push_constant;
-
-  // Descriptor sets
-  std::array<VkDescriptorSetLayout, 2> layouts = {
-      {m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()}};
   pipeline_layout_create_info.setLayoutCount = uint32_t(layouts.size());
   pipeline_layout_create_info.pSetLayouts = layouts.data();
+
   vkCreatePipelineLayout(m_context_manager->getDevice(),
                          &pipeline_layout_create_info, nullptr,
                          &m_pipelineLayout);
-  NVVK_DBG_NAME(m_pipelineLayout);
 
-  // Assemble the shader stages
   VkRayTracingPipelineCreateInfoKHR rtPipelineInfo{
       VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR};
   rtPipelineInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -206,11 +219,11 @@ void RayTracePass::createRayTracingPipeline()
   rtPipelineInfo.maxPipelineRayRecursionDepth =
       std::max(3U, m_properties.maxRayRecursionDepth);
   rtPipelineInfo.layout = m_pipelineLayout;
+
   vkCreateRayTracingPipelinesKHR(m_context_manager->getDevice(), {}, {}, 1,
                                  &rtPipelineInfo, nullptr, &m_pipeline);
-  NVVK_DBG_NAME(m_pipeline);
 
-  // Create SBT
+  // 4. Update the SBT
   createShaderBindingTable(rtPipelineInfo);
 }
 

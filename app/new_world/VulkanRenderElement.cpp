@@ -58,14 +58,16 @@ void VulkanRendererElement::setupScene()
       {.transform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)) *
                     glm::scale(glm::mat4(1), glm::vec3(0.5f)),
        .materialIndex = teapot_id,
-       .meshIndex = 0});
+       .meshIndex = 0,
+       .hit_group = MaterialType::eGltfPbr});
   // Plane
   scene_resources.addInstance(
       {.transform =
            glm::scale(glm::translate(glm::mat4(1), glm::vec3(0, -0.9f, 0)),
                       glm::vec3(2.f)),
        .materialIndex = plane_id,
-       .meshIndex = 1});
+       .meshIndex = 1,
+       .hit_group = MaterialType::eGltfPbr});
 
   // Scene information
   shaderio::GltfSceneInfo& sceneInfo = m_scene_manager.sceneInfo();
@@ -80,7 +82,8 @@ void VulkanRendererElement::setupScene()
       glm::vec3(1.0f, 1.0f, 1.0f);  // Direction to the light
   sceneInfo.punctualLights[0].type = shaderio::GltfLightType::ePoint;
   sceneInfo.punctualLights[0].coneAngle =
-      0.9f;  // Cone angle for spot lights (0 for point and directional lights)
+      0.9f;  // Cone angle for spot lights (0 for point and
+             // directional lights)
 
   scene_resources.finalizeSceneResources();
 
@@ -238,6 +241,12 @@ void VulkanRendererElement::onUIRender()
 void VulkanRendererElement::onPreRender()
 /**********************************************************/
 {
+  m_scene_manager.update();
+  if (m_scene_manager.sceneResourceManager().dirty())
+  {
+    m_renderer->update(m_scene_manager.sceneResourceManager());
+    m_scene_manager.sceneResourceManager().setDirty(false);
+  }
 }
 
 /**********************************************************/

@@ -4,20 +4,18 @@
 
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
+#include "scene/SceneResources.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
 std::unique_ptr<AccelerationStructures>
-AccelerationStructures::create(VulkanContextManager* core,
-                               const gltf::Scene& sceneData)
+AccelerationStructures::create(VulkanContextManager* core)
 /**********************************************************/
 {
   auto m_accel =
       std::unique_ptr<AccelerationStructures>(new AccelerationStructures());
   m_accel->init(core);
-  // Set up acceleration structure infrastructure
-  m_accel->buildBLAS(sceneData);  // Set up BLAS infrastructure
-  m_accel->buildTLAS(sceneData);  // Set up TLAS infrastructure
+
   return m_accel;
 }
 
@@ -37,6 +35,16 @@ void AccelerationStructures::init(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
+void AccelerationStructures::build(const SceneResourcesManager& scene,
+                                   const MaterialManager& materialManager)
+/**********************************************************/
+{
+  // Set up acceleration structure infrastructure
+  buildBLAS(scene);                   // Set up BLAS infrastructure
+  buildTLAS(scene, materialManager);  // Set up TLAS infrastructure
+}
+
+/**********************************************************/
 void AccelerationStructures::deinit()
 /**********************************************************/
 {
@@ -45,17 +53,18 @@ void AccelerationStructures::deinit()
 }
 
 /**********************************************************/
-void AccelerationStructures::buildBLAS(const gltf::Scene& scene)
+void AccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
+  const gltf::Scene& scene_geometry = scene.data();
   // Prepare geometry information for all meshes
   std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(
-      scene.meshes.size());
-  for (uint32_t p_idx = 0; p_idx < scene.meshes.size(); p_idx++)
+      scene_geometry.meshes.size());
+  for (uint32_t p_idx = 0; p_idx < scene_geometry.meshes.size(); p_idx++)
   {
-    geoInfos[p_idx] = primitiveToGeometry(scene.meshes[p_idx]);
+    geoInfos[p_idx] = primitiveToGeometry(scene_geometry.meshes[p_idx]);
   }
 
   // Build the bottom-level acceleration structures
@@ -64,18 +73,19 @@ void AccelerationStructures::buildBLAS(const gltf::Scene& scene)
 }
 
 /**********************************************************/
-void AccelerationStructures::buildTLAS(const gltf::Scene& scene)
+void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
+                                       const MaterialManager& materialManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
   // Prepare instance data for TLAS
+  const gltf::Scene& sceneGeometry = scene.data();
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
-  tlasInstances.reserve(scene.instances.size());
+  tlasInstances.reserve(sceneGeometry.instances.size());
   const VkGeometryInstanceFlagsKHR flags{
       VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV};
-
-  for (const shaderio::GltfInstance& instance : scene.instances)
+  for (const shaderio::GltfInstance& instance : sceneGeometry.instances)
   {
     VkAccelerationStructureInstanceKHR ray_inst{};
     ray_inst.transform = nvvk::toTransformMatrixKHR(
@@ -85,7 +95,7 @@ void AccelerationStructures::buildTLAS(const gltf::Scene& scene)
     ray_inst.accelerationStructureReference =
         m_asBuilder.blasSet[instance.meshIndex].address;
     ray_inst.instanceShaderBindingTableRecordOffset =
-        0;  // Same hit group for all objects
+        materialManager.getSbtOffset(instance.hit_group);
     ray_inst.flags = flags;
     ray_inst.mask = 0xFF;
     tlasInstances.emplace_back(ray_inst);

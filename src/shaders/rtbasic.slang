@@ -48,12 +48,13 @@ struct HitPayload
 // dataBufferAddress: Base address of the GLTF buffer
 // bufferView: Buffer view containing offset, stride, and count information
 // attributeIndex: Index of the vertex attribute to retrieve
-__generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView bufferView, uint attributeIndex)
+__generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView bufferView,
+                                     uint attributeIndex)
 {
-  if(bufferView.count > 0)
+  if (bufferView.count > 0)
   {
     // Calculate pointer to the specific attribute using offset and stride
-    T* ptr = (T*)(dataBufferAddress + bufferView.offset + attributeIndex * bufferView.byteStride);
+    T* ptr = (T*) (dataBufferAddress + bufferView.offset + attributeIndex * bufferView.byteStride);
     return ptr[0];
   }
 
@@ -64,16 +65,16 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
 // Supports both 16-bit and 32-bit index formats as per GLTF specification
 int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh, int primitiveID)
 {
-  if(mesh.indices.byteStride == sizeof(int16_t))
+  if (mesh.indices.byteStride == sizeof(int16_t))
   {
     // 16-bit indices (uint16_t) - more memory efficient for smaller meshes
-    int16_t3* indices = (int16_t3*)(dataBufferAddress + mesh.indices.offset);
+    int16_t3* indices = (int16_t3*) (dataBufferAddress + mesh.indices.offset);
     return indices[primitiveID];
   }
-  else if(mesh.indices.byteStride == sizeof(int32_t))
+  else if (mesh.indices.byteStride == sizeof(int32_t))
   {
     // 32-bit indices (uint32_t) - supports larger meshes with more vertices
-    int3* indices = (int3*)(dataBufferAddress + mesh.indices.offset);
+    int3* indices = (int3*) (dataBufferAddress + mesh.indices.offset);
     return indices[primitiveID];
   }
 
@@ -81,8 +82,8 @@ int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh, int
 }
 
 // Interpolate vertex attributes across a triangle using barycentric coordinates
-// This performs smooth interpolation of attributes like position, normal, UV coordinates
-// T: Type of attribute to interpolate (float, float2, float3, etc.)
+// This performs smooth interpolation of attributes like position, normal, UV
+// coordinates T: Type of attribute to interpolate (float, float2, float3, etc.)
 // attributeIndex: Indices of the three triangle vertices
 // barycentrics: Barycentric coordinates (weights for each vertex)
 __generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress, BufferView bufferView,
@@ -107,28 +108,33 @@ float testShadow(float3 worldPos, float3 worldNormal, float3 lightDirection, Glt
   // Create shadow ray from surface point towards light source
   RayDesc shadowRay;
   // Offset origin slightly along normal to avoid self-intersection artifacts
-  shadowRay.Origin    = worldPos + worldNormal * 0.001;
+  shadowRay.Origin = worldPos + worldNormal * 0.001;
   shadowRay.Direction = normalize(lightDirection);
-  shadowRay.TMin      = 0.001;  // Minimum distance to avoid self-intersection
-  // For directional lights, trace to infinity; for point/spot lights, trace to light position
-  shadowRay.TMax      = light.type == GltfLightType::eDirectional ? INFINITE : length(lightDirection);
+  shadowRay.TMin = 0.001;  // Minimum distance to avoid self-intersection
+  // For directional lights, trace to infinity; for point/spot lights, trace to
+  // light position
+  shadowRay.TMax = light.type == GltfLightType::eDirectional ? INFINITE : length(lightDirection);
 
-  // Create a minimal payload for shadow ray (we only need to know if it hits something)
+  // Create a minimal payload for shadow ray (we only need to know if it hits
+  // something)
   HitPayload shadowPayload;
   shadowPayload.depth = 0;  // Will be set to MISS_DEPTH if no hit occurs
 
   // Trace the shadow ray with optimized flags for performance:
-  // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop at first intersection (we don't need closest)
-  // RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: Skip expensive shading calculations
-  TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xff, 0, 0, 0,
-           shadowRay, shadowPayload);
+  // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop at first intersection (we
+  // don't need closest) RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: Skip expensive
+  // shading calculations
+  TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+           0xff, 0, 0, 0, shadowRay, shadowPayload);
 
-  // If the shadow ray hit something (depth != MISS_DEPTH), the light is occluded
+  // If the shadow ray hit something (depth != MISS_DEPTH), the light is
+  // occluded
   return shadowPayload.depth != MISS_DEPTH ? 0.0 : 1.0;
 }
 
 //-----------------------------------------------------------------------
-// LIGHT PROCESSING - Handles sky override, distance attenuation, and spot light cone effects
+// LIGHT PROCESSING - Handles sky override, distance attenuation, and spot light
+// cone effects
 //-----------------------------------------------------------------------
 // Processes light properties based on type and applies appropriate attenuation
 GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
@@ -138,29 +144,31 @@ GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
 
   // Sky override: Replace punctual light with sun parameters from sky system
   // This allows using procedural sky lighting instead of manual light setup
-  if(sceneInfo.useSky == 1)
+  if (sceneInfo.useSky == 1)
   {
     light.direction = sceneInfo.skySimpleParam.sunDirection;  // Sun direction from sky
-    light.color     = sceneInfo.skySimpleParam.sunColor;      // Sun color from sky
+    light.color = sceneInfo.skySimpleParam.sunColor;          // Sun color from sky
     light.intensity = sceneInfo.skySimpleParam.sunIntensity;  // Sun intensity from sky
-    light.type      = GltfLightType::eDirectional;            // Sun is always directional
+    light.type = GltfLightType::eDirectional;                 // Sun is always directional
   }
 
-  // Point light: Calculate direction from light to surface and apply distance attenuation
-  if(light.type == GltfLightType::ePoint)
+  // Point light: Calculate direction from light to surface and apply distance
+  // attenuation
+  if (light.type == GltfLightType::ePoint)
   {
     // Direction from surface point to light position
     light.direction = light.position - worldPos;
-    float d         = length(light.direction);
+    float d = length(light.direction);
     // Apply inverse square law: intensity decreases with distance squared
     light.intensity /= (d * d);
   }
-  // Spot light: Calculate direction, apply distance attenuation and cone falloff
-  else if(light.type == GltfLightType::eSpot)
+  // Spot light: Calculate direction, apply distance attenuation and cone
+  // falloff
+  else if (light.type == GltfLightType::eSpot)
   {
     // Direction from surface point to light position
     float3 lightDir = light.position - worldPos;
-    float  d        = length(lightDir);
+    float d = length(lightDir);
     // Apply distance attenuation (inverse square law)
     light.intensity /= (d * d);
 
@@ -168,7 +176,8 @@ GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
     // theta: cosine of angle between light direction and spot direction
     float theta = dot(normalize(lightDir), normalize(light.direction));
     // Smooth falloff from inner cone (1.0) to outer cone (0.0)
-    float spotIntensity = clamp((theta - cos(light.coneAngle)) / (1.0 - cos(light.coneAngle)), 0.0, 1.0);
+    float spotIntensity =
+        clamp((theta - cos(light.coneAngle)) / (1.0 - cos(light.coneAngle)), 0.0, 1.0);
     light.intensity *= spotIntensity;
     light.direction = lightDir;
   }
@@ -214,7 +223,8 @@ GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
   payload.depth = 0;                // Start at depth 0
 
   // Cast the ray into the scene using the acceleration structure
-  // Parameters: AS, flags, instance mask, sbt offset, sbt stride, miss offset, ray, payload
+  // Parameters: AS, flags, instance mask, sbt offset, sbt stride, miss offset,
+  // ray, payload
   TraceRay(topLevelAS, rayFlags, 0xff, 0, 0, 0, ray, payload);
 
   // Get the final color from the ray tracing result
@@ -270,7 +280,8 @@ GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
     albedo *= textures[material.baseColorTextureIndex].SampleLevel(worldTexCoord, 0).xyz;
   }
 
-  // Apply material overrides from push constants (for debugging/experimentation)
+  // Apply material overrides from push constants (for
+  // debugging/experimentation)
   if (pushConst.metallicRoughnessOverride.x >= 0.0)
     metallic = pushConst.metallicRoughnessOverride.x;
   if (pushConst.metallicRoughnessOverride.y >= 0.0)
@@ -299,18 +310,152 @@ GltfPunctual processLight(GltfSceneInfo sceneInfo, float3 worldPos)
 }
 
 //-----------------------------------------------------------------------
+// CLOSEST HIT SHADER - Called when ray hits geometry (performs shading)
+//-----------------------------------------------------------------------
+[shader("closesthit")] void rchitGltf(inout HitPayload payload,
+                                      in BuiltInTriangleIntersectionAttributes attr)
+{
+  // Convert built-in barycentric coordinates to full barycentric coordinates
+  // Built-in provides (u,v) where u+v+w=1, so w = 1-u-v
+  float3 barycentrics = float3(1 - attr.barycentrics.x - attr.barycentrics.y, attr.barycentrics.x,
+                               attr.barycentrics.y);
+
+  // Get instance and primitive information from ray tracing built-ins
+  uint instanceID = InstanceIndex();  // Which instance was hit
+  uint meshID = InstanceID();         // Instance ID (same as instanceID in this case)
+  uint triID = PrimitiveIndex();      // Which triangle within the mesh was hit
+
+  // Retrieve scene data structures
+  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  GltfInstance instance = sceneInfo.instances[instanceID];                       // Instance data
+  GltfMesh mesh = sceneInfo.meshes[instance.meshIndex];                          // Mesh data
+  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];  // Material data
+
+  // Interpolate vertex attributes across the hit triangle
+  int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);
+  float3 pos =
+      getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.positions, indices, barycentrics);
+  float3 nrm =
+      getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.normals, indices, barycentrics);
+  float2 worldTexCoord =
+      getTriangleAttribute<float2>(mesh.gltfBuffer, mesh.triMesh.texCoords, indices, barycentrics);
+
+  // Transform from object space to world space
+  float3 worldPos = float3(mul(float4(pos, 1.0), ObjectToWorld4x3()));
+  float3 worldNormal = normalize(mul(WorldToObject4x3(), nrm).xyz);
+
+  // Extract material properties (PBR parameters)
+  float3 albedo = material.baseColorFactor.xyz;  // Base color/albedo
+  float metallic = material.metallicFactor;      // Metallic factor (0=dielectric, 1=metal)
+  float roughness = material.roughnessFactor;    // Surface roughness (0=smooth, 1=rough)
+
+  // Sample albedo texture if available
+  if (material.baseColorTextureIndex > 0)
+  {
+    albedo *= textures[material.baseColorTextureIndex].SampleLevel(worldTexCoord, 0).xyz;
+  }
+
+  // Apply material overrides from push constants (for
+  // debugging/experimentation)
+  if (pushConst.metallicRoughnessOverride.x >= 0.0)
+    metallic = pushConst.metallicRoughnessOverride.x;
+  if (pushConst.metallicRoughnessOverride.y >= 0.0)
+    roughness = pushConst.metallicRoughnessOverride.y;
+
+  // Process light with sky override and distance attenuation
+  GltfPunctual light = processLight(sceneInfo, worldPos);
+
+  // Calculate lighting vectors
+  float3 N = normalize(worldNormal);      // Surface normal
+  float3 V = -WorldRayDirection();        // View direction (towards camera)
+  float3 L = normalize(light.direction);  // Light direction
+
+  // Test for shadows by casting a shadow ray towards the light
+  float shadowFactor = testShadow(worldPos, N, light.direction, light);
+
+  // Calculate PBR lighting using the metallic-roughness model
+  // This computes the final color based on material properties and lighting
+  float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
+
+  // Apply light color, intensity, and shadow factor
+  color *= light.color * light.intensity * shadowFactor;
+
+  // Set the final color in the payload
+  payload.color = color;
+}
+
+    //-----------------------------------------------------------------------
+    // DIFFUSE CLOSEST HIT SHADER - Simple Lambertian Reflection
+    //-----------------------------------------------------------------------
+    [shader("closesthit")] void rchitDiffuse(inout HitPayload payload,
+                                             in BuiltInTriangleIntersectionAttributes attr)
+{
+  // 1. Geometry Data Extraction
+  float3 barycentrics = float3(1 - attr.barycentrics.x - attr.barycentrics.y, attr.barycentrics.x,
+                               attr.barycentrics.y);
+
+  uint instanceID = InstanceIndex();
+  uint triID = PrimitiveIndex();
+
+  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  GltfInstance instance = sceneInfo.instances[instanceID];
+  GltfMesh mesh = sceneInfo.meshes[instance.meshIndex];
+  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];
+
+  // 2. Vertex Attribute Interpolation
+  int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);
+  float3 nrm =
+      getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.normals, indices, barycentrics);
+  float2 uv =
+      getTriangleAttribute<float2>(mesh.gltfBuffer, mesh.triMesh.texCoords, indices, barycentrics);
+  float3 pos =
+      getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.positions, indices, barycentrics);
+
+  // 3. Coordinate Space Transformation
+  float3 worldPos = float3(mul(float4(pos, 1.0), ObjectToWorld4x3()));
+  float3 worldNormal =
+      normalize(mul(nrm, (float3x3) WorldToObject4x3()));  // Note: Normal transform is
+                                                           // usually inverse transpose
+
+  // 4. Material Base Color
+  float3 albedo = material.baseColorFactor.xyz;
+  if (material.baseColorTextureIndex > 0)
+  {
+    albedo *= textures[material.baseColorTextureIndex].SampleLevel(uv, 0).xyz;
+  }
+
+  // 5. Lighting Calculation
+  GltfPunctual light = processLight(sceneInfo, worldPos);
+  float3 N = normalize(worldNormal);
+  float3 L = normalize(light.direction);
+
+  // Lambertian Diffuse: (Albedo / PI) * dot(N, L)
+  // We assume the PI is handled within your light intensity or final scaling
+  float nDotL = max(0.0, dot(N, L));
+
+  // 6. Shadow Testing
+  float shadowFactor = testShadow(worldPos, N, light.direction, light);
+
+  // 7. Final Composition
+  // Simple diffuse doesn't use V (view direction) or metallic/roughness
+  float3 finalColor = albedo * nDotL * light.color * light.intensity * shadowFactor;
+
+  payload.color = finalColor;
+}
+
+//-----------------------------------------------------------------------
 // MISS SHADER - Called when ray doesn't hit any geometry (background/sky)
 //-----------------------------------------------------------------------
-[shader("miss")]
-void rmissMain(inout HitPayload payload)
+[shader("miss")] void rmissMain(inout HitPayload payload)
 {
   GltfSceneInfo* sceneInfo = pushConst.sceneInfoAddress;
 
   // Check if sky system is enabled
-  if(sceneInfo.useSky == 1)
+  if (sceneInfo.useSky == 1)
   {
     // Evaluate procedural sky color based on ray direction
-    // This creates realistic sky gradients based on sun position and atmospheric scattering
+    // This creates realistic sky gradients based on sun position and
+    // atmospheric scattering
     float3 skyColor = evalSimpleSky(sceneInfo.skySimpleParam, WorldRayDirection());
     payload.color += skyColor * payload.weight;
   }

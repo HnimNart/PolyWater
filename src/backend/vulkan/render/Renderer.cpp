@@ -27,6 +27,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
   m_swapchain_manager = backend->getSwapchainManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_context_manager);
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
+  m_accel = AccelerationStructures::create(m_context_manager);
 }
 
 // ---------------------------------------------------------------------------
@@ -41,6 +42,7 @@ void VulkanRenderer::init(const SceneResourcesManager& scene)
   initGBuffers();
   createDescriptorSetLayout(m_context_manager->getDevice());
   m_resources->updateDescriptors(m_descPack);
+  registerShaders();
   buildGraph(scene);
 }
 
@@ -60,11 +62,29 @@ void VulkanRenderer::deinit()
 }
 
 /**********************************************************/
+void VulkanRenderer::registerShaders()
+/**********************************************************/
+{
+  m_materialManager.registerMaterial(MaterialType::eDiffuse, "rchitDiffuse");
+  m_materialManager.registerMaterial(MaterialType::eGltfPbr, "rchitMain");
+}
+
+/**********************************************************/
 void VulkanRenderer::reload(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   m_context_manager->waitForDeviceIdle();
   buildGraph(scene);
+}
+
+/**********************************************************/
+void VulkanRenderer::update(const SceneResourcesManager& scene)
+/**********************************************************/
+{
+  if (scene.dirty() && m_render_mode == RenderMode::RAYTRACE)
+  {
+    m_accel->build(scene, m_materialManager);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -132,8 +152,8 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   }
   else
   {
-    m_accel = AccelerationStructures::create(m_context_manager, scene.data());
-    m_graph.addPass(std::make_unique<RayTracePass>(&m_descPack));
+    m_graph.addPass(
+        std::make_unique<RayTracePass>(&m_descPack, &m_materialManager));
   }
 
   // Common: Post Processing

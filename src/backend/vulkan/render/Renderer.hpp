@@ -44,6 +44,7 @@ public:
   void init(const SceneResourcesManager& scene) override;
   void deinit() override;
   void reload(const SceneResourcesManager& scene) override;
+  void update(const SceneResourcesManager& scene) override;
 
   // ---------------------------------------------------------------------------
   // Rendering
@@ -68,6 +69,7 @@ public:
 private:
   void initGBuffers();
   void buildGraph(const SceneResourcesManager& scene);
+  void registerShaders();
   shaderio::GltfSceneInfo*
   updateSceneBuffer(VkCommandBuffer cmd,
                     const SceneResourcesManager& scene) const;
@@ -84,5 +86,8 @@ private:
 
   // Reference to post for UI
   ToneMapPass* m_post = nullptr;
+
+  // Render stuff
   RenderGraph m_graph;
+  MaterialManager m_materialManager;
 };

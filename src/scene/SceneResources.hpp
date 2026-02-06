@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "MaterialManager.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
 #include "scene/gltf/gltf_utils.hpp"
@@ -43,7 +44,11 @@ public:
   // ---------------------------------------------------------------------------
   // Runtime Updates
   // ---------------------------------------------------------------------------
+  void update(const CameraPtr& camera);
   void updateSceneInfo(const CameraPtr& camera);
+
+  bool dirty() const { return m_dirty; }
+  void setDirty(bool val) { m_dirty = false; }
 
   // ---------------------------------------------------------------------------
   // Accessors
@@ -67,4 +72,6 @@ private:
     IDeviceAssets::TextureID id;
   };
   std::vector<PendingTexture> m_pendingTextures{};
+
+  bool m_dirty = true;
 };
