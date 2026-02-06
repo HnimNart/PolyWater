@@ -7,7 +7,7 @@
 
 [x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
 
-[ ] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
+[x] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
 
 [ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
 
