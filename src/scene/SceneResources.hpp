@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "MaterialManager.hpp"
+#include "ShaderManager.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
 #include "scene/gltf/gltf_utils.hpp"

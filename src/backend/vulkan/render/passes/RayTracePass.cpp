@@ -17,16 +17,13 @@
 #include "scene/SceneResources.hpp"
 #include "shaders/compiler/slang.hpp"
 
-// Generated Shader
-#include "build/_autogen/rtbasic.slang.h"
-
 /**********************************************************/
 RayTracePass::RayTracePass(nvvk::DescriptorPack* descPack,
-                           MaterialManager* materialManager)
+                           ShaderManager* shaderManager)
 /**********************************************************/
 {
   m_sharedDescPack = descPack;
-  m_materialManager = materialManager;
+  m_shaderManager = shaderManager;
 }
 
 /**********************************************************/
@@ -116,34 +113,39 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-
   // Cleanup
   vkDestroyPipeline(m_context_manager->getDevice(), m_pipeline, nullptr);
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
 
+  // Clear and reserve to prevent invalidation
+  m_shaderCode.clear();
+  m_shaderCode.reserve(m_shaderManager->getRegistry().size() + 2);
+
   // 1. Setup Base Stages (Raygen and Miss)
   std::vector<VkPipelineShaderStageCreateInfo> stages;
-  VkShaderModuleCreateInfo shaderCode =
-      SlangCompiler::instance().compile("rtbasic.slang", rtbasic_slang);
+  const RaygenEntry& raygen = m_shaderManager->getRaygen();
+  m_shaderCode.push_back(
+      SlangCompiler::instance().compile(raygen.filename, raygen.spirv));
 
   // Raygen Stage (Index 0)
   stages.push_back(
       {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-       .pNext = &shaderCode,
+       .pNext = &m_shaderCode.back(),
        .stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-       .pName = "rgenMain"});
+       .pName = raygen.entryPoint.c_str()});
 
+  const MissEntry& miss = m_shaderManager->getMiss();
+  m_shaderCode.push_back(
+      SlangCompiler::instance().compile(miss.filename, miss.spirv));
   // Miss Stage (Index 1)
   stages.push_back(
       {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-       .pNext = &shaderCode,
+       .pNext = &m_shaderCode.back(),
        .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
-       .pName = "rmissMain"});
+       .pName = miss.entryPoint.c_str()});
 
   // 2. Setup Hit Groups from Material Registry
-  // We'll store the hit group indices back into the manager so the TLAS knows
-  // what to use
   std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_groups;
 
   // Add Raygen Group
@@ -165,17 +167,18 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
        .intersectionShader = VK_SHADER_UNUSED_KHR});
 
   // Add Hit Groups for each material
-  for (auto& [type, entry] : m_materialManager->getRegistry())
+  for (auto& [type, entry] : m_shaderManager->getRegistry())
   {
     uint32_t currentStageIndex = static_cast<uint32_t>(stages.size());
 
+    m_shaderCode.push_back(SlangCompiler::instance().compile(entry.filename));
+
     // Add the CHIT stage for this material
-    stages.push_back({
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = &shaderCode,
-        .stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .pName = entry.closestHitSymbol.c_str()  // e.g., "rchitGlass"
-    });
+    stages.push_back(
+        {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+         .pNext = &m_shaderCode.back(),
+         .stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+         .pName = entry.entryPoint.c_str()});
 
     // Add the Hit Group
     // The entry.sbtIndex is the index within the 'Hit' section of the SBT.

@@ -7,7 +7,7 @@
 // Forward Declarations
 
 class SceneResourcesManager;
-class MaterialManager;
+class ShaderManager;
 namespace shaderio
 {
 struct GltfMesh;
@@ -22,7 +22,7 @@ public:
 
   ~AccelerationStructures();
   void build(const SceneResourcesManager& scene,
-             const MaterialManager& materialManager);
+             const ShaderManager& materialManager);
   nvvk::AccelerationStructure tlas() const;
 
 private:
@@ -31,7 +31,7 @@ private:
 
   void buildBLAS(const SceneResourcesManager& scene);
   void buildTLAS(const SceneResourcesManager& scene,
-                 const MaterialManager& materialManager);
+                 const ShaderManager& materialManager);
 
   nvvk::AccelerationStructureGeometryInfo
   primitiveToGeometry(const shaderio::GltfMesh& mesh);

@@ -89,5 +89,5 @@ private:
 
   // Render stuff
   RenderGraph m_graph;
-  MaterialManager m_materialManager;
+  ShaderManager m_shaderManager;
 };

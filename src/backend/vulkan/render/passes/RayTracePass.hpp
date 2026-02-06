@@ -27,8 +27,7 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(nvvk::DescriptorPack* descPack,
-               MaterialManager* materialManager);
+  RayTracePass(nvvk::DescriptorPack* descPack, ShaderManager* materialManager);
   ~RayTracePass() = default;
 
   void init(VulkanContextManager* coreManager,
@@ -79,5 +78,7 @@ private:
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_properties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
-  MaterialManager* m_materialManager = nullptr;
+  ShaderManager* m_shaderManager = nullptr;
+
+  std::vector<VkShaderModuleCreateInfo> m_shaderCode;
 };

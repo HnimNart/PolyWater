@@ -3,6 +3,7 @@
 #include <shaders/shaderio.h>
 #include <vulkan/vulkan_core.h>
 
+#include <deque>
 #include <filesystem>
 #include <span>
 #include <vector>
@@ -21,7 +22,7 @@ public:
 
   void init(const std::vector<std::filesystem::path>& shaderDirs);
   VkShaderModuleCreateInfo compile(const std::filesystem::path& filename,
-                                   const std::span<const uint32_t>& spirv);
+                                   const std::span<const uint32_t>& spirv = {});
 
   // Delete Copy/Move to enforce Singleton uniqueness
   SlangCompiler(const SlangCompiler&) = delete;
@@ -48,4 +49,5 @@ private:
   bool m_initialized = false;
   std::vector<std::filesystem::path> m_shaderDirs;
   nvslang::SlangCompiler m_slangContext{};
+  std::deque<std::vector<uint32_t>> m_binaryCache;
 };

@@ -36,7 +36,7 @@ void AccelerationStructures::init(VulkanContextManager* coreManager)
 
 /**********************************************************/
 void AccelerationStructures::build(const SceneResourcesManager& scene,
-                                   const MaterialManager& materialManager)
+                                   const ShaderManager& materialManager)
 /**********************************************************/
 {
   // Set up acceleration structure infrastructure
@@ -74,7 +74,7 @@ void AccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 
 /**********************************************************/
 void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
-                                       const MaterialManager& materialManager)
+                                       const ShaderManager& materialManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

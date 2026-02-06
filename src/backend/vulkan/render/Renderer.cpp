@@ -65,8 +65,8 @@ void VulkanRenderer::deinit()
 void VulkanRenderer::registerShaders()
 /**********************************************************/
 {
-  m_materialManager.registerMaterial(MaterialType::eDiffuse, "rchitDiffuse");
-  m_materialManager.registerMaterial(MaterialType::eGltfPbr, "rchitMain");
+  m_shaderManager.registerMaterial(MaterialType::eDiffuse, "diffuse");
+  m_shaderManager.registerMaterial(MaterialType::eGltfPbr, "gltf");
 }
 
 /**********************************************************/
@@ -83,7 +83,7 @@ void VulkanRenderer::update(const SceneResourcesManager& scene)
 {
   if (scene.dirty() && m_render_mode == RenderMode::RAYTRACE)
   {
-    m_accel->build(scene, m_materialManager);
+    m_accel->build(scene, m_shaderManager);
   }
 }
 
@@ -153,7 +153,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
   else
   {
     m_graph.addPass(
-        std::make_unique<RayTracePass>(&m_descPack, &m_materialManager));
+        std::make_unique<RayTracePass>(&m_descPack, &m_shaderManager));
   }
 
   // Common: Post Processing
