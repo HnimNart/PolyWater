@@ -7,6 +7,7 @@
 #include "include/math.h.slang"
 #include "include/pbr.h.slang"
 #include "include/rnd.h.slang"
+#include "include/sampler.h.slang"
 #include "include/utils.h.slang"
 #include "nvshaders/constants.h.slang"
 #include "shaderio.h"
@@ -39,87 +40,47 @@ struct HitPayload
   bool stop;             // "Did we hit the sky or a black hole?"
 };
 
+struct ShadowPayload
+{
+  bool isHit;
+};
+
 //-----------------------------------------------------------------------
-// SHADOW TESTING - Uses existing HitPayload
 // Returns 1.0 if visible (lit), 0.0 if occluded (shadow)
 //-----------------------------------------------------------------------
 float testShadow(float3 worldPos, float3 worldNormal, float3 dirToLight,
                  float distance)
 {
   RayDesc shadowRay;
+  // Push the origin slightly out along the normal to prevent self-intersection
   shadowRay.Origin = worldPos;
   shadowRay.Direction = dirToLight;
   shadowRay.TMin = EPSILON;
-  shadowRay.TMax = distance - EPSILON;  // Don't hit the light itself
+  shadowRay.TMax = distance - EPSILON;
 
-  // Use the FAT payload (HitPayload)
-  HitPayload shadowPayload;
+  // 1. Initialize Payload
+  // We assume the light is BLOCKED (true) by default.
+  ShadowPayload shadowPayload;
+  shadowPayload.isHit = true;
 
-  // LOGIC: Assume we are BLOCKED (Shadowed) by default.
-  // If the ray hits nothing, the Miss Shader will flip this to false.
-  shadowPayload.stop = false;
+  // 2. Trace
+  // Flags:
+  // - RAY_FLAG_FORCE_OPAQUE: Prevents execution of AnyHit (alpha testing) for
+  // speed.
+  // - RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stops traversal at the first
+  // occlusion.
+  // - RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: Don't run material code; we only care
+  // IF it hit.
+  TraceRay(topLevelAS,
+           RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH |
+               RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+           0xff,  // Instance mask
+           0,     // Ray contribution to hit group
+           0,     // Multiplier for hit group
+           1,  // MISS INDEX: Targets your shadow.miss.slang (SBT Miss Index 1)
+           shadowRay, shadowPayload);
 
-  // Reset other fields just in case (good practice, though not strictly needed
-  // for shadow)
-  shadowPayload.depth = 0;
-  shadowPayload.color = float3(0);
-
-  // Trace!
-  // RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: We don't care about the object's color.
-  // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop as soon as we hit anything
-  // opaque.
-  TraceRay(
-      topLevelAS,
-      RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH |
-          RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
-      0xff, 0, 0,
-      0,  // <--- IMPORTANT: Ensure SBT Miss Index 1 is your shadow miss shader
-      shadowRay, shadowPayload);
-
-  return shadowPayload.stop ? 1.0 : 0.0;
+  // If isHit is false, it means we reached the Miss Shader = Light is visible!
+  return shadowPayload.isHit ? 0.0 : 1.0;
 }
-
-// -----------------------------------------------------------------------
-// Helper: Builds an Orthonormal Basis (Tangent Space) from a Normal
-// Duff et al. method - robust and singularity-free
-// -----------------------------------------------------------------------
-void createCoordinateSystem(in float3 N, out float3 T, out float3 B)
-{
-  float sign = N.z >= 0.0f ? 1.0f : -1.0f;
-  float a = -1.0f / (sign + N.z);
-  float b = N.x * N.y * a;
-
-  T = float3(1.0f + sign * N.x * N.x * a, sign * b, -sign * N.x);
-  B = float3(b, sign + N.y * N.y * a, -N.y);
-}
-
-// -----------------------------------------------------------------------
-// Helper: Generates a Cosine-Weighted random direction
-// Returns: A normalized World Space direction centered around 'normal'
-// -----------------------------------------------------------------------
-float3 sampleCosineWeightedHemisphere(float3 normal, inout uint seed)
-{
-  // A. Generate Random Numbers
-  float r1 = rnd(seed);
-  float r2 = rnd(seed);
-
-  // B. Calculate Local Cosine Sample
-  // Optimization: We can avoid expensive acos() and sin() calls
-  // because sin^2 + cos^2 = 1.
-  float phi = 2.0 * 3.14159265 * r1;
-  float cosTheta = sqrt(r2);        // z component
-  float sinTheta = sqrt(1.0 - r2);  // radius on xy plane
-
-  float3 localDir;
-  localDir.x = sinTheta * cos(phi);
-  localDir.y = sinTheta * sin(phi);
-  localDir.z = cosTheta;
-
-  // C. Transform Local -> World Space
-  float3 tangent, bitangent;
-  createCoordinateSystem(normal, tangent, bitangent);
-
-  return localDir.x * tangent + localDir.y * bitangent + localDir.z * normal;
-}
-
 #endif

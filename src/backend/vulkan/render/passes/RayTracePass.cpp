@@ -117,42 +117,28 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  // Cleanup
+  // Cleanup existing pipeline
   vkDestroyPipeline(m_context_manager->getDevice(), m_pipeline, nullptr);
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
 
-  // Clear and reserve to prevent invalidation
   m_shaderCode.clear();
-  m_shaderCode.reserve(m_shaderManager->getRegistry().size() + 2);
+  // Reserving space: Raygen + 2 Miss (Radiance & Shadow) + Registry size
+  m_shaderCode.reserve(m_shaderManager->getRegistry().size() + 3);
 
-  // 1. Setup Base Stages (Raygen and Miss)
   std::vector<VkPipelineShaderStageCreateInfo> stages;
+  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_groups;
+
+  // --- 1. RAYGEN STAGE (Index 0) ---
   const RaygenEntry& raygen = m_shaderManager->getRaygen();
   m_shaderCode.push_back(
       SlangCompiler::instance().compile(raygen.filename, raygen.spirv));
-
-  // Raygen Stage (Index 0)
   stages.push_back(
       {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
        .pNext = &m_shaderCode.back(),
        .stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
        .pName = raygen.entryPoint.c_str()});
 
-  const MissEntry& miss = m_shaderManager->getMiss();
-  m_shaderCode.push_back(
-      SlangCompiler::instance().compile(miss.filename, miss.spirv));
-  // Miss Stage (Index 1)
-  stages.push_back(
-      {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-       .pNext = &m_shaderCode.back(),
-       .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
-       .pName = miss.entryPoint.c_str()});
-
-  // 2. Setup Hit Groups from Material Registry
-  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_groups;
-
-  // Add Raygen Group
   shader_groups.push_back(
       {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
        .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
@@ -161,35 +147,60 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
        .anyHitShader = VK_SHADER_UNUSED_KHR,
        .intersectionShader = VK_SHADER_UNUSED_KHR});
 
-  // Add Miss Group
+  // --- 2. MISS STAGES ---
+
+  // Miss Stage 0: Radiance/Sky (Index 1)
+  const MissEntry& miss = m_shaderManager->getMiss();
+  m_shaderCode.push_back(
+      SlangCompiler::instance().compile(miss.filename, miss.spirv));
+  stages.push_back(
+      {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+       .pNext = &m_shaderCode.back(),
+       .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
+       .pName = miss.entryPoint.c_str()});
+
   shader_groups.push_back(
       {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
        .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-       .generalShader = 1,  // Points to Miss stage
+       .generalShader = 1,  // Points to Radiance Miss stage
        .closestHitShader = VK_SHADER_UNUSED_KHR,
        .anyHitShader = VK_SHADER_UNUSED_KHR,
        .intersectionShader = VK_SHADER_UNUSED_KHR});
 
-  // Add Hit Groups for each material
+  // Miss Stage 1: Shadow (Index 2)
+  const MissEntry& missShadow = m_shaderManager->getShadowMiss();
+  m_shaderCode.push_back(
+      SlangCompiler::instance().compile(missShadow.filename, missShadow.spirv));
+
+  stages.push_back(
+      {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+       .pNext = &m_shaderCode.back(),
+       .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
+       .pName = missShadow.entryPoint.c_str()});
+
+  shader_groups.push_back(
+      {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+       .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+       .generalShader = 2,  // Points to Shadow Miss stage
+       .closestHitShader = VK_SHADER_UNUSED_KHR,
+       .anyHitShader = VK_SHADER_UNUSED_KHR,
+       .intersectionShader = VK_SHADER_UNUSED_KHR});
+
+  // --- 3. HIT GROUPS ---
   for (auto& [type, entry] : m_shaderManager->getRegistry())
   {
     uint32_t currentStageIndex = static_cast<uint32_t>(stages.size());
-
     m_shaderCode.push_back(SlangCompiler::instance().compile(entry.filename));
 
-    // Add the CHIT stage for this material
     stages.push_back(
         {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
          .pNext = &m_shaderCode.back(),
          .stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
          .pName = entry.entryPoint.c_str()});
 
-    // Add the Hit Group
-    // The entry.sbtIndex is the index within the 'Hit' section of the SBT.
-    // Since Raygen and Miss are usually separate regions, we record
-    // the relative index among hit groups.
-    entry.sbtIndex = static_cast<uint32_t>(shader_groups.size()) -
-                     2;  // -2 to skip Raygen/Miss
+    // The sbtIndex is relative to the start of the hit group section.
+    // We have 1 Raygen group and 2 Miss groups, so we subtract 3.
+    entry.sbtIndex = static_cast<uint32_t>(shader_groups.size()) - 3;
 
     shader_groups.push_back(
         {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -200,7 +211,7 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
          .intersectionShader = VK_SHADER_UNUSED_KHR});
   }
 
-  // 3. Pipeline Layout and Creation (Same as before, using dynamic sizes)
+  // --- 4. PIPELINE CREATION ---
   const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0,
                                           sizeof(shaderio::PushConstant)};
   std::array<VkDescriptorSetLayout, 2> layouts = {
@@ -230,7 +241,6 @@ void RayTracePass::createPipelineSBT(const SceneResourcesManager& scene)
   vkCreateRayTracingPipelinesKHR(m_context_manager->getDevice(), {}, {}, 1,
                                  &rtPipelineInfo, nullptr, &m_pipeline);
 
-  // 4. Update the SBT
   createShaderBindingTable(rtPipelineInfo);
 }
 
@@ -247,6 +257,8 @@ void RayTracePass::createShaderBindingTable(
   // Calculate required SBT buffer size
   size_t bufferSize =
       m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
+
+  printf("%d\n", bufferSize);
 
   // Create SBT buffer
   NVVK_CHECK(m_context_manager->getAllocator().createBuffer(

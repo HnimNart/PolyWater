@@ -36,7 +36,6 @@ public:
   CameraPtr getCameraManipulator();
 
 private:
-  // Custom methods
   void setupScene();
 
 private:
@@ -45,8 +44,7 @@ private:
   std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_scene_manager{};
 
-  // Ray tracing toggle
+  // state variables
   RenderMode m_renderMode = RenderMode::RAYTRACE;
-
   bool m_hasChanged = false;
 };

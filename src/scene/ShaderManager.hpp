@@ -51,9 +51,11 @@ public:
 
   const RaygenEntry& getRaygen() const;
   const MissEntry& getMiss() const;
+  const MissEntry& getShadowMiss() const;
 
 private:
   std::map<MaterialType, MaterialEntry> m_registry;
   RaygenEntry m_raygen;
   MissEntry m_miss;
+  MissEntry m_shadowMiss;
 };
