@@ -1,8 +1,8 @@
 #ifndef RAYTRACE_LIGTHS_H_SLANG
-#  define RAYTRACE_LIGHTS_H_SLANG 1
+#define RAYTRACE_LIGHTS_H_SLANG 1
 
-#  include "bsdf/ibsdf.h.slang"
-#  include "ray_common.h.slang"
+#include "bsdf/ibsdf.h.slang"
+#include "ray_common.h.slang"
 
 //-----------------------------------------------------------------------
 // DIRECT LIGHTING LOOP

@@ -71,6 +71,8 @@ LambdaBodyIndentation: Signature
 # Prevents breaking the line after the [shader(...)] attribute
 BreakAfterAttributes: Never
 
+IndentPPDirectives: None
+
 # Ensure the macro doesn't force a wrap
 AttributeMacros: 
   - '[shader("closesthit")]'
