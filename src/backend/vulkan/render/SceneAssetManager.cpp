@@ -131,51 +131,13 @@ void VulkanSceneAssetManager::finalizeSceneResources(Scene& resources)
 /**********************************************************/
 {
   createGltfSceneInfoBuffer(resources);
-  // data (GPU buffers)
   m_context_manager->getStagingUploader().cmdUploadAppended(
       m_cmd);  // Upload the scene information to the GPU
 }
 
 /**********************************************************/
 std::pair<uint8_t*, uint32_t>
-VulkanSceneAssetManager::uploadPrimitiveMeshBuffer(
-    const nvutils::PrimitiveMesh& primMesh, uint32_t* vertexOffset)
-/**********************************************************/
-{
-  auto& stagingUploader = m_context_manager->getStagingUploader();
-  nvvk::ResourceAllocator* allocator = stagingUploader.getResourceAllocator();
-
-  // Calculate buffer sizes
-  size_t verticesSize = std::span(primMesh.vertices).size_bytes();
-  size_t trianglesSize = std::span(primMesh.triangles).size_bytes();
-
-  // Create buffer for the geometry data (vertices + triangles)
-  nvvk::Buffer gltfData;
-  allocator->createBuffer(
-      gltfData, verticesSize + trianglesSize,
-      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT |
-          VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
-          VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
-
-  // Upload vertices first (at offset 0)
-  stagingUploader.appendBuffer(gltfData, 0, std::span(primMesh.vertices));
-
-  // Upload triangles after vertices
-  stagingUploader.appendBuffer(gltfData, verticesSize,
-                               std::span(primMesh.triangles));
-
-  if (vertexOffset)
-  {
-    *vertexOffset = verticesSize;
-  }
-  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bGltfDatas.size());
-  m_data.bGltfDatas.push_back(gltfData);
-  return {(uint8_t*) gltfData.address, bufferIndex};
-}
-
-/**********************************************************/
-std::pair<uint8_t*, uint32_t>
-VulkanSceneAssetManager::uploadGltfBuffer(const tinygltf::Model& model)
+VulkanSceneAssetManager::upload(const tinygltf::Model& model)
 /**********************************************************/
 {
   nvvk::Buffer bGltfData;
@@ -210,8 +172,7 @@ void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::createGltfSceneInfoBuffer(
-    Scene& sceneResource)
+void VulkanSceneAssetManager::createGltfSceneInfoBuffer(Scene& sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

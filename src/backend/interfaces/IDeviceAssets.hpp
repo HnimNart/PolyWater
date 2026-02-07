@@ -39,12 +39,7 @@ public:
   // Geometry Upload (Buffers)
   // ---------------------------------------------------------------------------
   virtual std::pair<BufferAddr, BufferID>
-  uploadGltfBuffer(const tinygltf::Model& model) = 0;
-
-  /// TODO i think this is no needed
-  virtual std::pair<BufferAddr, BufferID>
-  uploadPrimitiveMeshBuffer(const nvutils::PrimitiveMesh& primMesh,
-                            uint32_t* verticesOffset = nullptr) {};
+  upload(const tinygltf::Model& model) = 0;
 
   // ---------------------------------------------------------------------------
   // Scene Registration

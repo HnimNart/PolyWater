@@ -61,11 +61,7 @@ public:
   void endUploading() override;
 
   // Meshes
-  std::pair<BufferAddr, BufferID>
-  uploadGltfBuffer(const tinygltf::Model& model) override;
-  std::pair<BufferAddr, BufferID>
-  uploadPrimitiveMeshBuffer(const nvutils::PrimitiveMesh& primMesh,
-                            uint32_t* vertexOffset = nullptr) override;
+  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model& model) override;
   void addMeshes(size_t count, BufferID bufferIndex) override;
 
   // Textures

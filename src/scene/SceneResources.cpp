@@ -66,8 +66,7 @@ void SceneResourcesManager::finalizeSceneResources()
   // --- Process Pending Models ---
   for (const auto& model : m_pendingModels)
   {
-    auto [bufferAddr, bufferIndex] =
-        m_device_resources->uploadGltfBuffer(model);
+    auto [bufferAddr, bufferIndex] = m_device_resources->upload(model);
     size_t startSize = m_resources.meshes.size();
     m_resources.meshes.reserve(startSize + model.meshes.size());
     for (size_t i = 0; i < model.meshes.size(); i++)
