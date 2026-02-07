@@ -57,9 +57,10 @@ NAMESPACE_SHADERIO_BEGIN()
 // Binding Points
 enum BindingPoints
 {
-  eTextures = 0,  // Binding point for textures
-  eOutImage,      // Binding point for output image
-  eTlas,          // Top-level acceleration structure
+  eTextures = 0,    // Binding point for textures
+  eTlas = 1,        // Top-level acceleration structure
+  eOutImage = 2,    // Binding point for output image
+  eAccumImage = 3,  //
 };
 
 // GLTF
@@ -133,9 +134,9 @@ struct GltfPunctual
 
 struct RenderParams
 {
-  int nSamples = 16;  // Number of samples pr pass
+  int nSamples = 1;  // Number of samples pr pass
   int maxBounces = 16;
-  int n_bounces_rr = 3;
+  int nBouncesRR = 3;
   uint frameIdx;  // For RNG seeding (changes every frame)
 };
 

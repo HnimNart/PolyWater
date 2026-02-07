@@ -2,12 +2,10 @@
 
 struct DiffuseEvaluator : IBSDF
 {
-  // This is the Slang equivalent of a constructor
   __init(float3 _albedo) { this.albedo = _albedo; }
-  float3 albedo;
-
-  // The required function
   float3 eval(float3 L) { return albedo / M_PI; }
+
+  float3 albedo;
 }
 
     //-----------------------------------------------------------------------

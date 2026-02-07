@@ -4,6 +4,7 @@
 #define RAY_TRACE 1
 
 #include "include/lights.h.slang"
+#include "include/math.h.slang"
 #include "include/pbr.h.slang"
 #include "include/rnd.h.slang"
 #include "include/utils.h.slang"
@@ -21,6 +22,8 @@
 [[vk::binding(BindingPoints::eTlas, 1)]]        RaytracingAccelerationStructure topLevelAS;
 // Output image where the final rendered result will be stored
 [[vk::binding(BindingPoints::eOutImage, 1)]]    RWTexture2D<float4> outImage;
+// Output image where the final rendered result will be stored
+[[vk::binding(BindingPoints::eAccumImage, 1)]]    RWTexture2D<float4> accumImage;
 // clang-format on
 
 // Ray payload structure - carries data through the ray tracing pipeline

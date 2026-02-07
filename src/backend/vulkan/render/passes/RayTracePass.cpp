@@ -101,6 +101,10 @@ void RayTracePass::createDescriptorLayout()
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding({.binding = shaderio::BindingPoints::eAccumImage,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       .descriptorCount = 1,
+                       .stageFlags = VK_SHADER_STAGE_ALL});
 
   // Creating a PUSH descriptor set and set layout from the bindings
   m_RayTraceDescPack.init(
@@ -290,6 +294,10 @@ void RayTracePass::execute(const IRenderContext& ctx)
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
                gBuffers->getColorImageView(RenderOutput::Linear),
                VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eAccumImage),
+      gBuffers->getColorImageView(RenderOutput::AccumLinear),
+      VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                             m_pipelineLayout, 1, write.size(), write.data());
 

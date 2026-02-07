@@ -57,13 +57,7 @@
     // --- INNER LOOP: BOUNCES (Path Tracing) ---
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {
-      // A. Trace
-      // The Hit Shader will update 'color' (emissive) and 'weight'
-      // (albedo) It will also set 'nextRayOrigin' and 'nextRayDir'
       TraceRay(topLevelAS, rayFlags, rayMask, 0, 0, 0, ray, payload);
-
-      // B. Check Termination
-      // Did we miss everything? Or hit a light that absorbs all bounces?
       if (payload.stop)
       {
         break;
@@ -71,7 +65,7 @@
 
       // C. Russian Roulette (Optional Optimization)
       float p = max(payload.weight.r, max(payload.weight.g, payload.weight.b));
-      if (bounce > params.n_bounces_rr)
+      if (bounce > params.nBouncesRR)
       {
         if (rnd(payload.seed) > p)
         {
@@ -95,6 +89,22 @@
     finalPixelColor += payload.color;
   }
 
-  // --- FINALIZE ---
-  outImage[int2(launchID)] = float4(finalPixelColor / float(N_SAMPLES), 1.0);
+  float3 currentFrameColor = finalPixelColor / float(N_SAMPLES);
+
+  if (params.frameIdx == 0)
+  {
+    accumImage[int2(launchID)] = float4(currentFrameColor, 1.0);
+  }
+  else
+  {
+    float4 previousAccum = accumImage[int2(launchID)];
+    accumImage[int2(launchID)] = previousAccum + float4(currentFrameColor, 1.0);
+  }
+
+  float4 totalAccum = accumImage[int2(launchID)];
+  float3 averageColor =
+      totalAccum.rgb / totalAccum.a;  // .a stores the count of frames
+
+  // Write to output image (Applying a simple 2.2 gamma correction)
+  outImage[int2(launchID)] = float4(averageColor, 1.0F);
 }

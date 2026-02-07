@@ -239,6 +239,8 @@ void VulkanRendererElement::onUIRender()
       PE::begin();
       shaderio::RenderParams& params = m_renderer->renderParams();
       PE::DragInt("Number of samples", &params.nSamples, 1.0F, 0, 1024);
+      PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+      PE::DragInt("RR threshold", &params.nBouncesRR, 1.0F, 0, 1024);
       PE::end();
     }
   }

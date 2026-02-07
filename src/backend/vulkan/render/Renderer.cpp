@@ -239,7 +239,8 @@ void VulkanRenderer::initGBuffers()
 
   nvvk::GBufferInitInfo info{
       .allocator = &m_context_manager->getAllocator(),
-      .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM},
+      .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM,
+                       VK_FORMAT_R32G32B32A32_SFLOAT},
       .depthFormat =
           nvvk::findDepthFormat(m_context_manager->getPhysicalDevice()),
       .imageSampler = linearSampler,
@@ -256,7 +257,7 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
   bindings.addBinding(
       {.binding = shaderio::BindingPoints::eTextures,
        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-       .descriptorCount = 10,
+       .descriptorCount = 10,  // TODO this sohuld benumber of textures?
        .stageFlags = VK_SHADER_STAGE_ALL},
       VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
           VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |

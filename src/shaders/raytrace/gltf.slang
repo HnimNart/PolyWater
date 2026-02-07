@@ -90,7 +90,7 @@ struct PbrEvaluator : IBSDF
       bounceDir = reflectDir;
 
     // Update Throughput
-    payload.weight *= F / max(EPSILON, probSpecular);
+    payload.weight *= safe_div(F, probSpecular);
   }
   else
   {

@@ -33,6 +33,9 @@ public:
   const Scene& gltfResources() const;
   SceneResourcesManager& sceneResourceManager();
 
+  bool isDirty() const { return has_changed || m_scene_resources.dirty(); }
+  bool setDirty(bool dirty) { has_changed = dirty; }
+
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
