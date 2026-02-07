@@ -91,6 +91,7 @@ void VulkanRendererElement::setupScene()
   m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});
   m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F},
                                       {0.0F, 1.0F, 0.0F});
+  m_scene_manager.camera()->setClean();
 
   // build scene
   m_renderer->init(m_scene_manager.sceneResourceManager());
@@ -146,7 +147,7 @@ void VulkanRendererElement::onUIRender()
 /**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
-
+  m_hasChanged = false;
   if (ImGui::Begin("Viewport"))
   {
     ImGui::Image(
@@ -178,22 +179,26 @@ void VulkanRendererElement::onUIRender()
       }
       ImGui::EndCombo();
     }
+
     if (ImGui::CollapsingHeader("Camera"))
     {
-      nvgui::CameraWidget(m_scene_manager.camera());
+      m_hasChanged |= nvgui::CameraWidget(m_scene_manager.camera());
     }
+
     if (ImGui::CollapsingHeader("Environment"))
     {
       auto& sceneInfo = m_scene_manager.sceneInfo();
-      ImGui::Checkbox("Use Sky", (bool*) &sceneInfo.useSky);
+      m_hasChanged |= ImGui::Checkbox("Use Sky", (bool*) &sceneInfo.useSky);
+
       if (sceneInfo.useSky)
       {
-        nvgui::skySimpleParametersUI(sceneInfo.skySimpleParam);
+        m_hasChanged |= nvgui::skySimpleParametersUI(sceneInfo.skySimpleParam);
       }
       else
       {
         PE::begin();
-        PE::ColorEdit3("Background", (float*) &sceneInfo.backgroundColor);
+        m_hasChanged |=
+            PE::ColorEdit3("Background", (float*) &sceneInfo.backgroundColor);
         PE::end();
 
         auto& light = sceneInfo.punctualLights[0];
@@ -201,36 +206,45 @@ void VulkanRendererElement::onUIRender()
         if (light.type == shaderio::GltfLightType::ePoint ||
             light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::DragFloat3("Light Position", glm::value_ptr(light.position), 1.0f,
-                         -20.0f, 20.0f, "%.2f", ImGuiSliderFlags_None,
-                         "Position of the light");
+          m_hasChanged |=
+              PE::DragFloat3("Light Position", glm::value_ptr(light.position),
+                             0.1f, -20.0f, 20.0f);
         }
         if (light.type == shaderio::GltfLightType::eDirectional ||
             light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::SliderFloat3("Light Direction", glm::value_ptr(light.direction),
-                           -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_None,
-                           "Direction of the light");
+          m_hasChanged |= PE::SliderFloat3(
+              "Light Direction", glm::value_ptr(light.direction), -1.0f, 1.0f);
         }
-        PE::SliderFloat("Light Intensity", &light.intensity, 0.0f, 1000.0f,
-                        "%.2f", ImGuiSliderFlags_Logarithmic,
-                        "Intensity of the light");
-        PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
-                       ImGuiColorEditFlags_NoInputs, "Color of the light");
-        PE::Combo("Light Type", (int*) &light.type,
-                  "Point\0Spot\0Directional\0", 3,
-                  "Type of the light (Point, Spot, Directional) ");
+
+        m_hasChanged |=
+            PE::SliderFloat("Light Intensity", &light.intensity, 0.0f, 1000.0f,
+                            "%.2f", ImGuiSliderFlags_Logarithmic);
+        m_hasChanged |=
+            PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
+                           ImGuiColorEditFlags_NoInputs);
+
+        // Using a temp int for the combo to capture changes properly
+        int typeInt = static_cast<int>(light.type);
+        if (PE::Combo("Light Type", &typeInt, "Point\0Spot\0Directional\0", 3))
+        {
+          light.type = static_cast<shaderio::GltfLightType>(typeInt);
+          m_hasChanged = true;
+        }
+
         if (light.type == shaderio::GltfLightType::eSpot)
         {
-          PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f, "%.2f",
-                          ImGuiSliderFlags_AlwaysClamp,
-                          "Cone angle of the spot light");
+          m_hasChanged |=
+              PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f);
         }
         PE::end();
       }
     }
+
     if (ImGui::CollapsingHeader("Tonemapper"))
     {
+      // Note: Tonemapping changes usually don't need a path-trace reset
+      // since they happen on the final image, but we can track it if desired.
       nvgui::tonemapperWidget(m_renderer->postProcessor().data());
     }
 
@@ -238,9 +252,19 @@ void VulkanRendererElement::onUIRender()
     {
       PE::begin();
       shaderio::RenderParams& params = m_renderer->renderParams();
-      PE::DragInt("Number of samples", &params.nSamples, 1.0F, 0, 1024);
-      PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-      PE::DragInt("RR threshold", &params.nBouncesRR, 1.0F, 0, 1024);
+      m_hasChanged |=
+          PE::DragInt("Number of samples", &params.nSamples, 1.0F, 0, 1024);
+      m_hasChanged |=
+          PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+      m_hasChanged |=
+          PE::DragInt("RR threshold", &params.nBouncesRR, 1.0F, 0, 1024);
+
+      // Manual reset button
+      if (PE::Button("Reset Accumulation", ImVec2(-1, 0),
+                     "Clear the accumulation buffer and start over"))
+      {
+        m_hasChanged = true;
+      }
       PE::end();
     }
   }
@@ -251,6 +275,12 @@ void VulkanRendererElement::onUIRender()
 void VulkanRendererElement::onPreRender()
 /**********************************************************/
 {
+  m_hasChanged |= m_scene_manager.camera()->isDirty();
+  if (m_hasChanged)
+  {
+    m_renderer->reset();
+    m_scene_manager.camera()->setClean();
+  }
   m_scene_manager.update();
   if (m_scene_manager.sceneResourceManager().dirty())
   {

@@ -45,6 +45,7 @@ public:
   void deinit() override;
   void reload(const SceneResourcesManager& scene) override;
   void update(const SceneResourcesManager& scene) override;
+  void reset() override;
 
   // ---------------------------------------------------------------------------
   // Rendering
@@ -55,7 +56,7 @@ public:
   shaderio::SceneResources* uploadSceneResources(VkCommandBuffer cmd) const;
   void setRenderMode(RenderMode mode,
                      const SceneResourcesManager& scene) override;
-  void render(IRenderContext& ctx) const override;
+  void render(IRenderContext& ctx) override;
   void onResize(const WindowSize& size) override;
   void saveImage(const std::filesystem::path& filename,
                  int quality = 100) const override;
@@ -91,4 +92,6 @@ private:
   // Render stuff
   RenderGraph m_graph;
   ShaderManager m_shaderManager;
+
+  uint32_t m_frameIndex = 0;
 };

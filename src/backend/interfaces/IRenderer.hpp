@@ -52,6 +52,7 @@ public:
   virtual void onResize(const WindowSize& size) = 0;
   virtual void reload(const SceneResourcesManager& scene) = 0;
   virtual void update(const SceneResourcesManager& scene) = 0;
+  virtual void reset() = 0;
 
   // -------------------------------------------------------------------------
   // Execution Cycle
@@ -59,7 +60,7 @@ public:
   virtual void setRenderMode(RenderMode mode,
                              const SceneResourcesManager& scene) = 0;
   // Main render pass.
-  virtual void render(IRenderContext& ctx) const = 0;
+  virtual void render(IRenderContext& ctx) = 0;
 
   // -------------------------------------------------------------------------
   // Accessors & Resources

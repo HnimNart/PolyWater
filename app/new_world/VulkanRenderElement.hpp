@@ -47,4 +47,6 @@ private:
 
   // Ray tracing toggle
   RenderMode m_renderMode = RenderMode::RAYTRACE;
+
+  bool m_hasChanged = false;
 };

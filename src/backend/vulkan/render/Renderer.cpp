@@ -84,7 +84,15 @@ void VulkanRenderer::update(const SceneResourcesManager& scene)
   if (scene.dirty() && m_render_mode == RenderMode::RAYTRACE)
   {
     m_accel->build(scene, m_shaderManager);
+    reset();
   }
+}
+
+/**********************************************************/
+void VulkanRenderer::reset()
+/**********************************************************/
+{
+  m_frameIndex = 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +160,7 @@ void VulkanRenderer::setRenderMode(RenderMode mode,
     m_context_manager->waitForDeviceIdle();
     m_render_mode = mode;
     buildGraph(scene);
+    reset();
   }
 }
 
@@ -193,7 +202,7 @@ void VulkanRenderer::buildGraph(const SceneResourcesManager& scene)
 }
 
 /**********************************************************/
-void VulkanRenderer::render(IRenderContext& ctx) const
+void VulkanRenderer::render(IRenderContext& ctx)
 /**********************************************************/
 {
   auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -203,7 +212,7 @@ void VulkanRenderer::render(IRenderContext& ctx) const
       uploadSceneInfo(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
   vkCtx.pushValues.resourcesAddress = uploadSceneResources(vkCtx.cmdBuffer);
   vkCtx.pushValues.renderParams = m_renderParams;
-  vkCtx.pushValues.renderParams.frameIdx = ctx.frameNumber;
+  vkCtx.pushValues.renderParams.frameIdx = m_frameIndex;
   vkCtx.bvh = m_accel.get();
   if (m_swapchain_manager)
   {
@@ -213,6 +222,7 @@ void VulkanRenderer::render(IRenderContext& ctx) const
     vkCtx.screenSize = m_swapchain_manager->getWindowSize();
   }
   m_graph.execute(ctx);
+  m_frameIndex++;
 }
 
 /**********************************************************/
