@@ -2,7 +2,15 @@
 #pragma once
 #include <cstdint>
 
-#include "scene/gltf/gltf_utils.hpp"
+#include <nvutils/primitives.hpp>
+
+#include "scene/Scene.h"
+#include "shaders/shaderio.h"
+
+namespace tinygltf
+{
+class Model;
+}
 
 class IDeviceAssets
 {
@@ -33,6 +41,7 @@ public:
   virtual std::pair<BufferAddr, BufferID>
   uploadGltfBuffer(const tinygltf::Model& model) = 0;
 
+  /// TODO i think this is no needed
   virtual std::pair<BufferAddr, BufferID>
   uploadPrimitiveMeshBuffer(const nvutils::PrimitiveMesh& primMesh,
                             uint32_t* verticesOffset = nullptr) {};
@@ -41,5 +50,5 @@ public:
   // Scene Registration
   // ---------------------------------------------------------------------------
   virtual void addMeshes(size_t count, BufferID) = 0;
-  virtual void finalizeSceneResources(gltf::Scene& resources) = 0;
+  virtual void finalizeSceneResources(Scene& resources) = 0;
 };

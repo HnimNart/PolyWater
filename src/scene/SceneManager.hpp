@@ -28,9 +28,9 @@ public:
   // Scene / Resources
   // --------------------------------------------------
   void update();
-  gltf::Scene* getScenePtr();
-  gltf::Scene& gltfResources();
-  const gltf::Scene& gltfResources() const;
+  Scene* getScenePtr();
+  Scene& gltfResources();
+  const Scene& gltfResources() const;
   SceneResourcesManager& sceneResourceManager();
 
   // --------------------------------------------------

@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "RHI_definitions.hpp"
-#include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shaderio.h"
 
+class Scene;
 //------------------------------------------------------------
 // FrameContext
 //------------------------------------------------------------
@@ -31,6 +32,6 @@ public:
   uint64_t frameNumber{
       0};  // Timeline value for synchronization (increases each frame)
 
-  gltf::Scene* sceneResources = nullptr;
+  Scene* sceneResources = nullptr;
   shaderio::PushConstant pushValues;
 };

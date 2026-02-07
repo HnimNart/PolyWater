@@ -18,7 +18,7 @@
 
 // Generated Shaders
 #include "_autogen/raster.slang.h"
-#include "scene/gltf/gltf_utils.hpp"
+#include "scene/SceneResources.hpp"
 
 /**********************************************************/
 RasterPass::RasterPass(nvvk::DescriptorPack* descPack)
@@ -75,7 +75,7 @@ void RasterPass::execute(const IRenderContext& ctx)
   const VulkanSceneGpuData& deviceResources = *vkCtx.deviceResources;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const gltf::Scene* sceneResources = vkCtx.sceneResources;
+  const Scene* sceneResources = vkCtx.sceneResources;
   const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
   const VkExtent2D& size = gBuffers->getSize();
 
@@ -146,8 +146,7 @@ void RasterPass::execute(const IRenderContext& ctx)
   for (size_t i = 0; i < sceneResources->instances.size(); i++)
   {
     uint32_t meshIndex = sceneResources->instances[i].meshIndex;
-    const shaderio::MeshPrimitive& gltfMesh =
-        sceneResources->meshes[meshIndex];
+    const shaderio::MeshPrimitive& gltfMesh = sceneResources->meshes[meshIndex];
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants

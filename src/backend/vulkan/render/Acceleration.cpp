@@ -58,7 +58,7 @@ void AccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 {
   SCOPED_TIMER_FUNC();
 
-  const gltf::Scene& scene_geometry = scene.data();
+  const Scene& scene_geometry = scene.data();
   // Prepare geometry information for all meshes
   std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(
       scene_geometry.meshes.size());
@@ -80,7 +80,7 @@ void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
   SCOPED_TIMER_FUNC();
 
   // Prepare instance data for TLAS
-  const gltf::Scene& sceneGeometry = scene.data();
+  const Scene& sceneGeometry = scene.data();
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
   tlasInstances.reserve(sceneGeometry.instances.size());
   const VkGeometryInstanceFlagsKHR flags{

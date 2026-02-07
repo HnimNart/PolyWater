@@ -6,6 +6,7 @@
 #include "ShaderManager.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
+#include "scene/Scene.h"
 #include "scene/gltf/gltf_utils.hpp"
 #include "tiny_gltf.h"
 
@@ -53,14 +54,14 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  const gltf::Scene& data() const;
-  gltf::Scene& data();
+  const Scene& data() const;
+  Scene& data();
 
   shaderio::SceneInfo& sceneInfo();
   const shaderio::SceneInfo& sceneInfo() const;
 
 private:
-  gltf::Scene m_resources{};
+  Scene m_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
 
   // Things to be uploaded to gpu

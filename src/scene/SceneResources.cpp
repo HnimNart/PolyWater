@@ -119,14 +119,14 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
 }
 
 /**********************************************************/
-const gltf::Scene& SceneResourcesManager::data() const
+const Scene& SceneResourcesManager::data() const
 /**********************************************************/
 {
   return m_resources;
 }
 
 /**********************************************************/
-gltf::Scene& SceneResourcesManager::data()
+Scene& SceneResourcesManager::data()
 /**********************************************************/
 {
   return m_resources;

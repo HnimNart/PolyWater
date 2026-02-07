@@ -35,17 +35,6 @@ class Model;
 namespace gltf
 {
 
-// Simple host scene resource that holds meshes, instances, and materials
-struct Scene
-{
-  std::vector<shaderio::MeshPrimitive> meshes;  // All meshes in the scene
-  std::vector<shaderio::Instance> instances;    // All instances in the scene
-  std::vector<shaderio::Material> materials;    // All materials in the scene
-  shaderio::SceneInfo sceneInfo;  // Scene information (camera matrices,
-                                  // meshes, instances, materials, etc.)
-  shaderio::SceneResources sceneResources;
-};
-
 // This is a utility function to load a GLTF file and return the model data.
 tinygltf::Model loadModel(const std::filesystem::path& filename);
 shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model& model,

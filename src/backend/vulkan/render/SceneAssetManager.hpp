@@ -12,7 +12,7 @@
 // Project Includes
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
-#include "scene/gltf/gltf_utils.hpp"
+#include "scene/SceneResources.hpp"
 
 // Forward Declarations
 namespace tinygltf
@@ -73,7 +73,7 @@ public:
   TextureID uploadTexture(const std::string& filepath, TextureID = -1) override;
 
   // Wrap up
-  void finalizeSceneResources(gltf::Scene& resources) override;
+  void finalizeSceneResources(Scene& resources) override;
 
   // -------------------------------------------------------------------------
   // Vulkan Specific API
@@ -89,7 +89,7 @@ private:
   // -------------------------------------------------------------------------
   // Internal Static Helpers (Upload Logic)
   // -------------------------------------------------------------------------
-  void createGltfSceneInfoBuffer(gltf::Scene& sceneResources);
+  void createGltfSceneInfoBuffer(Scene& sceneResources);
 
   static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd,
                                         nvvk::StagingUploader& staging,
@@ -97,7 +97,7 @@ private:
                                         const std::filesystem::path& filename,
                                         bool sRgb = true);
 
-  static void processGltfNodes(gltf::Scene& sceneResource,
+  static void processGltfNodes(Scene& sceneResource,
                                const tinygltf::Model& model,
                                uint32_t meshOffset);
 

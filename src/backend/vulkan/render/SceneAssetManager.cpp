@@ -127,7 +127,7 @@ void VulkanSceneAssetManager::updateDescriptors(
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::finalizeSceneResources(gltf::Scene& resources)
+void VulkanSceneAssetManager::finalizeSceneResources(Scene& resources)
 /**********************************************************/
 {
   createGltfSceneInfoBuffer(resources);
@@ -211,7 +211,7 @@ void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
 
 /**********************************************************/
 void VulkanSceneAssetManager::createGltfSceneInfoBuffer(
-    gltf::Scene& sceneResource)
+    Scene& sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -289,7 +289,7 @@ nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::processGltfNodes(gltf::Scene& sceneResource,
+void VulkanSceneAssetManager::processGltfNodes(Scene& sceneResource,
                                                const tinygltf::Model& model,
                                                uint32_t meshOffset)
 /**********************************************************/

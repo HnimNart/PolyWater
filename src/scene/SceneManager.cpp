@@ -24,7 +24,7 @@ void SceneManager::update()
 }
 
 /**********************************************************/
-gltf::Scene* SceneManager::getScenePtr()
+Scene* SceneManager::getScenePtr()
 /**********************************************************/
 {
   return &gltfResources();
@@ -35,14 +35,14 @@ gltf::Scene* SceneManager::getScenePtr()
 // --------------------------------------------------
 
 /**********************************************************/
-gltf::Scene& SceneManager::gltfResources()
+Scene& SceneManager::gltfResources()
 /**********************************************************/
 {
   return m_scene_resources.data();
 }
 
 /**********************************************************/
-const gltf::Scene& SceneManager::gltfResources() const
+const Scene& SceneManager::gltfResources() const
 /**********************************************************/
 {
   return m_scene_resources.data();
