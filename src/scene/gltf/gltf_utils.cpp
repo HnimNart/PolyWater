@@ -119,11 +119,11 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
 }
 
 /**********************************************************/
-shaderio::GltfMesh gltf::extractGltfMesh(const tinygltf::Model& model,
-                                         uint meshIdx)
+shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
+                                                 uint meshIdx)
 /**********************************************************/
 {
-  shaderio::GltfMesh mesh{};
+  shaderio::MeshPrimitive mesh{};
   const tinygltf::Mesh& tinyMesh = model.meshes[meshIdx];
   const tinygltf::Primitive& primitive = tinyMesh.primitives.front();
   assert((tinyMesh.primitives.size() == 1 &&
@@ -155,12 +155,12 @@ shaderio::GltfMesh gltf::extractGltfMesh(const tinygltf::Model& model,
 }
 
 /**********************************************************/
-shaderio::GltfMesh
+shaderio::MeshPrimitive
 gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
                                   const nvutils::PrimitiveMesh& primMesh)
 /**********************************************************/
 {
-  shaderio::GltfMesh mesh;
+  shaderio::MeshPrimitive mesh;
   uint32_t vertexCount = static_cast<uint32_t>(primMesh.vertices.size());
 
   // Positions

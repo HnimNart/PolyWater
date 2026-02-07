@@ -12,7 +12,7 @@ class WindowSize;
 
 namespace shaderio
 {
-struct GltfSceneInfo;
+struct SceneInfo;
 struct PushConstant;
 }  // namespace shaderio
 class IDeviceAssets;

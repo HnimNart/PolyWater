@@ -19,8 +19,9 @@
 
 #include <nvshaders/slang_types.h>
 
-#include "shaderio.h"
+#include "include/lights.h.slang"
 #include "include/pbr.h.slang"
+#include "shaderio.h"
 
 // clang-format off
 [[vk::push_constant]]                       ConstantBuffer<PushConstant> pushConst;
@@ -67,24 +68,27 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
 {
   int instanceIndex = pushConst.instanceIndex;
 
-  GltfSceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneResources* sceneResources = pushConst.resourcesAddress;
 
-  GltfInstance          instance = sceneInfo.instances[instanceIndex];
-  GltfMesh              meshIo   = sceneInfo.meshes[instance.meshIndex];
-  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];
-
+  Instance instance = sceneResources.instances[instanceIndex];
+  MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
+  Material material = sceneResources.materials[instance.materialIndex];
 
   // Retrieve the data
-  float3 posMesh  = getAttribute<float3>(meshIo.gltfBuffer, meshIo.triMesh.positions, vertexIndex);
-  float3 normal   = getAttribute<float3>(meshIo.gltfBuffer, meshIo.triMesh.normals, vertexIndex);
-  float2 texCoord = getAttribute<float2>(meshIo.gltfBuffer, meshIo.triMesh.texCoords, vertexIndex);
+  float3 posMesh = getAttribute<float3>(meshIo.gltfBuffer,
+                                        meshIo.triMesh.positions, vertexIndex);
+  float3 normal = getAttribute<float3>(meshIo.gltfBuffer,
+                                       meshIo.triMesh.normals, vertexIndex);
+  float2 texCoord = getAttribute<float2>(meshIo.gltfBuffer,
+                                         meshIo.triMesh.texCoords, vertexIndex);
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 
   VSout output;
-  output.sv_position   = mul(pos, sceneInfo.viewProjMatrix);
-  output.worldPos      = pos.xyz;
-  output.worldNormal   = normalize(mul(normal, float3x3(pushConst.normalMatrix)));
+  output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
+  output.worldPos = pos.xyz;
+  output.worldNormal = normalize(mul(normal, float3x3(pushConst.normalMatrix)));
   output.worldTexCoord = texCoord;
 
   return output;
@@ -93,42 +97,12 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
     // Fragment Shader
     [shader("pixel")] PSout fragmentMain(VSout stage)
 {
-  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
-  GltfInstance instance = sceneInfo.instances[pushConst.instanceIndex];
-  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];
+  SceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  SceneResources sceneResources = pushConst.resourcesAddress[0];
+  Instance instance = sceneResources.instances[pushConst.instanceIndex];
+  Material material = sceneResources.materials[instance.materialIndex];
 
-  GltfPunctual light =
-      sceneInfo.punctualLights[0];  // Assuming we only use the first light for
-                                    // simplicity
-
-  if (sceneInfo.useSky == 1)
-  {
-    light.direction = sceneInfo.skySimpleParam.sunDirection;
-    light.color = sceneInfo.skySimpleParam.sunColor;
-    light.intensity = sceneInfo.skySimpleParam.sunIntensity;
-    light.type = GltfLightType::eDirectional;
-  }
-
-  if (light.type == GltfLightType::ePoint)
-  {
-    light.direction = light.position - stage.worldPos;
-    float d = length(light.direction);
-    light.intensity /= (d * d);
-  }
-  else if (light.type == GltfLightType::eSpot)
-  {
-    // For spot lights, we need to calculate the direction and apply attenuation
-    float3 lightDir = light.position - stage.worldPos;
-    float d = length(lightDir);
-    light.intensity /= (d * d);
-    // Cone attenuation can be applied here if needed
-    float theta = (dot(normalize(lightDir), normalize(light.direction)));
-    float spotIntensity =
-        clamp((theta - cos(light.coneAngle)) / (1.0 - cos(light.coneAngle)),
-              0.0, 1.0);
-    light.intensity *= spotIntensity;
-    light.direction = lightDir;
-  }
+  GltfPunctual light = processLight(sceneInfo, stage.worldPos);
 
   float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
   float3 N = normalize(stage.worldNormal);

@@ -1,3 +1,4 @@
+#include "nvshaders/sky_functions.h.slang"
 #include "shared.h.slang"
 
 //-----------------------------------------------------------------------
@@ -5,7 +6,7 @@
 //-----------------------------------------------------------------------
 [shader("miss")] void rmissMain(inout HitPayload payload)
 {
-  GltfSceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
 
   // Check if sky system is enabled
   if (sceneInfo.useSky == 1)

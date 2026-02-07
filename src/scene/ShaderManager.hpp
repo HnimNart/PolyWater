@@ -5,7 +5,7 @@
 #include <span>
 #include <string>
 
-#include "gltf/io_gltf.h"
+#include "shaders/shaderio.h"
 
 struct MaterialEntry
 {

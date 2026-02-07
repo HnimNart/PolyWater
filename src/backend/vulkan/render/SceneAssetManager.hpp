@@ -33,10 +33,11 @@ struct PrimitiveMesh;
 struct VulkanSceneGpuData
 {
   std::vector<nvvk::Buffer> bGltfDatas;  // Binary GLTF data per scene
-  nvvk::Buffer bMeshes;                  // GltfMesh array
-  nvvk::Buffer bInstances;               // GltfInstance array
-  nvvk::Buffer bMaterials;               // GltfMetallicRoughness array
-  nvvk::Buffer bSceneInfo;               // GltfSceneInfo struct
+  nvvk::Buffer bMeshes;                  // Mesh array
+  nvvk::Buffer bInstances;               // Instance array
+  nvvk::Buffer bMaterials;               // Materials array
+  nvvk::Buffer bSceneInfo;               // SceneInfo struct
+  nvvk::Buffer bSceneResources;          // SceneResources struct
 
   // Mapping: meshToBufferIndex[meshIndex] -> bufferIndex in bGltfDatas
   std::vector<uint32_t> meshToBufferIndex;

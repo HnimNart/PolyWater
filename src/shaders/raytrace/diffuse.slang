@@ -14,10 +14,11 @@ rchit_diffuse(inout HitPayload payload,
   uint instanceID = InstanceIndex();
   uint triID = PrimitiveIndex();
 
-  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
-  GltfInstance instance = sceneInfo.instances[instanceID];
-  GltfMesh mesh = sceneInfo.meshes[instance.meshIndex];
-  GltfMetallicRoughness material = sceneInfo.materials[instance.materialIndex];
+  SceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  SceneResources sceneResources = pushConst.resourcesAddress[0];
+  Instance instance = sceneResources.instances[instanceID];
+  MeshPrimitive mesh = sceneResources.meshes[instance.meshIndex];
+  Material material = sceneResources.materials[instance.materialIndex];
 
   // 2. Vertex Attribute Interpolation
   int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);

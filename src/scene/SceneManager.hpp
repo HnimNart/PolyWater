@@ -37,7 +37,7 @@ public:
   // Rendering parameters
   // --------------------------------------------------
   glm::vec2& metallicRoughness();
-  shaderio::GltfSceneInfo& sceneInfo();
+  shaderio::SceneInfo& sceneInfo();
 
   // --------------------------------------------------
   // Camera

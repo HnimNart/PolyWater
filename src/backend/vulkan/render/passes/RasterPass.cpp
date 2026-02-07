@@ -17,7 +17,7 @@
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
-#include "_autogen/foundation.slang.h"
+#include "_autogen/raster.slang.h"
 #include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
@@ -76,7 +76,7 @@ void RasterPass::execute(const IRenderContext& ctx)
 
   shaderio::PushConstant constants = vkCtx.pushValues;
   const gltf::Scene* sceneResources = vkCtx.sceneResources;
-  const shaderio::GltfSceneInfo& scene_info = sceneResources->sceneInfo;
+  const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
   const VkExtent2D& size = gBuffers->getSize();
 
   NVVK_DBG_SCOPE(cmd);
@@ -146,7 +146,8 @@ void RasterPass::execute(const IRenderContext& ctx)
   for (size_t i = 0; i < sceneResources->instances.size(); i++)
   {
     uint32_t meshIndex = sceneResources->instances[i].meshIndex;
-    const shaderio::GltfMesh& gltfMesh = sceneResources->meshes[meshIndex];
+    const shaderio::MeshPrimitive& gltfMesh =
+        sceneResources->meshes[meshIndex];
     const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
 
     // Push constants
@@ -214,7 +215,7 @@ void RasterPass::compileShaders()
   SCOPED_TIMER_FUNC();
 
   VkShaderModuleCreateInfo shaderCode =
-      SlangCompiler::instance().compile("foundation.slang", foundation_slang);
+      SlangCompiler::instance().compile("raster.slang", raster_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,

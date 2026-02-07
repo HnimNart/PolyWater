@@ -11,7 +11,7 @@
       (float2) DispatchRaysDimensions().xy;  // Image size (width,height)
 
   // Retrieve scene information from push constants
-  GltfSceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
 
   // Set ray tracing flags (0 = no special flags)
   const uint rayFlags = 0;
@@ -31,7 +31,7 @@
   // Transform ray direction from view space to world space
   ray.Direction =
       mul(float4(normalize(viewCoords.xyz), 0.0), sceneInfo.viewInvMatrix).xyz;
-  ray.TMin = 0.001;     // Minimum distance to avoid self-intersection
+  ray.TMin = EPSILON;   // Minimum distance to avoid self-intersection
   ray.TMax = INFINITE;  // Maximum distance (infinite for primary rays)
 
   // Initialize ray payload with default values

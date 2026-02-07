@@ -85,7 +85,7 @@ void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
   tlasInstances.reserve(sceneGeometry.instances.size());
   const VkGeometryInstanceFlagsKHR flags{
       VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV};
-  for (const shaderio::GltfInstance& instance : sceneGeometry.instances)
+  for (const shaderio::Instance& instance : sceneGeometry.instances)
   {
     VkAccelerationStructureInstanceKHR ray_inst{};
     ray_inst.transform = nvvk::toTransformMatrixKHR(
@@ -119,7 +119,8 @@ nvvk::AccelerationStructure AccelerationStructures::tlas() const
 
 /**********************************************************/
 nvvk::AccelerationStructureGeometryInfo
-AccelerationStructures::primitiveToGeometry(const shaderio::GltfMesh& mesh)
+AccelerationStructures::primitiveToGeometry(
+    const shaderio::MeshPrimitive& mesh)
 /**********************************************************/
 {
   nvvk::AccelerationStructureGeometryInfo result = {};

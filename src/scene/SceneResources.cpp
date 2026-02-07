@@ -40,7 +40,7 @@ SceneResourcesManager::loadTexture(const std::string& filename)
 
 /**********************************************************/
 SceneResourcesManager::InstanceID
-SceneResourcesManager::addInstance(const shaderio::GltfInstance& instance)
+SceneResourcesManager::addInstance(const shaderio::Instance& instance)
 /**********************************************************/
 {
   m_resources.instances.push_back(instance);
@@ -48,8 +48,8 @@ SceneResourcesManager::addInstance(const shaderio::GltfInstance& instance)
 }
 
 /**********************************************************/
-SceneResourcesManager::MaterialID SceneResourcesManager::addMaterial(
-    const shaderio::GltfMetallicRoughness& material)
+SceneResourcesManager::MaterialID
+SceneResourcesManager::addMaterial(const shaderio::Material& material)
 /**********************************************************/
 {
   m_resources.materials.push_back(material);
@@ -133,14 +133,14 @@ gltf::Scene& SceneResourcesManager::data()
 }
 
 /**********************************************************/
-shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo()
+shaderio::SceneInfo& SceneResourcesManager::sceneInfo()
 /**********************************************************/
 {
   return m_resources.sceneInfo;
 }
 
 /**********************************************************/
-const shaderio::GltfSceneInfo& SceneResourcesManager::sceneInfo() const
+const shaderio::SceneInfo& SceneResourcesManager::sceneInfo() const
 /**********************************************************/
 {
   return m_resources.sceneInfo;

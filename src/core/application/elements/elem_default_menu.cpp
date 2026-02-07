@@ -17,17 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "elem_default_menu.hpp"
+
 #include <imgui/imgui.h>
 #include <implot/implot.h>
 
 #include <nvgui/fonts.hpp>
 #include <nvutils/logger.hpp>
 
-#include "elem_default_menu.hpp"
 #include "core/application/App.hpp"
-
-// Uncomment to show ImGui Demo
-// #define SHOW_IMGUI_DEMO 1
 
 void core::ElementDefaultMenu::onAttach(core::Application* app)
 {
@@ -39,13 +37,10 @@ void core::ElementDefaultMenu::onUIMenu()
 {
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
-#ifdef SHOW_IMGUI_DEMO
-  static bool s_showDemo{false};
-  static bool s_showDemoPlot{false};
-#endif
+
   if (ImGui::BeginMenu("File"))
   {
-    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "Ctrl+Q"))
+    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC"))
     {
       close_app = true;
     }
@@ -53,20 +48,13 @@ void core::ElementDefaultMenu::onUIMenu()
   }
   if (ImGui::BeginMenu("View"))
   {
-    ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V", &v_sync);
+    ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V",
+                    &v_sync);
     ImGui::EndMenu();
   }
-#ifdef SHOW_IMGUI_DEMO
-  if (ImGui::BeginMenu("ImGui-Debug"))
-  {
-    ImGui::MenuItem("Show ImGui Demo", nullptr, &s_showDemo);
-    ImGui::MenuItem("Show ImPlot Demo", nullptr, &s_showDemoPlot);
-    ImGui::EndMenu();
-  }
-#endif  // SHOW_IMGUI_DEMO
 
   // Shortcuts
-  if (ImGui::IsKeyPressed(ImGuiKey_Q) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+  if (ImGui::IsKeyPressed(ImGuiKey_Escape))
   {
     close_app = true;
   }
@@ -81,17 +69,6 @@ void core::ElementDefaultMenu::onUIMenu()
   {
     m_app->close();
   }
-#ifdef SHOW_IMGUI_DEMO
-  if (s_showDemo)
-  {
-    ImGui::ShowDemoWindow(&s_showDemo);
-  }
-  if (s_showDemoPlot)
-  {
-    ImPlot::ShowDemoWindow(&s_showDemoPlot);
-  }
-#endif  // SHOW_IMGUI_DEMO
-
   if (m_app->isVsync() != v_sync)
   {
     m_app->setVsync(v_sync);

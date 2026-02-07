@@ -18,11 +18,11 @@ rchit_gltf(inout HitPayload payload,
   uint triID = PrimitiveIndex();  // Which triangle within the mesh was hit
 
   // Retrieve scene data structures
-  GltfSceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
-  GltfInstance instance = sceneInfo.instances[instanceID];  // Instance data
-  GltfMesh mesh = sceneInfo.meshes[instance.meshIndex];     // Mesh data
-  GltfMetallicRoughness material =
-      sceneInfo.materials[instance.materialIndex];  // Material data
+  SceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  SceneResources sceneResources = pushConst.resourcesAddress[0];
+  Instance instance = sceneResources.instances[instanceID];
+  MeshPrimitive mesh = sceneResources.meshes[instance.meshIndex];
+  Material material = sceneResources.materials[instance.materialIndex];
 
   // Interpolate vertex attributes across the hit triangle
   int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);

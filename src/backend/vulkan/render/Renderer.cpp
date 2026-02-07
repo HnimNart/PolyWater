@@ -17,7 +17,7 @@
 #include "passes/ToneMapPass.hpp"
 #include "passes/UIPass.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/gltf/io_gltf.h"
+#include "shaders/shaderio.h"
 
 /**********************************************************/
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend)
@@ -92,33 +92,54 @@ void VulkanRenderer::update(const SceneResourcesManager& scene)
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-shaderio::GltfSceneInfo*
-VulkanRenderer::updateSceneBuffer(VkCommandBuffer cmd,
-                                  shaderio::GltfSceneInfo& sceneInfo) const
+shaderio::SceneInfo*
+VulkanRenderer::uploadSceneInfo(VkCommandBuffer cmd,
+                                const shaderio::SceneInfo& sceneInfo) const
 /**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   const VulkanSceneGpuData& device_resources = m_resources->deviceResources();
-  sceneInfo.instances = (shaderio::GltfInstance*) device_resources.bInstances
-                            .address;  // Get the address of the instance buffer
-  sceneInfo.meshes = (shaderio::GltfMesh*) device_resources.bMeshes
-                         .address;  // Get the address of the mesh buffer
-  sceneInfo.materials =
-      (shaderio::GltfMetallicRoughness*) device_resources.bMaterials
-          .address;  // Get the address of the material buffer
-
   // Making sure the scene information buffer is updated before rendering
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT});
   vkCmdUpdateBuffer(cmd, device_resources.bSceneInfo.buffer, 0,
-                    sizeof(shaderio::GltfSceneInfo), &sceneInfo);
+                    sizeof(shaderio::SceneInfo), &sceneInfo);
   nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
-  return reinterpret_cast<shaderio::GltfSceneInfo*>(
+  return reinterpret_cast<shaderio::SceneInfo*>(
       device_resources.bSceneInfo.address);
+}
+
+/**********************************************************/
+shaderio::SceneResources*
+VulkanRenderer::uploadSceneResources(VkCommandBuffer cmd) const
+/**********************************************************/
+{
+  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
+  const VulkanSceneGpuData& device_resources = m_resources->deviceResources();
+  shaderio::SceneResources resources = {
+      .instances = (shaderio::Instance*) device_resources.bInstances
+                       .address,  // Get the address of the instance buffer
+      .meshes = (shaderio::MeshPrimitive*) device_resources.bMeshes
+                    .address,  // Get the address of the mesh buffer
+      .materials = (shaderio::Material*) device_resources.bMaterials
+                       .address,  // Get the address of the material buffer
+  };
+
+  // Making sure the scene information buffer is updated before rendering
+  nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, device_resources.bSceneResources.buffer, 0,
+                    sizeof(shaderio::SceneResources), &resources);
+  nvvk::cmdBufferMemoryBarrier(cmd, {device_resources.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  return reinterpret_cast<shaderio::SceneResources*>(
+      device_resources.bSceneResources.address);
 }
 
 /**********************************************************/
@@ -179,7 +200,8 @@ void VulkanRenderer::render(IRenderContext& ctx) const
   vkCtx.gBuffers = m_gBuffers.get();
   vkCtx.deviceResources = &m_resources->deviceResources();
   vkCtx.pushValues.sceneInfoAddress =
-      updateSceneBuffer(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
+      uploadSceneInfo(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
+  vkCtx.pushValues.resourcesAddress = uploadSceneResources(vkCtx.cmdBuffer);
   vkCtx.bvh = m_accel.get();
   if (m_swapchain_manager)
   {

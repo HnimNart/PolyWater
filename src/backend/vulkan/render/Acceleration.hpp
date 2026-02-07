@@ -10,7 +10,7 @@ class SceneResourcesManager;
 class ShaderManager;
 namespace shaderio
 {
-struct GltfMesh;
+struct MeshPrimitive;
 }
 class VulkanContextManager;
 
@@ -34,6 +34,6 @@ private:
                  const ShaderManager& materialManager);
 
   nvvk::AccelerationStructureGeometryInfo
-  primitiveToGeometry(const shaderio::GltfMesh& mesh);
+  primitiveToGeometry(const shaderio::MeshPrimitive& mesh);
   nvvk::AccelerationStructureHelper m_asBuilder{};
 };

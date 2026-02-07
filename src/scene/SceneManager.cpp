@@ -1,7 +1,6 @@
 #include "SceneManager.hpp"
 
 #include "backend/interfaces/IRenderer.hpp"
-#include "scene/gltf/io_gltf.h"
 
 /**********************************************************/
 SceneManager::SceneManager(const std::shared_ptr<IRenderer>& renderer)
@@ -64,7 +63,7 @@ glm::vec2& SceneManager::metallicRoughness()
 }
 
 /**********************************************************/
-shaderio::GltfSceneInfo& SceneManager::sceneInfo()
+shaderio::SceneInfo& SceneManager::sceneInfo()
 /**********************************************************/
 {
   return m_scene_resources.sceneInfo();

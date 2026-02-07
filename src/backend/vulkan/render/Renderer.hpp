@@ -12,7 +12,7 @@
 #include "passes/RasterPass.hpp"
 #include "passes/RayTracePass.hpp"
 #include "scene/SceneManager.hpp"
-#include "scene/gltf/io_gltf.h"
+#include "shaders/shaderio.h"
 
 class PostProcessor;
 class IRenderBackend;
@@ -49,9 +49,10 @@ public:
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  shaderio::GltfSceneInfo*
-  updateSceneBuffer(VkCommandBuffer cmd,
-                    shaderio::GltfSceneInfo& sceneInfo) const;
+  shaderio::SceneInfo*
+  uploadSceneInfo(VkCommandBuffer cmd,
+                  const shaderio::SceneInfo& sceneInfo) const;
+  shaderio::SceneResources* uploadSceneResources(VkCommandBuffer cmd) const;
   void setRenderMode(RenderMode mode,
                      const SceneResourcesManager& scene) override;
   void render(IRenderContext& ctx) const override;
@@ -70,7 +71,7 @@ private:
   void initGBuffers();
   void buildGraph(const SceneResourcesManager& scene);
   void registerShaders();
-  shaderio::GltfSceneInfo*
+  shaderio::SceneInfo*
   updateSceneBuffer(VkCommandBuffer cmd,
                     const SceneResourcesManager& scene) const;
   void createDescriptorSetLayout(VkDevice device);

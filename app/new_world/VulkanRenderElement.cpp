@@ -70,7 +70,7 @@ void VulkanRendererElement::setupScene()
        .hit_group = MaterialType::eGltfPbr});
 
   // Scene information
-  shaderio::GltfSceneInfo& sceneInfo = m_scene_manager.sceneInfo();
+  shaderio::SceneInfo& sceneInfo = m_scene_manager.sceneInfo();
   sceneInfo.useSky = false;                           // Use light
   sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f};  // The background color
   sceneInfo.numLights = 1;

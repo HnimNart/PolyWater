@@ -7,7 +7,6 @@
 #include <nvvk/default_structs.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "_autogen/foundation.slang.h"
 #include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 

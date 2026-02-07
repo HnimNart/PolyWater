@@ -60,6 +60,7 @@ void VulkanSceneAssetManager::deinit()
     m_context_manager->getAllocator().destroyImage(texture);
   }
   m_context_manager->getAllocator().destroyBuffer(m_data.bSceneInfo);
+  m_context_manager->getAllocator().destroyBuffer(m_data.bSceneResources);
   m_context_manager->getAllocator().destroyBuffer(m_data.bMeshes);
   m_context_manager->getAllocator().destroyBuffer(m_data.bMaterials);
   m_context_manager->getAllocator().destroyBuffer(m_data.bInstances);
@@ -251,8 +252,12 @@ void VulkanSceneAssetManager::createGltfSceneInfoBuffer(
   // SceneInfo needs a span of size 1 created manually
   uploadBuffer(
       m_data.bSceneInfo,
-      std::span<const shaderio::GltfSceneInfo>(&sceneResource.sceneInfo, 1),
+      std::span<const shaderio::SceneInfo>(&sceneResource.sceneInfo, 1),
       uniformUsage);
+  uploadBuffer(m_data.bSceneResources,
+               std::span<const shaderio::SceneResources>(
+                   &sceneResource.sceneResources, 1),
+               uniformUsage);
 }
 
 /**********************************************************/
@@ -331,7 +336,7 @@ void VulkanSceneAssetManager::processGltfNodes(gltf::Scene& sceneResource,
 
     if (node.mesh != -1)
     {
-      shaderio::GltfInstance instance{};
+      shaderio::Instance instance{};
       instance.meshIndex = node.mesh + meshOffset;
       instance.transform = nodeTransform;
       sceneResource.instances.push_back(instance);

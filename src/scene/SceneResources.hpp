@@ -38,8 +38,8 @@ public:
   // ---------------------------------------------------------------------------
   // Scene Composition
   // ---------------------------------------------------------------------------
-  InstanceID addInstance(const shaderio::GltfInstance& instance);
-  MaterialID addMaterial(const shaderio::GltfMetallicRoughness& material);
+  InstanceID addInstance(const shaderio::Instance& instance);
+  MaterialID addMaterial(const shaderio::Material& material);
 
   // ---------------------------------------------------------------------------
   // Runtime Updates
@@ -56,8 +56,8 @@ public:
   const gltf::Scene& data() const;
   gltf::Scene& data();
 
-  shaderio::GltfSceneInfo& sceneInfo();
-  const shaderio::GltfSceneInfo& sceneInfo() const;
+  shaderio::SceneInfo& sceneInfo();
+  const shaderio::SceneInfo& sceneInfo() const;
 
 private:
   gltf::Scene m_resources{};
