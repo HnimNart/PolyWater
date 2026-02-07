@@ -21,77 +21,74 @@ class SceneResourcesManager;
 class FrameSynchronizationManager;
 class ToneMapPass;
 
-namespace shaderio
-{
+namespace shaderio {
 struct PushConstant;
 }
 
-class VulkanRenderer final : public IRenderer
-{
+class VulkanRenderer final : public IRenderer {
 public:
-  explicit VulkanRenderer(VulkanBackend* backend);
+  explicit VulkanRenderer(VulkanBackend *backend);
   ~VulkanRenderer() override = default;
 
   // Delete copy/move
-  VulkanRenderer(const VulkanRenderer&) = delete;
-  VulkanRenderer& operator=(const VulkanRenderer&) = delete;
-  VulkanRenderer(VulkanRenderer&&) = delete;
-  VulkanRenderer& operator=(VulkanRenderer&&) = delete;
+  VulkanRenderer(const VulkanRenderer &) = delete;
+  VulkanRenderer &operator=(const VulkanRenderer &) = delete;
+  VulkanRenderer(VulkanRenderer &&) = delete;
+  VulkanRenderer &operator=(VulkanRenderer &&) = delete;
 
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
-  void init(const SceneResourcesManager& scene) override;
+  void init(const SceneResourcesManager &scene) override;
   void deinit() override;
-  void reload(const SceneResourcesManager& scene) override;
-  void update(const SceneResourcesManager& scene) override;
+  void reload(const SceneResourcesManager &scene) override;
+  void update(const SceneResourcesManager &scene) override;
   void reset() override;
 
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  shaderio::SceneInfo*
+  shaderio::SceneInfo *
   uploadSceneInfo(VkCommandBuffer cmd,
-                  const shaderio::SceneInfo& sceneInfo) const;
-  shaderio::SceneResources* uploadSceneResources(VkCommandBuffer cmd) const;
+                  const shaderio::SceneInfo &sceneInfo) const;
+  shaderio::SceneResources *uploadSceneResources(VkCommandBuffer cmd) const;
   void setRenderMode(RenderMode mode,
-                     const SceneResourcesManager& scene) override;
-  void render(IRenderContext& ctx) override;
-  void onResize(const WindowSize& size) override;
-  void saveImage(const std::filesystem::path& filename,
+                     const SceneResourcesManager &scene) override;
+  void render(IRenderContext &ctx) override;
+  void onResize(const WindowSize &size) override;
+  void saveImage(const std::filesystem::path &filename,
                  int quality = 100) const override;
 
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  void* getImageDescriptor(RenderOutput output) const override;
-  IToneMapper& postProcessor() noexcept override;
+  void *getImageDescriptor(RenderOutput output) const override;
+  IToneMapper &postProcessor() noexcept override;
   std::shared_ptr<IDeviceAssets> deviceResources() noexcept override;
 
 private:
   void initGBuffers();
-  void buildGraph(const SceneResourcesManager& scene);
+  void buildGraph(const SceneResourcesManager &scene);
   void registerShaders();
-  shaderio::SceneInfo*
+  shaderio::SceneInfo *
   updateSceneBuffer(VkCommandBuffer cmd,
-                    const SceneResourcesManager& scene) const;
+                    const SceneResourcesManager &scene) const;
   void createDescriptorSetLayout(VkDevice device);
 
   // Data
   nvvk::DescriptorPack m_descPack{};
-  VulkanContextManager* m_context_manager = nullptr;
-  SwapchainRenderManager* m_swapchain_manager = nullptr;
+  VulkanContextManager *m_context_manager = nullptr;
+  SwapchainRenderManager *m_swapchain_manager = nullptr;
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
 
   std::unique_ptr<AccelerationStructures> m_accel{};
 
   // Reference to post for UI
-  ToneMapPass* m_post = nullptr;
+  ToneMapPass *m_post = nullptr;
 
   // Render stuff
   RenderGraph m_graph;
-  ShaderManager m_shaderManager;
 
   uint32_t m_frameIndex = 0;
 };

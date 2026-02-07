@@ -1,23 +1,22 @@
 
 #pragma once
 #include <cstdint>
+#include <string>
 
 #include <nvutils/primitives.hpp>
 
 #include "scene/Scene.h"
 #include "shaders/shaderio.h"
 
-namespace tinygltf
-{
+namespace tinygltf {
 class Model;
 }
 
-class IDeviceAssets
-{
+class IDeviceAssets {
 public:
   using MeshID = uint32_t;
   using TextureID = uint32_t;
-  using BufferAddr = uint8_t*;
+  using BufferAddr = uint8_t *;
   using BufferID = uint32_t;
 
   virtual ~IDeviceAssets() = default;
@@ -33,17 +32,18 @@ public:
   // Texture Management
   // ---------------------------------------------------------------------------
   virtual unsigned int reserveTextureSlot() = 0;
-  virtual TextureID uploadTexture(const std::string& filepath, TextureID) = 0;
+  virtual TextureID uploadTexture(const std::string &filepath, TextureID) = 0;
 
   // ---------------------------------------------------------------------------
   // Geometry Upload (Buffers)
   // ---------------------------------------------------------------------------
   virtual std::pair<BufferAddr, BufferID>
-  upload(const tinygltf::Model& model) = 0;
+  upload(const tinygltf::Model &model) = 0;
 
   // ---------------------------------------------------------------------------
   // Scene Registration
   // ---------------------------------------------------------------------------
   virtual void addMeshes(size_t count, BufferID) = 0;
-  virtual void finalizeSceneResources(Scene& resources) = 0;
+  virtual void finalizeSceneResources(const Scene &resources) = 0;
+  virtual void update(const Scene &resources) = 0;
 };

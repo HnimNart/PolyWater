@@ -15,42 +15,37 @@
 #include "scene/SceneResources.hpp"
 
 // Forward Declarations
-namespace tinygltf
-{
+namespace tinygltf {
 class Model;
 }
-namespace nvvk
-{
+namespace nvvk {
 class DescriptorPack;
 class StagingUploader;
-}  // namespace nvvk
-namespace nvutils
-{
+} // namespace nvvk
+namespace nvutils {
 struct PrimitiveMesh;
 }
 
 // Holds the GPU-side buffers for the scene geometry and assets
-struct VulkanSceneGpuData
-{
-  std::vector<nvvk::Buffer> bGltfDatas;  // Binary GLTF data per scene
-  nvvk::Buffer bMeshes;                  // Mesh array
-  nvvk::Buffer bInstances;               // Instance array
-  nvvk::Buffer bMaterials;               // Materials array
-  nvvk::Buffer bSceneInfo;               // SceneInfo struct
-  nvvk::Buffer bSceneResources;          // SceneResources struct
+struct VulkanSceneGpuData {
+  std::vector<nvvk::Buffer> bGltfDatas; // Binary GLTF data per scene
+  nvvk::Buffer bMeshes;                 // Mesh array
+  nvvk::Buffer bInstances;              // Instance array
+  nvvk::Buffer bMaterials;              // Materials array
+  nvvk::Buffer bSceneInfo;              // SceneInfo struct
+  nvvk::Buffer bSceneResources;         // SceneResources struct
 
   // Mapping: meshToBufferIndex[meshIndex] -> bufferIndex in bGltfDatas
   std::vector<uint32_t> meshToBufferIndex;
 };
 
 // Concrete implementation of resource uploading/management for Vulkan.
-class VulkanSceneAssetManager final : public IDeviceAssets
-{
+class VulkanSceneAssetManager final : public IDeviceAssets {
 public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  explicit VulkanSceneAssetManager(VulkanContextManager* backend);
+  explicit VulkanSceneAssetManager(VulkanContextManager *backend);
 
   void deinit() override;
 
@@ -61,48 +56,50 @@ public:
   void endUploading() override;
 
   // Meshes
-  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model& model) override;
+  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model &model) override;
   void addMeshes(size_t count, BufferID bufferIndex) override;
 
   // Textures
   unsigned int reserveTextureSlot() override;
-  TextureID uploadTexture(const std::string& filepath, TextureID = -1) override;
+  TextureID uploadTexture(const std::string &filepath, TextureID = -1) override;
 
   // Wrap up
-  void finalizeSceneResources(Scene& resources) override;
+  void finalizeSceneResources(const Scene &resources) override;
+  void update(const Scene &resources) override;
 
   // -------------------------------------------------------------------------
   // Vulkan Specific API
   // -------------------------------------------------------------------------
-  void updateDescriptors(nvvk::DescriptorPack& descriptorPack);
+  void updateDescriptors(nvvk::DescriptorPack &descriptorPack);
 
-  const nvvk::Buffer& getBufferFromIndex(uint32_t meshIndex) const;
+  const nvvk::Buffer &getBufferFromIndex(uint32_t meshIndex) const;
 
   // Accessors
-  const std::vector<nvvk::Image>& textures() const { return m_textures; }
-  const VulkanSceneGpuData& deviceResources() const { return m_data; }
-  nvvk::SamplerPool& samplerPool() { return m_samplerPool; }
+  const std::vector<nvvk::Image> &textures() const { return m_textures; }
+  const VulkanSceneGpuData &deviceResources() const { return m_data; }
+  nvvk::SamplerPool &samplerPool() { return m_samplerPool; }
 
 private:
   // -------------------------------------------------------------------------
-  // Internal Static Helpers (Upload Logic)
+  // Internal Helpers (Upload Logic)
   // -------------------------------------------------------------------------
-  void createGltfSceneInfoBuffer(Scene& sceneResources);
+  void createBuffers(const Scene &sceneResources);
+  void updateBuffers(const Scene &sceneResource);
 
   static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd,
-                                        nvvk::StagingUploader& staging,
+                                        nvvk::StagingUploader &staging,
                                         VkDevice device,
-                                        const std::filesystem::path& filename,
+                                        const std::filesystem::path &filename,
                                         bool sRgb = true);
 
-  static void processGltfNodes(Scene& sceneResource,
-                               const tinygltf::Model& model,
+  static void processGltfNodes(Scene &sceneResource,
+                               const tinygltf::Model &model,
                                uint32_t meshOffset);
 
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
-  VulkanContextManager* m_context_manager = nullptr;
+  VulkanContextManager *m_context_manager = nullptr;
   VulkanSceneGpuData m_data{};
   std::vector<nvvk::Image> m_textures{};
   nvvk::SamplerPool m_samplerPool{};

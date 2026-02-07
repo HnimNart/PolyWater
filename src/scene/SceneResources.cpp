@@ -1,4 +1,5 @@
 #include "SceneResources.hpp"
+#include "core/Math.hpp"
 
 #include <nvutils/logger.hpp>
 
@@ -20,7 +21,7 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 }
 
 /**********************************************************/
-tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
+tinygltf::Model SceneResourcesManager::loadGltf(const std::string &filename)
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
@@ -30,26 +31,29 @@ tinygltf::Model SceneResourcesManager::loadGltf(const std::string& filename)
 
 /**********************************************************/
 IDeviceAssets::TextureID
-SceneResourcesManager::loadTexture(const std::string& filename)
+SceneResourcesManager::loadTexture(const std::string &filename)
 /**********************************************************/
 {
   IDeviceAssets::TextureID id = m_device_resources->reserveTextureSlot();
   m_pendingTextures.push_back({filename, id});
-  return id + 1;  // Have to add one to offset the index on GPU
+  return id + 1; // Have to add one to offset the index on GPU
 }
 
 /**********************************************************/
 SceneResourcesManager::InstanceID
-SceneResourcesManager::addInstance(const shaderio::Instance& instance)
+SceneResourcesManager::addInstance(shaderio::Instance &&instance)
 /**********************************************************/
 {
+  instance.transform = math::composeTransform(
+      instance.position, instance.rotation, instance.scale);
   m_resources.instances.push_back(instance);
+
   return static_cast<InstanceID>(m_resources.instances.size() - 1);
 }
 
 /**********************************************************/
 SceneResourcesManager::MaterialID
-SceneResourcesManager::addMaterial(const shaderio::Material& material)
+SceneResourcesManager::addMaterial(shaderio::Material &&material)
 /**********************************************************/
 {
   m_resources.materials.push_back(material);
@@ -64,15 +68,13 @@ void SceneResourcesManager::finalizeSceneResources()
   m_device_resources->beginUploading();
 
   // --- Process Pending Models ---
-  for (const auto& model : m_pendingModels)
-  {
+  for (const auto &model : m_pendingModels) {
     auto [bufferAddr, bufferIndex] = m_device_resources->upload(model);
     size_t startSize = m_resources.meshes.size();
     m_resources.meshes.reserve(startSize + model.meshes.size());
-    for (size_t i = 0; i < model.meshes.size(); i++)
-    {
+    for (size_t i = 0; i < model.meshes.size(); i++) {
       auto mesh = gltf::extractGltfMesh(model, i);
-      mesh.gltfBuffer = reinterpret_cast<uint8_t*>(bufferAddr);
+      mesh.gltfBuffer = reinterpret_cast<uint8_t *>(bufferAddr);
       m_resources.meshes.emplace_back(mesh);
     }
     m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
@@ -80,8 +82,7 @@ void SceneResourcesManager::finalizeSceneResources()
   m_pendingModels.clear();
 
   // --- Process Pending Textures ---
-  for (const auto& [id, filename] : m_pendingTextures)
-  {
+  for (const auto &[id, filename] : m_pendingTextures) {
     m_device_resources->uploadTexture(id, filename);
   }
   m_pendingTextures.clear();
@@ -92,22 +93,22 @@ void SceneResourcesManager::finalizeSceneResources()
 /**********************************************************/
 void SceneResourcesManager::clear()
 /**********************************************************/
-{
-}
+{}
 
 /**********************************************************/
-void SceneResourcesManager::update(const CameraPtr& camera)
+void SceneResourcesManager::update(const CameraPtr &camera)
 /**********************************************************/
 {
+
   updateSceneInfo(camera);
 }
 
 /**********************************************************/
-void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
+void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
 /**********************************************************/
 {
-  const glm::mat4& viewMatrix = camera->getViewMatrix();
-  const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
+  const glm::mat4 &viewMatrix = camera->getViewMatrix();
+  const glm::mat4 &projMatrix = camera->getPerspectiveMatrix();
 
   m_resources.sceneInfo.viewMatrix = viewMatrix;
   m_resources.sceneInfo.projMatrix = projMatrix;
@@ -118,28 +119,47 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
 }
 
 /**********************************************************/
-const Scene& SceneResourcesManager::data() const
+void SceneResourcesManager::onMaterialChange()
+/**********************************************************/
+{
+
+  m_device_resources->beginUploading();
+  m_device_resources->update(m_resources);
+  m_device_resources->endUploading();
+}
+
+/**********************************************************/
+void SceneResourcesManager::onInstanceChange()
+/**********************************************************/
+{
+  m_device_resources->beginUploading();
+  m_device_resources->update(m_resources);
+  m_device_resources->endUploading();
+}
+
+/**********************************************************/
+const Scene &SceneResourcesManager::data() const
 /**********************************************************/
 {
   return m_resources;
 }
 
 /**********************************************************/
-Scene& SceneResourcesManager::data()
+Scene &SceneResourcesManager::data()
 /**********************************************************/
 {
   return m_resources;
 }
 
 /**********************************************************/
-shaderio::SceneInfo& SceneResourcesManager::sceneInfo()
+shaderio::SceneInfo &SceneResourcesManager::sceneInfo()
 /**********************************************************/
 {
   return m_resources.sceneInfo;
 }
 
 /**********************************************************/
-const shaderio::SceneInfo& SceneResourcesManager::sceneInfo() const
+const shaderio::SceneInfo &SceneResourcesManager::sceneInfo() const
 /**********************************************************/
 {
   return m_resources.sceneInfo;

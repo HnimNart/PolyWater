@@ -7,30 +7,28 @@
 #include "scene/SceneManager.hpp"
 
 // Forward declarations to reduce compile time
-namespace core
-{
+namespace core {
 class Application;
-}  // namespace core
+} // namespace core
 
 class VulkanRenderer;
 
-class VulkanRendererElement : public core::IAppElement
-{
+class VulkanRendererElement : public core::IAppElement {
 public:
   VulkanRendererElement() = default;
   ~VulkanRendererElement() override = default;
 
   // Interface Implementation
-  void onAttach(core::Application* app) override;
+  void onAttach(core::Application *app) override;
   void onDetach() override;
   void onResize(WindowSize size) override;
   void onUIRender() override;
   void onPreRender() override;
   void onUIMenu() override;
-  void onRender(const IRenderContext& ctx) override;
-  void onEndFrame(const IRenderContext& frame) override;
+  void onRender(const IRenderContext &ctx) override;
+  void onEndFrame(const IRenderContext &frame) override;
   void onLastHeadlessFrame() override;
-  void onFileDrop(const std::filesystem::path& filename) override;
+  void onFileDrop(const std::filesystem::path &filename) override;
 
   // Accessor
   CameraPtr getCameraManipulator();
@@ -38,9 +36,11 @@ public:
 private:
   void setupScene();
 
-private:
+  void renderMaterials();
+  void renderInstances();
+
   // Application and core components
-  core::Application* m_app = nullptr;
+  core::Application *m_app = nullptr;
   std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_scene_manager{};
 

@@ -2,38 +2,39 @@
 
 #include <vulkan/vulkan.h>
 
-#include <nvvk/acceleration_structures.hpp>  // Required for m_asBuilder (by value)
+#include <nvvk/acceleration_structures.hpp> // Required for m_asBuilder (by value)
 
 // Forward Declarations
 
 class SceneResourcesManager;
 class ShaderManager;
-namespace shaderio
-{
+namespace shaderio {
 struct MeshPrimitive;
 }
 class VulkanContextManager;
 
-class AccelerationStructures
-{
+class AccelerationStructures {
 public:
   static std::unique_ptr<AccelerationStructures>
-  create(VulkanContextManager* core);
+  create(VulkanContextManager *core);
 
   ~AccelerationStructures();
-  void build(const SceneResourcesManager& scene,
-             const ShaderManager& materialManager);
+  void build(const SceneResourcesManager &scene,
+             const ShaderManager &materialManager);
+  void rebuild(const SceneResourcesManager &scene,
+               const ShaderManager &materialManager);
   nvvk::AccelerationStructure tlas() const;
 
 private:
-  void init(VulkanContextManager* backend);
+  void init(VulkanContextManager *backend);
   void deinit();
 
-  void buildBLAS(const SceneResourcesManager& scene);
-  void buildTLAS(const SceneResourcesManager& scene,
-                 const ShaderManager& materialManager);
+  void buildBLAS(const SceneResourcesManager &scene);
+  std::vector<VkAccelerationStructureInstanceKHR>
+  buildTLAS(const SceneResourcesManager &scene,
+            const ShaderManager &materialManager);
 
   nvvk::AccelerationStructureGeometryInfo
-  primitiveToGeometry(const shaderio::MeshPrimitive& mesh);
+  primitiveToGeometry(const shaderio::MeshPrimitive &mesh);
   nvvk::AccelerationStructureHelper m_asBuilder{};
 };

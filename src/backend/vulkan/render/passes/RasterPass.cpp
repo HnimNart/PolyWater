@@ -14,6 +14,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "common/timers.hpp"
+#include "core/Math.hpp"
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
@@ -21,15 +22,15 @@
 #include "scene/SceneResources.hpp"
 
 /**********************************************************/
-RasterPass::RasterPass(nvvk::DescriptorPack* descPack)
+RasterPass::RasterPass(nvvk::DescriptorPack *descPack)
 /**********************************************************/
 {
   m_descPack = descPack;
 }
 
 /**********************************************************/
-void RasterPass::init(VulkanContextManager* contextManager,
-                      const SceneResourcesManager& /*scene*/)
+void RasterPass::init(VulkanContextManager *contextManager,
+                      const SceneResourcesManager & /*scene*/)
 /**********************************************************/
 {
   m_context_manager = contextManager;
@@ -38,7 +39,7 @@ void RasterPass::init(VulkanContextManager* contextManager,
 }
 
 /**********************************************************/
-void RasterPass::deinit(VulkanContextManager* coreManager)
+void RasterPass::deinit(VulkanContextManager *coreManager)
 /**********************************************************/
 {
   vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
@@ -46,7 +47,7 @@ void RasterPass::deinit(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
-void RasterPass::setup(PassBuilder& builder)
+void RasterPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
   // Declare intention to write to the Linear color buffer as a render target
@@ -61,23 +62,22 @@ void RasterPass::setup(PassBuilder& builder)
 /**********************************************************/
 void RasterPass::resize(VkCommandBuffer cmd, VkExtent2D size)
 /**********************************************************/
-{
-}
+{}
 
 /**********************************************************/
-void RasterPass::execute(const IRenderContext& ctx)
+void RasterPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
-  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const auto &vkCtx = VulkanRenderContext::get(ctx);
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
-  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
-  const VulkanSceneAssetManager* assetManager = vkCtx.assetManager;
+  const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
+  const VulkanSceneAssetManager *assetManager = vkCtx.assetManager;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const Scene* sceneResources = vkCtx.sceneResources;
-  const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
-  const VkExtent2D& size = gBuffers->getSize();
+  const Scene *sceneResources = vkCtx.sceneResources;
+  const shaderio::SceneInfo &scene_info = sceneResources->sceneInfo;
+  const VkExtent2D &size = gBuffers->getSize();
 
   NVVK_DBG_SCOPE(cmd);
 
@@ -143,20 +143,22 @@ void RasterPass::execute(const IRenderContext& ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
-  for (size_t i = 0; i < sceneResources->instances.size(); i++)
-  {
+  for (size_t i = 0; i < sceneResources->instances.size(); i++) {
     uint32_t meshIndex = sceneResources->instances[i].meshIndex;
-    const shaderio::MeshPrimitive& gltfMesh = sceneResources->meshes[meshIndex];
-    const shaderio::TriangleMesh& triMesh = gltfMesh.triMesh;
+    const shaderio::MeshPrimitive &gltfMesh = sceneResources->meshes[meshIndex];
+    const shaderio::TriangleMesh &triMesh = gltfMesh.triMesh;
 
     // Push constants
-    constants.normalMatrix = glm::transpose(
-        glm::inverse(glm::mat3(sceneResources->instances[i].transform)));
+    const shaderio::Instance &instance = sceneResources->instances[i];
+    // glm::mat4 transform = math::composeTransform(
+    //     instance.position, instance.rotation, instance.scale);
+    constants.normalMatrix =
+        glm::transpose(glm::inverse(glm::mat3(instance.tranform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    const nvvk::Buffer& v = assetManager->getBufferFromIndex(meshIndex);
+    const nvvk::Buffer &v = assetManager->getBufferFromIndex(meshIndex);
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
                          VkIndexType(gltfMesh.indexType));
 

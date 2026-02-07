@@ -5,11 +5,10 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/gltf/gltf_utils.hpp"
 
 /**********************************************************/
 std::unique_ptr<AccelerationStructures>
-AccelerationStructures::create(VulkanContextManager* core)
+AccelerationStructures::create(VulkanContextManager *core)
 /**********************************************************/
 {
   auto m_accel =
@@ -26,7 +25,7 @@ AccelerationStructures::~AccelerationStructures()
   deinit();
 }
 /**********************************************************/
-void AccelerationStructures::init(VulkanContextManager* coreManager)
+void AccelerationStructures::init(VulkanContextManager *coreManager)
 /**********************************************************/
 {
   m_asBuilder.init(&coreManager->getAllocator(),
@@ -35,13 +34,26 @@ void AccelerationStructures::init(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
-void AccelerationStructures::build(const SceneResourcesManager& scene,
-                                   const ShaderManager& materialManager)
+void AccelerationStructures::build(const SceneResourcesManager &scene,
+                                   const ShaderManager &materialManager)
+/**********************************************************/
+{
+  SCOPED_TIMER_FUNC();
+  buildBLAS(scene);
+  auto tlasInstances = buildTLAS(scene, materialManager);
+  m_asBuilder.tlasSubmitBuildAndWait(
+      tlasInstances, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR |
+                         VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR);
+}
+
+/**********************************************************/
+void AccelerationStructures::rebuild(const SceneResourcesManager &scene,
+                                     const ShaderManager &materialManager)
 /**********************************************************/
 {
   // Set up acceleration structure infrastructure
-  buildBLAS(scene);                   // Set up BLAS infrastructure
-  buildTLAS(scene, materialManager);  // Set up TLAS infrastructure
+  auto tlasInstances = buildTLAS(scene, materialManager);
+  m_asBuilder.tlasSubmitUpdateAndWait(tlasInstances);
 }
 
 /**********************************************************/
@@ -53,17 +65,16 @@ void AccelerationStructures::deinit()
 }
 
 /**********************************************************/
-void AccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
+void AccelerationStructures::buildBLAS(const SceneResourcesManager &scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
-  const Scene& scene_geometry = scene.data();
+  const Scene &scene_geometry = scene.data();
   // Prepare geometry information for all meshes
   std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(
       scene_geometry.meshes.size());
-  for (uint32_t p_idx = 0; p_idx < scene_geometry.meshes.size(); p_idx++)
-  {
+  for (uint32_t p_idx = 0; p_idx < scene_geometry.meshes.size(); p_idx++) {
     geoInfos[p_idx] = primitiveToGeometry(scene_geometry.meshes[p_idx]);
   }
 
@@ -73,25 +84,24 @@ void AccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 }
 
 /**********************************************************/
-void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
-                                       const ShaderManager& materialManager)
+std::vector<VkAccelerationStructureInstanceKHR>
+AccelerationStructures::buildTLAS(const SceneResourcesManager &scene,
+                                  const ShaderManager &materialManager)
 /**********************************************************/
 {
-  SCOPED_TIMER_FUNC();
 
   // Prepare instance data for TLAS
-  const Scene& sceneGeometry = scene.data();
+  const Scene &sceneGeometry = scene.data();
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
   tlasInstances.reserve(sceneGeometry.instances.size());
   const VkGeometryInstanceFlagsKHR flags{
       VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV};
-  for (const shaderio::Instance& instance : sceneGeometry.instances)
-  {
+  for (const shaderio::Instance &instance : sceneGeometry.instances) {
     VkAccelerationStructureInstanceKHR ray_inst{};
     ray_inst.transform = nvvk::toTransformMatrixKHR(
-        instance.transform);  // Position of the instance
+        instance.transform); // Position of the instance
     ray_inst.instanceCustomIndex =
-        instance.meshIndex;  // gl_InstanceCustomIndexEXT
+        instance.meshIndex; // gl_InstanceCustomIndexEXT
     ray_inst.accelerationStructureReference =
         m_asBuilder.blasSet[instance.meshIndex].address;
     ray_inst.instanceShaderBindingTableRecordOffset =
@@ -100,10 +110,7 @@ void AccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
     ray_inst.mask = 0xFF;
     tlasInstances.emplace_back(ray_inst);
   }
-
-  // Build the top-level acceleration structure
-  m_asBuilder.tlasSubmitBuildAndWait(
-      tlasInstances, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
+  return tlasInstances;
 }
 
 /**********************************************************/
@@ -119,8 +126,7 @@ nvvk::AccelerationStructure AccelerationStructures::tlas() const
 
 /**********************************************************/
 nvvk::AccelerationStructureGeometryInfo
-AccelerationStructures::primitiveToGeometry(
-    const shaderio::MeshPrimitive& mesh)
+AccelerationStructures::primitiveToGeometry(const shaderio::MeshPrimitive &mesh)
 /**********************************************************/
 {
   nvvk::AccelerationStructureGeometryInfo result = {};
@@ -132,7 +138,7 @@ AccelerationStructures::primitiveToGeometry(
   VkAccelerationStructureGeometryTrianglesDataKHR triangles{
       .sType =
           VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-      .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,  // vec3 vertex position data
+      .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT, // vec3 vertex position data
       .vertexData = {.deviceAddress = VkDeviceAddress(mesh.gltfBuffer) +
                                       triMesh.positions.offset},
       .vertexStride = triMesh.positions.byteStride,
