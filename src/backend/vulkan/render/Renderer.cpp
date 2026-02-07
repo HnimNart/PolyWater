@@ -198,10 +198,12 @@ void VulkanRenderer::render(IRenderContext& ctx) const
 {
   auto& vkCtx = VulkanRenderContext::get(ctx);
   vkCtx.gBuffers = m_gBuffers.get();
-  vkCtx.deviceResources = &m_resources->deviceResources();
+  vkCtx.assetManager = m_resources.get();
   vkCtx.pushValues.sceneInfoAddress =
       uploadSceneInfo(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
   vkCtx.pushValues.resourcesAddress = uploadSceneResources(vkCtx.cmdBuffer);
+  vkCtx.pushValues.renderParams = m_renderParams;
+  vkCtx.pushValues.renderParams.frameIdx = ctx.frameNumber;
   vkCtx.bvh = m_accel.get();
   if (m_swapchain_manager)
   {

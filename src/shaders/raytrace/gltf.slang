@@ -1,82 +1,108 @@
 #include "shared.h.slang"
 
-//-----------------------------------------------------------------------
-// CLOSEST HIT SHADER - Called when ray hits geometry (performs shading)
-//-----------------------------------------------------------------------
-[shader("closesthit")] void
-rchit_gltf(inout HitPayload payload,
-           in BuiltInTriangleIntersectionAttributes attr)
+struct PbrEvaluator : IBSDF
 {
-  // Convert built-in barycentric coordinates to full barycentric coordinates
-  // Built-in provides (u,v) where u+v+w=1, so w = 1-u-v
-  float3 barycentrics = float3(1 - attr.barycentrics.x - attr.barycentrics.y,
-                               attr.barycentrics.x, attr.barycentrics.y);
+  float3 N;
+  float3 V;
+  float3 albedo;
+  float roughness;
+  float metallic;
 
-  // Get instance and primitive information from ray tracing built-ins
-  uint instanceID = InstanceIndex();  // Which instance was hit
-  uint meshID = InstanceID();  // Instance ID (same as instanceID in this case)
-  uint triID = PrimitiveIndex();  // Which triangle within the mesh was hit
-
-  // Retrieve scene data structures
-  SceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
-  SceneResources sceneResources = pushConst.resourcesAddress[0];
-  Instance instance = sceneResources.instances[instanceID];
-  MeshPrimitive mesh = sceneResources.meshes[instance.meshIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
-
-  // Interpolate vertex attributes across the hit triangle
-  int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);
-  float3 pos = getTriangleAttribute<float3>(
-      mesh.gltfBuffer, mesh.triMesh.positions, indices, barycentrics);
-  float3 nrm = getTriangleAttribute<float3>(
-      mesh.gltfBuffer, mesh.triMesh.normals, indices, barycentrics);
-  float2 worldTexCoord = getTriangleAttribute<float2>(
-      mesh.gltfBuffer, mesh.triMesh.texCoords, indices, barycentrics);
-
-  // Transform from object space to world space
-  float3 worldPos = float3(mul(float4(pos, 1.0), ObjectToWorld4x3()));
-  float3 worldNormal = normalize(mul(WorldToObject4x3(), nrm).xyz);
-
-  // Extract material properties (PBR parameters)
-  float3 albedo = material.baseColorFactor.xyz;  // Base color/albedo
-  float metallic =
-      material.metallicFactor;  // Metallic factor (0=dielectric, 1=metal)
-  float roughness =
-      material.roughnessFactor;  // Surface roughness (0=smooth, 1=rough)
-
-  // Sample albedo texture if available
-  if (material.baseColorTextureIndex > 0)
+  // Slang Constructor (Initializer)
+  __init(float3 _N, float3 _V, float3 _albedo, float _roughness,
+         float _metallic)
   {
-    albedo *= textures[material.baseColorTextureIndex]
-                  .SampleLevel(worldTexCoord, 0)
-                  .xyz;
+    this.N = _N;
+    this.V = _V;
+    this.albedo = _albedo;
+    this.roughness = _roughness;
+    this.metallic = _metallic;
   }
 
-  // Apply material overrides from push constants (for
-  // debugging/experimentation)
-  if (pushConst.metallicRoughnessOverride.x >= 0.0)
-    metallic = pushConst.metallicRoughnessOverride.x;
-  if (pushConst.metallicRoughnessOverride.y >= 0.0)
-    roughness = pushConst.metallicRoughnessOverride.y;
+  // The required function from IBSDF interface
+  float3 eval(float3 L)
+  {
+    // Calls your existing PBR math function
+    return pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
+  }
+}
 
-  // Process light with sky override and distance attenuation
-  GltfPunctual light = processLight(sceneInfo, worldPos);
+    //-----------------------------------------------------------------------
+    // CLOSEST HIT SHADER - PBR Path Tracer + NEE
+    //-----------------------------------------------------------------------
+    [shader("closesthit")] void
+    rchit_gltf(inout HitPayload payload,
+               in BuiltInTriangleIntersectionAttributes attr)
+{
+  HitState hit = getHitState(attr);
 
-  // Calculate lighting vectors
-  float3 N = normalize(worldNormal);      // Surface normal
-  float3 V = -WorldRayDirection();        // View direction (towards camera)
-  float3 L = normalize(light.direction);  // Light direction
+  const float3 worldPos = hit.worldPos;
+  const float3 worldNormal = hit.worldNormal;
+  const float3 viewDir = hit.viewDir;
+  const float2 uv = hit.uv;
+  const Material material = hit.material;
 
-  // Test for shadows by casting a shadow ray towards the light
-  float shadowFactor = testShadow(worldPos, N, light.direction, light);
+  // --- 2. GATHER MATERIAL PROPERTIES ---
+  float3 albedo = material.baseColorFactor.xyz;
+  float metallic = material.metallicFactor;
+  float roughness = material.roughnessFactor;
+  float3 emissive = material.emission;
 
-  // Calculate PBR lighting using the metallic-roughness model
-  // This computes the final color based on material properties and lighting
-  float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
+  // Textures
+  if (material.baseColorTextureIndex > 0)
+  {
+    albedo *= textures[material.baseColorTextureIndex].SampleLevel(uv, 0).xyz;
+  }
+  payload.color += emissive * payload.weight;
 
-  // Apply light color, intensity, and shadow factor
-  color *= light.color * light.intensity * shadowFactor;
+  // --- 4. NEXT EVENT ESTIMATION (Direct Lighting) ---
+  PbrEvaluator pbr =
+      PbrEvaluator(worldNormal, viewDir, albedo, roughness, metallic);
+  const SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  payload.color += sampleDirectLighting(sceneInfo, worldPos, worldNormal, pbr) *
+                   payload.weight;
 
-  // Set the final color in the payload
-  payload.color = color;
+  // --- 5. INDIRECT BOUNCE LOGIC (The "Brain" Step) ---
+  // Deciding where to go next (Specular vs Diffuse)
+  // A. Fresnel Calculation
+  float3 F0 = lerp(float3(0.04), albedo, metallic);
+  float3 F =
+      F0 + (1.0 - F0) * pow(1.0 - max(0.0, dot(worldNormal, viewDir)), 5.0);
+  float probSpecular = (F.r + F.g + F.b) / 3.0;
+  if (metallic > 0.9)
+    probSpecular = 1.0;
+
+  // B. Russian Roulette
+  float rndVal = rnd(payload.seed);
+  bool isSpecular = rndVal < probSpecular;
+  float3 bounceDir;
+
+  if (isSpecular)
+  {
+    // Specular Reflection
+    float3 reflectDir = reflect(-viewDir, worldNormal);
+    float3 jitter = normalize(
+        float3(rnd(payload.seed), rnd(payload.seed), rnd(payload.seed)) * 2.0 -
+        1.0);
+    bounceDir = normalize(reflectDir + jitter * roughness * roughness);
+
+    if (dot(bounceDir, worldNormal) < 0)
+      bounceDir = reflectDir;
+
+    // Update Throughput
+    payload.weight *= F / max(EPSILON, probSpecular);
+  }
+  else
+  {
+    // Diffuse Scatter
+    bounceDir = sampleCosineWeightedHemisphere(worldNormal, payload.seed);
+    // Update Throughput
+    payload.weight *= albedo / max(EPSILON, (1.0 - probSpecular));
+  }
+
+  // --- 6. PREPARE NEXT RAY ---
+  payload.nextRayOrigin = worldPos;
+  payload.nextRayDir = bounceDir;
+  payload.stop = false;
+  payload.emit = false;
 }

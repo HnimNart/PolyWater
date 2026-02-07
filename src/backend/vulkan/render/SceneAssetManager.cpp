@@ -127,6 +127,16 @@ void VulkanSceneAssetManager::updateDescriptors(
 }
 
 /**********************************************************/
+const nvvk::Buffer&
+VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
+/**********************************************************/
+{
+  assert(meshIndex < m_data.meshToBufferIndex.size());
+  uint32_t bufferIndex = m_data.meshToBufferIndex[meshIndex];
+  return m_data.bGltfDatas[bufferIndex];
+}
+
+/**********************************************************/
 void VulkanSceneAssetManager::finalizeSceneResources(Scene& resources)
 /**********************************************************/
 {

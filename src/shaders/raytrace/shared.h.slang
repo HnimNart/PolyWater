@@ -1,8 +1,12 @@
 #ifndef SHARED_H
 #define SHARED_H 1
 
+#define RAY_TRACE 1
+
 #include "include/lights.h.slang"
 #include "include/pbr.h.slang"
+#include "include/rnd.h.slang"
+#include "include/utils.h.slang"
 #include "nvshaders/constants.h.slang"
 #include "shaderio.h"
 
@@ -22,108 +26,97 @@
 // Ray payload structure - carries data through the ray tracing pipeline
 struct HitPayload
 {
-  float3 color;  // Accumulated color along the ray path
-  float weight;  // Weight/importance of this ray (for importance sampling)
-  int depth;     // Current recursion depth (for limiting bounces)
+  float3 color;   // Accumulated color along the ray path
+  float3 weight;  // Weight/importance of this ray (for importance sampling)
+  int depth;      // Current recursion depth (for limiting bounces)
+  int seed;
+  int emit;  // Should we include emitting surfaces in the contribution
+  float3 nextRayOrigin;  // Where the bounce starts
+  float3 nextRayDir;     // Where the bounce goes
+  bool stop;             // "Did we hit the sky or a black hole?"
 };
 
-// Generic function to retrieve vertex attributes from GLTF buffer data
-// T: Type of attribute (float, float2, float3, etc.)
-// dataBufferAddress: Base address of the GLTF buffer
-// bufferView: Buffer view containing offset, stride, and count information
-// attributeIndex: Index of the vertex attribute to retrieve
-__generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
-                                     BufferView bufferView, uint attributeIndex)
-{
-  if (bufferView.count > 0)
-  {
-    // Calculate pointer to the specific attribute using offset and stride
-    T* ptr = (T*) (dataBufferAddress + bufferView.offset +
-                   attributeIndex * bufferView.byteStride);
-    return ptr[0];
-  }
-
-  return T(1);  // Error case - return default value
-}
-
-// Retrieve triangle vertex indices from the mesh index buffer
-// Supports both 16-bit and 32-bit index formats as per GLTF specification
-int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
-                        int primitiveID)
-{
-  if (mesh.indices.byteStride == sizeof(int16_t))
-  {
-    // 16-bit indices (uint16_t) - more memory efficient for smaller meshes
-    int16_t3* indices = (int16_t3*) (dataBufferAddress + mesh.indices.offset);
-    return indices[primitiveID];
-  }
-  else if (mesh.indices.byteStride == sizeof(int32_t))
-  {
-    // 32-bit indices (uint32_t) - supports larger meshes with more vertices
-    int3* indices = (int3*) (dataBufferAddress + mesh.indices.offset);
-    return indices[primitiveID];
-  }
-
-  return int3(-1);  // Error case - invalid index format
-}
-
-// Interpolate vertex attributes across a triangle using barycentric coordinates
-// This performs smooth interpolation of attributes like position, normal, UV
-// coordinates T: Type of attribute to interpolate (float, float2, float3, etc.)
-// attributeIndex: Indices of the three triangle vertices
-// barycentrics: Barycentric coordinates (weights for each vertex)
-__generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress,
-                                             BufferView bufferView,
-                                             uint3 attributeIndex,
-                                             float3 barycentrics)
-{
-  // Get the attribute value for each of the three triangle vertices
-  T attr0 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.x);
-  T attr1 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.y);
-  T attr2 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.z);
-
-  // Interpolate using barycentric coordinates (weights sum to 1.0)
-  return T(barycentrics.x) * attr0 + T(barycentrics.y) * attr1 +
-         T(barycentrics.z) * attr2;
-}
-
 //-----------------------------------------------------------------------
-// SHADOW TESTING - Determines if a point is in shadow from a light source
+// SHADOW TESTING - Uses existing HitPayload
+// Returns 1.0 if visible (lit), 0.0 if occluded (shadow)
 //-----------------------------------------------------------------------
-// Tests visibility between a surface point and a light source
-// Returns 1.0 if fully lit, 0.0 if fully shadowed
-float testShadow(float3 worldPos, float3 worldNormal, float3 lightDirection,
-                 GltfPunctual light)
+float testShadow(float3 worldPos, float3 worldNormal, float3 dirToLight,
+                 float distance)
 {
-  // Create shadow ray from surface point towards light source
   RayDesc shadowRay;
-  // Offset origin slightly along normal to avoid self-intersection artifacts
-  shadowRay.Origin = worldPos + worldNormal * EPSILON;
-  shadowRay.Direction = normalize(lightDirection);
-  shadowRay.TMin = EPSILON;  // Minimum distance to avoid self-intersection
-  // For directional lights, trace to infinity; for point/spot lights, trace to
-  // light position
-  shadowRay.TMax = light.type == GltfLightType::eDirectional
-                       ? INFINITE
-                       : length(lightDirection);
+  shadowRay.Origin = worldPos;
+  shadowRay.Direction = dirToLight;
+  shadowRay.TMin = EPSILON;
+  shadowRay.TMax = distance - EPSILON;  // Don't hit the light itself
 
-  // Create a minimal payload for shadow ray (we only need to know if it hits
-  // something)
+  // Use the FAT payload (HitPayload)
   HitPayload shadowPayload;
-  shadowPayload.depth = 0;  // Will be set to MISS_DEPTH if no hit occurs
 
-  // Trace the shadow ray with optimized flags for performance:
-  // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop at first intersection (we
-  // don't need closest) RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: Skip expensive
-  // shading calculations
-  TraceRay(topLevelAS,
-           RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH |
-               RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
-           0xff, 0, 0, 0, shadowRay, shadowPayload);
+  // LOGIC: Assume we are BLOCKED (Shadowed) by default.
+  // If the ray hits nothing, the Miss Shader will flip this to false.
+  shadowPayload.stop = false;
 
-  // If the shadow ray hit something (depth != MISS_DEPTH), the light is
-  // occluded
-  return shadowPayload.depth != MISS_DEPTH ? 0.0 : 1.0;
+  // Reset other fields just in case (good practice, though not strictly needed
+  // for shadow)
+  shadowPayload.depth = 0;
+  shadowPayload.color = float3(0);
+
+  // Trace!
+  // RAY_FLAG_SKIP_CLOSEST_HIT_SHADER: We don't care about the object's color.
+  // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop as soon as we hit anything
+  // opaque.
+  TraceRay(
+      topLevelAS,
+      RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH |
+          RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+      0xff, 0, 0,
+      0,  // <--- IMPORTANT: Ensure SBT Miss Index 1 is your shadow miss shader
+      shadowRay, shadowPayload);
+
+  return shadowPayload.stop ? 1.0 : 0.0;
+}
+
+// -----------------------------------------------------------------------
+// Helper: Builds an Orthonormal Basis (Tangent Space) from a Normal
+// Duff et al. method - robust and singularity-free
+// -----------------------------------------------------------------------
+void createCoordinateSystem(in float3 N, out float3 T, out float3 B)
+{
+  float sign = N.z >= 0.0f ? 1.0f : -1.0f;
+  float a = -1.0f / (sign + N.z);
+  float b = N.x * N.y * a;
+
+  T = float3(1.0f + sign * N.x * N.x * a, sign * b, -sign * N.x);
+  B = float3(b, sign + N.y * N.y * a, -N.y);
+}
+
+// -----------------------------------------------------------------------
+// Helper: Generates a Cosine-Weighted random direction
+// Returns: A normalized World Space direction centered around 'normal'
+// -----------------------------------------------------------------------
+float3 sampleCosineWeightedHemisphere(float3 normal, inout uint seed)
+{
+  // A. Generate Random Numbers
+  float r1 = rnd(seed);
+  float r2 = rnd(seed);
+
+  // B. Calculate Local Cosine Sample
+  // Optimization: We can avoid expensive acos() and sin() calls
+  // because sin^2 + cos^2 = 1.
+  float phi = 2.0 * 3.14159265 * r1;
+  float cosTheta = sqrt(r2);        // z component
+  float sinTheta = sqrt(1.0 - r2);  // radius on xy plane
+
+  float3 localDir;
+  localDir.x = sinTheta * cos(phi);
+  localDir.y = sinTheta * sin(phi);
+  localDir.z = cosTheta;
+
+  // C. Transform Local -> World Space
+  float3 tangent, bitangent;
+  createCoordinateSystem(normal, tangent, bitangent);
+
+  return localDir.x * tangent + localDir.y * bitangent + localDir.z * normal;
 }
 
 #endif

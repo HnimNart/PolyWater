@@ -76,6 +76,8 @@ public:
   // -------------------------------------------------------------------------
   void updateDescriptors(nvvk::DescriptorPack& descriptorPack);
 
+  const nvvk::Buffer& getBufferFromIndex(uint32_t meshIndex) const;
+
   // Accessors
   const std::vector<nvvk::Image>& textures() const { return m_textures; }
   const VulkanSceneGpuData& deviceResources() const { return m_data; }

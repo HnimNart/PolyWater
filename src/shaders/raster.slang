@@ -120,10 +120,6 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
   // Get metallic and roughness from material
   float metallic = material.metallicFactor;
   float roughness = material.roughnessFactor;
-  if (pushConst.metallicRoughnessOverride.x >= 0.0)
-    metallic = pushConst.metallicRoughnessOverride.x;
-  if (pushConst.metallicRoughnessOverride.y >= 0.0)
-    roughness = pushConst.metallicRoughnessOverride.y;
 
   // Calculate PBR lighting with sun's color and intensity
   float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);

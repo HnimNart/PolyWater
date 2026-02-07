@@ -233,6 +233,14 @@ void VulkanRendererElement::onUIRender()
     {
       nvgui::tonemapperWidget(m_renderer->postProcessor().data());
     }
+
+    if (ImGui::CollapsingHeader("Render"))
+    {
+      PE::begin();
+      shaderio::RenderParams& params = m_renderer->renderParams();
+      PE::DragInt("Number of samples", &params.nSamples, 1.0F, 0, 1024);
+      PE::end();
+    }
   }
   ImGui::End();
 }
@@ -253,9 +261,7 @@ void VulkanRendererElement::onPreRender()
 void VulkanRendererElement::onRender(const IRenderContext& ctx)
 /**********************************************************/
 {
-  shaderio::PushConstant pushValues{.metallicRoughnessOverride =
-                                        m_scene_manager.metallicRoughness()};
-
+  shaderio::PushConstant pushValues{};
   IRenderContext& ctx_ref = const_cast<IRenderContext&>(ctx);
   ctx_ref.pushValues = pushValues;
   ctx_ref.sceneResources = m_scene_manager.getScenePtr();

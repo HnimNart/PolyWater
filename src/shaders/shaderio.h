@@ -45,7 +45,6 @@
 
 #include <nvshaders/sky_io.h.slang>
 
-// TODO this should not be placed here?
 enum class MaterialType : uint16_t
 {
   eDiffuse,
@@ -111,6 +110,7 @@ struct Material
   float roughnessFactor;      // Roughness factor (0.0 = smooth, 1.0 = rough)
   int baseColorTextureIndex;  // Index of the base color texture in the GLTF
                               // file (optional)
+  float3 emission = float3(0);
 };
 
 enum GltfLightType
@@ -131,6 +131,14 @@ struct GltfPunctual
                      // directional lights)
 };
 
+struct RenderParams
+{
+  int nSamples = 16;  // Number of samples pr pass
+  int maxBounces = 16;
+  int n_bounces_rr = 3;
+  uint frameIdx;  // For RNG seeding (changes every frame)
+};
+
 struct SceneResources
 {
   Instance*
@@ -147,7 +155,9 @@ struct SceneInfo
   float4x4 projInvMatrix;   // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;   // Inverse view matrix for the scene
   float3 cameraPosition;    // Camera position in world space
-  int useSky;               // Whether to use the sky rendering
+
+  // Light info
+  int useSky;              // Whether to use the sky rendering
   float3 backgroundColor;  // Background color of the scene (used when not using
                            // sky)
   int numLights;           // Number of punctual lights in the scene (up to 2)
@@ -163,7 +173,7 @@ struct PushConstant
   int instanceIndex;                 // Instance index for the current draw call
   SceneInfo* sceneInfoAddress;       // Address of the scene information buffer
   SceneResources* resourcesAddress;  //
-  float2 metallicRoughnessOverride;  // Metallic and roughness override values
+  RenderParams renderParams;
 };
 
 NAMESPACE_SHADERIO_END()

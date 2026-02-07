@@ -72,7 +72,7 @@ void RasterPass::execute(const IRenderContext& ctx)
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
-  const VulkanSceneGpuData& deviceResources = *vkCtx.deviceResources;
+  const VulkanSceneAssetManager* assetManager = vkCtx.assetManager;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
   const Scene* sceneResources = vkCtx.sceneResources;
@@ -156,9 +156,7 @@ void RasterPass::execute(const IRenderContext& ctx)
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    uint32_t bufferIndex = deviceResources.meshToBufferIndex[meshIndex];
-    const nvvk::Buffer& v = deviceResources.bGltfDatas[bufferIndex];
-
+    const nvvk::Buffer& v = assetManager->getBufferFromIndex(meshIndex);
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
                          VkIndexType(gltfMesh.indexType));
 

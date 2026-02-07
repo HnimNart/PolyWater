@@ -8,6 +8,12 @@
 {
   SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
 
+  if (payload.emit == 0)
+  {
+    payload.stop = true;
+    return;
+  }
+
   // Check if sky system is enabled
   if (sceneInfo.useSky == 1)
   {
@@ -26,4 +32,5 @@
 
   // Set depth to MISS_DEPTH to indicate this ray has finished (no more bounces)
   payload.depth = MISS_DEPTH;
+  payload.stop = true;
 }

@@ -14,6 +14,7 @@ namespace shaderio
 {
 struct SceneInfo;
 struct PushConstant;
+struct RenderParams;
 }  // namespace shaderio
 class IDeviceAssets;
 class IToneMapper;
@@ -65,6 +66,7 @@ public:
   // -------------------------------------------------------------------------
   virtual std::shared_ptr<IDeviceAssets> deviceResources() noexcept = 0;
   virtual IToneMapper& postProcessor() noexcept = 0;
+  shaderio::RenderParams& renderParams() { return m_renderParams; }
 
   // -------------------------------------------------------------------------
   // Output / IO
@@ -75,4 +77,5 @@ public:
 
 protected:
   RenderMode m_render_mode = RenderMode::RAYTRACE;
+  shaderio::RenderParams m_renderParams;
 };

@@ -56,13 +56,6 @@ SceneResourcesManager& SceneManager::sceneResourceManager()
 }
 
 /**********************************************************/
-glm::vec2& SceneManager::metallicRoughness()
-/**********************************************************/
-{
-  return m_metallicRoughnessOverride;
-}
-
-/**********************************************************/
 shaderio::SceneInfo& SceneManager::sceneInfo()
 /**********************************************************/
 {

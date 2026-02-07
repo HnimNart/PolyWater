@@ -47,7 +47,7 @@ public:
   VkDevice device{};
 
   const nvvk::GBuffer* gBuffers{};
-  const VulkanSceneGpuData* deviceResources{};
+  const VulkanSceneAssetManager* assetManager{};
   const AccelerationStructures* bvh{};
 
   // --- Swapchain Integration ---

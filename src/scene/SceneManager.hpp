@@ -48,7 +48,6 @@ public:
 private:
   CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
   SceneResourcesManager m_scene_resources{};
-  glm::vec2 m_metallicRoughnessOverride{-0.01f, -0.01f};
 
   bool has_changed = false;
 };
