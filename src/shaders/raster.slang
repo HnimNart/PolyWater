@@ -97,14 +97,14 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
     // Fragment Shader
     [shader("pixel")] PSout fragmentMain(VSout stage)
 {
-  SceneInfo sceneInfo = pushConst.sceneInfoAddress[0];
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
   SceneResources sceneResources = pushConst.resourcesAddress[0];
   Instance instance = sceneResources.instances[pushConst.instanceIndex];
   Material material = sceneResources.materials[instance.materialIndex];
 
-  GltfPunctual light = processLight(sceneInfo, stage.worldPos);
+  LightSample light = sampleLight(sceneInfo, stage.worldPos);
 
-  float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
+  float3 V = normalize(sceneInfo->cameraPosition - stage.worldPos);
   float3 N = normalize(stage.worldNormal);
   float3 L = normalize(light.direction);
 
@@ -127,13 +127,13 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
   color *= light.color * light.intensity;
 
   // Apply ambient
-  float3 ambient = sceneInfo.backgroundColor;
-  if (sceneInfo.useSky == 1)
+  float3 ambient = sceneInfo->backgroundColor;
+  if (sceneInfo->useSky == 1)
   {
     // Add ambient lighting (sky effect)
     float3 skyUpDir = float3(0, 1, 0);
-    float3 groundColor = sceneInfo.skySimpleParam.groundColor;
-    float3 skyColor = sceneInfo.skySimpleParam.skyColor;
+    float3 groundColor = sceneInfo->skySimpleParam.groundColor;
+    float3 skyColor = sceneInfo->skySimpleParam.skyColor;
     float3 ambient = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
   }
   // Add ambient to final color

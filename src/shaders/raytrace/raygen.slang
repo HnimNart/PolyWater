@@ -18,10 +18,9 @@
   uint seed =
       tea(launchID.y * (uint) launchSize.x + launchID.x, params.frameIdx);
 
-  // --- OUTER LOOP: SAMPLES (Anti-Aliasing) ---
   for (int s = 0; s < N_SAMPLES; s++)
   {
-    // 1. Jitter & Camera Ray (Same as before)
+    // 1. Jitter & Camera Ray
     uint sampleSeed = tea(seed, s);
     float r1 = (float) (tea(sampleSeed, 1) & 0x00FFFFFF) / (float) 0x01000000;
     float r2 = (float) (tea(sampleSeed, 2) & 0x00FFFFFF) / (float) 0x01000000;
@@ -54,7 +53,7 @@
     payload.stop = true;
     payload.emit = true;
 
-    // --- INNER LOOP: BOUNCES (Path Tracing) ---
+    // Path Tracing
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {
       TraceRay(topLevelAS, rayFlags, rayMask, 0, 0, 0, ray, payload);
@@ -63,7 +62,7 @@
         break;
       }
 
-      // C. Russian Roulette (Optional Optimization)
+      // C. Russian Roulette
       float p = max(payload.weight.r, max(payload.weight.g, payload.weight.b));
       if (bounce > params.nBouncesRR)
       {
@@ -105,6 +104,6 @@
   float3 averageColor =
       totalAccum.rgb / totalAccum.a;  // .a stores the count of frames
 
-  // Write to output image (Applying a simple 2.2 gamma correction)
+  // Write to output image
   outImage[int2(launchID)] = float4(averageColor, 1.0F);
 }

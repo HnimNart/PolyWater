@@ -2,9 +2,12 @@
 
 struct DiffuseEvaluator : IBSDF
 {
-  __init(float3 _albedo) { this.albedo = _albedo; }
-  float3 eval(float3 L) { return albedo / M_PI; }
-
+  __init(float3 albedo) { this.albedo = albedo; }
+  float3 eval(float3 L, float3 N)
+  {
+    float nDotL = max(0.0, dot(N, L));
+    return albedo / M_PI * nDotL;
+  }
   float3 albedo;
 }
 
@@ -23,7 +26,6 @@ struct DiffuseEvaluator : IBSDF
   const float2 uv = hit.uv;
   const Material material = hit.material;
 
-  // --- 4. MATERIAL BASE COLOR (ALBEDO) ---
   float3 albedo = material.baseColorFactor.xyz;
   if (material.baseColorTextureIndex > 0)
   {
@@ -44,10 +46,11 @@ struct DiffuseEvaluator : IBSDF
   // --- 7. INDIRECT BOUNCE (Diffuse Only) ---
   // Simple cosine-weighted scatter
   float3 bounceDir = sampleCosineWeightedHemisphere(worldNormal, payload.seed);
-  payload.weight *= albedo;  // PDF of cosine is M_PIf / cos(theta)
+  payload.weight *= albedo;
 
   // --- 8. PREPARE NEXT RAY ---
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(bounceDir);
   payload.stop = false;
+  payload.emit = false;
 }

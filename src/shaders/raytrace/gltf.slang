@@ -2,17 +2,14 @@
 
 struct PbrEvaluator : IBSDF
 {
-  float3 N;
   float3 V;
   float3 albedo;
   float roughness;
   float metallic;
 
   // Slang Constructor (Initializer)
-  __init(float3 _N, float3 _V, float3 _albedo, float _roughness,
-         float _metallic)
+  __init(float3 _V, float3 _albedo, float _roughness, float _metallic)
   {
-    this.N = _N;
     this.V = _V;
     this.albedo = _albedo;
     this.roughness = _roughness;
@@ -20,7 +17,7 @@ struct PbrEvaluator : IBSDF
   }
 
   // The required function from IBSDF interface
-  float3 eval(float3 L)
+  float3 eval(float3 L, float3 N)
   {
     // Calls your existing PBR math function
     return pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
@@ -56,8 +53,7 @@ struct PbrEvaluator : IBSDF
   payload.color += emissive * payload.weight;
 
   // --- 4. NEXT EVENT ESTIMATION (Direct Lighting) ---
-  PbrEvaluator pbr =
-      PbrEvaluator(worldNormal, viewDir, albedo, roughness, metallic);
+  PbrEvaluator pbr = PbrEvaluator(viewDir, albedo, roughness, metallic);
   const SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
   payload.color += sampleDirectLighting(sceneInfo, worldPos, worldNormal, pbr) *
                    payload.weight;
