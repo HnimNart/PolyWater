@@ -69,6 +69,7 @@ void VulkanRenderer::registerShaders()
   m_shaderManager.registerMaterial(MaterialType::eGltfPbr, "gltf");
   m_shaderManager.registerMaterial(MaterialType::eNormals, "normals");
   m_shaderManager.registerMaterial(MaterialType::eDieletrics, "dielectric");
+  m_shaderManager.registerMaterial(MaterialType::eMirror, "mirror");
 }
 
 /**********************************************************/

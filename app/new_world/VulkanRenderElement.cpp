@@ -79,17 +79,17 @@ void VulkanRendererElement::setupScene()
                                .scale = glm::vec3(4.0f, 2.0f, 3.0f),
                                .materialIndex = plane_id,
                                .meshIndex = planeModel,
-                               .hit_group = MaterialType::eDiffuse},
+                               .hit_group = MaterialType::eMirror},
                               "Plane");
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> disColor(0.0f, 1.0f);
+  std::uniform_real_distribution<float> disColor(1e-5f, 1.0f);
   std::uniform_real_distribution<float> disPos(-10.0f, 10.0f);
-  std::uniform_real_distribution<float> disScale(0.2f, 0.8f);
+  std::uniform_real_distribution<float> disScale(0.1f, 0.8f);
 
-  const int numInstances = 50;
-  const float minRadius = 1.4f;
+  const int numInstances = 75;
+  const float minRadius = 1.5f;
   for (int i = 0; i < numInstances; ++i) {
     glm::vec3 randomPos;
 
@@ -100,13 +100,12 @@ void VulkanRendererElement::setupScene()
 
     glm::vec4 randomColor =
         glm::vec4(disColor(gen), disColor(gen), disColor(gen), 1.0f);
-    // 4. Create a unique material for this specific sphere
     const std::string name = "Sphere" + std::to_string(i);
     MaterialID randomMatId = scene_resources.addMaterial(
         {
             .baseColorFactor = randomColor,
-            .metallicFactor = 0.0f,
-            .roughnessFactor = 0.0f,
+            .metallicFactor = std::sqrt(disColor(gen)),
+            .roughnessFactor = disColor(gen) * disColor(gen),
         },
         name);
 
@@ -139,8 +138,8 @@ void VulkanRendererElement::setupScene()
 
   // Default camera
   m_sceneManager.camera()->setClipPlanes({0.01F, 100.0F});
-  m_sceneManager.camera()->setLookat({0.0F, 2.0F, 15.0}, {0.F, 0.F, 0.F},
-                                     {0.0F, 1.0F, 0.0F});
+  m_sceneManager.camera()->setLookat({3.349445, 5.9610214, -13.49994},
+                                     {0, 0, 0}, {0, 1, 0});
   m_sceneManager.camera()->setClean();
 
   // build scene
@@ -482,8 +481,7 @@ void VulkanRendererElement::renderInstancesUI()
       if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
         continue;
 
-      std::string label = fmt::format(
-          "{}##{}", name, id); // Use ##id to ensure unique ID for ImGui
+      std::string label = fmt::format("{}[{}]##{}", name, id, id);
       if (ImGui::TreeNode(label.c_str())) {
         auto &inst = instances[id];
         int matIdx = static_cast<int>(inst.materialIndex);
@@ -592,21 +590,22 @@ void VulkanRendererElement::updateMaterialList()
 {
   auto &resources = m_sceneManager.sceneResourceManager();
   const auto &materialMap = resources.materialMap();
+
   if (materialMap.size() == m_matIDs.size()) {
-    return; // Nothing updated to return
+    return;
   }
 
   m_matIDs.clear();
   m_matNamesList.clear();
-  m_matIDToIndex.clear(); // Clear the old mapping
+  m_matIDToIndex.clear();
 
   int counter = 0;
   for (auto const &[matName, mId] : materialMap) {
-    m_matNamesList += matName + '\0'; // ImGui combo format
+    m_matNamesList += matName + '\0'; // Add to ImGui buffer
     m_matIDs.push_back(mId);
-    // Map the actual Material ID to its position in the list
+
     m_matIDToIndex[mId] = counter;
     counter++;
   }
-  m_matNamesList += '\0'; // End of list
+  m_matNamesList += '\0'; // Final null terminator for ImGui
 }

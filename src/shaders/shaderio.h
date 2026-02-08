@@ -47,6 +47,7 @@ enum class MaterialType : uint16_t {
   eGltfPbr,
   eNormals,
   eDieletrics,
+  eMirror,
   eCount
 };
 

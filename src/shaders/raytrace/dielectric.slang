@@ -9,8 +9,6 @@ struct DielectricEvaluator : IBSDF {
     this.ior = ior;
   }
 
-  // Dielectrics are usually handled via delta distributions (perfect smooth),
-  // so eval() is often zero for importance sampling.
   float3 eval(float3 L, float3 N) { return float3(0.0); }
 
   float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
@@ -32,21 +30,21 @@ struct DielectricEvaluator : IBSDF {
     r0 = r0 * r0;
     float fresnel = r0 + (1.0 - r0) * pow(1.0 - cosThetaI, 5.0);
 
+    float maxVal = max(albedo.x, max(albedo.y, albedo.z));
+    float3 weight = maxVal <= 0 ? float3(1.0f) : albedo;
+
     float randomVal = rnd(seed);
     if (randomVal < fresnel) {
-      // Reflection
       outDir = reflect(-viewDir, N);
-      return albedo;
+      return weight;
     } else {
-      // Refraction (Snell's Law)
       float3 refractDir = refract(-viewDir, N, eta);
-      // Check for Total Internal Reflection (TIR)
       if (length(refractDir) < 0.01) {
         outDir = reflect(-viewDir, N);
-        return albedo;
+        return weight;
       }
       outDir = refractDir;
-      return albedo;
+      return weight;
     }
   }
 }
@@ -70,7 +68,6 @@ struct DielectricEvaluator : IBSDF {
   payload.weight *= bsdf.sample(viewDir, worldNormal, payload.seed, nextDir);
 
   // 2. Prepare Next Ray
-  // Offset origin along the normal to prevent self-intersection (bias)
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(nextDir);
 

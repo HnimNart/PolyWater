@@ -51,11 +51,12 @@ void core::GeometryPickerElement::onUIRender()
       // 2. Raycast to find object
       int32_t hitIndex = pickObject(mouseX, mouseY, winSize.x, winSize.y);
 
+      printf("Picked %d\n", hitIndex);
+
       if (m_onSelect) {
         m_onSelect(hitIndex);
       }
     } else if (clickedRight) {
-      // 3. Right-click specifically deselects
       if (m_onSelect) {
         m_onSelect(-1);
       }
