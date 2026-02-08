@@ -226,16 +226,36 @@ void VulkanRendererElement::onUIRender() {
           nvgui::tonemapperWidget(m_renderer->postProcessor().data());
         }
 
-        if (ImGui::CollapsingHeader("Integrator Params")) {
-          PE::begin();
-          shaderio::RenderParams &params = m_renderer->renderParams();
-          m_hasChanged |=
-              PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
-          m_hasChanged |=
-              PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-          if (PE::Button("Reset Accumulation"))
-            m_hasChanged = true;
-          PE::end();
+        if (m_renderMode == RenderMode::RAYTRACE) {
+          if (ImGui::CollapsingHeader("Integrator Params")) {
+            PE::begin();
+            shaderio::RenderParams &params = m_renderer->renderParams();
+            m_hasChanged |=
+                PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
+            m_hasChanged |=
+                PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+            if (PE::Button("Reset Accumulation"))
+              m_hasChanged = true;
+            PE::end();
+          }
+        } else {
+          if (ImGui::CollapsingHeader("Rasterizer Params")) {
+            PE::begin();
+            shaderio::RasterParams &params = m_renderer->rasterParams();
+            if (PE::Checkbox("Wireframe Mode", (bool *)&params.wireframe)) {
+              m_hasChanged = true;
+            }
+            if (params.wireframe) {
+              if (PE::SliderFloat("Line Width", &params.wireframeLineWidth,
+                                  0.1f, 10.0f)) {
+                m_hasChanged = true;
+              }
+              ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                                 "Note: Wide lines require hardware support.");
+            }
+
+            PE::end();
+          }
         }
 
         ImGui::EndTabItem();

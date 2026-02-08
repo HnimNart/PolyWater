@@ -75,6 +75,7 @@ void RasterPass::execute(const IRenderContext &ctx)
   const Scene *sceneResources = vkCtx.sceneResources;
   const shaderio::SceneInfo &scene_info = sceneResources->sceneInfo;
   const VkExtent2D &size = gBuffers->getSize();
+  const shaderio::RasterParams &rasterParams = constants.rasterParams;
 
   NVVK_DBG_SCOPE(cmd);
 
@@ -108,9 +109,6 @@ void RasterPass::execute(const IRenderContext &ctx)
   renderingInfo.pColorAttachments = &colorAttachment;
   renderingInfo.pDepthAttachment = &depthAttachment;
 
-  // NOTE: Manual image memory barriers removed.
-  // The Smart Render Graph handles layout transitions via setup() declarations.
-
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
@@ -128,7 +126,20 @@ void RasterPass::execute(const IRenderContext &ctx)
   pipelineState.rasterizationState.cullMode = VK_CULL_MODE_NONE;
   pipelineState.cmdApplyAllStates(cmd);
   pipelineState.cmdSetViewportAndScissor(cmd, size);
+
+  // --- Dynamic State Setups ---
   vkCmdSetDepthTestEnable(cmd, VK_TRUE);
+  vkCmdSetDepthWriteEnable(cmd, VK_TRUE);
+  vkCmdSetDepthCompareOp(cmd, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+  // Wireframe Toggle Logic
+  VkPolygonMode polyMode =
+      rasterParams.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
+  vkCmdSetPolygonModeEXT(cmd, polyMode);
+
+  if (rasterParams.wireframe) {
+    vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
+  }
 
   // Bind Shaders
   const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_VERTEX_BIT,

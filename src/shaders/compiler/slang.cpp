@@ -6,13 +6,14 @@
 
 #include "common/timers.hpp"
 
-namespace
+namespace {
+
+/**********************************************************/
+void debugShaderMagic(const std::string &name,
+                      const VkShaderModuleCreateInfo &info)
+/**********************************************************/
 {
-void debugShaderMagic(const std::string& name,
-                      const VkShaderModuleCreateInfo& info)
-{
-  if (info.pCode == nullptr || info.codeSize == 0)
-  {
+  if (info.pCode == nullptr || info.codeSize == 0) {
     LOGE("Shader %s: pCode is NULL or size is 0!", name.c_str());
     return;
   }
@@ -21,12 +22,9 @@ void debugShaderMagic(const std::string& name,
   const uint32_t SPIRV_MAGIC = 0x07230203;
   uint32_t firstWord = info.pCode[0];
 
-  if (firstWord == SPIRV_MAGIC)
-  {
+  if (firstWord == SPIRV_MAGIC) {
     LOGI("Shader %s: Valid SPIR-V Magic Number found.", name.c_str());
-  }
-  else
-  {
+  } else {
     // Interpret the first 4 bytes as ASCII characters
     char chars[5];
     memcpy(chars, &firstWord, 4);
@@ -37,16 +35,17 @@ void debugShaderMagic(const std::string& name,
     LOGE("  Found:    0x%08x (ASCII interpretation: '%s')", firstWord, chars);
 
     // Print the next few words just in case
-    if (info.codeSize >= 12)
-    {
+    if (info.codeSize >= 12) {
       LOGE("  Next words: 0x%08x, 0x%08x", info.pCode[1], info.pCode[2]);
     }
   }
 }
 
-}  // namespace
+} // namespace
 
-void SlangCompiler::init(const std::vector<std::filesystem::path>& shaderDirs)
+/**********************************************************/
+void SlangCompiler::init(const std::vector<std::filesystem::path> &shaderDirs)
+/**********************************************************/
 {
   m_shaderDirs = shaderDirs;
   // Setting up the Slang compiler for hot reload shader
@@ -59,51 +58,61 @@ void SlangCompiler::init(const std::vector<std::filesystem::path>& shaderDirs)
 #if defined(AFTERMATH_AVAILABLE)
   // This aftermath callback is used to report the shader hash (Spirv) to the
   // Aftermath library.
-  m_slangContext.setCompileCallback(
-      [&](const std::filesystem::path& sourceFile, const uint32_t* spirvCode,
-          size_t spirvSize)
-      {
-        std::span<const uint32_t> data(spirvCode, spirvSize / sizeof(uint32_t));
-        AftermathCrashTracker::getInstance().addShaderBinary(data);
-      });
+  m_slangContext.setCompileCallback([&](const std::filesystem::path &sourceFile,
+                                        const uint32_t *spirvCode,
+                                        size_t spirvSize) {
+    std::span<const uint32_t> data(spirvCode, spirvSize / sizeof(uint32_t));
+    AftermathCrashTracker::getInstance().addShaderBinary(data);
+  });
 #endif
 }
 
 // This function is used to compile the Slang shader, and when it fails, it will
 // use the pre-compiled shaders
+/**********************************************************/
 VkShaderModuleCreateInfo
-SlangCompiler::compile(const std::filesystem::path& filename,
-                       const std::span<const uint32_t>& spirv)
+SlangCompiler::compile(const std::filesystem::path &filename,
+                       const std::span<const uint32_t> &spirv, bool useCache)
+/**********************************************************/
 {
+
   SCOPED_TIMER(filename.string());
+  std::string key = filename.string();
 
-  // 1. Compile the file using your existing context
-  std::filesystem::path shaderSource =
-      nvutils::findFile(filename, m_shaderDirs);
-
-  if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource))
-  {
-    // 2. Deep copy the SPIR-V into our persistent cache
-    const uint32_t* rawData = m_slangContext.getSpirv();
-    size_t dwordCount = m_slangContext.getSpirvSize() / sizeof(uint32_t);
-
-    // Add a new vector to the deque and copy data into it
-    m_binaryCache.emplace_back(rawData, rawData + dwordCount);
-
-    // 3. Point the VkShaderModuleCreateInfo to our cache
+  // --- 1. Check Cache First ---
+  auto it = m_binaryCacheMap.find(key);
+  if (useCache && it != m_binaryCacheMap.end()) {
     VkShaderModuleCreateInfo shaderCode{
         VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    shaderCode.codeSize = m_binaryCache.back().size() * sizeof(uint32_t);
-    shaderCode.pCode = m_binaryCache.back().data();
+    shaderCode.codeSize = it->second.size() * sizeof(uint32_t);
+    shaderCode.pCode = it->second.data();
     return shaderCode;
   }
 
-  // Fallback logic
-  if (!spirv.empty())
-  {
+  // --- 2. Find and Compile if not cached ---
+  std::filesystem::path shaderSource =
+      nvutils::findFile(filename, m_shaderDirs);
+
+  if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource)) {
+    const uint32_t *rawData = m_slangContext.getSpirv();
+    size_t dwordCount = m_slangContext.getSpirvSize() / sizeof(uint32_t);
+
+    // Store in map
+    std::vector<uint32_t> &cachedData = m_binaryCacheMap[key];
+    cachedData.assign(rawData, rawData + dwordCount);
+
+    VkShaderModuleCreateInfo shaderCode{
+        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    shaderCode.codeSize = cachedData.size() * sizeof(uint32_t);
+    shaderCode.pCode = cachedData.data();
+    return shaderCode;
+  }
+
+  // --- 3. Fallback logic ---
+  if (!spirv.empty()) {
     return getShaderModuleCreateInfo(spirv);
   }
 
-  LOGE("Compilation failed for: %s", filename.string().c_str());
+  LOGE("Compilation failed for: %s", key.c_str());
   return {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 }

@@ -157,6 +157,7 @@ void VulkanRenderer::render(IRenderContext &ctx)
   vkCtx.pushValues.resourcesAddress = resourcesAddress;
   vkCtx.pushValues.renderParams = m_renderParams;
   vkCtx.pushValues.renderParams.frameIdx = m_frameIndex;
+  vkCtx.pushValues.rasterParams = m_rasterParams;
 
   // 4. Setup Render Targets (Swapchain)
   if (m_swapchain_manager) {

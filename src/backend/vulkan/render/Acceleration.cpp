@@ -88,7 +88,7 @@ AccelerationStructures::buildTLAS(const SceneResourcesManager &scene,
                                   const ShaderManager &materialManager)
 /**********************************************************/
 {
-
+  SCOPED_TIMER_FUNC();
   // Prepare instance data for TLAS
   const Scene &sceneGeometry = scene.data();
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;

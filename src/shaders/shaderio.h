@@ -137,6 +137,11 @@ struct RenderParams {
   uint frameIdx;
 };
 
+struct RasterParams {
+  bool wireframe = false;
+  float wireframeLineWidth = 1.0f;
+};
+
 struct SceneResources {
   Instance *instances;   // Address of the instance buffer
   MeshPrimitive *meshes; // Address of the mesh buffer
@@ -166,6 +171,7 @@ struct PushConstant {
   SceneInfo *sceneInfoAddress;      // Address of the scene information buffer
   SceneResources *resourcesAddress; //
   RenderParams renderParams;
+  RasterParams rasterParams;
 };
 
 NAMESPACE_SHADERIO_END()

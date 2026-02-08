@@ -256,8 +256,6 @@ void RayTracePass::createShaderBindingTable(
   size_t bufferSize =
       m_sbtGenerator.calculateSBTBufferSize(m_pipeline, rtPipelineInfo);
 
-  printf("%d\n", bufferSize);
-
   // Create SBT buffer
   NVVK_CHECK(m_context_manager->getAllocator().createBuffer(
       m_sbtBuffer, bufferSize, VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR,
