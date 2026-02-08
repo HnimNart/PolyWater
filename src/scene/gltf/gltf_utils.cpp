@@ -310,8 +310,8 @@ gltf::computeModelBounds(const tinygltf::Model &model)
     processNode(model, nodeIndex, glm::mat4(1.0f), minBound, maxBound);
   }
 
-  std::cout << glm::to_string(minBound) << std::endl;
-  std::cout << glm::to_string(maxBound) << std::endl;
+  // std::cout << glm::to_string(minBound) << std::endl;
+  // std::cout << glm::to_string(maxBound) << std::endl;
 
   return {minBound, maxBound};
 }

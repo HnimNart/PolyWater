@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <iostream>
+#include <random>
 
 // Third Party
 #include <imgui/imgui.h>
@@ -53,44 +54,74 @@ void VulkanRendererElement::setupScene()
   MaterialID teapot_id = scene_resources.addMaterial(
       {.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
        .metallicFactor = 0.5f,
-       .roughnessFactor = 0.5f});
+       .roughnessFactor = 0.5f},
+      "Teapot");
+
   // Plane material with texture
   MaterialID plane_id = scene_resources.addMaterial(
       {.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
        .metallicFactor = 0.1f,
        .roughnessFactor = 0.8f,
        .ior = glm::vec3(1.3f),
-       .baseColorTextureIndex = static_cast<int>(texture_id)});
-
-  // Plane material with texture
-  MaterialID plane_id1 = scene_resources.addMaterial(
-      {.baseColorFactor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
-       .metallicFactor = 0.1f,
-       .roughnessFactor = 0.8f});
+       .baseColorTextureIndex = static_cast<int>(texture_id)},
+      "Plane");
 
   // Teapot
-  scene_resources.addInstance({.translation = glm::vec3(0, 0, 0),
+  scene_resources.addInstance({.translation = glm::vec3(0, 0.0, 0),
                                .scale = glm::vec3(0.5f),
                                .materialIndex = teapot_id,
                                .meshIndex = teapotModel,
-                               .hit_group = MaterialType::eDieletrics});
+                               .hit_group = MaterialType::eDieletrics},
+                              "Teapot");
 
   // Plane
   scene_resources.addInstance({.translation = glm::vec3(0.0f, -0.9f, 0.0f),
-                               .scale = glm::vec3(2.0f),
+                               .scale = glm::vec3(4.0f, 2.0f, 3.0f),
                                .materialIndex = plane_id,
                                .meshIndex = planeModel,
-                               .hit_group = MaterialType::eGltfPbr});
-  // Sphere
-  // scene_resources.addInstance({.translation = glm::vec3(0, 0, 0),
-  //                              .scale = glm::vec3(1.f),
-  //                              .materialIndex = teapot_id,
-  //                              .meshIndex = 2,
-  //                              .hit_group = MaterialType::eDieletrics});
+                               .hit_group = MaterialType::eDiffuse},
+                              "Plane");
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> disColor(0.0f, 1.0f);
+  std::uniform_real_distribution<float> disPos(-10.0f, 10.0f);
+  std::uniform_real_distribution<float> disScale(0.2f, 0.8f);
+
+  const int numInstances = 50;
+  const float minRadius = 1.4f;
+  for (int i = 0; i < numInstances; ++i) {
+    glm::vec3 randomPos;
+
+    // 2. Rejection Sampling: Keep picking a spot until it's far enough away
+    do {
+      randomPos = glm::vec3(disPos(gen), 0.0f, disPos(gen));
+    } while (glm::length(randomPos) < minRadius);
+
+    glm::vec4 randomColor =
+        glm::vec4(disColor(gen), disColor(gen), disColor(gen), 1.0f);
+    // 4. Create a unique material for this specific sphere
+    const std::string name = "Sphere" + std::to_string(i);
+    MaterialID randomMatId = scene_resources.addMaterial(
+        {
+            .baseColorFactor = randomColor,
+            .metallicFactor = 0.0f,
+            .roughnessFactor = 0.0f,
+        },
+        name);
+
+    // 3. Add the Instance
+    scene_resources.addInstance({.translation = randomPos,
+                                 .scale = glm::vec3(disScale(gen)),
+                                 .materialIndex = randomMatId,
+                                 .meshIndex = sphereModel,
+                                 .hit_group = MaterialType::eDieletrics},
+                                name);
+  }
 
   // Scene information
   shaderio::SceneInfo &sceneInfo = m_sceneManager.sceneInfo();
-  sceneInfo.useSky = false;                          // Use light
+  sceneInfo.useSky = true;                           // Use light
   sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f}; // The background color
   sceneInfo.numLights = 1;
   sceneInfo.punctualLights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -108,7 +139,7 @@ void VulkanRendererElement::setupScene()
 
   // Default camera
   m_sceneManager.camera()->setClipPlanes({0.01F, 100.0F});
-  m_sceneManager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F},
+  m_sceneManager.camera()->setLookat({0.0F, 2.0F, 15.0}, {0.F, 0.F, 0.F},
                                      {0.0F, 1.0F, 0.0F});
   m_sceneManager.camera()->setClean();
 
@@ -159,12 +190,11 @@ void VulkanRendererElement::onUIMenu()
   }
 }
 
-/**********************************************************/
-void VulkanRendererElement::onUIRender()
-/**********************************************************/
-{
+void VulkanRendererElement::onUIRender() {
   namespace PE = nvgui::PropertyEditor;
   m_hasChanged = false;
+
+  // --- Viewport Window ---
   if (ImGui::Begin("Viewport")) {
     ImGui::Image(
         ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped)),
@@ -172,102 +202,119 @@ void VulkanRendererElement::onUIRender()
   }
   ImGui::End();
 
+  // --- Main Control Window ---
   if (ImGui::Begin("Settings")) {
-    const char *preview = renderModeToString(m_renderMode);
-
-    if (ImGui::BeginCombo("Render Mode", preview)) {
-      for (int n = 0; n < static_cast<int>(RenderMode::COUNT); n++) {
-        auto mode = static_cast<RenderMode>(n);
-        bool isSelected = (m_renderMode == mode);
-        if (ImGui::Selectable(renderModeToString(mode), isSelected)) {
-          m_renderMode = mode;
-          m_renderer->setRenderMode(m_renderMode);
-          m_sceneManager.sceneResourceManager().setDirty(true);
+    // 1. Setup the Tab Bar
+    if (ImGui::BeginTabBar("MainTabs")) {
+      // --- TAB 1: SCENE & RENDERING ---
+      if (ImGui::BeginTabItem("Render")) {
+        // Render Mode Selection
+        const char *preview = renderModeToString(m_renderMode);
+        if (ImGui::BeginCombo("Render Mode", preview)) {
+          for (int n = 0; n < static_cast<int>(RenderMode::COUNT); n++) {
+            auto mode = static_cast<RenderMode>(n);
+            if (ImGui::Selectable(renderModeToString(mode),
+                                  m_renderMode == mode)) {
+              m_renderMode = mode;
+              m_renderer->setRenderMode(m_renderMode);
+              m_sceneManager.sceneResourceManager().setDirty(true);
+            }
+          }
+          ImGui::EndCombo();
         }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
+
+        if (ImGui::CollapsingHeader("Tonemapper")) {
+          nvgui::tonemapperWidget(m_renderer->postProcessor().data());
         }
-      }
-      ImGui::EndCombo();
-    }
 
-    if (ImGui::CollapsingHeader("Camera")) {
-      m_hasChanged |= nvgui::CameraWidget(m_sceneManager.camera());
-    }
-
-    if (ImGui::CollapsingHeader("Environment")) {
-      auto &sceneInfo = m_sceneManager.sceneInfo();
-      m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
-
-      if (sceneInfo.useSky) {
-        m_hasChanged |= nvgui::skySimpleParametersUI(sceneInfo.skySimpleParam);
-      } else {
-        PE::begin();
-        m_hasChanged |=
-            PE::ColorEdit3("Background", (float *)&sceneInfo.backgroundColor);
-        PE::end();
-
-        auto &light = sceneInfo.punctualLights[0];
-        PE::begin();
-        if (light.type == shaderio::LightType::ePoint ||
-            light.type == shaderio::LightType::eSpot) {
+        if (ImGui::CollapsingHeader("Integrator Params")) {
+          PE::begin();
+          shaderio::RenderParams &params = m_renderer->renderParams();
           m_hasChanged |=
-              PE::DragFloat3("Light Position", glm::value_ptr(light.position),
-                             0.1f, -20.0f, 20.0f);
-        }
-        if (light.type == shaderio::LightType::eDirectional ||
-            light.type == shaderio::LightType::eSpot) {
-          m_hasChanged |= PE::SliderFloat3(
-              "Light Direction", glm::value_ptr(light.direction), -1.0f, 1.0f);
-        }
-
-        m_hasChanged |=
-            PE::SliderFloat("Light Intensity", &light.intensity, 0.0f, 1000.0f,
-                            "%.2f", ImGuiSliderFlags_Logarithmic);
-        m_hasChanged |=
-            PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
-                           ImGuiColorEditFlags_NoInputs);
-
-        // Using a temp int for the combo to capture changes properly
-        int typeInt = static_cast<int>(light.type);
-        if (PE::Combo("Light Type", &typeInt, "Point\0Spot\0Directional\0",
-                      3)) {
-          light.type = static_cast<shaderio::LightType>(typeInt);
-          m_hasChanged = true;
-        }
-
-        if (light.type == shaderio::LightType::eSpot) {
+              PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
           m_hasChanged |=
-              PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f);
+              PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+          if (PE::Button("Reset Accumulation"))
+            m_hasChanged = true;
+          PE::end();
         }
-        PE::end();
+
+        ImGui::EndTabItem();
       }
-    }
 
-    if (ImGui::CollapsingHeader("Tonemapper")) {
-      nvgui::tonemapperWidget(m_renderer->postProcessor().data());
-    }
+      // --- TAB 2: ENVIRONMENT & LIGHTING ---
+      if (ImGui::BeginTabItem("Environment")) {
+        if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+          m_hasChanged |= nvgui::CameraWidget(m_sceneManager.camera());
+        }
 
-    if (ImGui::CollapsingHeader("Render")) {
-      PE::begin();
-      shaderio::RenderParams &params = m_renderer->renderParams();
-      m_hasChanged |=
-          PE::DragInt("Number of samples", &params.nSamples, 1.0F, 0, 1024);
-      m_hasChanged |=
-          PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-      m_hasChanged |=
-          PE::DragInt("RR threshold", &params.nBouncesRR, 1.0F, 0, 1024);
+        auto &sceneInfo = m_sceneManager.sceneInfo();
+        if (ImGui::CollapsingHeader("Environment")) {
+          auto &sceneInfo = m_sceneManager.sceneInfo();
+          m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
+          if (sceneInfo.useSky) {
+            m_hasChanged |=
+                nvgui::skySimpleParametersUI(sceneInfo.skySimpleParam);
+          } else {
 
-      // Manual reset button
-      if (PE::Button("Reset Accumulation", ImVec2(-1, 0),
-                     "Clear the accumulation buffer and start over")) {
-        m_hasChanged = true;
+            PE::begin();
+            m_hasChanged |= PE::ColorEdit3("Background",
+                                           (float *)&sceneInfo.backgroundColor);
+            PE::end();
+            auto &light = sceneInfo.punctualLights[0];
+            PE::begin();
+            if (light.type == shaderio::LightType::ePoint ||
+                light.type == shaderio::LightType::eSpot) {
+              m_hasChanged |= PE::DragFloat3("Light Position",
+                                             glm::value_ptr(light.position),
+
+                                             0.1f, -20.0f, 20.0f);
+            }
+            if (light.type == shaderio::LightType::eDirectional ||
+                light.type == shaderio::LightType::eSpot) {
+              m_hasChanged |= PE::SliderFloat3("Light Direction",
+                                               glm::value_ptr(light.direction),
+                                               -1.0f, 1.0f);
+            }
+
+            m_hasChanged |=
+                PE::SliderFloat("Light Intensity", &light.intensity, 0.0f,
+                                1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+            m_hasChanged |=
+                PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
+                               ImGuiColorEditFlags_NoInputs);
+
+            // Using a temp int for the combo to capture changes properly
+            int typeInt = static_cast<int>(light.type);
+            if (PE::Combo("Light Type", &typeInt, "Point\0Spot\0Directional\0",
+                          3)) {
+              light.type = static_cast<shaderio::LightType>(typeInt);
+              m_hasChanged = true;
+            }
+
+            if (light.type == shaderio::LightType::eSpot) {
+              m_hasChanged |=
+                  PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f);
+            }
+            PE::end();
+          }
+        }
+        ImGui::EndTabItem();
       }
-      PE::end();
-    }
 
-    renderMaterialsUI();
-    renderInstancesUI();
+      // --- TAB 3: ASSETS
+      if (ImGui::BeginTabItem("Materials")) {
+        renderMaterialsUI();
+        ImGui::EndTabItem();
+      }
+
+      if (ImGui::BeginTabItem("Instances")) {
+        renderInstancesUI();
+        ImGui::EndTabItem();
+      }
+
+      ImGui::EndTabBar(); // Close the Tab Bar
+    }
   }
   ImGui::End();
 }
@@ -331,14 +378,44 @@ void VulkanRendererElement::renderMaterialsUI()
 /**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
-  auto &materials = m_sceneManager.sceneResourceManager().getMaterials();
+  auto &resources = m_sceneManager.sceneResourceManager();
+  auto &materials = resources.getMaterials();
+  const auto &materialMap = resources.materialMap();
   bool changed = false;
 
-  if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < materials.size(); i++) {
-      std::string label = fmt::format("Material {}", i);
+  // Static buffer to persist search text between frames
+  static char materialSearch[128] = "";
+
+  if (ImGui::CollapsingHeader("Materials")) {
+    // 1. Search Bar
+    ImGui::InputTextWithHint("##MatSearch", "Filter by name...", materialSearch,
+                             IM_ARRAYSIZE(materialSearch));
+    ImGui::Separator();
+
+    // Prepare search string for case-insensitive comparison
+    std::string searchStr = materialSearch;
+    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
+                   ::tolower);
+
+    // 2. Iterate through the map (already alphabetical)
+    for (const auto &[name, id] : materialMap) {
+      if (id >= materials.size())
+        continue;
+
+      // Apply Search Filter
+      std::string nameLower = name;
+      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+                     ::tolower);
+      if (!searchStr.empty() &&
+          nameLower.find(searchStr) == std::string::npos) {
+        continue;
+      }
+
+      // Use name and ID for a unique ImGui ID
+      std::string label = fmt::format("{} (ID: {})", name, id);
+
       if (ImGui::TreeNode(label.c_str())) {
-        auto &mat = materials[i];
+        auto &mat = materials[id];
         PE::begin();
 
         changed |=
@@ -347,11 +424,14 @@ void VulkanRendererElement::renderMaterialsUI()
         changed |=
             PE::SliderFloat("Roughness", &mat.roughnessFactor, 0.0f, 1.0f);
         changed |= PE::ColorEdit3("Emission", glm::value_ptr(mat.emission));
-        changed |= PE::SliderFloat3("IOR", glm::value_ptr(mat.ior), 0.1, 2.0F);
+
+        // Show IOR - typically we only edit x for simple dielectrics
+        changed |= PE::SliderFloat3("IOR (Spectral)", glm::value_ptr(mat.ior),
+                                    1.0f, 2.5f);
 
         // Read-only info
-        int texIdx = mat.baseColorTextureIndex;
-        PE::Text("Texture Index", fmt::format("{}", texIdx).c_str());
+        PE::Text("Texture Index",
+                 fmt::format("{}", mat.baseColorTextureIndex).c_str());
 
         PE::end();
         ImGui::TreePop();
@@ -360,72 +440,112 @@ void VulkanRendererElement::renderMaterialsUI()
   }
 
   if (changed) {
-    m_sceneManager.sceneResourceManager().onMaterialChange();
+    resources.onMaterialChange();
   }
 }
+
 /**********************************************************/
 void VulkanRendererElement::renderInstancesUI()
 /**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
-  auto &instances = m_sceneManager.sceneResourceManager().getInstances();
-  const auto &materials = m_sceneManager.sceneResourceManager().getMaterials();
-  const auto &shaderManager = m_renderer->getShaderManager();
-  const auto &shaderRegistry = shaderManager.getRegistry();
+  auto &resources = m_sceneManager.sceneResourceManager();
+  auto &instances = resources.getInstances();
+  const auto &materials = resources.getMaterials();
+  const auto &materialMap = resources.materialMap();
+  const auto &instanceMap = resources.instanceMap();
+  const auto &shaderRegistry = m_renderer->getShaderManager().getRegistry();
+
+  updateMaterialList();
 
   bool changed = false;
+  static char instanceSearch[128] = "";
 
   if (ImGui::CollapsingHeader("Instances")) {
-    for (size_t i = 0; i < instances.size(); i++) {
-      std::string label = fmt::format("Instance {}", i);
+    ImGui::InputTextWithHint("##InstSearch", "Search instances...",
+                             instanceSearch, IM_ARRAYSIZE(instanceSearch));
+    ImGui::Separator();
+
+    std::string searchStr = instanceSearch;
+    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
+                   ::tolower);
+
+    // Iterate through the map
+    for (const auto &[name, id] : instanceMap) {
+      if (id >= instances.size())
+        continue;
+
+      // Filter
+      std::string nameLower = name;
+      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+                     ::tolower);
+      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
+        continue;
+
+      std::string label = fmt::format(
+          "{}##{}", name, id); // Use ##id to ensure unique ID for ImGui
       if (ImGui::TreeNode(label.c_str())) {
-        auto &inst = instances[i];
+        auto &inst = instances[id];
+        int matIdx = static_cast<int>(inst.materialIndex);
         PE::begin();
 
-        // 1. Material assignment
-        int matIdx = static_cast<int>(inst.materialIndex);
-        if (PE::SliderInt("Material Index", &matIdx, 0,
+        // Find current id of the selected material
+        int currentComboItem = -1;
+        if (auto it = m_matIDToIndex.find(inst.materialIndex);
+            it != m_matIDToIndex.end()) {
+          currentComboItem = it->second;
+        }
+
+        // Draw the Dropdown
+        if (PE::Combo("Material Select", &currentComboItem,
+                      m_matNamesList.c_str(), (int)m_matIDs.size())) {
+          inst.materialIndex = m_matIDs[currentComboItem];
+          matIdx = (int)inst.materialIndex; // Sync slider
+          changed = true;
+        }
+
+        // Draw the Slider
+        if (PE::SliderInt("Material ID", &matIdx, 0,
                           (int)materials.size() - 1)) {
           inst.materialIndex = (uint32_t)matIdx;
           changed = true;
         }
 
-        // 2. Hit Group (Shader) assignment
-        // Convert the current enum to an int for the UI
-        int currentHitGroup = static_cast<int>(inst.hit_group);
-
-        // Build a string list of available shader names from the registry
-        std::string shaderNames;
+        // 2. Hit Group (Shader) Assignment
+        // We map the MaterialType enum to its index in the registry for the
+        // combo
         std::vector<MaterialType> types;
+        std::string shaderNames;
+        int currentTypeIdx = -1;
+        int count = 0;
         for (auto const &[type, entry] : shaderRegistry) {
-          shaderNames +=
-              entry.entryPoint + '\0'; // Use the shader entry point name
+          if (type == inst.hit_group)
+            currentTypeIdx = count;
+          shaderNames += entry.prettyName + '\0';
           types.push_back(type);
+          count++;
         }
-        shaderNames += '\0'; // End of list
+        shaderNames += '\0';
 
-        if (PE::Combo("Shader Type", &currentHitGroup, shaderNames.c_str(),
+        if (PE::Combo("Shader Type", &currentTypeIdx, shaderNames.c_str(),
                       (int)types.size())) {
-          // Update the instance with the selected enum type
-          inst.hit_group = types[currentHitGroup];
+          inst.hit_group = types[currentTypeIdx];
           changed = true;
         }
 
-        // 3. Show Read-only Mesh Info
-        PE::Text("Mesh Index", fmt::format("{}", inst.meshIndex).c_str());
+        // 3. Transformation
+        PE::Text("Mesh ID", fmt::format("{}", inst.meshIndex).c_str());
 
-        // --- 1. Preparation: Convert Quat -> Euler (Degrees) ---
         glm::quat rotation = math::toQuat(glm::vec4(inst.rotation));
         glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
 
         bool tChanged =
             PE::DragFloat3("Position", glm::value_ptr(inst.translation), 0.1f);
         bool rChanged =
-            PE::DragFloat3("Rotation", glm::value_ptr(rotationEuler), 0.1f);
+            PE::DragFloat3("Rotation", glm::value_ptr(rotationEuler), 0.5f);
         bool sChanged =
-            PE::DragFloat3("Scale", glm::value_ptr(inst.scale), 0.1f);
+            PE::DragFloat3("Scale", glm::value_ptr(inst.scale), 0.05f);
 
-        // --- 3. Write Back & Recompose ---
         if (tChanged || rChanged || sChanged) {
           glm::quat quat = glm::quat(glm::radians(rotationEuler));
           inst.rotation = math::fromQuat(quat);
@@ -441,7 +561,7 @@ void VulkanRendererElement::renderInstancesUI()
   }
 
   if (changed) {
-    m_sceneManager.sceneResourceManager().onInstanceChange();
+    resources.onInstanceChange();
   }
 }
 
@@ -464,4 +584,29 @@ void VulkanRendererElement::onGeometryPicked(InstanceID id)
 /**********************************************************/
 {
   // m_instanceSelected = id;
+}
+
+/**********************************************************/
+void VulkanRendererElement::updateMaterialList()
+/**********************************************************/
+{
+  auto &resources = m_sceneManager.sceneResourceManager();
+  const auto &materialMap = resources.materialMap();
+  if (materialMap.size() == m_matIDs.size()) {
+    return; // Nothing updated to return
+  }
+
+  m_matIDs.clear();
+  m_matNamesList.clear();
+  m_matIDToIndex.clear(); // Clear the old mapping
+
+  int counter = 0;
+  for (auto const &[matName, mId] : materialMap) {
+    m_matNamesList += matName + '\0'; // ImGui combo format
+    m_matIDs.push_back(mId);
+    // Map the actual Material ID to its position in the list
+    m_matIDToIndex[mId] = counter;
+    counter++;
+  }
+  m_matNamesList += '\0'; // End of list
 }

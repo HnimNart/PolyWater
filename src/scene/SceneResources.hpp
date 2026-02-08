@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
@@ -39,8 +40,8 @@ public:
   // ---------------------------------------------------------------------------
   // Scene Composition
   // ---------------------------------------------------------------------------
-  InstanceID addInstance(shaderio::Instance &&instance);
-  MaterialID addMaterial(shaderio::Material &&material);
+  InstanceID addInstance(shaderio::Instance &&instance, std::string = "");
+  MaterialID addMaterial(shaderio::Material &&material, std::string = "");
 
   // ---------------------------------------------------------------------------
   // Runtime Updates
@@ -80,6 +81,13 @@ public:
     return m_resources.meshes[index];
   }
 
+  const std::map<std::string, MaterialID> &materialMap() const {
+    return m_materialMap;
+  }
+  const std::map<std::string, InstanceID> &instanceMap() const {
+    return m_instanceMap;
+  }
+
 private:
   Scene m_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
@@ -91,6 +99,9 @@ private:
     TextureID id;
   };
   std::vector<PendingTexture> m_pendingTextures{};
+
+  std::map<std::string, MaterialID> m_materialMap{};
+  std::map<std::string, InstanceID> m_instanceMap{};
 
   bool m_dirty = false;
 };

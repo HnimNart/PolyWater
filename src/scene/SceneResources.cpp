@@ -15,6 +15,25 @@
 #include <nvvk/debug_util.hpp>
 #include <nvvk/sampler_pool.hpp>
 
+namespace {
+
+/**********************************************************/
+std::string getUniqueName(const std::map<std::string, uint32_t> &nameMap,
+                          const std::string &baseName)
+/**********************************************************/
+{
+  std::string candidate = baseName;
+  uint32_t counter = 1;
+
+  // Keep checking if the name exists. If it does, increment the counter.
+  while (nameMap.find(candidate) != nameMap.end()) {
+    candidate = baseName + "_" + std::to_string(counter++);
+  }
+  return candidate;
+}
+
+} // namespace
+
 /**********************************************************/
 void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 /**********************************************************/
@@ -40,24 +59,38 @@ TextureID SceneResourcesManager::loadTexture(const std::string &filename)
   m_pendingTextures.push_back({filename, id});
   return id + 1;
 }
-
 /**********************************************************/
-InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance)
+InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
+                                              std::string name)
 /**********************************************************/
 {
   instance.transform = math::composeTransform(
       instance.translation, instance.rotation, instance.scale);
   m_resources.instances.push_back(instance);
+  InstanceID id = static_cast<InstanceID>(m_resources.instances.size() - 1);
 
-  return static_cast<InstanceID>(m_resources.instances.size() - 1);
+  if (name.empty()) {
+    name = "Instance_" + std::to_string(id);
+  }
+  std::string uniqueName = getUniqueName(m_instanceMap, name);
+  m_instanceMap[uniqueName] = id;
+  return id;
 }
 
 /**********************************************************/
-MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material)
+MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
+                                              std::string name)
 /**********************************************************/
 {
   m_resources.materials.push_back(material);
-  return static_cast<MaterialID>(m_resources.materials.size() - 1);
+  MaterialID id = static_cast<MaterialID>(m_resources.materials.size() - 1);
+
+  if (name.empty()) {
+    name = "Material_" + std::to_string(id);
+  }
+  std::string uniqueName = getUniqueName(m_materialMap, name);
+  m_materialMap[uniqueName] = id;
+  return id;
 }
 
 /**********************************************************/

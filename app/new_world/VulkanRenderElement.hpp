@@ -59,6 +59,11 @@ private:
   void renderMaterialsUI();
   void renderInstancesUI();
 
+  void updateMaterialList();
+  std::string m_matNamesList;
+  std::vector<MaterialID> m_matIDs;
+  std::unordered_map<uint32_t, int> m_matIDToIndex; // <MaterialID, ComboIndex>
+
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
