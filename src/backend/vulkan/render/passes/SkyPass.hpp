@@ -12,16 +12,14 @@
 // -----------------------------------------------------------------------------
 // Sky Pass: Handles the procedural skybox via Compute Shader
 // -----------------------------------------------------------------------------
-class SkyPass : public IRenderPass
-{
+class SkyPass : public IRenderPass {
 public:
-  void init(VulkanContextManager* core,
-            const SceneResourcesManager& scene) override;
-  void setup(PassBuilder& builder) override;
-  void deinit(VulkanContextManager* core) override;
-  void execute(const IRenderContext& ctx) override;
+  void init(VulkanContextManager *core) override;
+  void setup(PassBuilder &builder) override;
+  void deinit(VulkanContextManager *core) override;
+  void execute(const IRenderContext &ctx) override;
 
 private:
-  VulkanContextManager* m_core = nullptr;
+  VulkanContextManager *m_core = nullptr;
   nvshaders::SkySimple m_skySimple;
 };

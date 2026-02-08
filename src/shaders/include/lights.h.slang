@@ -25,7 +25,7 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
 
   // 1. Fetch Raw Data
   // -----------------
-  GltfPunctual lightRaw = sceneInfo->punctualLights[lightIndex];
+  PunctualLight lightRaw = sceneInfo->punctualLights[lightIndex];
 
   // 2. Sky/Sun Override (Special Case for Index 0)
   // -----------------
@@ -36,11 +36,11 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
     result.color = sceneInfo->skySimpleParam.sunColor;
     result.intensity = sceneInfo->skySimpleParam.sunIntensity;
     result.pdf = 1.0;
-    result.type = GltfLightType::eDirectional;
+    result.type = LightType::eDirectional;
 
     // For shadow rays, we need a "target" position.
     // Since the sun is infinite, we project a point very far away.
-    result.position = worldPos + result.direction * 100000.0;
+    result.position = worldPos + result.direction * INFINITE;
 
     return result;
   }
@@ -54,14 +54,14 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
   // -----------------
 
   // TYPE: DIRECTIONAL
-  if (lightRaw.type == GltfLightType::eDirectional)
+  if (lightRaw.type == LightType::eDirectional)
   {
     // For directional lights, position is irrelevant for intensity,
     // but we need a virtual position for the shadow ray distance check.
     result.direction = normalize(lightRaw.direction);
     result.intensity = lightRaw.intensity;
-    result.position = worldPos + result.direction * 100000.0;
-    result.type = GltfLightType::eDirectional;
+    result.position = worldPos + result.direction * INFINITE;
+    result.type = LightType::eDirectional;
   }
   // TYPE: POINT & SPOT
   else
@@ -70,7 +70,7 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
     float3 toLight = lightRaw.position - worldPos;
     float distSq = dot(toLight, toLight);
     float dist = sqrt(distSq);
-    result.type = GltfLightType::ePoint;
+    result.type = LightType::ePoint;
 
     result.position = lightRaw.position;
     result.direction = toLight / dist;  // Normalize
@@ -80,9 +80,9 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
     float attenuation = 1.0 / max(0.01, distSq);
 
     // B. Spot Attenuation
-    if (lightRaw.type == GltfLightType::eSpot)
+    if (lightRaw.type == LightType::eSpot)
     {
-      result.type = GltfLightType::eSpot;
+      result.type = LightType::eSpot;
       // Based on your previous logic:
       // Assuming lightRaw.direction is stored as Vector TO Light (aligned with
       // L)

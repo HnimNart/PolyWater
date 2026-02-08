@@ -99,7 +99,6 @@ void SceneResourcesManager::clear()
 void SceneResourcesManager::update(const CameraPtr &camera)
 /**********************************************************/
 {
-
   updateSceneInfo(camera);
 }
 
@@ -124,7 +123,7 @@ void SceneResourcesManager::onMaterialChange()
 {
 
   m_device_resources->beginUploading();
-  m_device_resources->update(m_resources);
+  m_device_resources->update(m_resources.materials);
   m_device_resources->endUploading();
 }
 
@@ -133,7 +132,7 @@ void SceneResourcesManager::onInstanceChange()
 /**********************************************************/
 {
   m_device_resources->beginUploading();
-  m_device_resources->update(m_resources);
+  m_device_resources->update(m_resources.instances);
   m_device_resources->endUploading();
 }
 

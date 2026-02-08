@@ -14,12 +14,10 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "common/timers.hpp"
-#include "core/Math.hpp"
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
 #include "_autogen/raster.slang.h"
-#include "scene/SceneResources.hpp"
 
 /**********************************************************/
 RasterPass::RasterPass(nvvk::DescriptorPack *descPack)
@@ -29,8 +27,7 @@ RasterPass::RasterPass(nvvk::DescriptorPack *descPack)
 }
 
 /**********************************************************/
-void RasterPass::init(VulkanContextManager *contextManager,
-                      const SceneResourcesManager & /*scene*/)
+void RasterPass::init(VulkanContextManager *contextManager)
 /**********************************************************/
 {
   m_context_manager = contextManager;
@@ -144,16 +141,15 @@ void RasterPass::execute(const IRenderContext &ctx)
 
   // Draw Loop
   for (size_t i = 0; i < sceneResources->instances.size(); i++) {
-    uint32_t meshIndex = sceneResources->instances[i].meshIndex;
+
+    const shaderio::Instance &instance = sceneResources->instances[i];
+    uint32_t meshIndex = instance.meshIndex;
     const shaderio::MeshPrimitive &gltfMesh = sceneResources->meshes[meshIndex];
     const shaderio::TriangleMesh &triMesh = gltfMesh.triMesh;
 
     // Push constants
-    const shaderio::Instance &instance = sceneResources->instances[i];
-    // glm::mat4 transform = math::composeTransform(
-    //     instance.position, instance.rotation, instance.scale);
     constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(instance.tranform)));
+        glm::transpose(glm::inverse(glm::mat3(instance.transform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 

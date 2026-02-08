@@ -14,7 +14,6 @@ AccelerationStructures::create(VulkanContextManager *core)
   auto m_accel =
       std::unique_ptr<AccelerationStructures>(new AccelerationStructures());
   m_accel->init(core);
-
   return m_accel;
 }
 
@@ -51,7 +50,6 @@ void AccelerationStructures::rebuild(const SceneResourcesManager &scene,
                                      const ShaderManager &materialManager)
 /**********************************************************/
 {
-  // Set up acceleration structure infrastructure
   auto tlasInstances = buildTLAS(scene, materialManager);
   m_asBuilder.tlasSubmitUpdateAndWait(tlasInstances);
 }

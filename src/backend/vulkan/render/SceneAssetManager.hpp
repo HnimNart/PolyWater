@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-
 #include <filesystem>
+#include <span>
 #include <string>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 #include <nvvk/resource_allocator.hpp>
 #include <nvvk/sampler_pool.hpp>
@@ -28,12 +28,17 @@ struct PrimitiveMesh;
 
 // Holds the GPU-side buffers for the scene geometry and assets
 struct VulkanSceneGpuData {
-  std::vector<nvvk::Buffer> bGltfDatas; // Binary GLTF data per scene
-  nvvk::Buffer bMeshes;                 // Mesh array
-  nvvk::Buffer bInstances;              // Instance array
-  nvvk::Buffer bMaterials;              // Materials array
-  nvvk::Buffer bSceneInfo;              // SceneInfo struct
-  nvvk::Buffer bSceneResources;         // SceneResources struct
+  std::vector<nvvk::Buffer>
+      bGltfDatas; // Binary GLTF data per scene (Vertex/Index buffers)
+
+  // Shader Storage Buffers (SSBOs)
+  nvvk::Buffer bMeshes;    // Mesh metadata array
+  nvvk::Buffer bInstances; // Instance metadata array
+  nvvk::Buffer bMaterials; // Material data array
+
+  // Uniform Buffers (UBOs)
+  nvvk::Buffer bSceneInfo;      // Global SceneInfo struct
+  nvvk::Buffer bSceneResources; // Pointers to other buffers (BDA)
 
   // Mapping: meshToBufferIndex[meshIndex] -> bufferIndex in bGltfDatas
   std::vector<uint32_t> meshToBufferIndex;
@@ -43,59 +48,76 @@ struct VulkanSceneGpuData {
 class VulkanSceneAssetManager final : public IDeviceAssets {
 public:
   // -------------------------------------------------------------------------
-  // Lifecycle
+  // 1. Lifecycle & Context
   // -------------------------------------------------------------------------
   explicit VulkanSceneAssetManager(VulkanContextManager *backend);
-
   void deinit() override;
 
   // -------------------------------------------------------------------------
-  // IDeviceAssets Interface
+  // 2. Upload Flow Control
+  //    Manage the command buffer state for staging uploads.
   // -------------------------------------------------------------------------
   void beginUploading() override;
   void endUploading() override;
 
-  // Meshes
-  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model &model) override;
-  void addMeshes(size_t count, BufferID bufferIndex) override;
-
-  // Textures
-  unsigned int reserveTextureSlot() override;
+  // -------------------------------------------------------------------------
+  // 3. Texture Management
+  //    Handling image loading, creation, and descriptor slots.
+  // -------------------------------------------------------------------------
   TextureID uploadTexture(const std::string &filepath, TextureID = -1) override;
-
-  // Wrap up
-  void finalizeSceneResources(const Scene &resources) override;
-  void update(const Scene &resources) override;
-
-  // -------------------------------------------------------------------------
-  // Vulkan Specific API
-  // -------------------------------------------------------------------------
-  void updateDescriptors(nvvk::DescriptorPack &descriptorPack);
-
-  const nvvk::Buffer &getBufferFromIndex(uint32_t meshIndex) const;
+  unsigned int reserveTextureSlot() override;
 
   // Accessors
   const std::vector<nvvk::Image> &textures() const { return m_textures; }
-  const VulkanSceneGpuData &deviceResources() const { return m_data; }
   nvvk::SamplerPool &samplerPool() { return m_samplerPool; }
+
+  // -------------------------------------------------------------------------
+  // 4. Geometry & Model Management (Initialization)
+  //    Uploading static model data (GLTF buffers) and initial mesh setup.
+  // -------------------------------------------------------------------------
+  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model &model) override;
+  void addMeshes(size_t count, BufferID bufferIndex) override;
+  void finalizeSceneResources(const Scene &resources) override;
+
+  // Accessors
+  const VulkanSceneGpuData &deviceResources() const { return m_data; }
+  const nvvk::Buffer &getBufferFromIndex(uint32_t meshIndex) const;
+
+  // -------------------------------------------------------------------------
+  // 5. Scene Data Updates (Per-Frame / Dynamic)
+  //    Updating SSBOs and UBOs when scene state changes (animation, editing).
+  // -------------------------------------------------------------------------
+  void update(const std::vector<shaderio::MeshPrimitive> &) override;
+  void update(const std::vector<shaderio::Instance> &) override;
+  void update(const std::vector<shaderio::Material> &) override;
+
+  // UBO Updates (Uniform Buffers - typically per frame)
+  shaderio::SceneInfo *update(VkCommandBuffer cmd,
+                              const shaderio::SceneInfo &sceneInfo) const;
+  void updateSceneResources() const;
+  shaderio::SceneResources *getSceneResources() const;
+
+  // -------------------------------------------------------------------------
+  // 6. Vulkan Pipeline Integration
+  // -------------------------------------------------------------------------
+  void updateDescriptors(nvvk::DescriptorPack &descriptorPack);
 
 private:
   // -------------------------------------------------------------------------
-  // Internal Helpers (Upload Logic)
+  // Internal Helpers
   // -------------------------------------------------------------------------
   void createBuffers(const Scene &sceneResources);
-  void updateBuffers(const Scene &sceneResource);
+  // Generic buffer update helper
+  template <typename T>
+  void updateBuffer(nvvk::Buffer &buffer, std::span<T> &&dataSpan);
+  void updateSceneResources(VkCommandBuffer cmd) const;
 
+  // Static helpers for complex logic
   static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd,
                                         nvvk::StagingUploader &staging,
                                         VkDevice device,
                                         const std::filesystem::path &filename,
                                         bool sRgb = true);
-
-  static void processGltfNodes(Scene &sceneResource,
-                               const tinygltf::Model &model,
-                               uint32_t meshOffset);
-
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------

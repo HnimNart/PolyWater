@@ -12,58 +12,54 @@
 class SceneResourcesManager;
 class VulkanContextManager;
 
-namespace nvvk
-{
+namespace nvvk {
 class GBuffer;
 }
-namespace shaderio
-{
+namespace shaderio {
 struct PushConstant;
 }
 
-class RayTracePass : public IRenderPass
-{
+class RayTracePass : public IRenderPass {
 public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(nvvk::DescriptorPack* descPack, ShaderManager* materialManager);
+  RayTracePass(nvvk::DescriptorPack *descPack, ShaderManager *materialManager);
   ~RayTracePass() = default;
 
-  void init(VulkanContextManager* coreManager,
-            const SceneResourcesManager& scene) override;
-  void setup(PassBuilder& builder) override;
-  void deinit(VulkanContextManager* coreManager) override;
+  void init(VulkanContextManager *coreManager) override;
+  void setup(PassBuilder &builder) override;
+  void deinit(VulkanContextManager *coreManager) override;
 
   // -------------------------------------------------------------------------
   // Setup & Configuration
   // -------------------------------------------------------------------------
   // Pipeline Creation Methods
-  void createPipeline(const SceneResourcesManager& scene);
+  void createPipeline();
 
   // Specific internal pipeline creators (exposed public as per original)
-  void createRayTracingPipeline(const SceneResourcesManager& scene);
+  void createRayTracingPipeline();
   void createDescriptorLayout();
-  void createPipelineSBT(const SceneResourcesManager& scene);
+  void createPipelineSBT();
 
   // -------------------------------------------------------------------------
   // Execution
   // -------------------------------------------------------------------------
-  void execute(const IRenderContext& ctx) override;
+  void execute(const IRenderContext &ctx) override;
 
 private:
   // -------------------------------------------------------------------------
   // Internal Helpers
   // -------------------------------------------------------------------------
   void createShaderBindingTable(
-      const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
+      const VkRayTracingPipelineCreateInfoKHR &rtPipelineInfo);
 
   // -------------------------------------------------------------------------
   // Member Variables
   // -------------------------------------------------------------------------
-  VulkanContextManager* m_context_manager = nullptr;
-  nvvk::DescriptorPack* m_sharedDescPack =
-      nullptr;  // Pointer to external Scene descriptor
+  VulkanContextManager *m_context_manager = nullptr;
+  nvvk::DescriptorPack *m_sharedDescPack =
+      nullptr; // Pointer to external Scene descriptor
 
   // Pipeline State
   nvvk::DescriptorPack m_RayTraceDescPack{};
@@ -78,7 +74,7 @@ private:
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_properties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
-  ShaderManager* m_shaderManager = nullptr;
+  ShaderManager *m_shaderManager = nullptr;
 
   std::vector<VkShaderModuleCreateInfo> m_shaderCode;
 };

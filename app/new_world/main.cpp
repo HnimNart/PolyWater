@@ -31,10 +31,10 @@
   }
 
 // 2. Include the library headers that need implementation
-#include <vk_mem_alloc.h>  // Assuming VMA is included via this or similar
+#include <vk_mem_alloc.h> // Assuming VMA is included via this or similar
 
-#include <nvutils/parameter_parser.hpp>  // Parameter parser
-#include <nvutils/timers.hpp>            // Timers for profiling
+#include <nvutils/parameter_parser.hpp> // Parameter parser
+#include <nvutils/timers.hpp>           // Timers for profiling
 
 #include "VulkanRenderElement.hpp"
 #include "backend/vulkan/core/Backend.hpp"
@@ -46,8 +46,7 @@
 #include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   core::ApplicationCreateInfo appInfo{};
 
   // Parsing the command line
@@ -75,30 +74,23 @@ int main(int argc, char** argv)
   core::Application application(appInfo, std::move(backend), gui);
 
   // Elements added to the application
-  auto tutorial =
-      std::make_shared<VulkanRendererElement>();  // Our tutorial element
-  auto elemCamera =
-      std::make_shared<core::ElementCamera>();  // Element to control the camera
-                                                // movement
-  auto windowTitle = std::make_shared<
-      core::ElementDefaultWindowTitle>();  // Element displaying the window
-                                           // title with application name and
-                                           // size
-  auto windowMenu =
-      std::make_shared<core::ElementDefaultMenu>();  // Element displaying a
-  // menu, File->Exit ...
+  auto renderElement = std::make_shared<VulkanRendererElement>();
+  auto elemCamera = std::make_shared<core::ElementCamera>();
+  auto windowTitle = std::make_shared<core::ElementDefaultWindowTitle>();
+  auto windowMenu = std::make_shared<core::ElementDefaultMenu>();
   auto logger = std::make_shared<core::ElementLogger>();
 
   // Adding all elements
   application.addElement(windowMenu);
   application.addElement(windowTitle);
-  application.addElement(tutorial);
+  application.addElement(renderElement);
   application.addElement(elemCamera);
   application.addElement(logger);
-  elemCamera->setCameraManipulator(tutorial->getCameraManipulator());
+  elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
+  windowTitle->setRenderer(renderElement->getRenderer());
 
-  application.run();  // Start the application, loop until the window is closed
-  application.shutdown();  // Closing application
+  application.run(); // Start the application, loop until the window is closed
+  application.shutdown(); // Closing application
 
   return 0;
 }

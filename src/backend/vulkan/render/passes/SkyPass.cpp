@@ -15,8 +15,7 @@
 // ============================================================================
 
 /**********************************************************/
-void SkyPass::init(VulkanContextManager* core,
-                   const SceneResourcesManager& /*scene*/)
+void SkyPass::init(VulkanContextManager *core)
 /**********************************************************/
 {
   m_core = core;
@@ -24,14 +23,14 @@ void SkyPass::init(VulkanContextManager* core,
 }
 
 /**********************************************************/
-void SkyPass::deinit(VulkanContextManager* core)
+void SkyPass::deinit(VulkanContextManager *core)
 /**********************************************************/
 {
   m_skySimple.deinit();
 }
 
 /**********************************************************/
-void SkyPass::setup(PassBuilder& builder)
+void SkyPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
   builder.write(RenderOutput::Linear, PipelineStage::Compute,
@@ -39,21 +38,20 @@ void SkyPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void SkyPass::execute(const IRenderContext& ctx)
+void SkyPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
-  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const auto &vkCtx = VulkanRenderContext::get(ctx);
 
   // Early exit if sky is disabled in scene settings
-  const auto& sceneInfo = vkCtx.sceneResources->sceneInfo;
-  if (!sceneInfo.useSky)
-  {
+  const auto &sceneInfo = vkCtx.sceneResources->sceneInfo;
+  if (!sceneInfo.useSky) {
     return;
   }
 
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
 
-  const VkExtent2D& size = vkCtx.gBuffers->getSize();
+  const VkExtent2D &size = vkCtx.gBuffers->getSize();
 
   // Run Compute
   m_skySimple.runCompute(

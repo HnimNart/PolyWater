@@ -8,7 +8,6 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/default_structs.hpp>
 
-// Implementation Includes
 #include <tinygltf/tiny_gltf.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -46,6 +45,8 @@ void VulkanSceneAssetManager::endUploading()
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE);
+  m_context_manager->getStagingUploader().cmdUploadAppended(
+      m_cmd); // Upload the scene information to the GPU
   m_context_manager->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
@@ -138,11 +139,30 @@ void VulkanSceneAssetManager::finalizeSceneResources(const Scene &resources)
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::update(const Scene &resources)
+void VulkanSceneAssetManager::update(
+    const std::vector<shaderio::MeshPrimitive> &meshes)
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
-  updateBuffers(resources);
+  updateBuffer(m_data.bMeshes, std::span(meshes));
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::update(
+    const std::vector<shaderio::Instance> &instances)
+/**********************************************************/
+{
+  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
+  updateBuffer(m_data.bInstances, std::span(instances));
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::update(
+    const std::vector<shaderio::Material> &materials)
+/**********************************************************/
+{
+  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
+  updateBuffer(m_data.bMaterials, std::span(materials));
 }
 
 /**********************************************************/
@@ -199,75 +219,110 @@ void VulkanSceneAssetManager::createBuffers(const Scene &sceneResource)
       VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT;
 
   // 2. Helper lambda to handle the generic Create -> Name -> Upload pattern
-  auto uploadBuffer = [&](nvvk::Buffer &buffer, auto &&dataSpan,
+  auto createBuffer = [&](nvvk::Buffer &buffer, auto &&dataSpan,
                           VkBufferUsageFlags2KHR usage) {
-    if (dataSpan.empty())
+    if (dataSpan.empty()) {
       return;
-
-    // Create the GPU buffer
+    }
     allocator->createBuffer(buffer, dataSpan.size_bytes(), usage);
     NVVK_DBG_NAME(buffer.buffer);
-
-    // Schedule upload to GPU
     NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
   };
 
   // 3. Process the buffers cleanly
-  uploadBuffer(m_data.bMeshes, std::span(sceneResource.meshes), storageUsage);
-  uploadBuffer(m_data.bInstances, std::span(sceneResource.instances),
+  createBuffer(m_data.bMeshes, std::span(sceneResource.meshes), storageUsage);
+  createBuffer(m_data.bInstances, std::span(sceneResource.instances),
                storageUsage);
-  uploadBuffer(m_data.bMaterials, std::span(sceneResource.materials),
+  createBuffer(m_data.bMaterials, std::span(sceneResource.materials),
                storageUsage);
 
   // SceneInfo needs a span of size 1 created manually
-  uploadBuffer(
+  createBuffer(
       m_data.bSceneInfo,
       std::span<const shaderio::SceneInfo>(&sceneResource.sceneInfo, 1),
       uniformUsage);
-  uploadBuffer(m_data.bSceneResources,
+  createBuffer(m_data.bSceneResources,
                std::span<const shaderio::SceneResources>(
                    &sceneResource.sceneResources, 1),
                uniformUsage);
-
-  m_context_manager->getStagingUploader().cmdUploadAppended(
-      m_cmd); // Upload the scene information to the GPU
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::updateBuffers(const Scene &sceneResource)
+shaderio::SceneInfo *
+VulkanSceneAssetManager::update(VkCommandBuffer cmd,
+                                const shaderio::SceneInfo &sceneInfo) const
 /**********************************************************/
 {
-  // We don't need a scoped timer here unless you're updating massive amounts of
-  // data frequently
-  auto &stagingUploader = m_context_manager->getStagingUploader();
+  NVVK_DBG_SCOPE(cmd);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, m_data.bSceneInfo.buffer, 0,
+                    sizeof(shaderio::SceneInfo), &sceneInfo);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  return reinterpret_cast<shaderio::SceneInfo *>(m_data.bSceneInfo.address);
+}
 
-  // Helper lambda for updating existing buffers
-  auto updateBuffer = [&](nvvk::Buffer &buffer, auto &&dataSpan) {
-    if (dataSpan.empty() || buffer.buffer == VK_NULL_HANDLE)
-      return;
+/**********************************************************/
+shaderio::SceneResources *VulkanSceneAssetManager::getSceneResources() const
+/**********************************************************/
+{
+  return reinterpret_cast<shaderio::SceneResources *>(
+      m_data.bSceneResources.address);
+}
 
-    // Schedule the copy from staging to the existing GPU buffer
-    // This generates vkCmdCopyBuffer under the hood
-    NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
+/**********************************************************/
+void VulkanSceneAssetManager::updateSceneResources() const
+/**********************************************************/
+{
+  VkCommandBuffer cmd = m_context_manager->startSingleTimeCmd();
+  updateSceneResources(cmd);
+  m_context_manager->getStagingUploader().cmdUploadAppended(cmd);
+  m_context_manager->endSingleTimeCmd(cmd);
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::updateSceneResources(VkCommandBuffer cmd) const
+/**********************************************************/
+{
+  NVVK_DBG_SCOPE(cmd);
+  shaderio::SceneResources resources = {
+      .instances = (shaderio::Instance *)m_data.bInstances.address,
+      .meshes = (shaderio::MeshPrimitive *)m_data.bMeshes.address,
+      .materials = (shaderio::Material *)m_data.bMaterials.address,
   };
 
-  // Update logic
-  // Note: Ensure the data size hasn't changed, or this will overflow/corrupt!
-  updateBuffer(m_data.bMeshes, std::span(sceneResource.meshes));
-  updateBuffer(m_data.bInstances, std::span(sceneResource.instances));
-  updateBuffer(m_data.bMaterials, std::span(sceneResource.materials));
-
-  // Update SceneInfo (Camera, Lights, etc. - things that change every frame)
-  updateBuffer(m_data.bSceneInfo, std::span<const shaderio::SceneInfo>(
-                                      &sceneResource.sceneInfo, 1));
-
-  updateBuffer(m_data.bSceneResources,
-               std::span<const shaderio::SceneResources>(
-                   &sceneResource.sceneResources, 1));
-
-  m_context_manager->getStagingUploader().cmdUploadAppended(
-      m_cmd); // Upload the scene information to the GPU
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, m_data.bSceneResources.buffer, 0,
+                    sizeof(shaderio::SceneResources), &resources);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
 }
+
+/**********************************************************/
+template <typename T>
+void VulkanSceneAssetManager::updateBuffer(nvvk::Buffer &buffer,
+                                           std::span<T> &&dataSpan)
+/**********************************************************/
+{
+  auto &stagingUploader = m_context_manager->getStagingUploader();
+  if (dataSpan.empty() || buffer.buffer == VK_NULL_HANDLE) {
+    return;
+  }
+  assert(dataSpan.size_bytes() == buffer.bufferSize);
+  NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
+};
+template void VulkanSceneAssetManager::updateBuffer<shaderio::MeshPrimitive>(
+    nvvk::Buffer &, std::span<shaderio::MeshPrimitive> &&);
+template void VulkanSceneAssetManager::updateBuffer<shaderio::Instance>(
+    nvvk::Buffer &, std::span<shaderio::Instance> &&);
+template void VulkanSceneAssetManager::updateBuffer<shaderio::Material>(
+    nvvk::Buffer &, std::span<shaderio::Material> &&);
 
 /**********************************************************/
 nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(
@@ -295,79 +350,4 @@ nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(
                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 
   return texture;
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::processGltfNodes(Scene &sceneResource,
-                                               const tinygltf::Model &model,
-                                               uint32_t meshOffset)
-/**********************************************************/
-{
-
-  // 3. Process Nodes (Instances)
-  // if (importInstance)
-  // {
-  //   uint32_t meshOffset =
-  //       uint32_t(sceneResource.meshes.size()) -
-  //       uint32_t(model.meshes.size());
-  //   processGltfNodes(sceneResource, model, meshOffset);
-  // }
-
-  // Recursive lambda for node traversal
-  std::function<void(const tinygltf::Node &, const glm::mat4 &)> processNode =
-      [&](const tinygltf::Node &node, const glm::mat4 &parentTransform) {
-        glm::mat4 nodeTransform = parentTransform;
-
-        if (!node.matrix.empty()) {
-          glm::mat4 matrix = glm::make_mat4(node.matrix.data());
-          nodeTransform = parentTransform * matrix;
-        } else {
-          if (!node.translation.empty()) {
-            glm::vec3 translation = glm::make_vec3(node.translation.data());
-            nodeTransform = glm::translate(nodeTransform, translation);
-          }
-          if (!node.rotation.empty()) {
-            glm::quat rotation = glm::make_quat(node.rotation.data());
-            nodeTransform = nodeTransform * glm::mat4_cast(rotation);
-          }
-          if (!node.scale.empty()) {
-            glm::vec3 scale = glm::make_vec3(node.scale.data());
-            nodeTransform = glm::scale(nodeTransform, scale);
-          }
-        }
-
-        if (node.mesh != -1) {
-          shaderio::Instance instance{};
-          instance.meshIndex = node.mesh + meshOffset;
-          // instance.transform = nodeTransform;
-          sceneResource.instances.push_back(instance);
-        }
-
-        for (int childIdx : node.children) {
-          if (childIdx >= 0 &&
-              childIdx < static_cast<int>(model.nodes.size())) {
-            processNode(model.nodes[childIdx], nodeTransform);
-          }
-        }
-      };
-
-  // Traverse root nodes
-  for (size_t nodeIdx = 0; nodeIdx < model.nodes.size(); ++nodeIdx) {
-    const tinygltf::Node &node = model.nodes[nodeIdx];
-    bool isRootNode = true;
-    for (const auto &otherNode : model.nodes) {
-      for (int childIdx : otherNode.children) {
-        if (childIdx == static_cast<int>(nodeIdx)) {
-          isRootNode = false;
-          break;
-        }
-      }
-      if (!isRootNode)
-        break;
-    }
-
-    if (isRootNode) {
-      processNode(node, glm::mat4(1.0f));
-    }
-  }
 }

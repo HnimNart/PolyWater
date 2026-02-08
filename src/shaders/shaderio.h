@@ -107,13 +107,13 @@ struct Material {
   float3 emission = float3(0);
 };
 
-enum GltfLightType {
+enum LightType {
   ePoint = 0,      // Point light type
   eSpot = 1,       // Spot light type
   eDirectional = 2 // Directional light type
 };
 
-struct GltfPunctual {
+struct PunctualLight {
   float3 position;  // Position of the punctual light in world space
   float intensity;  // Intensity of the light
   float3 direction; // Direction of the light (for spot and directional lights)
@@ -150,7 +150,7 @@ struct SceneInfo {
   float3 backgroundColor; // Background color of the scene (used when not using
                           // sky)
   int numLights;          // Number of punctual lights in the scene (up to 2)
-  GltfPunctual
+  PunctualLight
       punctualLights[2]; // Array of punctual lights in the scene (up to 2)
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
 };

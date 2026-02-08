@@ -32,6 +32,7 @@ public:
 
   // Accessor
   CameraPtr getCameraManipulator();
+  IRenderer *getRenderer();
 
 private:
   void setupScene();

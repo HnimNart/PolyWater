@@ -15,37 +15,32 @@
 
 class VulkanSceneGpuData;
 
-namespace nvvk
-{
+namespace nvvk {
 class GBuffer;
 }
-namespace nvutils
-{
+namespace nvutils {
 class CameraManipulator;
 }
-namespace shaderio
-{
+namespace shaderio {
 struct PushConstant;
 }
 
-class RasterPass : public IRenderPass
-{
+class RasterPass : public IRenderPass {
 public:
-  RasterPass(nvvk::DescriptorPack* descPack);
+  RasterPass(nvvk::DescriptorPack *descPack);
   ~RasterPass() = default;
 
-  void init(VulkanContextManager* coreManager,
-            const SceneResourcesManager& scene) override;
-  void deinit(VulkanContextManager* coreManager) override;
+  void init(VulkanContextManager *coreManager) override;
+  void deinit(VulkanContextManager *coreManager) override;
 
-  void setup(PassBuilder& builder) override;
+  void setup(PassBuilder &builder) override;
 
   // Raster //
-  void execute(const IRenderContext& ctx) override;
+  void execute(const IRenderContext &ctx) override;
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
-  const nvvk::GBuffer& gbuffer() const;
+  const nvvk::GBuffer &gbuffer() const;
 
 private:
   void createDescriptorSetLayout(VkDevice device);
@@ -53,8 +48,8 @@ private:
   void clearShaders();
   void compileShaders();
 
-  VulkanContextManager* m_context_manager = nullptr;
-  nvvk::DescriptorPack* m_descPack = nullptr;
+  VulkanContextManager *m_context_manager = nullptr;
+  nvvk::DescriptorPack *m_descPack = nullptr;
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};

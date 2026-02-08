@@ -41,19 +41,13 @@ public:
   // ---------------------------------------------------------------------------
   void init(const SceneResourcesManager &scene) override;
   void deinit() override;
-  void reload(const SceneResourcesManager &scene) override;
+  void reload() override;
   void update(const SceneResourcesManager &scene) override;
-  void reset() override;
 
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  shaderio::SceneInfo *
-  uploadSceneInfo(VkCommandBuffer cmd,
-                  const shaderio::SceneInfo &sceneInfo) const;
-  shaderio::SceneResources *uploadSceneResources(VkCommandBuffer cmd) const;
-  void setRenderMode(RenderMode mode,
-                     const SceneResourcesManager &scene) override;
+  void setRenderMode(RenderMode mode) override;
   void render(IRenderContext &ctx) override;
   void onResize(const WindowSize &size) override;
   void saveImage(const std::filesystem::path &filename,
@@ -68,7 +62,7 @@ public:
 
 private:
   void initGBuffers();
-  void buildGraph(const SceneResourcesManager &scene);
+  void buildGraph();
   void registerShaders();
   shaderio::SceneInfo *
   updateSceneBuffer(VkCommandBuffer cmd,
@@ -77,18 +71,14 @@ private:
 
   // Data
   nvvk::DescriptorPack m_descPack{};
-  VulkanContextManager *m_context_manager = nullptr;
+  VulkanContextManager *m_context = nullptr;
   SwapchainRenderManager *m_swapchain_manager = nullptr;
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
-
   std::unique_ptr<AccelerationStructures> m_accel{};
 
   // Reference to post for UI
   ToneMapPass *m_post = nullptr;
-
   // Render stuff
   RenderGraph m_graph;
-
-  uint32_t m_frameIndex = 0;
 };

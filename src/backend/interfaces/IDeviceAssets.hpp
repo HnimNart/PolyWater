@@ -45,5 +45,11 @@ public:
   // ---------------------------------------------------------------------------
   virtual void addMeshes(size_t count, BufferID) = 0;
   virtual void finalizeSceneResources(const Scene &resources) = 0;
-  virtual void update(const Scene &resources) = 0;
+
+  // ---------------------------------------------------------------------------
+  // Update Scene buffers
+  // ---------------------------------------------------------------------------
+  virtual void update(const std::vector<shaderio::MeshPrimitive> &) = 0;
+  virtual void update(const std::vector<shaderio::Instance> &) = 0;
+  virtual void update(const std::vector<shaderio::Material> &) = 0;
 };

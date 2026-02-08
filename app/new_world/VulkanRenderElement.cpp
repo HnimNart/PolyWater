@@ -80,7 +80,7 @@ void VulkanRendererElement::setupScene()
       glm::vec3(1.0f, 1.0f, 1.0f); // Position of the light
   sceneInfo.punctualLights[0].direction =
       glm::vec3(1.0f, 1.0f, 1.0f); // Direction to the light
-  sceneInfo.punctualLights[0].type = shaderio::GltfLightType::ePoint;
+  sceneInfo.punctualLights[0].type = shaderio::LightType::ePoint;
   sceneInfo.punctualLights[0].coneAngle =
       0.9f; // Cone angle for spot lights (0 for point and
             // directional lights)
@@ -136,7 +136,7 @@ void VulkanRendererElement::onUIMenu()
   reload |= ImGui::IsKeyPressed(ImGuiKey_F5);
 
   if (reload) {
-    m_renderer->reload(m_scene_manager.sceneResourceManager());
+    m_renderer->reload();
   }
 }
 
@@ -162,8 +162,8 @@ void VulkanRendererElement::onUIRender()
         bool isSelected = (m_renderMode == mode);
         if (ImGui::Selectable(renderModeToString(mode), isSelected)) {
           m_renderMode = mode;
-          m_renderer->setRenderMode(m_renderMode,
-                                    m_scene_manager.sceneResourceManager());
+          m_renderer->setRenderMode(m_renderMode);
+          m_scene_manager.sceneResourceManager().setDirty(true);
         }
         if (isSelected) {
           ImGui::SetItemDefaultFocus();
@@ -190,14 +190,14 @@ void VulkanRendererElement::onUIRender()
 
         auto &light = sceneInfo.punctualLights[0];
         PE::begin();
-        if (light.type == shaderio::GltfLightType::ePoint ||
-            light.type == shaderio::GltfLightType::eSpot) {
+        if (light.type == shaderio::LightType::ePoint ||
+            light.type == shaderio::LightType::eSpot) {
           m_hasChanged |=
               PE::DragFloat3("Light Position", glm::value_ptr(light.position),
                              0.1f, -20.0f, 20.0f);
         }
-        if (light.type == shaderio::GltfLightType::eDirectional ||
-            light.type == shaderio::GltfLightType::eSpot) {
+        if (light.type == shaderio::LightType::eDirectional ||
+            light.type == shaderio::LightType::eSpot) {
           m_hasChanged |= PE::SliderFloat3(
               "Light Direction", glm::value_ptr(light.direction), -1.0f, 1.0f);
         }
@@ -213,11 +213,11 @@ void VulkanRendererElement::onUIRender()
         int typeInt = static_cast<int>(light.type);
         if (PE::Combo("Light Type", &typeInt, "Point\0Spot\0Directional\0",
                       3)) {
-          light.type = static_cast<shaderio::GltfLightType>(typeInt);
+          light.type = static_cast<shaderio::LightType>(typeInt);
           m_hasChanged = true;
         }
 
-        if (light.type == shaderio::GltfLightType::eSpot) {
+        if (light.type == shaderio::LightType::eSpot) {
           m_hasChanged |=
               PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f);
         }
@@ -426,4 +426,11 @@ void VulkanRendererElement::renderInstances()
     m_scene_manager.sceneResourceManager().onInstanceChange();
     m_scene_manager.sceneResourceManager().setDirty(true);
   }
+}
+
+/**********************************************************/
+IRenderer *VulkanRendererElement::getRenderer()
+/**********************************************************/
+{
+  return m_renderer.get();
 }

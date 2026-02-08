@@ -10,22 +10,20 @@
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 
-class ToneMapPass : public IToneMapper, public IRenderPass
-{
+class ToneMapPass : public IToneMapper, public IRenderPass {
 public:
   ToneMapPass();
   ~ToneMapPass() override;
 
-  void init(VulkanContextManager* core,
-            const SceneResourcesManager& scene) override;
+  void init(VulkanContextManager *core) override;
 
-  void setup(PassBuilder& builder) override;
-  void deinit(VulkanContextManager* core) override;
-  void execute(const IRenderContext& ctx) override;
+  void setup(PassBuilder &builder) override;
+  void deinit(VulkanContextManager *core) override;
+  void execute(const IRenderContext &ctx) override;
 
   // Explicitly non-copyable
-  ToneMapPass(const ToneMapPass&) = delete;
-  ToneMapPass& operator=(const ToneMapPass&) = delete;
+  ToneMapPass(const ToneMapPass &) = delete;
+  ToneMapPass &operator=(const ToneMapPass &) = delete;
 
 private:
   nvshaders::Tonemapper m_tonemapper{};

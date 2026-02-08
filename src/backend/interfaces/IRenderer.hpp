@@ -45,15 +45,14 @@ public:
   virtual void init(const SceneResourcesManager &scene) = 0;
   virtual void deinit() = 0;
   virtual void onResize(const WindowSize &size) = 0;
-  virtual void reload(const SceneResourcesManager &scene) = 0;
+  virtual void reload() = 0;
   virtual void update(const SceneResourcesManager &scene) = 0;
-  virtual void reset() = 0;
+  virtual void reset() { m_frameIndex = 0; };
 
   // -------------------------------------------------------------------------
   // Execution Cycle
   // -------------------------------------------------------------------------
-  virtual void setRenderMode(RenderMode mode,
-                             const SceneResourcesManager &scene) = 0;
+  virtual void setRenderMode(RenderMode mode) = 0;
   // Main render pass.
   virtual void render(IRenderContext &ctx) = 0;
 
@@ -64,6 +63,7 @@ public:
   virtual IToneMapper &postProcessor() noexcept = 0;
   shaderio::RenderParams &renderParams() { return m_renderParams; }
   const ShaderManager &getShaderManager() const { return m_shaderManager; }
+  uint32_t getFrameCount() const { return m_frameIndex; }
 
   // -------------------------------------------------------------------------
   // Output / IO
@@ -76,4 +76,5 @@ protected:
   RenderMode m_render_mode = RenderMode::RAYTRACE;
   shaderio::RenderParams m_renderParams;
   ShaderManager m_shaderManager;
+  uint32_t m_frameIndex = 0;
 };

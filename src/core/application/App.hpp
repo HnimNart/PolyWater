@@ -21,36 +21,34 @@
 struct GLFWwindow;
 class IRenderContext;
 
-namespace core
-{
+namespace core {
 
-class Application
-{
+class Application {
 public:
   // ---------------------------------------------------------------------------
   // Lifecycle & Constructors
   // ---------------------------------------------------------------------------
-  Application(ApplicationCreateInfo const& info,
+  Application(ApplicationCreateInfo const &info,
               std::unique_ptr<IRenderBackend> backend,
               std::shared_ptr<IGUISystem> gui);
   ~Application() = default;
 
   // Non-copyable / Non-movable
-  Application(Application const&) = delete;
-  Application& operator=(Application const&) = delete;
-  Application(Application&&) = delete;
-  Application& operator=(Application&&) = delete;
+  Application(Application const &) = delete;
+  Application &operator=(Application const &) = delete;
+  Application(Application &&) = delete;
+  Application &operator=(Application &&) = delete;
 
   // Explicit Initialization/Shutdown (if separated from constructor/destructor)
-  void init(const ApplicationCreateInfo& info);
+  void init(const ApplicationCreateInfo &info);
   void shutdown();
 
   // ---------------------------------------------------------------------------
   // Execution Control
   // ---------------------------------------------------------------------------
-  void run();          // Blocking run loop (runs until close() is called)
-  void runOneFrame();  // Runs a single frame iteration
-  void close();        // Signals the app to stop running
+  void run();         // Blocking run loop (runs until close() is called)
+  void runOneFrame(); // Runs a single frame iteration
+  void close();       // Signals the app to stop running
 
   bool isRunning() const noexcept;
   bool isHeadless() const noexcept;
@@ -58,7 +56,7 @@ public:
   // ---------------------------------------------------------------------------
   // Element Management
   // ---------------------------------------------------------------------------
-  void addElement(const std::shared_ptr<IAppElement>& element);
+  void addElement(const std::shared_ptr<IAppElement> &element);
 
   // ---------------------------------------------------------------------------
   // Rendering & Backend Control
@@ -66,20 +64,19 @@ public:
   void setVsync(bool v);
   bool isVsync() const;
 
-  IRenderBackend* getBackend() const;
+  IRenderBackend *getBackend() const;
 
   // ---------------------------------------------------------------------------
   // Event Handlers & Input
   // ---------------------------------------------------------------------------
-  void onResize(const WindowSize& size);
-  void onFileDrop(const std::filesystem::path& filename);
+  void onResize(const WindowSize &size);
+  void onFileDrop(const std::filesystem::path &filename);
 
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  GLFWwindow* getWindowHandle() const { return m_windowHandle; }
-  const WindowSize& getViewportSize() const
-  {
+  GLFWwindow *getWindowHandle() const { return m_windowHandle; }
+  const WindowSize &getViewportSize() const {
     return m_backend->getViewportSize();
   }
 
@@ -93,12 +90,12 @@ private:
   // ---------------------------------------------------------------------------
   // Initialization Helpers
   // ---------------------------------------------------------------------------
-  void initGlfw(const ApplicationCreateInfo& info);
-  void initializeBackend(const ApplicationCreateInfo& info);
+  void initGlfw(const ApplicationCreateInfo &info);
+  void initializeBackend(const ApplicationCreateInfo &info);
 
   // Window placement logic
-  void testAndSetWindowSizeAndPos(const glm::uvec2& winSize);
-  bool isWindowPosValid(const glm::ivec2& winPos);
+  void testAndSetWindowSizeAndPos(const glm::uvec2 &winSize);
+  bool isWindowPosValid(const glm::ivec2 &winPos);
   void setupDefaultSettings();
 
   // ---------------------------------------------------------------------------
@@ -108,19 +105,19 @@ private:
   // 1. Core Systems
   std::unique_ptr<IRenderBackend> m_backend{};
   std::vector<std::shared_ptr<IAppElement>> m_elements{};
-  nvapp::FramePacer m_framePacer;  // Low-latency system
+  nvapp::FramePacer m_framePacer; // Low-latency system
 
   // 2. Windowing State
-  GLFWwindow* m_windowHandle{nullptr};
+  GLFWwindow *m_windowHandle{nullptr};
   WindowSize m_windowSize{0, 0};
   glm::ivec2 m_winPos{};
-  glm::uvec2 m_winSize{};  // Persisted window size
+  glm::uvec2 m_winSize{}; // Persisted window size
 
   // 3. Runtime State
   bool m_running = false;
   uint64_t m_frameCounter = 0;
   bool m_useMenubar{true};
-  bool m_vsyncWanted{true};  // TODO figure out if this needed
+  bool m_vsyncWanted{true}; // TODO figure out if this needed
 
   // 4. Headless Mode
   bool m_headless{false};
@@ -140,4 +137,4 @@ private:
   std::vector<std::vector<std::function<void()>>> m_resourceFreeQueue;
 };
 
-}  // namespace core
+} // namespace core
