@@ -34,8 +34,8 @@ public:
   // ---------------------------------------------------------------------------
   // Asset Loading (IO)
   // ---------------------------------------------------------------------------
-  MeshID loadGltf(const std::string &filename);
-  TextureID loadTexture(const std::string &filename);
+  MeshID loadGltf(const std::string &name, const std::string &filename);
+  TextureID loadTexture(const std::string &name, const std::string &filename);
 
   // ---------------------------------------------------------------------------
   // Scene Composition
@@ -61,8 +61,9 @@ public:
   const Scene &data() const;
   Scene &data();
 
-  shaderio::SceneInfo &sceneInfo();
   const shaderio::SceneInfo &sceneInfo() const;
+  shaderio::SceneInfo &sceneInfo();
+  void setSceneInfo(shaderio::SceneInfo sceneInfo);
   const std::vector<shaderio::Instance> &getInstances() const {
     return m_resources.instances;
   }
@@ -87,6 +88,22 @@ public:
   const std::map<std::string, InstanceID> &instanceMap() const {
     return m_instanceMap;
   }
+  const MeshID getMeshIDFromName(const std::string &name) const {
+    auto it = m_meshMap.find(name);
+    if (it != m_meshMap.end()) {
+      return it->second;
+    }
+    // Return a known invalid ID or a default
+    return MeshID(-1);
+  }
+
+  const TextureID getTextureIDFromName(const std::string &name) const {
+    auto it = m_textureMap.find(name);
+    if (it != m_textureMap.end()) {
+      return it->second;
+    }
+    return TextureID(-1);
+  }
 
 private:
   Scene m_resources{};
@@ -102,6 +119,8 @@ private:
 
   std::map<std::string, MaterialID> m_materialMap{};
   std::map<std::string, InstanceID> m_instanceMap{};
+  std::map<std::string, MeshID> m_meshMap{};
+  std::map<std::string, TextureID> m_textureMap{};
 
   bool m_dirty = false;
 };

@@ -61,6 +61,7 @@ target_include_directories(${LIB_NAME}
 ###################################
 # Dependencies
 ###################################
+find_package(nlohmann_json 3.10.5 REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         glm
@@ -71,6 +72,7 @@ target_link_libraries(${LIB_NAME}
         nvpro2::nvgui
         nvpro2::nvapp
         nvpro2::nvshaders_host
+        nlohmann_json::nlohmann_json
 )
 
 ###################################

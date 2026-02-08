@@ -42,6 +42,8 @@
 
 #include <nvshaders/sky_io.h.slang>
 
+#define MAX_LIGHTS 2
+
 enum class MaterialType : uint16_t {
   eDiffuse,
   eGltfPbr,
@@ -124,7 +126,7 @@ struct PunctualLight {
   float3 position;  // Position of the punctual light in world space
   float intensity;  // Intensity of the light
   float3 direction; // Direction of the light (for spot and directional lights)
-  int type;         // Type of the light (0 = point, 1 = spot, 2 = directional)
+  LightType type;   // Type of the light (0 = point, 1 = spot, 2 = directional)
   float3 color;     // Color of the light (RGB)
   float coneAngle;  // Cone angle for spot lights (in radians, 0 for point and
                     // directional lights)
@@ -160,7 +162,8 @@ struct SceneInfo {
   int useSky;             // Whether to use the sky rendering
   float3 backgroundColor; // Background color of the scene
   int numLights;          // Number of punctual lights in the scene (up to 2)
-  PunctualLight punctualLights[2];    // punctual lights in the scene (up to 2)
+  PunctualLight
+      punctualLights[MAX_LIGHTS];     // punctual lights in the scene (up to 2)
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)

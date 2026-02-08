@@ -28,6 +28,14 @@ glm::vec4 math::fromQuat(const glm::quat &quat)
 }
 
 /**********************************************************/
+glm::vec4 math::eulerToQuat(const glm::vec3 &euler)
+/**********************************************************/
+{
+  glm::quat quat = glm::quat(glm::radians(euler));
+  return fromQuat(quat);
+}
+
+/**********************************************************/
 bool math::rayAABBIntersection(const Ray &ray, const glm::vec3 &boxMin,
                                const glm::vec3 &boxMax, float &t)
 /**********************************************************/

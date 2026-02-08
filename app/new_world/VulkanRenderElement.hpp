@@ -55,7 +55,7 @@ private:
   // -------------------------------------------------------------------------
   // Internal UI & Logic Helpers
   // -------------------------------------------------------------------------
-  void setupScene();
+  void setupScene(const std::filesystem::path &filename = "default_scene.json");
   void renderMaterialsUI();
   void renderInstancesUI();
 

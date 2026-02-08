@@ -13,6 +13,7 @@ glm::mat4 composeTransform(const glm::vec3 &translation,
 
 glm::quat toQuat(const glm::vec4 &rotationRaw);
 glm::vec4 fromQuat(const glm::quat &rotationRaw);
+glm::vec4 eulerToQuat(const glm::vec3 &euler);
 
 struct Ray {
   glm::vec3 origin;

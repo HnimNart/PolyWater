@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <nvutils/camera_manipulator.hpp>
 
+#include "SceneData.hpp"
 #include "SceneResources.hpp"
 #include "backend/interfaces/IRenderer.hpp"
 #include "core/Camera.hpp"
@@ -22,6 +23,8 @@ public:
   explicit SceneManager(const std::shared_ptr<IRenderer> &renderer);
   void clear();
 
+  void buildSceneFromData(const SceneData &data,
+                          const std::vector<std::filesystem::path> &searchDirs);
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------

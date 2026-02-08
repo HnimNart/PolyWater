@@ -42,22 +42,30 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 }
 
 /**********************************************************/
-MeshID SceneResourcesManager::loadGltf(const std::string &filename)
+MeshID SceneResourcesManager::loadGltf(const std::string &name,
+                                       const std::string &filename)
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
   m_pendingModels.push_back(std::move(model));
-  return static_cast<MeshID>(m_resources.meshes.size() +
-                             m_pendingModels.size() - 1);
+  auto id = static_cast<MeshID>(m_resources.meshes.size() +
+                                m_pendingModels.size() - 1);
+  std::string uniqueName = getUniqueName(m_meshMap, name);
+  m_meshMap[uniqueName] = id;
+  return id;
 }
 
 /**********************************************************/
-TextureID SceneResourcesManager::loadTexture(const std::string &filename)
+TextureID SceneResourcesManager::loadTexture(const std::string &name,
+                                             const std::string &filename)
 /**********************************************************/
 {
   IDeviceAssets::TextureID id = m_device_resources->reserveTextureSlot();
   m_pendingTextures.push_back({filename, id});
-  return id + 1;
+  auto retval_id = id + 1;
+  std::string uniqueName = getUniqueName(m_textureMap, name);
+  m_textureMap[uniqueName] = retval_id;
+  return retval_id;
 }
 /**********************************************************/
 InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
@@ -129,7 +137,13 @@ void SceneResourcesManager::finalizeSceneResources()
 /**********************************************************/
 void SceneResourcesManager::clear()
 /**********************************************************/
-{}
+{
+  m_resources.instances.clear();
+  m_resources.meshes.clear();
+  m_resources.materials.clear();
+  m_resources.sceneInfo = {};
+  m_resources.sceneResources = {};
+}
 
 /**********************************************************/
 void SceneResourcesManager::update(const CameraPtr &camera)
@@ -186,6 +200,13 @@ Scene &SceneResourcesManager::data()
 /**********************************************************/
 {
   return m_resources;
+}
+
+/**********************************************************/
+void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
+/**********************************************************/
+{
+  m_resources.sceneInfo = std::move(sceneInfo);
 }
 
 /**********************************************************/

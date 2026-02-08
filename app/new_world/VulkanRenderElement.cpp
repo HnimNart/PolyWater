@@ -16,6 +16,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <nvgui/camera.hpp>
 #include <nvgui/property_editor.hpp>
 #include <nvgui/sky.hpp>
@@ -27,69 +28,32 @@
 #include "common/timers.hpp"
 #include "core/Math.hpp"
 #include "core/application/App.hpp"
+#include "scene/SceneLoader.hpp"
 
 /**********************************************************/
-void VulkanRendererElement::setupScene()
+void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
+  SceneLoader loader;
+  SceneData sceneData;
+  auto filepath = nvutils::findFile(filename, common::getResourcesDirs());
+  if (!loader.load(filepath, sceneData)) {
+    return;
+  }
+  m_sceneManager.buildSceneFromData(sceneData, common::getResourcesDirs());
+
+#define ADD_SPHERES
+#ifdef ADD_SPHERES
   SceneResourcesManager &scene_resources =
       m_sceneManager.sceneResourceManager();
-
-  // Load the GLTF resources
-  MeshID teapotModel = scene_resources.loadGltf(
-      nvutils::findFile("teapot.gltf", common::getResourcesDirs()));
-
-  MeshID planeModel = scene_resources.loadGltf(
-      nvutils::findFile("plane.gltf", common::getResourcesDirs()));
-
-  MeshID sphereModel = scene_resources.loadGltf(
-      nvutils::findFile("sphere.gltf", common::getResourcesDirs()));
-
-  // Textures
-  TextureID texture_id = scene_resources.loadTexture(
-      nvutils::findFile("tiled_floor.png", common::getResourcesDirs()));
-
-  // Teapot material
-  MaterialID teapot_id = scene_resources.addMaterial(
-      {.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
-       .metallicFactor = 0.5f,
-       .roughnessFactor = 0.5f},
-      "Teapot");
-
-  // Plane material with texture
-  MaterialID plane_id = scene_resources.addMaterial(
-      {.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-       .metallicFactor = 0.1f,
-       .roughnessFactor = 0.8f,
-       .ior = glm::vec3(1.3f),
-       .baseColorTextureIndex = static_cast<int>(texture_id)},
-      "Plane");
-
-  // Teapot
-  scene_resources.addInstance({.translation = glm::vec3(0, 0.0, 0),
-                               .scale = glm::vec3(0.5f),
-                               .materialIndex = teapot_id,
-                               .meshIndex = teapotModel,
-                               .hit_group = MaterialType::eDieletrics},
-                              "Teapot");
-
-  // Plane
-  scene_resources.addInstance({.translation = glm::vec3(0.0f, -0.9f, 0.0f),
-                               .scale = glm::vec3(4.0f, 2.0f, 3.0f),
-                               .materialIndex = plane_id,
-                               .meshIndex = planeModel,
-                               .hit_group = MaterialType::eMirror},
-                              "Plane");
-
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<float> disColor(1e-5f, 1.0f);
-  std::uniform_real_distribution<float> disPos(-10.0f, 10.0f);
+  std::uniform_real_distribution<float> disPos(-20.0f, 20.0f);
   std::uniform_real_distribution<float> disScale(0.1f, 0.8f);
-
-  const int numInstances = 75;
-  const float minRadius = 1.5f;
+  const int numInstances = 200;
+  const float minRadius = 2.0f;
   for (int i = 0; i < numInstances; ++i) {
     glm::vec3 randomPos;
 
@@ -110,39 +74,19 @@ void VulkanRendererElement::setupScene()
         name);
 
     // 3. Add the Instance
-    scene_resources.addInstance({.translation = randomPos,
-                                 .scale = glm::vec3(disScale(gen)),
-                                 .materialIndex = randomMatId,
-                                 .meshIndex = sphereModel,
-                                 .hit_group = MaterialType::eDieletrics},
-                                name);
+    scene_resources.addInstance(
+        {.translation = randomPos,
+         .scale = glm::vec3(disScale(gen)),
+         .materialIndex = randomMatId,
+         .meshIndex = scene_resources.getMeshIDFromName("sphere"),
+         .hit_group = MaterialType::eDieletrics},
+        name);
   }
 
-  // Scene information
-  shaderio::SceneInfo &sceneInfo = m_sceneManager.sceneInfo();
-  sceneInfo.useSky = true;                           // Use light
-  sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f}; // The background color
-  sceneInfo.numLights = 1;
-  sceneInfo.punctualLights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
-  sceneInfo.punctualLights[0].intensity = 2.0f;
-  sceneInfo.punctualLights[0].position =
-      glm::vec3(1.0f, 1.0f, 1.0f); // Position of the light
-  sceneInfo.punctualLights[0].direction =
-      glm::vec3(1.0f, 1.0f, 1.0f); // Direction to the light
-  sceneInfo.punctualLights[0].type = shaderio::LightType::ePoint;
-  sceneInfo.punctualLights[0].coneAngle =
-      0.9f; // Cone angle for spot lights (0 for point and
-            // directional lights)
-
-  scene_resources.finalizeSceneResources();
-
-  // Default camera
-  m_sceneManager.camera()->setClipPlanes({0.01F, 100.0F});
-  m_sceneManager.camera()->setLookat({3.349445, 5.9610214, -13.49994},
-                                     {0, 0, 0}, {0, 1, 0});
-  m_sceneManager.camera()->setClean();
+#endif
 
   // build scene
+  m_sceneManager.sceneResourceManager().finalizeSceneResources();
   m_renderer->init(m_sceneManager.sceneResourceManager());
 }
 
