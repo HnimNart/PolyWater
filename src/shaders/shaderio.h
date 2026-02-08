@@ -45,7 +45,9 @@
 enum class MaterialType : uint16_t {
   eDiffuse,
   eGltfPbr,
-  eCount // Still works as a helper
+  eNormals,
+  eDieletrics,
+  eCount
 };
 
 NAMESPACE_SHADERIO_BEGIN()
@@ -76,24 +78,27 @@ struct TriangleMesh {
 };
 
 struct MeshPrimitive {
-  uint8_t *gltfBuffer =
+  uint8_t *buffer =
       nullptr;          // Buffer to the data (index, position, normal, ...)
   TriangleMesh triMesh; // Mesh data
   int indexType;        // Index type (uint16_t or uint32_t)
+  float3 boxMin = float3(0);
+  float3 boxMax = float3(0);
   // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
   // the pointer), the GPU treats it as though it has a stride of 84.
   int padWorkaround;
 };
+CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
 struct Instance {
-  float3 position = float3(0);
-  float4 rotation = float4(0, 0, 0, 1); // note w is last elem
-  float3 scale = float3(1);
-  float4x4 transform;     // Transform matrix for the instance (local to world)
-  uint32_t materialIndex; // Material properties for the instance
-  uint32_t meshIndex;     // Index of the mesh in the GltfMesh vector
-  MaterialType hit_group; // The shader used for this material;
+  float3 translation = float3(0);       // Position in world space
+  float4 rotation = float4(0, 0, 0, 1); // Rotation quaternion (x, y, z, w).
+  float3 scale = float3(1);             // Scale factor
+  float4x4 transform;     // Cached Local-to-World matrix (T * R * S)
+  uint32_t materialIndex; // Index into the materials storage buffer
+  uint32_t meshIndex;     // Index into the meshes storage buffer
+  MaterialType hit_group; // Shader Binding Table offset (which shaders to run)
   uint32_t pad;
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
@@ -104,6 +109,7 @@ struct Material {
   float roughnessFactor; // Roughness factor (0.0 = smooth, 1.0 = rough)
   int baseColorTextureIndex; // Index of the base color texture in the GLTF
                              // file (optional)
+  float3 ior = float3(1.5);  // inside ior
   float3 emission = float3(0);
 };
 
@@ -127,14 +133,13 @@ struct RenderParams {
   int nSamples = 1; // Number of samples pr pass
   int maxBounces = 16;
   int nBouncesRR = 3;
-  uint frameIdx; // For RNG seeding (changes every frame)
+  uint frameIdx;
 };
 
 struct SceneResources {
-  Instance
-      *instances; // Address of the instance buffer containing Instance data
-  MeshPrimitive *meshes; // Address of the mesh buffer containing GltfMesh data
-  Material *materials;   // Material properties for the instance
+  Instance *instances;   // Address of the instance buffer
+  MeshPrimitive *meshes; // Address of the mesh buffer
+  Material *materials;   // Address of material properties
 };
 
 struct SceneInfo {
@@ -147,11 +152,9 @@ struct SceneInfo {
 
   // Light info
   int useSky;             // Whether to use the sky rendering
-  float3 backgroundColor; // Background color of the scene (used when not using
-                          // sky)
+  float3 backgroundColor; // Background color of the scene
   int numLights;          // Number of punctual lights in the scene (up to 2)
-  PunctualLight
-      punctualLights[2]; // Array of punctual lights in the scene (up to 2)
+  PunctualLight punctualLights[2];    // punctual lights in the scene (up to 2)
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)

@@ -22,110 +22,116 @@
 #include <nvgui/window.hpp>
 #include <nvutils/logger.hpp>
 
-void core::ElementCamera::updateCamera(std::shared_ptr<nvutils::CameraManipulator> m_cameraManip,
-                                       ImGuiWindow* viewportWindow)
+/**********************************************************/
+void core::ElementCamera::updateCamera(
+    std::shared_ptr<nvutils::CameraManipulator> cameraManip,
+    ImGuiWindow *viewportWindow)
+/**********************************************************/
 {
-  nvutils::CameraManipulator::Inputs inputs;  // Mouse and keyboard inputs
+  nvutils::CameraManipulator::Inputs inputs; // Mouse and keyboard inputs
 
-  m_cameraManip->updateAnim();  // This makes the camera to transition smoothly to the new position
+  cameraManip->updateAnim(); // This makes the camera to transition smoothly to
+                             // the new position
 
-  // Check if the mouse cursor is over the "Viewport", check for all inputs that can manipulate the
-  // camera.
+  // Check if the mouse cursor is over the "Viewport", check for all inputs that
+  // can manipulate the camera.
   if (!nvgui::isWindowHovered(viewportWindow))
     return;
 
   inputs.lmb = ImGui::IsMouseDown(ImGuiMouseButton_Left);
   inputs.rmb = ImGui::IsMouseDown(ImGuiMouseButton_Right);
   inputs.mmb = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-  inputs.ctrl = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
-  inputs.shift = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
-  inputs.alt = ImGui::IsKeyDown(ImGuiKey_LeftAlt) || ImGui::IsKeyDown(ImGuiKey_RightAlt);
+  inputs.ctrl = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) ||
+                ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+  inputs.shift = ImGui::IsKeyDown(ImGuiKey_LeftShift) ||
+                 ImGui::IsKeyDown(ImGuiKey_RightShift);
+  inputs.alt =
+      ImGui::IsKeyDown(ImGuiKey_LeftAlt) || ImGui::IsKeyDown(ImGuiKey_RightAlt);
   ImVec2 mousePos = ImGui::GetMousePos();
 
   // None of the modifiers should be pressed for the single key: WASD and arrows
-  if (!inputs.alt)
-  {
+  if (!inputs.alt) {
     // Speed of the camera movement when using WASD and arrows
     float keyMotionFactor = ImGui::GetIO().DeltaTime;
-    if (inputs.shift)
-    {
-      keyMotionFactor *= 5.0F;  // Speed up the camera movement
+    if (inputs.shift) {
+      keyMotionFactor *= 5.0F; // Speed up the camera movement
     }
-    if (inputs.ctrl)
-    {
-      keyMotionFactor *= 0.1F;  // Slow down the camera movement
+    if (inputs.ctrl) {
+      keyMotionFactor *= 0.1F; // Slow down the camera movement
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_W))
-    {
-      m_cameraManip->keyMotion({keyMotionFactor, 0}, nvutils::CameraManipulator::Dolly);
+    if (ImGui::IsKeyDown(ImGuiKey_W)) {
+      cameraManip->keyMotion({keyMotionFactor, 0},
+                             nvutils::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_S))
-    {
-      m_cameraManip->keyMotion({-keyMotionFactor, 0}, nvutils::CameraManipulator::Dolly);
+    if (ImGui::IsKeyDown(ImGuiKey_S)) {
+      cameraManip->keyMotion({-keyMotionFactor, 0},
+                             nvutils::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow))
-    {
-      m_cameraManip->keyMotion({keyMotionFactor, 0}, nvutils::CameraManipulator::Pan);
+    if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
+      cameraManip->keyMotion({keyMotionFactor, 0},
+                             nvutils::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))
-    {
-      m_cameraManip->keyMotion({-keyMotionFactor, 0}, nvutils::CameraManipulator::Pan);
+    if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
+      cameraManip->keyMotion({-keyMotionFactor, 0},
+                             nvutils::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
-    {
-      m_cameraManip->keyMotion({0, keyMotionFactor}, nvutils::CameraManipulator::Pan);
+    if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
+      cameraManip->keyMotion({0, keyMotionFactor},
+                             nvutils::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_DownArrow))
-    {
-      m_cameraManip->keyMotion({0, -keyMotionFactor}, nvutils::CameraManipulator::Pan);
+    if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
+      cameraManip->keyMotion({0, -keyMotionFactor},
+                             nvutils::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
   }
 
   if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
       ImGui::IsMouseClicked(ImGuiMouseButton_Middle) ||
-      ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-  {
-    m_cameraManip->setMousePosition({mousePos.x, mousePos.y});
+      ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+    cameraManip->setMousePosition({mousePos.x, mousePos.y});
   }
 
   if (ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.0F) ||
       ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 1.0F) ||
-      ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.0F))
-  {
-    m_cameraManip->mouseMove({mousePos.x, mousePos.y}, inputs);
+      ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.0F)) {
+    cameraManip->mouseMove({mousePos.x, mousePos.y}, inputs);
   }
 
   // Mouse Wheel
-  if (ImGui::GetIO().MouseWheel != 0.0F)
-  {
-    m_cameraManip->wheel(ImGui::GetIO().MouseWheel * -3.f, inputs);
+  if (ImGui::GetIO().MouseWheel != 0.0F) {
+    cameraManip->wheel(ImGui::GetIO().MouseWheel * -3.f, inputs);
   }
 }
-
-void core::ElementCamera::onAttach(core::Application* app)
+/**********************************************************/
+void core::ElementCamera::onAttach(core::Application *app)
+/**********************************************************/
 {
   LOGI("Adding Camera Element\n");
 }
 
+/**********************************************************/
 void core::ElementCamera::onUIRender()
+/**********************************************************/
 {
   assert(m_cameraManip && "Missing setCamera");
   updateCamera(m_cameraManip, ImGui::FindWindowByName("Viewport"));
 }
 
+/**********************************************************/
 void core::ElementCamera::onResize(WindowSize size)
+/**********************************************************/
 {
   assert(m_cameraManip && "Missing setCamera");
   m_cameraManip->setWindowSize(size);

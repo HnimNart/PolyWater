@@ -3,18 +3,19 @@
 #include <memory>
 #include <string>
 
-#include "ShaderManager.hpp"
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
 #include "scene/Scene.h"
 #include "scene/gltf/gltf_utils.hpp"
 #include "tiny_gltf.h"
 
+using InstanceID = uint32_t;
+using MaterialID = uint32_t;
+using MeshID = IDeviceAssets::MeshID;
+using TextureID = IDeviceAssets::TextureID;
+
 class SceneResourcesManager {
 public:
-  using InstanceID = uint32_t;
-  using MaterialID = uint32_t;
-
   // ---------------------------------------------------------------------------
   // Lifecycle & Initialization
   // ---------------------------------------------------------------------------
@@ -32,8 +33,8 @@ public:
   // ---------------------------------------------------------------------------
   // Asset Loading (IO)
   // ---------------------------------------------------------------------------
-  tinygltf::Model loadGltf(const std::string &filename);
-  IDeviceAssets::TextureID loadTexture(const std::string &filename);
+  MeshID loadGltf(const std::string &filename);
+  TextureID loadTexture(const std::string &filename);
 
   // ---------------------------------------------------------------------------
   // Scene Composition
@@ -74,16 +75,20 @@ public:
     return m_resources.materials;
   }
 
+  const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const {
+    assert(m_resources.meshes.size() < index);
+    return m_resources.meshes[index];
+  }
+
 private:
   Scene m_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
 
   // Things to be uploaded to gpu
   std::vector<tinygltf::Model> m_pendingModels{};
-
   struct PendingTexture {
     std::string filename;
-    IDeviceAssets::TextureID id;
+    TextureID id;
   };
   std::vector<PendingTexture> m_pendingTextures{};
 

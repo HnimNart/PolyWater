@@ -43,6 +43,7 @@
 #include "core/application/elements/elem_camera.hpp"
 #include "core/application/elements/elem_default_menu.hpp"
 #include "core/application/elements/elem_default_title.hpp"
+#include "core/application/elements/geometryPicker.hpp"
 #include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
@@ -88,6 +89,14 @@ int main(int argc, char **argv) {
   application.addElement(logger);
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());
+
+  auto geometryPicker = std::make_shared<core::GeometryPickerElement>(
+      renderElement->getSceneManager().sceneResourceManager(),
+      renderElement->getCameraManipulator());
+  geometryPicker->setSelectionCallback(
+      std::bind(&VulkanRendererElement::onGeometryPicked, renderElement.get(),
+                std::placeholders::_1));
+  application.addElement(geometryPicker);
 
   application.run(); // Start the application, loop until the window is closed
   application.shutdown(); // Closing application

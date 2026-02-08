@@ -67,6 +67,8 @@ void VulkanRenderer::registerShaders()
 {
   m_shaderManager.registerMaterial(MaterialType::eDiffuse, "diffuse");
   m_shaderManager.registerMaterial(MaterialType::eGltfPbr, "gltf");
+  m_shaderManager.registerMaterial(MaterialType::eNormals, "normals");
+  m_shaderManager.registerMaterial(MaterialType::eDieletrics, "dielectric");
 }
 
 /**********************************************************/

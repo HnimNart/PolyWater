@@ -58,11 +58,11 @@ public:
   void setPrefix(const std::string &str);
   void setSuffix(const std::string &str);
 
-  void setRenderer(IRenderer *renderer);
+  void setRenderer(const IRenderer *renderer);
 
 private:
   core::Application *m_app{nullptr};
-  IRenderer *m_renderer{nullptr};
+  const IRenderer *m_renderer{nullptr};
 
   float m_dirtyTimer{0.0F};
   std::string m_prefix;

@@ -4,6 +4,8 @@ Checks: >
   clang-analyzer-cplusplus.*,
   clang-analyzer-security.insecureAPI.*,
   clang-analyzer-unix.*,
+  clang-diagnostic-unused-variable,
+  misc-unused-parameters,
   modernize-avoid-auto,
   modernize-use-nullptr,
   modernize-use-override,
@@ -44,3 +46,4 @@ CheckOptions:
     value:           camelBack
   - key:             readability-identifier-naming.ParameterCase
     value:           camelBack
+

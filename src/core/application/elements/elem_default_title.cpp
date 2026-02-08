@@ -105,7 +105,7 @@ void core::ElementDefaultWindowTitle::setSuffix(const std::string &str)
 }
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::setRenderer(IRenderer *renderer)
+void core::ElementDefaultWindowTitle::setRenderer(const IRenderer *renderer)
 /**********************************************************/
 {
   m_renderer = renderer;

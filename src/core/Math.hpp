@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef MATH
-#define MATH 1
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -16,5 +13,12 @@ glm::mat4 composeTransform(const glm::vec3 &translation,
 
 glm::quat toQuat(const glm::vec4 &rotationRaw);
 glm::vec4 fromQuat(const glm::quat &rotationRaw);
+
+struct Ray {
+  glm::vec3 origin;
+  glm::vec3 direction;
+};
+bool rayAABBIntersection(const Ray &ray, const glm::vec3 &boxMin,
+                         const glm::vec3 &boxMax, float &t);
+
 } // namespace math
-#endif

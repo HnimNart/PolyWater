@@ -3,7 +3,7 @@
 #include "backend/interfaces/IRenderer.hpp"
 
 /**********************************************************/
-SceneManager::SceneManager(const std::shared_ptr<IRenderer>& renderer)
+SceneManager::SceneManager(const std::shared_ptr<IRenderer> &renderer)
 /**********************************************************/
 {
   m_scene_resources.init(renderer->deviceResources());
@@ -24,7 +24,7 @@ void SceneManager::update()
 }
 
 /**********************************************************/
-Scene* SceneManager::getScenePtr()
+Scene *SceneManager::getScenePtr()
 /**********************************************************/
 {
   return &gltfResources();
@@ -35,28 +35,35 @@ Scene* SceneManager::getScenePtr()
 // --------------------------------------------------
 
 /**********************************************************/
-Scene& SceneManager::gltfResources()
+Scene &SceneManager::gltfResources()
 /**********************************************************/
 {
   return m_scene_resources.data();
 }
 
 /**********************************************************/
-const Scene& SceneManager::gltfResources() const
+const Scene &SceneManager::gltfResources() const
 /**********************************************************/
 {
   return m_scene_resources.data();
 }
 
 /**********************************************************/
-SceneResourcesManager& SceneManager::sceneResourceManager()
+SceneResourcesManager &SceneManager::sceneResourceManager()
 /**********************************************************/
 {
   return m_scene_resources;
 }
 
 /**********************************************************/
-shaderio::SceneInfo& SceneManager::sceneInfo()
+const SceneResourcesManager &SceneManager::sceneResourceManager() const
+/**********************************************************/
+{
+  return m_scene_resources;
+}
+
+/**********************************************************/
+shaderio::SceneInfo &SceneManager::sceneInfo()
 /**********************************************************/
 {
   return m_scene_resources.sceneInfo();

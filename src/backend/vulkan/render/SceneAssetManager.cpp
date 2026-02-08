@@ -35,7 +35,7 @@ void VulkanSceneAssetManager::beginUploading()
 {
   if (m_cmd != VK_NULL_HANDLE) {
     throw std::runtime_error(
-        "Begin uploading called while another upload is already in progress.");
+        "BeginUploading() called while another upload is already in progress.");
   }
   m_cmd = m_context_manager->startSingleTimeCmd();
 }

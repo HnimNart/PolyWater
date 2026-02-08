@@ -1,6 +1,8 @@
 #include "SceneResources.hpp"
 #include "core/Math.hpp"
 
+#include <glm/gtx/string_cast.hpp>
+#include <iostream>
 #include <nvutils/logger.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -21,39 +23,37 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 }
 
 /**********************************************************/
-tinygltf::Model SceneResourcesManager::loadGltf(const std::string &filename)
+MeshID SceneResourcesManager::loadGltf(const std::string &filename)
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
-  m_pendingModels.push_back(model);
-  return model;
+  m_pendingModels.push_back(std::move(model));
+  return static_cast<MeshID>(m_resources.meshes.size() +
+                             m_pendingModels.size() - 1);
 }
 
 /**********************************************************/
-IDeviceAssets::TextureID
-SceneResourcesManager::loadTexture(const std::string &filename)
+TextureID SceneResourcesManager::loadTexture(const std::string &filename)
 /**********************************************************/
 {
   IDeviceAssets::TextureID id = m_device_resources->reserveTextureSlot();
   m_pendingTextures.push_back({filename, id});
-  return id + 1; // Have to add one to offset the index on GPU
+  return id + 1;
 }
 
 /**********************************************************/
-SceneResourcesManager::InstanceID
-SceneResourcesManager::addInstance(shaderio::Instance &&instance)
+InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance)
 /**********************************************************/
 {
   instance.transform = math::composeTransform(
-      instance.position, instance.rotation, instance.scale);
+      instance.translation, instance.rotation, instance.scale);
   m_resources.instances.push_back(instance);
 
   return static_cast<InstanceID>(m_resources.instances.size() - 1);
 }
 
 /**********************************************************/
-SceneResourcesManager::MaterialID
-SceneResourcesManager::addMaterial(shaderio::Material &&material)
+MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material)
 /**********************************************************/
 {
   m_resources.materials.push_back(material);
@@ -69,12 +69,15 @@ void SceneResourcesManager::finalizeSceneResources()
 
   // --- Process Pending Models ---
   for (const auto &model : m_pendingModels) {
-    auto [bufferAddr, bufferIndex] = m_device_resources->upload(model);
-    size_t startSize = m_resources.meshes.size();
+    const auto [bufferAddr, bufferIndex] = m_device_resources->upload(model);
+    const size_t startSize = m_resources.meshes.size();
+    const auto [bmin, bmax] = gltf::computeModelBounds(model);
     m_resources.meshes.reserve(startSize + model.meshes.size());
     for (size_t i = 0; i < model.meshes.size(); i++) {
       auto mesh = gltf::extractGltfMesh(model, i);
-      mesh.gltfBuffer = reinterpret_cast<uint8_t *>(bufferAddr);
+      mesh.boxMin = bmin;
+      mesh.boxMax = bmax;
+      mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
       m_resources.meshes.emplace_back(mesh);
     }
     m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
@@ -125,6 +128,7 @@ void SceneResourcesManager::onMaterialChange()
   m_device_resources->beginUploading();
   m_device_resources->update(m_resources.materials);
   m_device_resources->endUploading();
+  setDirty(true);
 }
 
 /**********************************************************/
@@ -134,6 +138,7 @@ void SceneResourcesManager::onInstanceChange()
   m_device_resources->beginUploading();
   m_device_resources->update(m_resources.instances);
   m_device_resources->endUploading();
+  setDirty(true);
 }
 
 /**********************************************************/

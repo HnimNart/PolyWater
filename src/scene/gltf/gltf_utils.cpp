@@ -23,7 +23,8 @@
 #include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan_core.h>
 
-#include <glm/gtc/type_ptr.hpp>  // glm::make_vec3
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <nvutils/logger.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
@@ -31,10 +32,12 @@
 #include "common/timers.hpp"
 #include "nvutils/primitives.hpp"
 
-namespace
-{
+namespace {
+
 // Helper for element byte size calculation
+/**********************************************************/
 uint32_t getElementByteSize(int type)
+/**********************************************************/
 {
   return type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ? 2U
          : type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT ? 4U
@@ -43,7 +46,9 @@ uint32_t getElementByteSize(int type)
 }
 
 // Helper for type size calculation
+/**********************************************************/
 uint32_t getTypeSize(int type)
+/**********************************************************/
 {
   return type == TINYGLTF_TYPE_VEC2   ? 2U
          : type == TINYGLTF_TYPE_VEC3 ? 3U
@@ -55,18 +60,19 @@ uint32_t getTypeSize(int type)
 }
 
 // Helper for extracting attributes
-void extractAttribute(const tinygltf::Model& model,
-                      const tinygltf::Primitive& primitive,
-                      const std::string& name, shaderio::BufferView& attr)
+/**********************************************************/
+void extractAttribute(const tinygltf::Model &model,
+                      const tinygltf::Primitive &primitive,
+                      const std::string &name, shaderio::BufferView &attr)
+/**********************************************************/
 {
-  if (!primitive.attributes.contains(name))
-  {
+  if (!primitive.attributes.contains(name)) {
     attr.offset = -1;
     return;
   }
-  const tinygltf::Accessor& acc =
+  const tinygltf::Accessor &acc =
       model.accessors[primitive.attributes.at(name)];
-  const tinygltf::BufferView& bv = model.bufferViews[acc.bufferView];
+  const tinygltf::BufferView &bv = model.bufferViews[acc.bufferView];
   assert((acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) &&
          "Should be floats");
   attr = {
@@ -78,10 +84,112 @@ void extractAttribute(const tinygltf::Model& model,
                                        getElementByteSize(acc.componentType)),
   };
 }
-}  // namespace
+
+// Helper to expand the global bounds by a transformed local box
+/**********************************************************/
+void expandBounds(const glm::vec3 &localMin, const glm::vec3 &localMax,
+                  const glm::mat4 &transform, glm::vec3 &globalMin,
+                  glm::vec3 &globalMax)
+/**********************************************************/
+{
+  // The 8 corners of the local bounding box
+  std::vector<glm::vec3> corners = {{localMin.x, localMin.y, localMin.z},
+                                    {localMin.x, localMin.y, localMax.z},
+                                    {localMin.x, localMax.y, localMin.z},
+                                    {localMin.x, localMax.y, localMax.z},
+                                    {localMax.x, localMin.y, localMin.z},
+                                    {localMax.x, localMin.y, localMax.z},
+                                    {localMax.x, localMax.y, localMin.z},
+                                    {localMax.x, localMax.y, localMax.z}};
+
+  // Transform each corner and expand the global bounds
+  for (const auto &corner : corners) {
+    // Apply transform (w=1.0 for points)
+    glm::vec4 worldPos = transform * glm::vec4(corner, 1.0f);
+
+    // Perspective divide is usually not needed for affine transforms
+    // (Scale/Rot/Trans), but good practice if you ever use projection matrices
+    // here.
+    glm::vec3 p = glm::vec3(worldPos) / worldPos.w;
+
+    globalMin = glm::min(globalMin, p);
+    globalMax = glm::max(globalMax, p);
+  }
+}
+
+// Recursive function to traverse nodes
+/**********************************************************/
+void processNode(const tinygltf::Model &model, int nodeIndex,
+                 const glm::mat4 &parentTransform, glm::vec3 &minBound,
+                 glm::vec3 &maxBound)
+/**********************************************************/
+{
+  const tinygltf::Node &node = model.nodes[nodeIndex];
+
+  // 1. Calculate Local Transform
+  glm::mat4 localTransform(1.0f);
+
+  if (!node.matrix.empty()) {
+    // Node has a raw matrix
+    // GLTF stores column-major, GLM accepts column-major.
+    // We must cast double (tinygltf) to float (glm).
+    double *m = const_cast<double *>(node.matrix.data());
+    localTransform = glm::make_mat4(m);
+  } else {
+    // Node has TRS (Translation, Rotation, Scale)
+    if (!node.translation.empty()) {
+      localTransform = glm::translate(
+          localTransform, glm::vec3(node.translation[0], node.translation[1],
+                                    node.translation[2]));
+    }
+    if (!node.rotation.empty()) {
+      // GLTF quaternion: (x, y, z, w) -> GLM quat constructor: (w, x, y, z)
+      glm::quat q(node.rotation[3], node.rotation[0], node.rotation[1],
+                  node.rotation[2]);
+      localTransform = localTransform * glm::mat4_cast(q);
+    }
+    if (!node.scale.empty()) {
+      localTransform =
+          glm::scale(localTransform,
+                     glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+    }
+  }
+
+  // 2. Calculate Global Transform for this node
+  glm::mat4 globalTransform = parentTransform * localTransform;
+
+  // 3. Process Mesh (if present)
+  if (node.mesh > -1) {
+    const tinygltf::Mesh &mesh = model.meshes[node.mesh];
+
+    for (const auto &primitive : mesh.primitives) {
+      // Look for the "POSITION" attribute
+      auto it = primitive.attributes.find("POSITION");
+      if (it != primitive.attributes.end()) {
+        const tinygltf::Accessor &accessor = model.accessors[it->second];
+
+        // GLTF Accessors *must* have min/max values for POSITION
+        if (!accessor.minValues.empty() && !accessor.maxValues.empty()) {
+          glm::vec3 localMin(accessor.minValues[0], accessor.minValues[1],
+                             accessor.minValues[2]);
+          glm::vec3 localMax(accessor.maxValues[0], accessor.maxValues[1],
+                             accessor.maxValues[2]);
+
+          expandBounds(localMin, localMax, globalTransform, minBound, maxBound);
+        }
+      }
+    }
+  }
+
+  // 4. Recurse Children
+  for (int childIndex : node.children) {
+    processNode(model, childIndex, globalTransform, minBound, maxBound);
+  }
+}
+} // namespace
 
 /**********************************************************/
-tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
+tinygltf::Model gltf::loadModel(const std::filesystem::path &filename)
 /**********************************************************/
 {
   std::string baseName = filename.filename().string();
@@ -90,26 +198,20 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
   tinygltf::TinyGLTF tinyLoader;
   tinygltf::Model model;
   std::string err, warn;
-  if (filename.extension() == ".gltf")
-  {
-    if (!tinyLoader.LoadASCIIFromFile(&model, &err, &warn, filename.string()))
-    {
+  if (filename.extension() == ".gltf") {
+    if (!tinyLoader.LoadASCIIFromFile(&model, &err, &warn, filename.string())) {
       LOGE("Error loading glTF file: %s\n", err.c_str());
       assert(0 && "No fallback");
       return {};
     }
-  }
-  else if (filename.extension() == ".glb")
-  {
-    if (!tinyLoader.LoadBinaryFromFile(&model, &err, &warn, filename.string()))
-    {
+  } else if (filename.extension() == ".glb") {
+    if (!tinyLoader.LoadBinaryFromFile(&model, &err, &warn,
+                                       filename.string())) {
       LOGE("Error loading glTF file: %s\n", err.c_str());
       assert(0 && "No fallback");
       return {};
     }
-  }
-  else
-  {
+  } else {
     LOGE("Unsupported file format: %s\n",
          filename.extension().string().c_str());
     assert(0 && "No fallback");
@@ -119,19 +221,19 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
 }
 
 /**********************************************************/
-shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
-                                                 uint meshIdx)
+shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model &model,
+                                              uint meshIdx)
 /**********************************************************/
 {
   shaderio::MeshPrimitive mesh{};
-  const tinygltf::Mesh& tinyMesh = model.meshes[meshIdx];
-  const tinygltf::Primitive& primitive = tinyMesh.primitives.front();
+  const tinygltf::Mesh &tinyMesh = model.meshes[meshIdx];
+  const tinygltf::Primitive &primitive = tinyMesh.primitives.front();
   assert((tinyMesh.primitives.size() == 1 &&
           primitive.mode == TINYGLTF_MODE_TRIANGLES) &&
          "Must have one triangle primitive");
 
-  auto& accessor = model.accessors[primitive.indices];
-  auto& bufferView = model.bufferViews[accessor.bufferView];
+  auto &accessor = model.accessors[primitive.indices];
+  auto &bufferView = model.bufferViews[accessor.bufferView];
   assert((accessor.count % 3 == 0) && "Should be a multiple of 3");
 
   mesh.triMesh.indices = {
@@ -157,7 +259,7 @@ shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
 /**********************************************************/
 shaderio::MeshPrimitive
 gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                                  const nvutils::PrimitiveMesh& primMesh)
+                                  const nvutils::PrimitiveMesh &primMesh)
 /**********************************************************/
 {
   shaderio::MeshPrimitive mesh;
@@ -185,8 +287,31 @@ gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
       .byteStride = sizeof(uint32_t)};
 
   // Metadata
-  mesh.gltfBuffer = reinterpret_cast<uint8_t*>(bufferAddress);
+  mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddress);
   mesh.indexType = VK_INDEX_TYPE_UINT32;
 
   return mesh;
+}
+
+/**********************************************************/
+std::pair<glm::vec3, glm::vec3>
+gltf::computeModelBounds(const tinygltf::Model &model)
+/**********************************************************/
+{
+  glm::vec3 minBound(std::numeric_limits<float>::max());
+  glm::vec3 maxBound(std::numeric_limits<float>::lowest());
+
+  // Iterate over the scenes (usually just the default one)
+  const tinygltf::Scene &scene =
+      model.scenes[model.defaultScene > -1 ? model.defaultScene : 0];
+
+  // Traverse the root nodes of the scene
+  for (int nodeIndex : scene.nodes) {
+    processNode(model, nodeIndex, glm::mat4(1.0f), minBound, maxBound);
+  }
+
+  std::cout << glm::to_string(minBound) << std::endl;
+  std::cout << glm::to_string(maxBound) << std::endl;
+
+  return {minBound, maxBound};
 }

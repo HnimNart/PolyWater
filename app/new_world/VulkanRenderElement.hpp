@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "backend/vulkan/render/Renderer.hpp"
 #include "core/Camera.hpp"
 #include "core/application/IAppElement.hpp"
 #include "scene/SceneManager.hpp"
@@ -18,34 +19,55 @@ public:
   VulkanRendererElement() = default;
   ~VulkanRendererElement() override = default;
 
-  // Interface Implementation
+  // -------------------------------------------------------------------------
+  // 1. Lifecycle & Event Hooks
+  // -------------------------------------------------------------------------
   void onAttach(core::Application *app) override;
   void onDetach() override;
   void onResize(WindowSize size) override;
-  void onUIRender() override;
+  void onFileDrop(const std::filesystem::path &filename) override;
+
+  // -------------------------------------------------------------------------
+  // 2. Main Render Loop Steps
+  // -------------------------------------------------------------------------
   void onPreRender() override;
-  void onUIMenu() override;
   void onRender(const IRenderContext &ctx) override;
   void onEndFrame(const IRenderContext &frame) override;
   void onLastHeadlessFrame() override;
-  void onFileDrop(const std::filesystem::path &filename) override;
 
-  // Accessor
-  CameraPtr getCameraManipulator();
-  IRenderer *getRenderer();
+  // -------------------------------------------------------------------------
+  // 3. User Interface & Editor
+  // -------------------------------------------------------------------------
+  void onUIMenu() override;
+  void onUIRender() override;
+
+  // Picked interaction
+  void onGeometryPicked(InstanceID id);
+
+  // -------------------------------------------------------------------------
+  // 4. Accessors
+  // -------------------------------------------------------------------------
+  CameraPtr getCameraManipulator() const;
+  const IRenderer *getRenderer() const;
+  const SceneManager &getSceneManager() const;
 
 private:
+  // -------------------------------------------------------------------------
+  // Internal UI & Logic Helpers
+  // -------------------------------------------------------------------------
   void setupScene();
+  void renderMaterialsUI();
+  void renderInstancesUI();
 
-  void renderMaterials();
-  void renderInstances();
-
-  // Application and core components
+  // -------------------------------------------------------------------------
+  // Members
+  // -------------------------------------------------------------------------
+  // Core components
   core::Application *m_app = nullptr;
   std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
-  SceneManager m_scene_manager{};
+  SceneManager m_sceneManager{};
 
-  // state variables
+  // Editor/Render state
   RenderMode m_renderMode = RenderMode::RAYTRACE;
   bool m_hasChanged = false;
 };

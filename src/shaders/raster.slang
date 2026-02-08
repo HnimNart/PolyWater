@@ -76,11 +76,11 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView buff
   Material material = sceneResources.materials[instance.materialIndex];
 
   // Retrieve the data
-  float3 posMesh = getAttribute<float3>(meshIo.gltfBuffer,
+  float3 posMesh = getAttribute<float3>(meshIo.buffer,
                                         meshIo.triMesh.positions, vertexIndex);
-  float3 normal = getAttribute<float3>(meshIo.gltfBuffer,
+  float3 normal = getAttribute<float3>(meshIo.buffer,
                                        meshIo.triMesh.normals, vertexIndex);
-  float2 texCoord = getAttribute<float2>(meshIo.gltfBuffer,
+  float2 texCoord = getAttribute<float2>(meshIo.buffer,
                                          meshIo.triMesh.texCoords, vertexIndex);
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);

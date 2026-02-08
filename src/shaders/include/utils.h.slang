@@ -97,13 +97,13 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   s.material = sceneResources.materials[instance.materialIndex];
 
   // 4. Interpolate Attributes
-  int3 indices = getTriangleIndices(mesh.gltfBuffer, mesh.triMesh, triID);
+  int3 indices = getTriangleIndices(mesh.buffer, mesh.triMesh, triID);
 
-  s.pos = getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.positions,
+  s.pos = getTriangleAttribute<float3>(mesh.buffer, mesh.triMesh.positions,
                                        indices, barycentrics);
-  s.normal = getTriangleAttribute<float3>(mesh.gltfBuffer, mesh.triMesh.normals,
+  s.normal = getTriangleAttribute<float3>(mesh.buffer, mesh.triMesh.normals,
                                           indices, barycentrics);
-  s.uv = getTriangleAttribute<float2>(mesh.gltfBuffer, mesh.triMesh.texCoords,
+  s.uv = getTriangleAttribute<float2>(mesh.buffer, mesh.triMesh.texCoords,
                                       indices, barycentrics);
 
   // 5. Transform to World Space

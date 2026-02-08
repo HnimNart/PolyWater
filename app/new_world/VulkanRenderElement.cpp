@@ -3,6 +3,8 @@
 // Standard Libs
 #include <cstdio>
 #include <fmt/format.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <iostream>
 
 // Third Party
@@ -31,51 +33,68 @@ void VulkanRendererElement::setupScene()
 {
   SCOPED_TIMER_FUNC();
   SceneResourcesManager &scene_resources =
-      m_scene_manager.sceneResourceManager();
+      m_sceneManager.sceneResourceManager();
 
   // Load the GLTF resources
-  tinygltf::Model teapotModel = scene_resources.loadGltf(
+  MeshID teapotModel = scene_resources.loadGltf(
       nvutils::findFile("teapot.gltf", common::getResourcesDirs()));
 
-  tinygltf::Model planeModel = scene_resources.loadGltf(
+  MeshID planeModel = scene_resources.loadGltf(
       nvutils::findFile("plane.gltf", common::getResourcesDirs()));
 
+  MeshID sphereModel = scene_resources.loadGltf(
+      nvutils::findFile("sphere.gltf", common::getResourcesDirs()));
+
   // Textures
-  IDeviceAssets::TextureID texture_id = scene_resources.loadTexture(
+  TextureID texture_id = scene_resources.loadTexture(
       nvutils::findFile("tiled_floor.png", common::getResourcesDirs()));
 
   // Teapot material
-  SceneResourcesManager::MaterialID teapot_id = scene_resources.addMaterial(
+  MaterialID teapot_id = scene_resources.addMaterial(
       {.baseColorFactor = glm::vec4(0.8f, 1.0f, 0.6f, 1.0f),
        .metallicFactor = 0.5f,
        .roughnessFactor = 0.5f});
   // Plane material with texture
-  SceneResourcesManager::MaterialID plane_id = scene_resources.addMaterial(
+  MaterialID plane_id = scene_resources.addMaterial(
       {.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
        .metallicFactor = 0.1f,
        .roughnessFactor = 0.8f,
+       .ior = glm::vec3(1.3f),
        .baseColorTextureIndex = static_cast<int>(texture_id)});
 
+  // Plane material with texture
+  MaterialID plane_id1 = scene_resources.addMaterial(
+      {.baseColorFactor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+       .metallicFactor = 0.1f,
+       .roughnessFactor = 0.8f});
+
   // Teapot
-  scene_resources.addInstance({.position = glm::vec3(0, 0, 0),
+  scene_resources.addInstance({.translation = glm::vec3(0, 0, 0),
                                .scale = glm::vec3(0.5f),
                                .materialIndex = teapot_id,
-                               .meshIndex = 0,
-                               .hit_group = MaterialType::eGltfPbr});
+                               .meshIndex = teapotModel,
+                               .hit_group = MaterialType::eDieletrics});
+
   // Plane
-  scene_resources.addInstance({.position = glm::vec3(0.0f, -0.9f, 0.0f),
+  scene_resources.addInstance({.translation = glm::vec3(0.0f, -0.9f, 0.0f),
                                .scale = glm::vec3(2.0f),
                                .materialIndex = plane_id,
-                               .meshIndex = 1,
+                               .meshIndex = planeModel,
                                .hit_group = MaterialType::eGltfPbr});
+  // Sphere
+  // scene_resources.addInstance({.translation = glm::vec3(0, 0, 0),
+  //                              .scale = glm::vec3(1.f),
+  //                              .materialIndex = teapot_id,
+  //                              .meshIndex = 2,
+  //                              .hit_group = MaterialType::eDieletrics});
 
   // Scene information
-  shaderio::SceneInfo &sceneInfo = m_scene_manager.sceneInfo();
+  shaderio::SceneInfo &sceneInfo = m_sceneManager.sceneInfo();
   sceneInfo.useSky = false;                          // Use light
   sceneInfo.backgroundColor = {0.85f, 0.85f, 0.85f}; // The background color
   sceneInfo.numLights = 1;
   sceneInfo.punctualLights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
-  sceneInfo.punctualLights[0].intensity = 4.0f;
+  sceneInfo.punctualLights[0].intensity = 2.0f;
   sceneInfo.punctualLights[0].position =
       glm::vec3(1.0f, 1.0f, 1.0f); // Position of the light
   sceneInfo.punctualLights[0].direction =
@@ -88,13 +107,13 @@ void VulkanRendererElement::setupScene()
   scene_resources.finalizeSceneResources();
 
   // Default camera
-  m_scene_manager.camera()->setClipPlanes({0.01F, 100.0F});
-  m_scene_manager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F},
-                                      {0.0F, 1.0F, 0.0F});
-  m_scene_manager.camera()->setClean();
+  m_sceneManager.camera()->setClipPlanes({0.01F, 100.0F});
+  m_sceneManager.camera()->setLookat({0.0F, 0.5F, 5.0}, {0.F, 0.F, 0.F},
+                                     {0.0F, 1.0F, 0.0F});
+  m_sceneManager.camera()->setClean();
 
   // build scene
-  m_renderer->init(m_scene_manager.sceneResourceManager());
+  m_renderer->init(m_sceneManager.sceneResourceManager());
 }
 
 /**********************************************************/
@@ -105,7 +124,7 @@ void VulkanRendererElement::onAttach(core::Application *app)
   auto *backend = dynamic_cast<VulkanBackend *>(app->getBackend());
   assert(backend && "Backend is not VulkanBackend");
   m_renderer = std::make_shared<VulkanRenderer>(backend);
-  m_scene_manager = SceneManager(m_renderer);
+  m_sceneManager = SceneManager(m_renderer);
   setupScene();
 }
 
@@ -114,7 +133,7 @@ void VulkanRendererElement::onDetach()
 /**********************************************************/
 {
   m_renderer->deinit();
-  m_scene_manager.clear();
+  m_sceneManager.clear();
 }
 
 /**********************************************************/
@@ -163,7 +182,7 @@ void VulkanRendererElement::onUIRender()
         if (ImGui::Selectable(renderModeToString(mode), isSelected)) {
           m_renderMode = mode;
           m_renderer->setRenderMode(m_renderMode);
-          m_scene_manager.sceneResourceManager().setDirty(true);
+          m_sceneManager.sceneResourceManager().setDirty(true);
         }
         if (isSelected) {
           ImGui::SetItemDefaultFocus();
@@ -173,11 +192,11 @@ void VulkanRendererElement::onUIRender()
     }
 
     if (ImGui::CollapsingHeader("Camera")) {
-      m_hasChanged |= nvgui::CameraWidget(m_scene_manager.camera());
+      m_hasChanged |= nvgui::CameraWidget(m_sceneManager.camera());
     }
 
     if (ImGui::CollapsingHeader("Environment")) {
-      auto &sceneInfo = m_scene_manager.sceneInfo();
+      auto &sceneInfo = m_sceneManager.sceneInfo();
       m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
 
       if (sceneInfo.useSky) {
@@ -247,8 +266,8 @@ void VulkanRendererElement::onUIRender()
       PE::end();
     }
 
-    renderMaterials();
-    renderInstances();
+    renderMaterialsUI();
+    renderInstancesUI();
   }
   ImGui::End();
 }
@@ -257,15 +276,15 @@ void VulkanRendererElement::onUIRender()
 void VulkanRendererElement::onPreRender()
 /**********************************************************/
 {
-  m_hasChanged |= m_scene_manager.camera()->isDirty();
+  m_hasChanged |= m_sceneManager.camera()->isDirty();
   if (m_hasChanged) {
     m_renderer->reset();
-    m_scene_manager.camera()->setClean();
+    m_sceneManager.camera()->setClean();
   }
-  m_scene_manager.update();
-  if (m_scene_manager.sceneResourceManager().dirty()) {
-    m_renderer->update(m_scene_manager.sceneResourceManager());
-    m_scene_manager.sceneResourceManager().setDirty(false);
+  m_sceneManager.update();
+  if (m_sceneManager.sceneResourceManager().dirty()) {
+    m_renderer->update(m_sceneManager.sceneResourceManager());
+    m_sceneManager.sceneResourceManager().setDirty(false);
   }
 }
 
@@ -276,7 +295,7 @@ void VulkanRendererElement::onRender(const IRenderContext &ctx)
   shaderio::PushConstant pushValues{};
   IRenderContext &ctx_ref = const_cast<IRenderContext &>(ctx);
   ctx_ref.pushValues = pushValues;
-  ctx_ref.sceneResources = m_scene_manager.getScenePtr();
+  ctx_ref.sceneResources = m_sceneManager.getScenePtr();
   m_renderer->render(ctx_ref);
 }
 
@@ -294,10 +313,10 @@ void VulkanRendererElement::onLastHeadlessFrame()
 }
 
 /**********************************************************/
-CameraPtr VulkanRendererElement::getCameraManipulator()
+CameraPtr VulkanRendererElement::getCameraManipulator() const
 /**********************************************************/
 {
-  return m_scene_manager.camera();
+  return m_sceneManager.camera();
 }
 
 /**********************************************************/
@@ -308,11 +327,11 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
 }
 
 /**********************************************************/
-void VulkanRendererElement::renderMaterials()
+void VulkanRendererElement::renderMaterialsUI()
 /**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
-  auto &materials = m_scene_manager.sceneResourceManager().getMaterials();
+  auto &materials = m_sceneManager.sceneResourceManager().getMaterials();
   bool changed = false;
 
   if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -328,6 +347,7 @@ void VulkanRendererElement::renderMaterials()
         changed |=
             PE::SliderFloat("Roughness", &mat.roughnessFactor, 0.0f, 1.0f);
         changed |= PE::ColorEdit3("Emission", glm::value_ptr(mat.emission));
+        changed |= PE::SliderFloat3("IOR", glm::value_ptr(mat.ior), 0.1, 2.0F);
 
         // Read-only info
         int texIdx = mat.baseColorTextureIndex;
@@ -340,17 +360,16 @@ void VulkanRendererElement::renderMaterials()
   }
 
   if (changed) {
-    m_renderer->reset(); // Reset path tracing accumulation
-    m_scene_manager.sceneResourceManager().onMaterialChange();
+    m_sceneManager.sceneResourceManager().onMaterialChange();
   }
 }
 /**********************************************************/
-void VulkanRendererElement::renderInstances()
+void VulkanRendererElement::renderInstancesUI()
 /**********************************************************/
 {
   namespace PE = nvgui::PropertyEditor;
-  auto &instances = m_scene_manager.sceneResourceManager().getInstances();
-  const auto &materials = m_scene_manager.sceneResourceManager().getMaterials();
+  auto &instances = m_sceneManager.sceneResourceManager().getInstances();
+  const auto &materials = m_sceneManager.sceneResourceManager().getMaterials();
   const auto &shaderManager = m_renderer->getShaderManager();
   const auto &shaderRegistry = shaderManager.getRegistry();
 
@@ -400,7 +419,7 @@ void VulkanRendererElement::renderInstances()
         glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
 
         bool tChanged =
-            PE::DragFloat3("Position", glm::value_ptr(inst.position), 0.1f);
+            PE::DragFloat3("Position", glm::value_ptr(inst.translation), 0.1f);
         bool rChanged =
             PE::DragFloat3("Rotation", glm::value_ptr(rotationEuler), 0.1f);
         bool sChanged =
@@ -410,8 +429,8 @@ void VulkanRendererElement::renderInstances()
         if (tChanged || rChanged || sChanged) {
           glm::quat quat = glm::quat(glm::radians(rotationEuler));
           inst.rotation = math::fromQuat(quat);
-          inst.transform =
-              math::composeTransform(inst.position, inst.rotation, inst.scale);
+          inst.transform = math::composeTransform(inst.translation,
+                                                  inst.rotation, inst.scale);
           changed = true;
         }
 
@@ -422,15 +441,27 @@ void VulkanRendererElement::renderInstances()
   }
 
   if (changed) {
-    m_renderer->reset();
-    m_scene_manager.sceneResourceManager().onInstanceChange();
-    m_scene_manager.sceneResourceManager().setDirty(true);
+    m_sceneManager.sceneResourceManager().onInstanceChange();
   }
 }
 
 /**********************************************************/
-IRenderer *VulkanRendererElement::getRenderer()
+const IRenderer *VulkanRendererElement::getRenderer() const
 /**********************************************************/
 {
   return m_renderer.get();
+}
+
+/**********************************************************/
+const SceneManager &VulkanRendererElement::getSceneManager() const
+/**********************************************************/
+{
+  return m_sceneManager;
+}
+
+/**********************************************************/
+void VulkanRendererElement::onGeometryPicked(InstanceID id)
+/**********************************************************/
+{
+  // m_instanceSelected = id;
 }

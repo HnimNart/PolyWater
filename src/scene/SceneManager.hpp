@@ -9,29 +9,28 @@
 #include "backend/interfaces/IRenderer.hpp"
 #include "core/Camera.hpp"
 
-namespace shaderio
-{
+namespace shaderio {
 class TonemapperData;
 }
 
 class IRenderer;
 class IRenderContext;
 
-class SceneManager
-{
+class SceneManager {
 public:
   SceneManager() = default;
-  explicit SceneManager(const std::shared_ptr<IRenderer>& renderer);
+  explicit SceneManager(const std::shared_ptr<IRenderer> &renderer);
   void clear();
 
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
   void update();
-  Scene* getScenePtr();
-  Scene& gltfResources();
-  const Scene& gltfResources() const;
-  SceneResourcesManager& sceneResourceManager();
+  Scene *getScenePtr();
+  Scene &gltfResources();
+  const Scene &gltfResources() const;
+  SceneResourcesManager &sceneResourceManager();
+  const SceneResourcesManager &sceneResourceManager() const;
 
   bool isDirty() const { return has_changed || m_scene_resources.dirty(); }
   bool setDirty(bool dirty) { has_changed = dirty; }
@@ -39,8 +38,8 @@ public:
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
-  glm::vec2& metallicRoughness();
-  shaderio::SceneInfo& sceneInfo();
+  glm::vec2 &metallicRoughness();
+  shaderio::SceneInfo &sceneInfo();
 
   // --------------------------------------------------
   // Camera

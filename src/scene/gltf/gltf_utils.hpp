@@ -27,20 +27,21 @@
 
 #include "shaders/shaderio.h"
 
-namespace tinygltf
-{
+namespace tinygltf {
 class Model;
 }
 
-namespace gltf
-{
+namespace gltf {
 
 // This is a utility function to load a GLTF file and return the model data.
-tinygltf::Model loadModel(const std::filesystem::path& filename);
-shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model& model,
+tinygltf::Model loadModel(const std::filesystem::path &filename);
+shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model &model,
                                         uint meshIdx);
 shaderio::MeshPrimitive
 createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                            const nvutils::PrimitiveMesh& primMesh);
+                            const nvutils::PrimitiveMesh &primMesh);
 
-}  // namespace gltf
+std::pair<glm::vec3, glm::vec3>
+computeModelBounds(const tinygltf::Model &model);
+
+} // namespace gltf

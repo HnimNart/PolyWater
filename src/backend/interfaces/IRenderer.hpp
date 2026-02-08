@@ -5,6 +5,7 @@
 
 #include "backend/interfaces/IRenderContext.hpp"
 #include "scene/SceneManager.hpp"
+#include "scene/ShaderManager.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;

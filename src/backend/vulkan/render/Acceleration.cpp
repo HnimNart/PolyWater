@@ -5,6 +5,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "common/timers.hpp"
 #include "scene/SceneResources.hpp"
+#include "scene/ShaderManager.hpp"
 
 /**********************************************************/
 std::unique_ptr<AccelerationStructures>
@@ -137,13 +138,13 @@ AccelerationStructures::primitiveToGeometry(const shaderio::MeshPrimitive &mesh)
       .sType =
           VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
       .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT, // vec3 vertex position data
-      .vertexData = {.deviceAddress = VkDeviceAddress(mesh.gltfBuffer) +
+      .vertexData = {.deviceAddress = VkDeviceAddress(mesh.buffer) +
                                       triMesh.positions.offset},
       .vertexStride = triMesh.positions.byteStride,
       .maxVertex = triMesh.positions.count - 1,
       .indexType = VkIndexType(mesh.indexType),
-      .indexData = {.deviceAddress = VkDeviceAddress(mesh.gltfBuffer) +
-                                     triMesh.indices.offset},
+      .indexData = {.deviceAddress =
+                        VkDeviceAddress(mesh.buffer) + triMesh.indices.offset},
   };
 
   // Identify the above data as containing opaque triangles.

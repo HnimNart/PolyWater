@@ -1,13 +1,18 @@
 #include "shared.h.slang"
 
-struct DiffuseEvaluator : IBSDF
-{
+struct DiffuseEvaluator : IBSDF {
   __init(float3 albedo) { this.albedo = albedo; }
-  float3 eval(float3 L, float3 N)
-  {
+  float3 eval(float3 L, float3 N) {
     float nDotL = max(0.0, dot(N, L));
-    return albedo / M_PI * nDotL;
+    return albedo * M_1_PI * nDotL;
   }
+
+  float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
+                inout float3 outDir) {
+    outDir = sampleCosineWeightedHemisphere(worldNormal, seed);
+    return albedo;
+  }
+
   float3 albedo;
 }
 
@@ -16,8 +21,7 @@ struct DiffuseEvaluator : IBSDF
     //-----------------------------------------------------------------------
     [shader("closesthit")] void
     rchit_diffuse(inout HitPayload payload,
-                  in BuiltInTriangleIntersectionAttributes attr)
-{
+                  in BuiltInTriangleIntersectionAttributes attr) {
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;
@@ -27,8 +31,7 @@ struct DiffuseEvaluator : IBSDF
   const Material material = hit.material;
 
   float3 albedo = material.baseColorFactor.xyz;
-  if (material.baseColorTextureIndex > 0)
-  {
+  if (material.baseColorTextureIndex > 0) {
     albedo *= textures[material.baseColorTextureIndex].SampleLevel(uv, 0).xyz;
   }
 
@@ -37,7 +40,7 @@ struct DiffuseEvaluator : IBSDF
   payload.color += emissive * payload.weight;
 
   // --- 6. NEXT EVENT ESTIMATION (Direct Lighting) ---
-  const SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  const SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
   DiffuseEvaluator bsdf = DiffuseEvaluator(albedo);
   payload.color +=
       sampleDirectLighting(sceneInfo, worldPos, worldNormal, bsdf) *
@@ -45,8 +48,8 @@ struct DiffuseEvaluator : IBSDF
 
   // --- 7. INDIRECT BOUNCE (Diffuse Only) ---
   // Simple cosine-weighted scatter
-  float3 bounceDir = sampleCosineWeightedHemisphere(worldNormal, payload.seed);
-  payload.weight *= albedo;
+  float3 bounceDir;
+  payload.weight *= bsdf.sample(viewDir, worldNormal, payload.seed, bounceDir);
 
   // --- 8. PREPARE NEXT RAY ---
   payload.nextRayOrigin = worldPos;
