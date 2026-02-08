@@ -23,6 +23,8 @@ public:
                                    const std::span<const uint32_t> &spirv = {},
                                    bool useCache = true);
 
+  void clearCache() { m_binaryCacheMap.clear(); }
+
   // Delete Copy/Move to enforce Singleton uniqueness
   SlangCompiler(const SlangCompiler &) = delete;
   SlangCompiler &operator=(const SlangCompiler &) = delete;
@@ -30,7 +32,6 @@ public:
   SlangCompiler &operator=(SlangCompiler &&) = delete;
 
 private:
-  // Private Constructor
   SlangCompiler() = default;
 
   // Internal Helper
