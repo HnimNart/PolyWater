@@ -3,7 +3,7 @@
 
 
 ## TODOS
-[ ] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
+[x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
 
 [x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
 
