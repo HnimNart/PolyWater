@@ -3,8 +3,7 @@
 #include <iostream>
 #include <string>
 
-namespace common
-{
+namespace common {
 
 // Generic utility class for measuring CPU time.
 //
@@ -30,8 +29,7 @@ namespace common
 // (https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps#low-level-hardware-clock-characteristics),
 // and on Unix we choose a method that's synced to Network Time Protocol (at
 // the expense of a higher chance of non-monotonicity).
-class PerformanceTimer
-{
+class PerformanceTimer {
 public:
   PerformanceTimer() { reset(); }
 
@@ -40,8 +38,7 @@ public:
 
   // Returns the number of seconds since the clock was initialized.
   // Always non-negative even if the underlying timer is non-monotonic.
-  double getSeconds() const
-  {
+  double getSeconds() const {
 #ifdef __unix__
     const TimeValue t = now();
 
@@ -50,8 +47,7 @@ public:
     int64_t diff_ns = t.nanoseconds - m_start.nanoseconds;
 
     // 2. Handle the "borrow" if nanoseconds wrapped around
-    if (diff_ns < 0)
-    {
+    if (diff_ns < 0) {
       diff_s -= 1;
       diff_ns += 1000000000LL;
     }
@@ -68,8 +64,7 @@ public:
   double getMicroseconds() const { return getSeconds() * 1e6; }
 
 private:
-  struct TimeValue
-  {
+  struct TimeValue {
 #ifdef __unix__
     // On Unix platforms, store the full 128-bit time struct; this gets us
     // nanosecond precision and still avoids overflow issues.
@@ -90,22 +85,19 @@ private:
   TimeValue now() const;
 };
 
-struct TimerResult
-{
+struct TimerResult {
   int depth;
   std::string name;
   double timeMs;
 };
 
-class ScopedTimer
-{
+class ScopedTimer {
 public:
-  ScopedTimer(const std::string& str);
-  ScopedTimer(const char* fmt, ...);
-  void init_(const std::string& str);
+  ScopedTimer(const std::string &str);
+  ScopedTimer(const char *fmt, ...);
+  void init_(const std::string &str);
   ~ScopedTimer();
-  static std::string indent()
-  {
+  static std::string indent() {
     std::string result(static_cast<size_t>(s_nesting * 2), ' ');
     for (int i = 0; i < s_nesting * 2; i += 2)
       result[i] = '|';
@@ -119,16 +111,24 @@ private:
   static inline thread_local bool s_openNewline = false;
 };
 
-}  // namespace common
+} // namespace common
 
 #if defined(_MSC_VER)
-#  define FUNC_SIG __FUNCSIG__
+#define FUNC_SIG __FUNCSIG__
 #elif defined(__GNUC__) || defined(__clang__)
-#  define FUNC_SIG __PRETTY_FUNCTION__
+#define FUNC_SIG __PRETTY_FUNCTION__
 #else
-#  define FUNC_SIG __func__
+#define FUNC_SIG __func__
 #endif
 
+#if defined(_DEBUG) || defined(ENABLE_PROFILING)
+  // --- Debug / Profiling Mode: Enable Timers ---
 #define SCOPED_TIMER_SIG() common::ScopedTimer _timer_##__LINE__(FUNC_SIG)
 #define SCOPED_TIMER(name) common::ScopedTimer _timer_##__LINE__(name)
 #define SCOPED_TIMER_FUNC() common::ScopedTimer _timer_##__LINE__(__FUNCTION__)
+#else
+  // --- Release Mode: Compile to Nothing ---
+#define SCOPED_TIMER_SIG()
+#define SCOPED_TIMER(name)
+#define SCOPED_TIMER_FUNC()
+#endif
