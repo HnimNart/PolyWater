@@ -24,12 +24,9 @@
 
 #include <glm/glm.hpp>
 #include <nvutils/primitives.hpp>
+#include <tinygltf/tiny_gltf.h>
 
 #include "shaders/shared/structs.h"
-
-namespace tinygltf {
-class Model;
-}
 
 namespace gltf {
 

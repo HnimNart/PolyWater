@@ -20,7 +20,6 @@
 #include "gltf_utils.hpp"
 
 #include <fmt/format.h>
-#include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan_core.h>
 
 #include <glm/gtc/type_ptr.hpp>

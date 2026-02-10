@@ -8,7 +8,6 @@
 #include "core/Camera.hpp"
 #include "scene/Scene.h"
 #include "scene/gltf/gltf_utils.hpp"
-#include "tiny_gltf.h"
 
 using InstanceID = uint32_t;
 using MaterialID = uint32_t;

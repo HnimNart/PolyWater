@@ -203,8 +203,9 @@ void VulkanRendererElement::onUIRender() {
                 PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
             m_hasChanged |=
                 PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-            if (PE::Button("Reset Accumulation"))
+            if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f))) {
               m_hasChanged = true;
+            }
             PE::end();
           }
         } else {
