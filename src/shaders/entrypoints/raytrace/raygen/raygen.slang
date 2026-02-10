@@ -1,4 +1,4 @@
-#include "shared.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
 
 [shader("raygeneration")] void rgenMain()
 {

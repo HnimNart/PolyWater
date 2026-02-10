@@ -1,5 +1,5 @@
 #include "nvshaders/sky_functions.h.slang"
-#include "shared.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
 
 //-----------------------------------------------------------------------
 // MISS SHADER - Called when ray doesn't hit any geometry (background/sky)
@@ -30,7 +30,5 @@
     payload.color += sceneInfo.backgroundColor * payload.weight;
   }
 
-  // Set depth to MISS_DEPTH to indicate this ray has finished (no more bounces)
-  payload.depth = MISS_DEPTH;
   payload.stop = true;
 }

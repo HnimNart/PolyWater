@@ -56,6 +56,22 @@ enum class MaterialType : uint16_t {
 
 NAMESPACE_SHADERIO_BEGIN()
 
+// Ray payload structure - carries data through the ray tracing pipeline
+struct HitPayload {
+  float3 color;  // Accumulated color along the ray path
+  float3 weight; // Weight/importance of this ray (for importance sampling)
+  int depth;     // Current recursion depth (for limiting bounces)
+  int seed;
+  int emit; // Should we include emitting surfaces in the contribution
+  float3 nextRayOrigin; // Where the bounce starts
+  float3 nextRayDir;    // Where the bounce goes
+  bool stop;            // "Did we hit the sky or a black hole?"
+};
+
+struct ShadowPayload {
+  bool isHit;
+};
+
 // Binding Points
 enum BindingPoints {
   eTextures = 0,   // Binding point for textures

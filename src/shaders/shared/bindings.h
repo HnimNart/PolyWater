@@ -1,22 +1,3 @@
-#ifndef SHARED_H
-#define SHARED_H 1
-
-#define RAY_TRACE 1
-
-#include "include/lights.h.slang"
-#include "include/math.h.slang"
-#include "include/pbr.h.slang"
-#include "include/rnd.h.slang"
-#include "include/sampler.h.slang"
-#include "include/utils.h.slang"
-#include "lights.h.slang"
-#include "nvshaders/constants.h.slang"
-#include "ray_common.h.slang"
-#include "bsdf/ibsdf.h.slang"
-#include "phase/iphase.h.slang"
-#include "shaderio.h"
-
-#define MISS_DEPTH 1000
 
 // clang-format off
 // Push constants containing scene information, camera data, and material overrides
@@ -30,5 +11,3 @@
 // Output image where the final rendered result will be stored
 [[vk::binding(BindingPoints::eAccumImage, 1)]]    RWTexture2D<float4> accumImage;
 // clang-format on
-
-#endif

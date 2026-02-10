@@ -1,5 +1,5 @@
 #include "geometryPicker.hpp"
-#include "shaders/shaderio.h" // For Instance definition
+#include "shaders/shared/structs.h" // For Instance definition
 
 #include <glm/gtc/matrix_inverse.hpp> // For inverse transpose
 #include <imgui.h>

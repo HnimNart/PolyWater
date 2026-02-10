@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "RHI_definitions.hpp"
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 class Scene;
 //------------------------------------------------------------

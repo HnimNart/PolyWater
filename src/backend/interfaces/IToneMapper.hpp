@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 
 #include <nvshaders_host/tonemapper.hpp>
 

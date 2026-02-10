@@ -12,7 +12,7 @@
 #include "passes/RasterPass.hpp"
 #include "passes/RayTracePass.hpp"
 #include "scene/SceneManager.hpp"
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 class PostProcessor;
 class IRenderBackend;

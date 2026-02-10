@@ -1,6 +1,6 @@
 #include "SkyPass.hpp"
 
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>

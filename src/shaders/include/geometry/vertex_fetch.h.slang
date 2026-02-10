@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H 1
+#ifndef VERTEX_FETCH_H_SLANG
+#define VERTEX_FETCH_H_SLANG 1
 
 // Generic function to retrieve vertex attributes from GLTF buffer data
 // T: Type of attribute (float, float2, float3, etc.)

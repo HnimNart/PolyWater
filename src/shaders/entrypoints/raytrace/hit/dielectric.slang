@@ -1,11 +1,10 @@
-#include "shared.h.slang"
 
-#include "bsdf/dielectric.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
+#include "include/bsdf/dielectric.h.slang"
 
-
-    [shader("closesthit")] void
-    rchit_dielectric(inout HitPayload payload,
-                     in BuiltInTriangleIntersectionAttributes attr) {
+[shader("closesthit")] void
+rchit_dielectric(inout HitPayload payload,
+                 in BuiltInTriangleIntersectionAttributes attr) {
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;

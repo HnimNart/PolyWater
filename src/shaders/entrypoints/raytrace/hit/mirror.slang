@@ -1,6 +1,5 @@
-#include "shared.h.slang"
-
-#include "bsdf/mirror.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
+#include "include/bsdf/mirror.h.slang"
 
 [shader("closesthit")] 
 void rchit_mirror(inout HitPayload payload, in BuiltInTriangleIntersectionAttributes attr) {

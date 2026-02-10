@@ -25,7 +25,7 @@
 #include <glm/glm.hpp>
 #include <nvutils/primitives.hpp>
 
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 namespace tinygltf {
 class Model;

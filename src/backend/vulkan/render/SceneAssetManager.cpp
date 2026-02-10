@@ -18,7 +18,7 @@
 
 #include "common/timers.hpp"
 #include "scene/gltf/gltf_utils.hpp"
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 /**********************************************************/
 VulkanSceneAssetManager::VulkanSceneAssetManager(

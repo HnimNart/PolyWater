@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 // Lightweight structs to hold JSON data temporarily
 

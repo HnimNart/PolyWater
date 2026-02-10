@@ -5,7 +5,7 @@
 #include <span>
 #include <string>
 
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 struct MaterialEntry {
   MaterialType type;

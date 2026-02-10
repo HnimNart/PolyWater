@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 #include <vulkan/vulkan_core.h>
 
 #include <deque>

@@ -1,5 +1,5 @@
-#include "shared.h.slang"
-#include "bsdf/diffuse.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
+#include "include/bsdf/diffuse.h.slang"
 
     //-----------------------------------------------------------------------
     // DIFFUSE CLOSEST HIT SHADER - Path Tracing + NEE

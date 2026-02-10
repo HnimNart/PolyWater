@@ -6,7 +6,7 @@
 #include <nvutils/primitives.hpp>
 
 #include "scene/Scene.h"
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 namespace tinygltf {
 class Model;

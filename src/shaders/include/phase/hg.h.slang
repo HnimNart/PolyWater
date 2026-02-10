@@ -3,7 +3,7 @@
 
 #include "iphase.h.slang"
 
-#include "include/math.h.slang"
+#include "include/core/math.h.slang"
 
 // --- 1. Henyey-Greenstein Phase Function ---
 struct HenyeyGreensteinPhase : IPhaseFunc {

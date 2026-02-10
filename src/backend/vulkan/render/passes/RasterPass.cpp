@@ -1,7 +1,7 @@
 #include "RasterPass.hpp"
 
 // Implementation Includes
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 
 #include <nvutils/camera_manipulator.hpp>
 #include <nvvk/check_error.hpp>
@@ -17,7 +17,7 @@
 #include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
-#include "_autogen/raster.slang.h"
+#include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
 RasterPass::RasterPass(nvvk::DescriptorPack *descPack)
@@ -221,7 +221,7 @@ void RasterPass::compileShaders()
   SCOPED_TIMER_FUNC();
 
   VkShaderModuleCreateInfo shaderCode =
-      SlangCompiler::instance().compile("raster.slang", raster_slang);
+      SlangCompiler::instance().compile("gltf_raster.slang", gltf_raster_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,

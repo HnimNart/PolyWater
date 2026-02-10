@@ -1,7 +1,6 @@
-#include "shared.h.slang"
-
-#include "phase/hg.h.slang"
-#include "bsdf/dielectric.h.slang"
+#include "entrypoints/raytrace/ray_common.h.slang"
+#include "include/phase/hg.h.slang"
+#include "include/bsdf/dielectric.h.slang"
 
 [shader("closesthit")]
 void rchit_volumetric(inout HitPayload payload, 

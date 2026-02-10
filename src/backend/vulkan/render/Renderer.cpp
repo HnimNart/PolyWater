@@ -17,7 +17,7 @@
 #include "passes/ToneMapPass.hpp"
 #include "passes/UIPass.hpp"
 #include "scene/SceneResources.hpp"
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 /**********************************************************/
 VulkanRenderer::VulkanRenderer(VulkanBackend *backend)

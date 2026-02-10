@@ -1,6 +1,6 @@
 #include "RayTracePass.hpp"
 
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 
 #include <algorithm>
 #include <array>

@@ -10,7 +10,7 @@
 
 // Third Party
 #include <imgui/imgui.h>
-#include <shaders/shaderio.h>
+#include <shaders/shared/structs.h>
 #include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan.h>
 

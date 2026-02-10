@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "shaders/shaderio.h"
+#include "shaders/shared/structs.h"
 
 struct Scene {
   std::vector<shaderio::MeshPrimitive> meshes{}; // All meshes in the scene

@@ -1,7 +1,9 @@
-#include "math.h.slang"
 
 #ifndef SAMPLER_H_SLANG
-#  define SAMPLER_H_SLANG 1
+#define SAMPLER_H_SLANG 1
+
+#include "math.h.slang"
+#include "rnd.h.slang"
 // -----------------------------------------------------------------------
 // Generates a Cosine-Weighted random direction
 // Returns: A normalized World Space direction centered around 'normal'

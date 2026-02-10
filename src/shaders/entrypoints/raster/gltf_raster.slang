@@ -19,14 +19,10 @@
 
 #include <nvshaders/slang_types.h>
 
-#include "include/lights.h.slang"
-#include "include/pbr.h.slang"
-#include "shaderio.h"
-
-// clang-format off
-[[vk::push_constant]]                       ConstantBuffer<PushConstant> pushConst;
-[[vk::binding(BindingPoints::eTextures)]]   Sampler2D textures[];
-// clang-format on
+#include "include/light/lights.h.slang"
+#include "include/bsdf/pbr.h.slang"
+#include "shared/structs.h"
+#include "shared/bindings.h"
 
 // Per-vertex attributes to be assembled from bound vertex buffers.
 struct VSin

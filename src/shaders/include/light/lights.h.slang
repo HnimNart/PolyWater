@@ -1,6 +1,8 @@
 #ifndef LIGHTS_H
 #define LIGHTS_H 1
 
+#include "include/bsdf/ibsdf.h.slang"
+
 //-----------------------------------------------------------------------
 // STRUCTS
 //-----------------------------------------------------------------------
@@ -99,5 +101,40 @@ LightSample sampleLight(SceneInfo* sceneInfo,  // Pointer to scene data
 
   return result;
 }
+
+
+#ifdef RAY_TRACE
+
+#include "include/raytrace/trace.h.slang"
+
+float3 sampleDirectLighting(SceneInfo* sceneInfo, float3 worldPos,
+                            float3 worldNormal, IBSDF bsdf)
+{
+  float3 color = float3(0);
+  // Loop over all lights
+  for (int i = 0; i < sceneInfo->numLights; i++)
+  {
+    LightSample light = sampleLight(sceneInfo, worldPos, i);
+
+    if (dot(worldNormal, light.direction) > 0.0)
+    {
+      // C. Shadow Test
+      float distToLight = length(light.position - worldPos);
+      float visibility = testShadow(worldPos, light.direction, distToLight);
+
+      // D. If Visible, Accumulate
+      if (visibility > 0.0)
+      {
+        float3 materialResponse = bsdf.eval(light.direction, worldNormal);
+        float3 irradiance = light.color * light.intensity;
+        color += materialResponse * irradiance * visibility;
+      }
+    }
+  }
+  return color;
+}
+
+#endif
+
 
 #endif
