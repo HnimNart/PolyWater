@@ -23,7 +23,7 @@
 
 #include <nvutils/profiler.hpp>
 
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 
 namespace core
 {

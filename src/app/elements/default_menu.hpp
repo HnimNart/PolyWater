@@ -23,50 +23,37 @@
 
 #pragma once
 
-#include "backend/interfaces/IRenderer.hpp"
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
 //  and add engines
 //
 // Ex:
-//   app->addEngine(std::make_shared<coreDefaultMenu>());
+//   app->addEngine(std::make_shared<nvapp::ElementDefaultMenu>());
 //
 
-namespace core {
+namespace core
+{
 
 /*-------------------------------------------------------------------------------------------------
-# class core::ElementDefaultWindowTitle
+# class nvapp::ElementDefaultMenu
 
->  This class is an element of the application that is responsible for the
-default window title of the application. It is using the `GLFW` library to set
-the window title with the application name, the size of the window and the frame
-rate.
+>  This class is an element of the application that is responsible for the default menu of the
+application. It is using the `ImGui` library to create a menu with File/Exit and View/V-Sync.
 
-To use this class, you need to add it to the `core::Application` using the
-`addElement` method.
+To use this class, you need to add it to the `nvapp::Application` using the `addElement` method.
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultWindowTitle : public core::IAppElement {
+class ElementDefaultMenu : public core::IAppElement
+{
 public:
-  ElementDefaultWindowTitle(std::string prefix = "", std::string suffix = "");
-
-  void onAttach(core::Application *app) override;
-  void onUIRender() override;
-  void setPrefix(const std::string &str);
-  void setSuffix(const std::string &str);
-
-  void setRenderer(const IRenderer *renderer);
+  void onAttach(core::Application* app) override;
+  void onUIMenu() override;
 
 private:
-  core::Application *m_app{nullptr};
-  const IRenderer *m_renderer{nullptr};
-
-  float m_dirtyTimer{0.0F};
-  std::string m_prefix;
-  std::string m_suffix;
+  core::Application* m_app{nullptr};
 };
 
-} // namespace core
+}  // namespace core

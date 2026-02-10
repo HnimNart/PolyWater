@@ -24,7 +24,7 @@
 
 #include <nvutils/camera_manipulator.hpp>
 
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 
 /*-------------------------------------------------------------------------------------------------
 # class nvvkhl::ElementCamera

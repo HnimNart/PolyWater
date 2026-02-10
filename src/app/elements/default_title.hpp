@@ -23,37 +23,50 @@
 
 #pragma once
 
-#include "core/application/IAppElement.hpp"
+#include "backend/interfaces/IRenderer.hpp"
+#include "app/IAppElement.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
 //  and add engines
 //
 // Ex:
-//   app->addEngine(std::make_shared<nvapp::ElementDefaultMenu>());
+//   app->addEngine(std::make_shared<coreDefaultMenu>());
 //
 
-namespace core
-{
+namespace core {
 
 /*-------------------------------------------------------------------------------------------------
-# class nvapp::ElementDefaultMenu
+# class core::ElementDefaultWindowTitle
 
->  This class is an element of the application that is responsible for the default menu of the
-application. It is using the `ImGui` library to create a menu with File/Exit and View/V-Sync.
+>  This class is an element of the application that is responsible for the
+default window title of the application. It is using the `GLFW` library to set
+the window title with the application name, the size of the window and the frame
+rate.
 
-To use this class, you need to add it to the `nvapp::Application` using the `addElement` method.
+To use this class, you need to add it to the `core::Application` using the
+`addElement` method.
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultMenu : public core::IAppElement
-{
+class ElementDefaultWindowTitle : public core::IAppElement {
 public:
-  void onAttach(core::Application* app) override;
-  void onUIMenu() override;
+  ElementDefaultWindowTitle(std::string prefix = "", std::string suffix = "");
+
+  void onAttach(core::Application *app) override;
+  void onUIRender() override;
+  void setPrefix(const std::string &str);
+  void setSuffix(const std::string &str);
+
+  void setRenderer(const IRenderer *renderer);
 
 private:
-  core::Application* m_app{nullptr};
+  core::Application *m_app{nullptr};
+  const IRenderer *m_renderer{nullptr};
+
+  float m_dirtyTimer{0.0F};
+  std::string m_prefix;
+  std::string m_suffix;
 };
 
-}  // namespace core
+} // namespace core

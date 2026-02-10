@@ -25,7 +25,7 @@
 #include <nvgui/fonts.hpp>
 #include <nvutils/logger.hpp>
 
-#include "core/application/App.hpp"
+#include "app/App.hpp"
 
 void core::ElementDefaultMenu::onAttach(core::Application* app)
 {

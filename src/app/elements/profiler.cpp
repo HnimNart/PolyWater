@@ -22,7 +22,7 @@
 #include <nvutils/logger.hpp>
 
 #include "elem_profiler.hpp"
-#include "core/application/App.hpp"
+#include "app/App.hpp"
 
 // defaultViewSettings are optional, but can be used to set different defaults and also to expose
 // to sample code (like hiding views for benchmark through parameter change)

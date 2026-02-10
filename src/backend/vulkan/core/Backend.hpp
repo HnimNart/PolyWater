@@ -11,7 +11,7 @@
 #include "SwapchainRenderManager.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 #include "backend/vulkan/gui/IRenderable.h"
-#include "core/application/IGUISystem.hpp"
+#include "app/IGUISystem.hpp"
 
 class ImGuiVulkanSystem;
 

@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "IRenderable.h"
-#include "core/application/AppInfo.hpp"
-#include "core/application/IGUISystem.hpp"
+#include "app/AppInfo.hpp"
+#include "app/IGUISystem.hpp"
 
 class VulkanContextManager;
 class FrameSynchronizationManager;

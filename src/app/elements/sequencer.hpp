@@ -21,7 +21,7 @@
 
 #include <nvutils/parameter_sequencer.hpp>
 
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 
 namespace core
 {

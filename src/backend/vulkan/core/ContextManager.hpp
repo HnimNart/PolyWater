@@ -10,7 +10,7 @@
 #include <nvvk/swapchain.hpp>
 #include <nvvk/validation_settings.hpp>
 
-#include "core/application/AppInfo.hpp"
+#include "app/AppInfo.hpp"
 
 class VulkanContextManager
 {

@@ -21,7 +21,7 @@
 #include "IGUISystem.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 #include "backend/interfaces/IRenderContext.hpp"
-#include "common/progress_bar.hpp"
+#include "core/progress_bar.hpp"
 
 namespace core
 {

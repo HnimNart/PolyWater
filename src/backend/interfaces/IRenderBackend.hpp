@@ -10,10 +10,10 @@
 #include <vector>
 
 #include "IRenderContext.hpp"
-#include "core/application/AppInfo.hpp"
-#include "core/application/IAppElement.hpp"
-#include "core/application/IGUISystem.hpp"
-#include "core/application/types.h"
+#include "app/AppInfo.hpp"
+#include "app/IAppElement.hpp"
+#include "app/IGUISystem.hpp"
+#include "app/types.h"
 
 //------------------------------------------------------------
 // IRenderBackend

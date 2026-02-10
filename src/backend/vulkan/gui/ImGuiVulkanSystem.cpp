@@ -32,7 +32,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "backend/vulkan/core/SwapchainRenderManager.hpp"
-#include "core/application/AppInfo.hpp"
+#include "app/AppInfo.hpp"
 
 /**********************************************************/
 ImGuiVulkanSystem::~ImGuiVulkanSystem()

@@ -4,7 +4,7 @@
 
 #include <nvslang/slang.hpp>
 
-#include "common/timers.hpp"
+#include "core/timers.hpp"
 
 namespace {
 

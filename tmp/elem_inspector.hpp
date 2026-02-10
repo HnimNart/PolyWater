@@ -23,7 +23,7 @@
 
 #include <nvvk/resource_allocator.hpp>
 
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 
 /** @DOC_START
 

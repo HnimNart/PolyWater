@@ -2,9 +2,9 @@
 
 #include <memory>
 
+#include "app/IAppElement.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
 #include "core/Camera.hpp"
-#include "core/application/IAppElement.hpp"
 #include "scene/SceneManager.hpp"
 
 // Forward declarations to reduce compile time

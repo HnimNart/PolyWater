@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include "core/application/AppInfo.hpp"
-#include "core/application/IAppElement.hpp"
-#include "core/application/types.h"
+#include "AppInfo.hpp"
+#include "IAppElement.hpp"
+#include "core/Types.hpp"
 
 namespace core
 {

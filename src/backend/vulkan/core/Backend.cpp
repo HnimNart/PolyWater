@@ -8,7 +8,7 @@
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
 #include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
-#include "core/application/IGUISystem.hpp"
+#include "app/IGUISystem.hpp"
 
 /**********************************************************/
 std::unique_ptr<VulkanBackend>

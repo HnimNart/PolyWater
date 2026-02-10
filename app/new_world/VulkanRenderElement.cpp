@@ -22,12 +22,12 @@
 #include <nvgui/sky.hpp>
 #include <nvgui/tonemapper.hpp>
 
+#include "app/App.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
-#include "common/path_utils.hpp"
-#include "common/timers.hpp"
 #include "core/Math.hpp"
-#include "core/application/App.hpp"
+#include "core/path_utils.hpp"
+#include "core/timers.hpp"
 #include "scene/SceneLoader.hpp"
 
 /**********************************************************/

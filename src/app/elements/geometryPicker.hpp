@@ -6,7 +6,7 @@
 #include <imgui_internal.h>
 
 #include "core/Math.hpp"
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 #include "scene/SceneResources.hpp"
 
 // Forward Declarations

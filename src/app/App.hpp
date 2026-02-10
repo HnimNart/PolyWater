@@ -15,7 +15,7 @@
 #include "AppInfo.hpp"
 #include "IAppElement.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
-#include "types.h"
+#include "core/Types.hpp"
 
 // Forward declarations
 struct GLFWwindow;

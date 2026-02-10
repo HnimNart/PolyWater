@@ -60,7 +60,7 @@
 #include <nvvk/commands.hpp>
 
 #include "elem_inspector.hpp"
-#include "core/application/App.hpp"
+#include "app/App.hpp"
 
 // Time during which a selected row will flash, in ms
 #define SELECTED_FLASH_DURATION 800.0

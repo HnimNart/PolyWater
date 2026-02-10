@@ -16,7 +16,7 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
 
-#include "common/timers.hpp"
+#include "core/timers.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shared/structs.h"
 

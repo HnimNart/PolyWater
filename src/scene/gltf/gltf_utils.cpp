@@ -28,7 +28,7 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
-#include "common/timers.hpp"
+#include "core/timers.hpp"
 #include "nvutils/primitives.hpp"
 
 namespace {

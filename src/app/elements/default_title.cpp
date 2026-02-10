@@ -25,7 +25,7 @@
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 
-#include "core/application/App.hpp"
+#include "app/App.hpp"
 #include "elem_default_title.hpp"
 
 /**********************************************************/

@@ -26,7 +26,7 @@
 
 #include <nvutils/logger.hpp>
 
-#include "core/application/IAppElement.hpp"
+#include "app/IAppElement.hpp"
 #include "nvgui/settings_handler.hpp"
 
 namespace core

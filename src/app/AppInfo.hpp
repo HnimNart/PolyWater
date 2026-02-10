@@ -11,6 +11,8 @@
 #include <nvapp/frame_pacer.hpp>
 #include <nvgui/settings_handler.hpp>
 
+#include "core/Types.hpp"
+
 namespace core
 {
 
@@ -23,7 +25,7 @@ struct ApplicationCreateInfo
   std::string name{"Application"};
 
   // Window / runtime
-  glm::uvec2 windowSize{0, 0};  // Window size (width, height) or Viewport size (headless)
+  WindowSize windowSize{0, 0};  // Window size (width, height) or Viewport size (headless)
   bool vSync{true};             // Enable V-Sync by default
 
   // Headless
