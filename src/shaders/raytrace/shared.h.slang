@@ -12,6 +12,8 @@
 #include "lights.h.slang"
 #include "nvshaders/constants.h.slang"
 #include "ray_common.h.slang"
+#include "bsdf/ibsdf.h.slang"
+#include "phase/iphase.h.slang"
 #include "shaderio.h"
 
 #define MISS_DEPTH 1000

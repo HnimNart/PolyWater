@@ -52,12 +52,18 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
   std::uniform_real_distribution<float> disColor(1e-5f, 1.0f);
   std::uniform_real_distribution<float> disPos(-20.0f, 20.0f);
   std::uniform_real_distribution<float> disScale(0.1f, 0.8f);
+
+  shaderio::Material &planeMaterial =
+      m_sceneManager.sceneResourceManager().getMaterialFromName("mat_plane");
+  glm::vec4 color =
+      glm::vec4(disColor(gen), disColor(gen), disColor(gen), 1.0f);
+  // planeMaterial.baseColorFactor = color;
+
   const int numInstances = 200;
   const float minRadius = 2.0f;
   for (int i = 0; i < numInstances; ++i) {
     glm::vec3 randomPos;
 
-    // 2. Rejection Sampling: Keep picking a spot until it's far enough away
     do {
       randomPos = glm::vec3(disPos(gen), 0.0f, disPos(gen));
     } while (glm::length(randomPos) < minRadius);
@@ -66,11 +72,10 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
         glm::vec4(disColor(gen), disColor(gen), disColor(gen), 1.0f);
     const std::string name = "Sphere" + std::to_string(i);
     MaterialID randomMatId = scene_resources.addMaterial(
-        {
-            .baseColorFactor = randomColor,
-            .metallicFactor = std::sqrt(disColor(gen)),
-            .roughnessFactor = disColor(gen) * disColor(gen),
-        },
+        {.baseColorFactor = randomColor,
+         .metallicFactor = std::sqrt(disColor(gen)),
+         .roughnessFactor = disColor(gen) * disColor(gen),
+         .sigma_t = disColor(gen) * 5.0f},
         name);
 
     // 3. Add the Instance
@@ -79,7 +84,7 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
          .scale = glm::vec3(disScale(gen)),
          .materialIndex = randomMatId,
          .meshIndex = scene_resources.getMeshIDFromName("sphere"),
-         .hit_group = MaterialType::eDieletrics},
+         .hit_group = MaterialType::eVolumetric},
         name);
   }
 
@@ -206,7 +211,7 @@ void VulkanRendererElement::onUIRender() {
       }
 
       // --- TAB 2: ENVIRONMENT & LIGHTING ---
-      if (ImGui::BeginTabItem("Environment")) {
+      if (ImGui::BeginTabItem("SceneInfo")) {
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
           m_hasChanged |= nvgui::CameraWidget(m_sceneManager.camera());
         }
@@ -474,8 +479,6 @@ void VulkanRendererElement::renderInstancesUI()
         }
 
         // 2. Hit Group (Shader) Assignment
-        // We map the MaterialType enum to its index in the registry for the
-        // combo
         std::vector<MaterialType> types;
         std::string shaderNames;
         int currentTypeIdx = -1;

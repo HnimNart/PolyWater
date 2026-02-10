@@ -70,6 +70,7 @@ void VulkanRenderer::registerShaders()
   m_shaderManager.registerMaterial(MaterialType::eNormals, "normals");
   m_shaderManager.registerMaterial(MaterialType::eDieletrics, "dielectric");
   m_shaderManager.registerMaterial(MaterialType::eMirror, "mirror");
+  m_shaderManager.registerMaterial(MaterialType::eVolumetric, "volumetric");
 }
 
 /**********************************************************/
@@ -147,7 +148,6 @@ void VulkanRenderer::render(IRenderContext &ctx)
   vkCtx.assetManager = m_resources.get();
 
   // 2. Update GPU Resources (Uploads & Barriers)
-  // We capture the returned GPU addresses to pass to the shaders
   auto *sceneInfoAddress =
       m_resources->update(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
   auto *resourcesAddress = m_resources->getSceneResources();

@@ -171,7 +171,6 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
 void SceneResourcesManager::onMaterialChange()
 /**********************************************************/
 {
-
   m_device_resources->beginUploading();
   m_device_resources->update(m_resources.materials);
   m_device_resources->endUploading();

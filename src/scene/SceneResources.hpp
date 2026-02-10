@@ -88,12 +88,20 @@ public:
   const std::map<std::string, InstanceID> &instanceMap() const {
     return m_instanceMap;
   }
+
+  shaderio::Material &getMaterialFromName(const std::string &name) {
+    auto it = m_materialMap.find(name);
+    if (it != m_materialMap.end()) {
+      return m_resources.materials[it->second];
+    }
+    assert(0);
+  }
+
   const MeshID getMeshIDFromName(const std::string &name) const {
     auto it = m_meshMap.find(name);
     if (it != m_meshMap.end()) {
       return it->second;
     }
-    // Return a known invalid ID or a default
     return MeshID(-1);
   }
 

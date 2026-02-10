@@ -50,6 +50,7 @@ enum class MaterialType : uint16_t {
   eNormals,
   eDieletrics,
   eMirror,
+  eVolumetric,
   eCount
 };
 
@@ -107,13 +108,19 @@ struct Instance {
 CHECK_STRUCT_ALIGNMENT(Instance)
 
 struct Material {
+  // --- 16-byte aligned (float4) ---
   float4 baseColorFactor; // Base color factor (RGBA)
-  float metallicFactor;  // Metallic factor (0.0 = non-metallic, 1.0 = metallic)
-  float roughnessFactor; // Roughness factor (0.0 = smooth, 1.0 = rough)
-  int baseColorTextureIndex; // Index of the base color texture in the GLTF
-                             // file (optional)
-  float3 ior = float3(1.5);  // inside ior
-  float3 emission = float3(0);
+
+  // --- 12/16-byte aligned (float3) ---
+  float3 ior = float3(1.5);       // Index of Refraction (RGB for dispersion)
+  float3 asymmetry = float3(0.0); // Anisotropy factor 'g'
+  float3 emission = float3(0);    // Emission color
+
+  // --- 4-byte aligned (scalars) ---
+  float metallicFactor;      // 0.0 = dielectric, 1.0 = metal
+  float roughnessFactor;     // 0.0 = smooth, 1.0 = rough
+  float sigma_t;             // Extinction coefficient (density)
+  int baseColorTextureIndex; // Texture ID
 };
 
 enum LightType {
