@@ -6,12 +6,12 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <app/widgets/window.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 
 /**********************************************************/
 core::GeometryPickerElement::GeometryPickerElement(
     const SceneResourcesManager &sceneResources,
-    std::shared_ptr<nvutils::CameraManipulator> camera)
+    std::shared_ptr<core::CameraManipulator> camera)
     : m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
 {}

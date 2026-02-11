@@ -21,7 +21,7 @@
 
 #include "parameter.hpp"
 
-namespace nvutils {
+namespace core {
 
 
 // The ParameterRegistry serves as a central place to register tweakable parameters
@@ -158,4 +158,4 @@ protected:
   std::vector<const ParameterBase*> m_parameters;
 };
 
-}  // namespace nvutils
+}  // namespace core

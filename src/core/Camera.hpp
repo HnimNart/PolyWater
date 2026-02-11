@@ -28,11 +28,11 @@
 #include <memory>
 #include <string>
 
-namespace nvutils {
+namespace core {
 /*-------------------------------------------------------------------------------------------------
-  # class nvutils::CameraManipulator
+  # class core::CameraManipulator
 
-  nvutils::CameraManipulator is a camera manipulator help class
+  core::CameraManipulator is a camera manipulator help class
   It allow to simply do
   - Orbit        (LMB)
   - Pan          (LMB + CTRL  | MMB)
@@ -60,8 +60,8 @@ change
   CameraManip.getLookat(eye, center, up);
   CameraManip.setLookat(eye, center, glm::vec3(m_upVector == 0, m_upVector == 1,
 m_upVector == 2)); CameraManip.getFov(); CameraManip.setSpeed(navSpeed);
-  CameraManip.setMode(navMode == 0 ? nvutils::CameraManipulator::Examine :
-nvutils::CameraManipulator::Fly);
+  CameraManip.setMode(navMode == 0 ? core::CameraManipulator::Examine :
+core::CameraManipulator::Fly);
   // On mouse down, keep mouse coordinates
   CameraManip.setMousePosition(x, y);
   // On mouse move and mouse button down
@@ -259,6 +259,6 @@ protected:
 
 // Global Manipulator
 
-} // namespace nvutils
+} // namespace core
 
-using CameraPtr = std::shared_ptr<nvutils::CameraManipulator>;
+using CameraPtr = std::shared_ptr<core::CameraManipulator>;

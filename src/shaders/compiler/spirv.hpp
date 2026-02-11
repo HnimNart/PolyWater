@@ -29,7 +29,7 @@ Utilities for working with SPIR-V data.
 #include <cstddef>
 #include <span>
 
-namespace nvutils {
+namespace core {
 
 // Hash the SPIR-V code
 std::size_t hashSpirv(const uint32_t* spirvData, size_t spirvSize);
@@ -43,4 +43,4 @@ void dumpSpirv(const std::filesystem::path& filename, const uint32_t* spirvData,
 // Dump the SPIR-V code to a file with a hashed name
 void dumpSpirvWithHashedName(const std::filesystem::path& sourceFile, const uint32_t* spirvData, size_t spirvSize);
 
-}  // namespace nvutils
+}  // namespace core

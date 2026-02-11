@@ -21,9 +21,9 @@
 
 #include <GLFW/glfw3.h>
 #undef APIENTRY
+#include <core/file_operations.hpp>
+#include <core/logger.hpp>
 #include <fmt/format.h>
-#include <nvutils/file_operations.hpp>
-#include <nvutils/logger.hpp>
 
 #include "app/App.hpp"
 
@@ -71,7 +71,7 @@ void core::ElementDefaultWindowTitle::onUIRender()
     }
 
     const std::string exeName =
-        nvutils::utf8FromPath(nvutils::getExecutablePath().stem());
+        core2::utf8FromPath(core2::getExecutablePath().stem());
 
     // 2. Add Frame Count to the format string
     title +=

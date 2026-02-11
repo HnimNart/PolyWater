@@ -10,6 +10,7 @@
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "core/timers.hpp"
 
 class ToneMapPass : public IToneMapper, public IRenderPass {
 public:
@@ -50,7 +51,7 @@ private:
   VkPipeline m_histogramPipeline{};
   VkPipeline m_exposurePipeline{};
 
-  nvutils::PerformanceTimer m_timer; // Timer for performance measurement
+  core::PerformanceTimer m_timer; // Timer for performance measurement
 
   // Auto-Exposure
   nvvk::Buffer m_exposureBuffer;

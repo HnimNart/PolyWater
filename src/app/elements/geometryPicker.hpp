@@ -13,7 +13,7 @@
 namespace shaderio {
 struct Instance;
 }
-namespace nvutils {
+namespace core {
 class CameraManipulator;
 }
 
@@ -24,7 +24,7 @@ public:
   using SelectionCallback = std::function<void(InstanceID)>;
 
   GeometryPickerElement(const SceneResourcesManager &sceneResources,
-                        std::shared_ptr<nvutils::CameraManipulator> camera);
+                        std::shared_ptr<core::CameraManipulator> camera);
 
   void onAttach(core::Application *app) override;
   void onUIRender() override;
@@ -43,7 +43,7 @@ private:
 
   // References
   const SceneResourcesManager &m_sceneResources;
-  std::shared_ptr<nvutils::CameraManipulator> m_camera;
+  std::shared_ptr<core::CameraManipulator> m_camera;
   core::Application *m_app = nullptr;
 
   SelectionCallback m_onSelect;

@@ -21,7 +21,7 @@
 
 #include <third_party/hash_combine/hash_combine.hpp>
 
-namespace nvutils {
+namespace core {
 
 //---- Hash Combination ----
 template <typename T>
@@ -47,4 +47,4 @@ std::size_t hashVal(const Types&... args)
   return seed;
 }
 
-}  // namespace nvutils
+}  // namespace core

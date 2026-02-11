@@ -28,7 +28,7 @@
 
 #include <fmt/format.h>
 
-namespace nvutils {
+namespace core {
 
 // Parameters store information about tweakable values within an application.
 // A Parameter contains a pointer to the destination variable that must be valid while the
@@ -143,4 +143,4 @@ class Parameter : public ParameterBase
   T  max() const { return *(const T*)&minMaxValues[1].u32[0]; }
 };
 
-}  // namespace nvutils
+}  // namespace core

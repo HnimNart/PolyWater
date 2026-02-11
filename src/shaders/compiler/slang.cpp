@@ -89,7 +89,7 @@ SlangCompiler::compile(const std::filesystem::path &filename,
 
   // --- 2. Find and Compile if not cached ---
   std::filesystem::path shaderSource =
-      nvutils2::findFile(filename, m_shaderDirs);
+      core2::findFile(filename, m_shaderDirs);
 
   if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource)) {
     const uint32_t *rawData = m_slangContext.getSpirv();
@@ -141,9 +141,9 @@ void detail::SlangCompiler::defaultOptions() {
 void detail::SlangCompiler::addSearchPaths(
     const std::vector<std::filesystem::path> &searchPaths) {
   for (auto &str : searchPaths) {
-    m_searchPaths.push_back(str); // For nvutils::findFile()
+    m_searchPaths.push_back(str); // For core::findFile()
     m_searchPathsUtf8.push_back(
-        nvutils2::utf8FromPath(str)); // Need to keep the UTF-8 allocation alive
+        core2::utf8FromPath(str)); // Need to keep the UTF-8 allocation alive
     // Slang expects const char* to UTF-8; see implementation of Slang's
     // FileStream::_init().
     m_searchPathsUtf8Pointers.push_back(m_searchPathsUtf8.back().c_str());
@@ -186,15 +186,15 @@ slang::IModule *detail::SlangCompiler::getSlangModule() const {
 
 bool detail::SlangCompiler::compileFile(const std::filesystem::path &filename) {
   const std::filesystem::path sourceFile =
-      nvutils2::findFile(filename, m_searchPaths);
+      core2::findFile(filename, m_searchPaths);
   if (sourceFile.empty()) {
     m_lastDiagnosticMessage =
-        "File not found: " + nvutils2::utf8FromPath(filename);
+        "File not found: " + core2::utf8FromPath(filename);
     LOGW("%s\n", m_lastDiagnosticMessage.c_str());
     return false;
   }
-  bool success = loadFromSourceString(nvutils2::utf8FromPath(sourceFile.stem()),
-                                      nvutils2::loadFile(sourceFile));
+  bool success = loadFromSourceString(core2::utf8FromPath(sourceFile.stem()),
+                                      core2::loadFile(sourceFile));
   if (success) {
     if (m_callback) {
       m_callback(sourceFile, getSpirv(), getSpirvSize());

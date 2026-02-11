@@ -51,7 +51,7 @@ public:
   CameraPtr camera() const;
 
 private:
-  CameraPtr m_camera{std::make_shared<nvutils::CameraManipulator>()};
+  CameraPtr m_camera{std::make_shared<core::CameraManipulator>()};
   SceneResourcesManager m_scene_resources{};
 
   bool has_changed = false;

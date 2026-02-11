@@ -13,8 +13,8 @@
 #include <utility>
 
 #include <app/widgets/fonts.hpp>
-#include <nvutils/file_operations.hpp>
-#include <nvutils/logger.hpp>
+#include <core/file_operations.hpp>
+#include <core/logger.hpp>
 
 #include "IGUISystem.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"

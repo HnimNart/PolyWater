@@ -32,7 +32,7 @@
 
 #include "timers.hpp"
 
-namespace nvutils {
+namespace core {
 
 class ProfilerManager;
 
@@ -532,6 +532,6 @@ public:
 protected:
   std::list<std::unique_ptr<ProfilerTimeline>> m_timelines;
   mutable std::mutex m_mutex;
-  common::PerformanceTimer m_timer;
+  core::PerformanceTimer m_timer;
 };
-} // namespace nvutils
+} // namespace core

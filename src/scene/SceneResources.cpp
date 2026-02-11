@@ -3,7 +3,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION

@@ -20,7 +20,7 @@
 #include "profiler.hpp"
 
 #include <app/widgets/fonts.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 #include <nvvk/debug_util.hpp>
 
 #include "app/App.hpp"
@@ -30,7 +30,7 @@
 // parameter change) some default settings are created internally if not
 // provided
 core::ElementProfiler::ElementProfiler(
-    nvutils::ProfilerManager *profiler,
+    core::ProfilerManager *profiler,
     std::shared_ptr<ViewSettings> defaultViewSettings)
     : m_profiler(profiler) {
   m_views.push_back(
@@ -172,7 +172,7 @@ void core::ElementProfiler::updateData() {
 }
 
 uint32_t core::ElementProfiler::addEntries(
-    const nvutils::ProfilerTimeline::Snapshot &snapshot,
+    const core::ProfilerTimeline::Snapshot &snapshot,
     std::vector<EntryNode> &nodes, uint32_t startIndex, uint32_t endIndex,
     uint32_t currentLevel) {
   for (uint32_t curIndex = startIndex; curIndex < endIndex; curIndex++) {
@@ -586,7 +586,7 @@ void core::ElementProfiler::renderLineChart(View &view) {
           for (size_t j = 0; j < child.timerInfo.numAveraged; j++) {
             uint32_t index =
                 (child.timerInfo.gpu.index - child.timerInfo.numAveraged + j) %
-                nvutils::ProfilerTimeline::MAX_LAST_FRAMES;
+                core::ProfilerTimeline::MAX_LAST_FRAMES;
             gpuTimes[i][j] = float(child.timerInfo.gpu.times[index] / 1000.0);
 
             if (i > 0) {
@@ -605,7 +605,7 @@ void core::ElementProfiler::renderLineChart(View &view) {
       for (size_t j = 0; j < node.timerInfo.numAveraged; j++) {
         uint32_t index =
             (node.timerInfo.cpu.index - node.timerInfo.numAveraged + j) %
-            nvutils::ProfilerTimeline::MAX_LAST_FRAMES;
+            core::ProfilerTimeline::MAX_LAST_FRAMES;
         cpuTimes[j] = float(node.timerInfo.cpu.times[index] / 1000.0);
         avgCpuTime += cpuTimes[j];
       }

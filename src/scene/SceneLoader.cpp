@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 #include <unordered_map>
 
 #include "SceneData.hpp"

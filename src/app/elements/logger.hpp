@@ -60,12 +60,12 @@ Add logger window
 class ElementLogger : public core::IAppElement {
 public:
   enum LogLevelBit {
-    eBitDEBUG = 1 << nvutils::Logger::LogLevel::eDEBUG,
-    eBitINFO = 1 << nvutils::Logger::LogLevel::eINFO,
-    eBitWARNING = 1 << nvutils::Logger::LogLevel::eWARNING,
-    eBitERROR = 1 << nvutils::Logger::LogLevel::eERROR,
-    eBitSTATS = 1 << nvutils::Logger::LogLevel::eSTATS,
-    eBitOK = 1 << nvutils::Logger::LogLevel::eOK,
+    eBitDEBUG = 1 << core::Logger::LogLevel::eDEBUG,
+    eBitINFO = 1 << core::Logger::LogLevel::eINFO,
+    eBitWARNING = 1 << core::Logger::LogLevel::eWARNING,
+    eBitERROR = 1 << core::Logger::LogLevel::eERROR,
+    eBitSTATS = 1 << core::Logger::LogLevel::eSTATS,
+    eBitOK = 1 << core::Logger::LogLevel::eOK,
     eBitAll =
         eBitDEBUG | eBitINFO | eBitWARNING | eBitERROR | eBitSTATS | eBitOK
   };

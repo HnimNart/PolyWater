@@ -19,12 +19,11 @@
 
 #pragma once
 
-#include <nvutils/timers.hpp>
+#include <core/timers.hpp>
 namespace nvapp {
 
 // Get the minimum refresh rate of the monitors
 double getMonitorsMinRefreshRate();
-
 
 // This class tries to reduce latency by working with the swapchain. The idea
 // is that we want to delay the start of the frame (before input sampling) just
@@ -34,15 +33,14 @@ double getMonitorsMinRefreshRate();
 // For now, we aim for an easier goal: submit a frame once VSync. Since the
 // compositor consumes one frame per VSync, we should render at most one frame
 // per VSync; any faster and we'd get swapchain backpressure and thus latency.
-class FramePacer
-{
+class FramePacer {
 public:
   // Call this just before glfwPollEvents() to sleep.
   void pace(double refreshRate = getMonitorsMinRefreshRate());
 
 private:
   // System state
-  nvutils::PerformanceTimer m_cpuTimer;
+  core::PerformanceTimer m_cpuTimer;
 };
 
-}  // namespace nvapp
+} // namespace nvapp

@@ -89,17 +89,17 @@ void core::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
 void core::ElementLogger::initColors() {
   ImGuiContext &g = *GImGui;
   m_colors.resize(8);
-  m_colors[nvutils::Logger::LogLevel::eINFO] =
+  m_colors[core::Logger::LogLevel::eINFO] =
       g.Style.Colors[ImGuiCol_Text]; // Default text color
-  m_colors[nvutils::Logger::LogLevel::eWARNING] =
+  m_colors[core::Logger::LogLevel::eWARNING] =
       ImVec4(1.0, 0.5, 0.0, 1.0); // Orange
-  m_colors[nvutils::Logger::LogLevel::eERROR] =
+  m_colors[core::Logger::LogLevel::eERROR] =
       ImVec4(1.0, 0.0, 0.0, 1.0); // Bright Red
-  m_colors[nvutils::Logger::LogLevel::eDEBUG] =
+  m_colors[core::Logger::LogLevel::eDEBUG] =
       ImVec4(0.5, 0.5, 1.0, 1.0); // Light Blue
-  m_colors[nvutils::Logger::LogLevel::eSTATS] =
+  m_colors[core::Logger::LogLevel::eSTATS] =
       ImVec4(0.0, 0.75, 0.0, 1.0); // Light Green
-  m_colors[nvutils::Logger::LogLevel::eOK] =
+  m_colors[core::Logger::LogLevel::eOK] =
       ImVec4(0.0, 1.0, 0.0, 1.0); // Green
 }
 

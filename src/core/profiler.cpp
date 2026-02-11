@@ -23,7 +23,7 @@
 
 #include "profiler.hpp"
 
-namespace nvutils {
+namespace core {
 
 void ProfilerTimeline::Snapshot::appendToString(std::string& stats, bool full = false) const
 {
@@ -699,17 +699,17 @@ void ProfilerManager::getSnapshots(std::vector<ProfilerTimeline::Snapshot>& fram
   }
 }
 
-}  // namespace nvutils
+}  // namespace core
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
 [[maybe_unused]] static void usage_Profiler()
 {
-  nvutils::ProfilerManager profilerManager;
+  core::ProfilerManager profilerManager;
 
   // in a typical single-threaded main loop we have one timeline on which we submit commands.
-  nvutils::ProfilerTimeline* profilerTimeline = profilerManager.createTimeline({"primary"});
+  core::ProfilerTimeline* profilerTimeline = profilerManager.createTimeline({"primary"});
 
   // A profiler timeline can measure async shot events
   {

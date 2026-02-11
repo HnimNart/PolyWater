@@ -24,7 +24,7 @@
 
 #include <filesystem>
 
-namespace nvutils {
+namespace core {
 
 // The ParameterSequencer class allows parsing a parameter file
 // in sequences. Each sequence starts with the "SEQUENCE" keyword
@@ -139,4 +139,4 @@ protected:
   // Info about the current sequence
   State m_sequenceState = {};
 };
-} // namespace nvutils
+} // namespace core

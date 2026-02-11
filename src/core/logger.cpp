@@ -42,7 +42,7 @@
 #include "logger.hpp"
 #include "timers.hpp"
 
-nvutils::Logger::~Logger() {
+core::Logger::~Logger() {
   try // Destructors in C++ are noexcept; catch just in case
   {
     if (m_logFile.is_open()) {
@@ -54,17 +54,17 @@ nvutils::Logger::~Logger() {
   }
 }
 
-void nvutils::Logger::setMinimumLogLevel(LogLevel level) noexcept {
+void core::Logger::setMinimumLogLevel(LogLevel level) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_minLogLevel = level;
 }
 
-void nvutils::Logger::setShowFlags(ShowFlags flags) noexcept {
+void core::Logger::setShowFlags(ShowFlags flags) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_show = flags;
 }
 
-void nvutils::Logger::setOutputFile(
+void core::Logger::setOutputFile(
     const std::filesystem::path &filename) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   try {
@@ -77,7 +77,7 @@ void nvutils::Logger::setOutputFile(
   }
 
   if (!m_logFile) {
-    std::cerr << "Failed to open log file: " << nvutils2::utf8FromPath(filename)
+    std::cerr << "Failed to open log file: " << core2::utf8FromPath(filename)
               << std::endl;
     m_logToFile = false;
   } else {
@@ -85,27 +85,27 @@ void nvutils::Logger::setOutputFile(
   }
 }
 
-void nvutils::Logger::enableFileOutput(bool enable) noexcept {
+void core::Logger::enableFileOutput(bool enable) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logToFile = enable;
 }
 
-void nvutils::Logger::setFileFlush(bool enable) noexcept {
+void core::Logger::setFileFlush(bool enable) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_fileFlush = enable;
 }
 
-void nvutils::Logger::setLogCallback(LogCallback &&callback) noexcept {
+void core::Logger::setLogCallback(LogCallback &&callback) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logCallback = std::move(callback);
 }
 
-void nvutils::Logger::log(LogLevel level,
+void core::Logger::log(LogLevel level,
 #ifdef _MSC_VER
-                          _Printf_format_string_
+                       _Printf_format_string_
 #endif
-                          const char *format,
-                          ...) noexcept {
+                       const char *format,
+                       ...) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   if (level < m_minLogLevel)
     return;
@@ -133,13 +133,13 @@ void nvutils::Logger::log(LogLevel level,
   breakOnErrors(level, message);
 }
 
-void nvutils::Logger::breakOnError(bool enable) noexcept {
+void core::Logger::breakOnError(bool enable) noexcept {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_breakOnError = enable;
 }
 
-void nvutils::Logger::breakOnErrors(LogLevel level,
-                                    const std::string &message) noexcept {
+void core::Logger::breakOnErrors(LogLevel level,
+                                 const std::string &message) noexcept {
   if (!m_breakOnError)
     return;
   if (level == LogLevel::eERROR) {
@@ -160,12 +160,12 @@ void nvutils::Logger::breakOnErrors(LogLevel level,
   }
 }
 
-void nvutils::Logger::ensureLogFileIsOpen() noexcept {
+void core::Logger::ensureLogFileIsOpen() noexcept {
   static bool firstLog = true;
   if (firstLog && m_logToFile && !m_logFile.is_open()) {
     firstLog = false;
     try {
-      std::filesystem::path exePath = nvutils2::getExecutablePath();
+      std::filesystem::path exePath = core2::getExecutablePath();
       std::filesystem::path logName = "log_";
       logName += exePath.stem();
       logName += ".txt";
@@ -178,7 +178,7 @@ void nvutils::Logger::ensureLogFileIsOpen() noexcept {
   }
 }
 
-std::string nvutils::Logger::formatString(const char *format, va_list args) {
+std::string core::Logger::formatString(const char *format, va_list args) {
   // Initial buffer size
   int bufferSize = 1024;
   std::vector<char> buffer(bufferSize);
@@ -201,7 +201,7 @@ std::string nvutils::Logger::formatString(const char *format, va_list args) {
 }
 
 static std::string currentTime() {
-  static common::PerformanceTimer startTimer;
+  static core::PerformanceTimer startTimer;
 
   // Get total milliseconds and extract hours, minutes, seconds
   uint64_t duration = static_cast<uint64_t>(startTimer.getMilliseconds());
@@ -215,19 +215,19 @@ static std::string currentTime() {
   return fmt::format("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, ms);
 }
 
-static const char *logLevelToString(nvutils::Logger::LogLevel level) {
+static const char *logLevelToString(core::Logger::LogLevel level) {
   switch (level) {
-  case nvutils::Logger::LogLevel::eDEBUG:
+  case core::Logger::LogLevel::eDEBUG:
     return "DEBUG";
-  case nvutils::Logger::LogLevel::eSTATS:
+  case core::Logger::LogLevel::eSTATS:
     return "STATS";
-  case nvutils::Logger::LogLevel::eOK:
+  case core::Logger::LogLevel::eOK:
     return "OK";
-  case nvutils::Logger::LogLevel::eINFO:
+  case core::Logger::LogLevel::eINFO:
     return "INFO";
-  case nvutils::Logger::LogLevel::eWARNING:
+  case core::Logger::LogLevel::eWARNING:
     return "WARNING";
-  case nvutils::Logger::LogLevel::eERROR:
+  case core::Logger::LogLevel::eERROR:
     return "ERROR";
   }
   // This checks that we've handled all enum cases above; it can be replaced
@@ -240,7 +240,7 @@ static const char *logLevelToString(nvutils::Logger::LogLevel level) {
   return "";
 }
 
-void nvutils::Logger::addPrefixes(LogLevel level, std::string &message) {
+void core::Logger::addPrefixes(LogLevel level, std::string &message) {
   static bool suppressPrefixes = false;
   if (!suppressPrefixes && m_show != 0) {
     std::stringstream logStream;
@@ -254,14 +254,14 @@ void nvutils::Logger::addPrefixes(LogLevel level, std::string &message) {
   suppressPrefixes = message.empty() || message.back() != '\n';
 }
 
-void nvutils::Logger::outputToConsoles(LogLevel level,
-                                       const std::string &message) noexcept {
+void core::Logger::outputToConsoles(LogLevel level,
+                                    const std::string &message) noexcept {
   std::ostream *stdConsole =
       (level == LogLevel::eERROR ? &std::cerr : &std::cout);
 #ifdef _WIN32
   // Convert our message to UTF-16, which is the same encoding as in
   // std::filesystem::path:
-  const std::wstring utf16 = nvutils::pathFromUtf8(message).native();
+  const std::wstring utf16 = core::pathFromUtf8(message).native();
 
   // Output to the debug console.
   // Coverity warns that this sends information to the debug console.
@@ -313,7 +313,7 @@ void nvutils::Logger::outputToConsoles(LogLevel level,
 #endif
 }
 
-void nvutils::Logger::outputToFile(const std::string &message) noexcept {
+void core::Logger::outputToFile(const std::string &message) noexcept {
   if (m_logToFile && m_logFile.is_open()) {
     m_logFile << message;
     if (m_fileFlush) {
@@ -322,8 +322,8 @@ void nvutils::Logger::outputToFile(const std::string &message) noexcept {
   }
 }
 
-void nvutils::Logger::outputToCallback(LogLevel level,
-                                       const std::string &message) noexcept {
+void core::Logger::outputToCallback(LogLevel level,
+                                    const std::string &message) noexcept {
   if (m_logCallback) {
     m_logCallback(level, message);
   }
@@ -331,14 +331,13 @@ void nvutils::Logger::outputToCallback(LogLevel level,
 
 [[maybe_unused]] static void usage_Logger() {
   // Get the logger instance
-  nvutils::Logger &logger = nvutils::Logger::getInstance();
+  core::Logger &logger = core::Logger::getInstance();
 
   // Set the minimum log level
-  logger.setMinimumLogLevel(nvutils::Logger::LogLevel::eINFO);
+  logger.setMinimumLogLevel(core::Logger::LogLevel::eINFO);
 
   // Set the information to show in the log
-  logger.setShowFlags(nvutils::Logger::eSHOW_TIME |
-                      nvutils::Logger::eSHOW_LEVEL);
+  logger.setShowFlags(core::Logger::eSHOW_TIME | core::Logger::eSHOW_LEVEL);
 
   // Set the output file : default is the name of the executable with .txt
   // extension
@@ -349,7 +348,7 @@ void nvutils::Logger::outputToCallback(LogLevel level,
 
   // Set a custom log callback
   logger.setLogCallback(
-      [](nvutils::Logger::LogLevel level, const std::string &message) {
+      [](core::Logger::LogLevel level, const std::string &message) {
         std::cout << "Custom Log: " << message << std::endl;
       });
 

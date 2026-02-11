@@ -37,7 +37,7 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
   SCOPED_TIMER_FUNC();
   SceneLoader loader;
   SceneData sceneData;
-  auto filepath = nvutils::findFile(filename, common::getResourcesDirs());
+  auto filepath = core2::findFile(filename, common::getResourcesDirs());
   if (!loader.load(filepath, sceneData)) {
     return;
   }
@@ -345,7 +345,7 @@ void VulkanRendererElement::onLastHeadlessFrame()
 /**********************************************************/
 {
   m_renderer->saveImage(
-      nvutils::getExecutablePath().replace_extension(".jpg").string());
+      core2::getExecutablePath().replace_extension(".jpg").string());
 }
 
 /**********************************************************/

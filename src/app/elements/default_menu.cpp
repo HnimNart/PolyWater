@@ -23,7 +23,7 @@
 #include <implot/implot.h>
 
 #include <app/widgets/fonts.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 
 #include "app/App.hpp"
 

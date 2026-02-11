@@ -21,7 +21,7 @@
 #include <imgui/imgui_internal.h>
 #include <implot/implot.h>
 
-#include <nvutils/profiler.hpp>
+#include <core/profiler.hpp>
 
 #include "app/IAppElement.hpp"
 
@@ -81,7 +81,7 @@ public:
   // defaultViewSettings are optional, but can be used to set different defaults and also to expose
   // to sample code (like hiding views for benchmark through parameter change)
   // some default settings are created internally if not provided
-  ElementProfiler(nvutils::ProfilerManager* profiler,
+  ElementProfiler(core::ProfilerManager* profiler,
                   std::shared_ptr<ViewSettings> defaultViewSettings = nullptr);
 
   ~ElementProfiler() = default;
@@ -107,7 +107,7 @@ private:
     float gpuTime = -1.f;
     std::vector<EntryNode> child{};
 
-    nvutils::ProfilerTimeline::TimerInfo timerInfo;
+    core::ProfilerTimeline::TimerInfo timerInfo;
 
     size_t timerIndex = 0;
   };
@@ -116,7 +116,7 @@ private:
   void updateData(void);
 
   // TODOC
-  uint32_t addEntries(const nvutils::ProfilerTimeline::Snapshot& snapshot,
+  uint32_t addEntries(const core::ProfilerTimeline::Snapshot& snapshot,
                       std::vector<EntryNode>& nodes, uint32_t startIndex, uint32_t endIndex,
                       uint32_t currentLevel = 0);
 
@@ -148,13 +148,13 @@ private:
   void drawVsyncCheckbox(void);
 
   core::Application* m_app{nullptr};
-  nvutils::ProfilerManager* m_profiler = nullptr;
+  core::ProfilerManager* m_profiler = nullptr;
   std::vector<View> m_views;
   std::vector<EntryNode> m_frameNodes;
   std::vector<EntryNode> m_singleNodes;
 
-  std::vector<nvutils::ProfilerTimeline::Snapshot> m_frameSnapshots;
-  std::vector<nvutils::ProfilerTimeline::Snapshot> m_singleSnapshots;
+  std::vector<core::ProfilerTimeline::Snapshot> m_frameSnapshots;
+  std::vector<core::ProfilerTimeline::Snapshot> m_singleSnapshots;
 };
 
 }  // namespace core

@@ -23,7 +23,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <nvutils/primitives.hpp>
+#include <core/shape/primitives.hpp>
 #include <tinygltf/tiny_gltf.h>
 
 #include "shaders/shared/structs.h"
@@ -36,7 +36,7 @@ shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model &model,
                                         uint meshIdx);
 shaderio::MeshPrimitive
 createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                            const nvutils::PrimitiveMesh &primMesh);
+                            const core::PrimitiveMesh &primMesh);
 
 std::pair<glm::vec3, glm::vec3>
 computeModelBounds(const tinygltf::Model &model);

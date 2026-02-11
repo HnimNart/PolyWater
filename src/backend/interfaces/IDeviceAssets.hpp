@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include <nvutils/primitives.hpp>
+#include <core/shape/primitives.hpp>
 
 #include "scene/Scene.h"
 #include "shaders/shared/structs.h"

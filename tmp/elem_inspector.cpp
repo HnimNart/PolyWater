@@ -48,10 +48,10 @@
 // Other includes
 #include <app/widgets/file_dialog.hpp>
 #include <app/widgets/fonts.hpp>
-#include <nvutils/file_operations.hpp>
-#include <nvutils/logger.hpp>
-#include <nvutils/parallel_work.hpp>
-#include <nvutils/timers.hpp>
+#include <core/file_operations.hpp>
+#include <core/logger.hpp>
+#include <core/parallel_work.hpp>
+#include <core/timers.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>
@@ -596,7 +596,7 @@ public:
   {
     VkBuffer                                           sourceBuffer{VK_NULL_HANDLE};
     uint32_t                                           selectedRow{~0u};
-    nvutils::PerformanceTimer                          selectedFlashTimer;
+    core::PerformanceTimer                          selectedFlashTimer;
     int32_t                                            viewMin{0};
     int32_t                                            viewMax{INT_MAX};
     uint32_t                                           offsetInEntries{0u};
@@ -890,7 +890,7 @@ public:
 
     // Make sure the filename ends in .csv; if it's something like .CSV or
     // .CsV, we don't change it.
-    if(nvutils::extensionMatches(filename, ".csv"))
+    if(core::extensionMatches(filename, ".csv"))
     {
       filename.replace_extension(".csv");
     }
@@ -1158,7 +1158,7 @@ void imguiCopy(core::Application* app, T& src, const std::vector<T>& existingOri
     }
     if(!src.snapshotFileName.empty())
     {
-      if(nvutils::extensionMatches(src.snapshotFileName, ".csv"))
+      if(core::extensionMatches(src.snapshotFileName, ".csv"))
       {
         src.snapshotFileName.replace_extension(".csv");
       }
@@ -2257,10 +2257,10 @@ void core::ElementInspectorInternal::imGuiBuffer(InspectedBuffer& buf,
     {
       if(buf.filter.hasAnyFilter() || buf.showOnlyDiffToSnapshot)
       {
-        nvutils::PerformanceTimer timeoutTimer;
+        core::PerformanceTimer timeoutTimer;
         m_isFilterTimeout = false;
         std::atomic_bool isTimeout{false};
-        nvutils::parallel_batches(
+        core::parallel_batches(
             buf.viewMax - buf.viewMin + 1,
             [&](uint64_t i) {
               if(timeoutTimer.getSeconds() > m_settings.filterTimeoutInSeconds)
@@ -2403,7 +2403,7 @@ void core::ElementInspectorInternal::saveImageSnapshotToFile(InspectedImage& img
       }
 
       const std::filesystem::path pngPath = std::filesystem::path(img.snapshotFileName).replace_extension(".png");
-      stbi_write_png(nvutils::utf8FromPath(pngPath).c_str(), img.createInfo.extent.width, img.createInfo.extent.height,
+      stbi_write_png(core::utf8FromPath(pngPath).c_str(), img.createInfo.extent.width, img.createInfo.extent.height,
                      static_cast<uint32_t>(components), ldrData.data(), 0);
     }
     saveBufferSnapshotToFile(img);

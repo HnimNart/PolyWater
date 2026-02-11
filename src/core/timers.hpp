@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-namespace common {
+namespace core {
 
 // Generic utility class for measuring CPU time.
 //
@@ -113,7 +113,7 @@ private:
   static inline thread_local bool s_openNewline = false;
 };
 
-} // namespace common
+} // namespace core
 
 #if defined(_MSC_VER)
 #define FUNC_SIG __FUNCSIG__

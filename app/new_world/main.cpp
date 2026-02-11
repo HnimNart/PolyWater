@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
   core::ApplicationCreateInfo appInfo{};
 
   // Parsing the command line
-  nvutils::ParameterParser cli(nvutils::getExecutablePath().stem().string());
-  nvutils::ParameterRegistry reg;
+  core::ParameterParser cli(core2::getExecutablePath().stem().string());
+  core::ParameterRegistry reg;
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
   cli.add(reg);
   cli.parse(argc, argv);

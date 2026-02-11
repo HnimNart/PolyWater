@@ -20,7 +20,7 @@
 #include "parameter_sequencer.hpp"
 #include "core/logger.hpp"
 
-namespace nvutils {
+namespace core {
 
 void ParameterSequencer::InitInfo::registerScriptParameters(
     ParameterRegistry &registry, ParameterParser &parser) {
@@ -67,7 +67,7 @@ bool ParameterSequencer::init(const InitInfo &info) {
                            .help = "number of last frames to use for averaging "
                                    "in the profiler. 0 averages all"},
                           &m_info.profilerAverageCount, 0,
-                          nvutils::ProfilerTimeline::MAX_LAST_FRAMES));
+                          core::ProfilerTimeline::MAX_LAST_FRAMES));
   parser.add(registry.add(
       {.name = "sequenceresetframes",
        .help =
@@ -133,22 +133,22 @@ bool ParameterSequencer::prepareFrame() {
   return m_completed;
 }
 
-} // namespace nvutils
+} // namespace core
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
 [[maybe_unused]] static void usage_ParameterSequencer() {
   // create registry & parser
-  nvutils::ParameterRegistry registry;
-  nvutils::ParameterParser parser("my test");
+  core::ParameterRegistry registry;
+  core::ParameterParser parser("my test");
 
   uint32_t blah = 123;
 
   // register some parameters
   registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
 
-  nvutils::ParameterSequencer::InitInfo sequencerInfo;
+  core::ParameterSequencer::InitInfo sequencerInfo;
   sequencerInfo.registerScriptParameters(registry, parser);
 
   // imagine we parse command line to get settings
@@ -178,21 +178,21 @@ bool ParameterSequencer::prepareFrame() {
   sequencerInfo.parameterRegistry = &registry;
 
   // want to log profiling results with the sequencer
-  nvutils::ProfilerManager profilerManager;
-  nvutils::ProfilerTimeline *timeline =
+  core::ProfilerManager profilerManager;
+  core::ProfilerTimeline *timeline =
       profilerManager.createTimeline({"primary"});
 
   sequencerInfo.profilerManager = &profilerManager;
 
   // optionally, add a function called once each sequence is finished:
   sequencerInfo.postCallbacks.push_back(
-      [](const nvutils::ParameterSequencer::State &sequence) {
+      [](const core::ParameterSequencer::State &sequence) {
         LOGI("Finished sequence %d: %s\n", sequence.index,
              sequence.description.c_str());
       });
 
   // initialize the sequencer
-  nvutils::ParameterSequencer sequencer;
+  core::ParameterSequencer sequencer;
   bool doSequences = sequencer.init(sequencerInfo);
 
   bool renderLoop = true;

@@ -24,7 +24,7 @@
 
 #include "parameter_registry.hpp"
 
-namespace nvutils {
+namespace core {
 
 ParameterBase* ParameterRegistry::addNewBase(const ParameterBase::Info& info, ParameterBase::Type type, uint32_t argCount, void* destination)
 {
@@ -225,7 +225,7 @@ const Parameter<std::filesystem::path>* ParameterRegistry::add(const ParameterBa
   return static_cast<Parameter<std::filesystem::path>*>(parameter);
 }
 
-const nvutils::Parameter<std::filesystem::path>* ParameterRegistry::add(const ParameterBase::Info&      info,
+const core::Parameter<std::filesystem::path>* ParameterRegistry::add(const ParameterBase::Info&      info,
                                                                         const std::vector<std::string>& extensions,
                                                                         std::filesystem::path*          destination)
 {
@@ -258,7 +258,7 @@ ParameterRegistry::~ParameterRegistry()
 }
 
 
-}  // namespace nvutils
+}  // namespace core
 
 
 //--------------------------------------------------------------------------------------------------
@@ -266,16 +266,16 @@ ParameterRegistry::~ParameterRegistry()
 //--------------------------------------------------------------------------------------------------
 [[maybe_unused]] static void usage_ParameterRegistry()
 {
-  nvutils::ParameterRegistry registry;
+  core::ParameterRegistry registry;
 
   bool     blubb = false;
   uint32_t blah  = 123;
 
   // register some parameters
-  const nvutils::Parameter<bool>* blubbParameter =
+  const core::Parameter<bool>* blubbParameter =
       registry.add({"blubb", "triggering this parameter enables blubb"}, &blubb, true);
 
-  const nvutils::Parameter<uint32_t>* blahParameter = registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
+  const core::Parameter<uint32_t>* blahParameter = registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
 
   // later you can use the parameters to generate UI elements or command line parser options
   // see `ParameterParser`

@@ -27,7 +27,7 @@
 
 #include "parameter_registry.hpp"
 
-namespace nvutils {
+namespace core {
 
 // This class parses arguments for parameters provided from the
 // ParameterRegistry and updates the destination pointers accordingly.
@@ -153,4 +153,4 @@ private:
   std::string m_helpDescription;
 };
 
-}  // namespace nvutils
+}  // namespace core

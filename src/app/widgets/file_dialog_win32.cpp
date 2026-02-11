@@ -29,7 +29,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#include <nvutils/file_operations.hpp>
+#include <core/file_operations.hpp>
 
 #include "file_dialog.hpp"
 
@@ -149,13 +149,13 @@ static std::filesystem::path unifiedDialog(struct GLFWwindow*           glfwin,
 
 std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
-  return unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(), nvutils::pathFromUtf8(exts).native(), DialogMode::OpenFile);
+  return unifiedDialog(glfwin, core::pathFromUtf8(title).native(), core::pathFromUtf8(exts).native(), DialogMode::OpenFile);
 }
 
 std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
 {
-  std::filesystem::path result = unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(),
-                                               nvutils::pathFromUtf8(exts).native(), DialogMode::OpenFile, initialDir);
+  std::filesystem::path result = unifiedDialog(glfwin, core::pathFromUtf8(title).native(),
+                                               core::pathFromUtf8(exts).native(), DialogMode::OpenFile, initialDir);
   // Update the initial directory to the directory of the selected file
   if(!result.empty())
   {
@@ -166,12 +166,12 @@ std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, cons
 
 std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
-  return unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(), nvutils::pathFromUtf8(exts).native(), DialogMode::SaveFile);
+  return unifiedDialog(glfwin, core::pathFromUtf8(title).native(), core::pathFromUtf8(exts).native(), DialogMode::SaveFile);
 }
 
 std::filesystem::path core::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
 {
-  return unifiedDialog(glfwin, nvutils::pathFromUtf8(title), {}, DialogMode::OpenFolder);
+  return unifiedDialog(glfwin, core::pathFromUtf8(title), {}, DialogMode::OpenFolder);
 }
 
 #endif

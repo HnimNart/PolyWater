@@ -18,7 +18,7 @@ class VulkanSceneGpuData;
 namespace nvvk {
 class GBuffer;
 }
-namespace nvutils {
+namespace core {
 class CameraManipulator;
 }
 namespace shaderio {

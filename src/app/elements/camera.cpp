@@ -20,15 +20,15 @@
 #include "camera.hpp"
 
 #include <app/widgets/window.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 
 /**********************************************************/
 void core::ElementCamera::updateCamera(
-    std::shared_ptr<nvutils::CameraManipulator> cameraManip,
+    std::shared_ptr<core::CameraManipulator> cameraManip,
     ImGuiWindow *viewportWindow)
 /**********************************************************/
 {
-  nvutils::CameraManipulator::Inputs inputs; // Mouse and keyboard inputs
+  core::CameraManipulator::Inputs inputs; // Mouse and keyboard inputs
 
   cameraManip->updateAnim(); // This makes the camera to transition smoothly to
                              // the new position
@@ -62,37 +62,37 @@ void core::ElementCamera::updateCamera(
 
     if (ImGui::IsKeyDown(ImGuiKey_W)) {
       cameraManip->keyMotion({keyMotionFactor, 0},
-                             nvutils::CameraManipulator::Dolly);
+                             core::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_S)) {
       cameraManip->keyMotion({-keyMotionFactor, 0},
-                             nvutils::CameraManipulator::Dolly);
+                             core::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
       cameraManip->keyMotion({keyMotionFactor, 0},
-                             nvutils::CameraManipulator::Pan);
+                             core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
       cameraManip->keyMotion({-keyMotionFactor, 0},
-                             nvutils::CameraManipulator::Pan);
+                             core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
       cameraManip->keyMotion({0, keyMotionFactor},
-                             nvutils::CameraManipulator::Pan);
+                             core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
       cameraManip->keyMotion({0, -keyMotionFactor},
-                             nvutils::CameraManipulator::Pan);
+                             core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
   }

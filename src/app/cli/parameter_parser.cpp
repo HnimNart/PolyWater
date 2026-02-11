@@ -29,7 +29,7 @@
 #include "core/logger.hpp"
 #include "parameter_parser.hpp"
 
-namespace nvutils {
+namespace core {
 
 ParameterParser::ParameterParser(
     const std::string &description,
@@ -48,7 +48,7 @@ ParameterParser::ParameterParser(
       if (m_verbose) {
         Logger::getInstance().log(Logger::eINFO,
                                   "parser: configfile %s - start\n",
-                                  nvutils2::utf8FromPath(configFile).c_str());
+                                  core2::utf8FromPath(configFile).c_str());
       }
 
       size_t maxArgs = tokenized.getArgs().size();
@@ -58,7 +58,7 @@ ParameterParser::ParameterParser(
       if (m_verbose) {
         Logger::getInstance().log(
             Logger::eINFO, "parser: configfile %s - completed %d of %d\n",
-            nvutils2::utf8FromPath(configFile).c_str(), uint32_t(parsed),
+            core2::utf8FromPath(configFile).c_str(), uint32_t(parsed),
             uint32_t(maxArgs));
       }
       return true;
@@ -437,7 +437,7 @@ static bool endsWith(const std::string &str, const std::string &suffix) {
          str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-const nvutils::ParameterBase *
+const core::ParameterBase *
 ParameterParser::findViaExtension(const std::string &argin) const {
   std::string arg = argin;
 
@@ -472,7 +472,7 @@ bool ParameterParser::Tokenized::initFromFile(
   std::ifstream fileStream(filename);
   if (!fileStream) {
     LOGW("Parameter parser could not open file %s",
-         nvutils2::utf8FromPath(filename).c_str());
+         core2::utf8FromPath(filename).c_str());
     return false;
   }
 
@@ -548,14 +548,14 @@ void ParameterParser::Tokenized::processContent() {
   }
 }
 
-} // namespace nvutils
+} // namespace core
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
 static void usage_ParameterParser() {
   // create registry
-  nvutils::ParameterRegistry registry;
+  core::ParameterRegistry registry;
 
   bool blubb = false;
   uint32_t blah = 123;
@@ -566,15 +566,15 @@ static void usage_ParameterParser() {
   registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
 
   // create parser
-  nvutils::ParameterParser parser("my test");
+  core::ParameterParser parser("my test");
 
   // add all parameters from the registry.
   parser.add(registry);
 
   // one can also add parameters individually, from other registries etc.
-  nvutils::ParameterRegistry otherRegistry;
+  core::ParameterRegistry otherRegistry;
   std::filesystem::path filename;
-  const nvutils::Parameter<std::filesystem::path> *filenameParameter =
+  const core::Parameter<std::filesystem::path> *filenameParameter =
       otherRegistry.add({"filename", "loads file"}, &filename);
 
   // filenames that are relative will be automatically made relative to the
@@ -595,7 +595,7 @@ static void usage_ParameterParser() {
   // the --help and --configfile options always exist
   std::string example = "--help --blubb --blah 12 --filename test.jpg";
 
-  nvutils::ParameterParser::Tokenized tokenized;
+  core::ParameterParser::Tokenized tokenized;
   tokenized.initFromString(example);
 
   std::filesystem::path filenameBasePath = "/somedirectory";

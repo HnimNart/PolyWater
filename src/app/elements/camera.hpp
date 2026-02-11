@@ -30,7 +30,7 @@
 # class nvvkhl::ElementCamera
 
 This class is an element of the application that is responsible for the camera
-manipulation. It is using the `nvutils::CameraManipulator` to handle the camera
+manipulation. It is using the `core::CameraManipulator` to handle the camera
 movement and interaction.
 
 To use this class, you need to add it to the `nvvkhl::Application` using the
@@ -41,29 +41,28 @@ To use this class, you need to add it to the `nvvkhl::Application` using the
 namespace core {
 
 struct ElementCamera : public core::IAppElement {
-  ElementCamera(std::shared_ptr<nvutils::CameraManipulator> camera = nullptr) {
+  ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr) {
     m_cameraManip = std::move(camera);
   }
 
-  void
-  setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator> pCamera) {
+  void setCameraManipulator(std::shared_ptr<core::CameraManipulator> pCamera) {
     m_cameraManip = std::move(pCamera);
   }
   void onAttach(core::Application *app) override;
   void onUIRender() override;
   void onResize(WindowSize size) override;
 
-  std::shared_ptr<nvutils::CameraManipulator> getCameraManipulator() const {
+  std::shared_ptr<core::CameraManipulator> getCameraManipulator() const {
     return m_cameraManip;
   }
 
   // Can be called independently
   static void
-  updateCamera(std::shared_ptr<nvutils::CameraManipulator> m_cameraManip,
+  updateCamera(std::shared_ptr<core::CameraManipulator> m_cameraManip,
                ImGuiWindow *viewportWindow);
 
 private:
-  std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{};
+  std::shared_ptr<core::CameraManipulator> m_cameraManip{};
 };
 
 } // namespace core

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <nvutils/parameter_sequencer.hpp>
+#include <core/parameter_sequencer.hpp>
 
 #include "app/IAppElement.hpp"
 
@@ -32,7 +32,7 @@ namespace core
 class ElementSequencer : public core::IAppElement
 {
 public:
-  ElementSequencer(const nvutils::ParameterSequencer::InitInfo& sequencerInfo) :
+  ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
       m_sequencerInfo(sequencerInfo)
   {
   }
@@ -54,8 +54,8 @@ public:
   }
 
 private:
-  nvutils::ParameterSequencer::InitInfo m_sequencerInfo;
-  nvutils::ParameterSequencer m_sequencer;
+  core::ParameterSequencer::InitInfo m_sequencerInfo;
+  core::ParameterSequencer m_sequencer;
   core::Application* m_app = nullptr;
   bool m_doSequences = false;
 };

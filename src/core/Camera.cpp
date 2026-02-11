@@ -32,7 +32,7 @@
 #define SAFE_SSCANF sscanf
 #endif
 
-namespace nvutils {
+namespace core {
 
 //--------------------------------------------------------------------------------------------------
 CameraManipulator::CameraManipulator() { updateLookatMatrix(); }
@@ -524,4 +524,4 @@ bool CameraManipulator::Camera::setFromString(const std::string &text) {
   return false;
 }
 
-} // namespace nvutils
+} // namespace core

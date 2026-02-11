@@ -22,7 +22,7 @@ namespace nvvk {
 class DescriptorPack;
 class StagingUploader;
 } // namespace nvvk
-namespace nvutils {
+namespace core {
 struct PrimitiveMesh;
 }
 

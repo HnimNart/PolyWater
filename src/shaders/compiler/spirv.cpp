@@ -22,39 +22,39 @@
 #include "core/hash_operations.hpp"
 #include "core/logger.hpp"
 
-std::size_t nvutils::hashSpirv(const uint32_t *spirvData, size_t spirvSize) {
+std::size_t core::hashSpirv(const uint32_t *spirvData, size_t spirvSize) {
   std::size_t seed = 0;
   for (size_t i = 0; i < spirvSize / sizeof(uint32_t); ++i) {
-    nvutils::hashCombine(seed, spirvData[i]);
+    core::hashCombine(seed, spirvData[i]);
   }
   return seed;
 }
 
 std::filesystem::path
-nvutils::dumpSpirvName(const std::filesystem::path &filename,
+core::dumpSpirvName(const std::filesystem::path &filename,
                        const uint32_t *spirvData, size_t spirvSize) {
-  return nvutils2::getExecutablePath().parent_path() /
+  return core2::getExecutablePath().parent_path() /
          (filename.filename().replace_extension(
              std::to_string(hashSpirv(spirvData, spirvSize)) + ".spv"));
 }
 
-void nvutils::dumpSpirv(const std::filesystem::path &filename,
+void core::dumpSpirv(const std::filesystem::path &filename,
                         const uint32_t *spirvData, size_t spirvSize) {
   std::ofstream file(filename, std::ios::binary);
   if (!file) {
     LOGE("Failed to open file for writing: %s\n",
-         nvutils2::utf8FromPath(filename).c_str());
+         core2::utf8FromPath(filename).c_str());
     return;
   }
 
   file.write(reinterpret_cast<const char *>(spirvData), spirvSize);
   if (!file) {
     LOGE("Failed to write SPIR-V data to file: %s\n",
-         nvutils2::utf8FromPath(filename).c_str());
+         core2::utf8FromPath(filename).c_str());
   }
 }
 
-void nvutils::dumpSpirvWithHashedName(const std::filesystem::path &sourceFile,
+void core::dumpSpirvWithHashedName(const std::filesystem::path &sourceFile,
                                       const uint32_t *spirvData,
                                       size_t spirvSize) {
   dumpSpirv(dumpSpirvName(sourceFile, spirvData, spirvSize), spirvData,

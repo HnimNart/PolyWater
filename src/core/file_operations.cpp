@@ -42,7 +42,7 @@
 #include <tuple>
 
 std::filesystem::path
-nvutils2::findFile(const std::filesystem::path &filename,
+core2::findFile(const std::filesystem::path &filename,
                    const std::vector<std::filesystem::path> &searchPaths,
                    bool reportError) {
   for (const auto &path : searchPaths) {
@@ -51,9 +51,9 @@ nvutils2::findFile(const std::filesystem::path &filename,
       return filePath;
     }
   }
-  nvutils::Logger::getInstance().log(
-      reportError ? nvutils::Logger::LogLevel::eERROR
-                  : nvutils::Logger::LogLevel::eWARNING,
+  core::Logger::getInstance().log(
+      reportError ? core::Logger::LogLevel::eERROR
+                  : core::Logger::LogLevel::eWARNING,
       "File not found: %s\n", utf8FromPath(filename).c_str());
   LOGI("Searched under: \n");
   for (const auto &path : searchPaths) {
@@ -62,7 +62,7 @@ nvutils2::findFile(const std::filesystem::path &filename,
   return std::filesystem::path();
 }
 
-std::string nvutils2::loadFile(const std::filesystem::path &filePath) {
+std::string core2::loadFile(const std::filesystem::path &filePath) {
   std::ifstream file(filePath, std::ios::binary | std::ios::ate);
   if (!file) {
     LOGW("Could not open file: %s\n", utf8FromPath(filePath).c_str());
@@ -81,7 +81,7 @@ std::string nvutils2::loadFile(const std::filesystem::path &filePath) {
   return std::string(buffer.begin(), buffer.end());
 }
 
-std::filesystem::path nvutils2::getExecutablePath() {
+std::filesystem::path core2::getExecutablePath() {
 #ifdef _WIN32
   wchar_t buffer[MAX_PATH + 1]{};
   const DWORD count =
@@ -96,7 +96,7 @@ std::filesystem::path nvutils2::getExecutablePath() {
 #endif
 }
 
-std::string nvutils2::utf8FromPath(const std::filesystem::path &path) noexcept {
+std::string core2::utf8FromPath(const std::filesystem::path &path) noexcept {
   try {
 #ifdef _WIN32
     // On Windows, paths are UTF-16, possibly with unpaired surrogates.
@@ -155,7 +155,7 @@ std::string nvutils2::utf8FromPath(const std::filesystem::path &path) noexcept {
   }
 }
 
-std::filesystem::path nvutils2::pathFromUtf8(const char *utf8) noexcept {
+std::filesystem::path core2::pathFromUtf8(const char *utf8) noexcept {
   // Since this is the inverse of pathToUtf8, see pathToUtf8 for implementation
   // notes.
   try {
@@ -197,7 +197,7 @@ std::filesystem::path nvutils2::pathFromUtf8(const char *utf8) noexcept {
   }
 }
 
-bool nvutils2::extensionMatches(const std::filesystem::path &path,
+bool core2::extensionMatches(const std::filesystem::path &path,
                                 const char *extension) {
   // The standard implementation of this, tolower(path.extension()) ==
   // extension, would use 3 allocations: path.extension(), a copy for tolower,

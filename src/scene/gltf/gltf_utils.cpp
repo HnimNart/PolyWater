@@ -24,12 +24,12 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
 #include "core/timers.hpp"
-#include "nvutils/primitives.hpp"
+#include "core/shape/primitives.hpp"
 
 namespace {
 
@@ -258,7 +258,7 @@ shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model &model,
 /**********************************************************/
 shaderio::MeshPrimitive
 gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                                  const nvutils::PrimitiveMesh &primMesh)
+                                  const core::PrimitiveMesh &primMesh)
 /**********************************************************/
 {
   shaderio::MeshPrimitive mesh;
@@ -267,17 +267,17 @@ gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
   // Positions
   mesh.triMesh.positions = {.offset = 0,
                             .count = vertexCount,
-                            .byteStride = sizeof(nvutils::PrimitiveVertex)};
+                            .byteStride = sizeof(core::PrimitiveVertex)};
 
   // Normals
-  mesh.triMesh.normals = {.offset = offsetof(nvutils::PrimitiveVertex, nrm),
+  mesh.triMesh.normals = {.offset = offsetof(core::PrimitiveVertex, nrm),
                           .count = vertexCount,
-                          .byteStride = sizeof(nvutils::PrimitiveVertex)};
+                          .byteStride = sizeof(core::PrimitiveVertex)};
 
   // Texture Coordinates
-  mesh.triMesh.texCoords = {.offset = offsetof(nvutils::PrimitiveVertex, tex),
+  mesh.triMesh.texCoords = {.offset = offsetof(core::PrimitiveVertex, tex),
                             .count = vertexCount,
-                            .byteStride = sizeof(nvutils::PrimitiveVertex)};
+                            .byteStride = sizeof(core::PrimitiveVertex)};
 
   // Indices
   mesh.triMesh.indices = {

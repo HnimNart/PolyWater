@@ -28,7 +28,7 @@
 
 Logger class for reporting messages with different log levels.
 It can print to multiple places at once, produce breakpoints on errors,
- 
+
 To use it, call one of the LOG functions as you would printf.
 LOGI, LOGW, LOGE = info, warning, error, and so on.
 Alternatively, you can use std::print-style syntax by defining
@@ -70,19 +70,15 @@ PRINTI("{}", formatted);
 
 */
 
-
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
+namespace core {
 
-namespace nvutils {
-
-class Logger
-{
+class Logger {
 public:
   // Log levels. Higher values are more severe.
-  enum LogLevel
-  {
+  enum LogLevel {
     // Info only useful during sample development.
     eDEBUG = 0,
     // Performance statistics.
@@ -99,19 +95,17 @@ public:
     eERROR = 5,
   };
 
-  enum ShowBits : uint32_t
-  {
-    eSHOW_NONE  = 0,
-    eSHOW_TIME  = 1 << 0,
+  enum ShowBits : uint32_t {
+    eSHOW_NONE = 0,
+    eSHOW_TIME = 1 << 0,
     eSHOW_LEVEL = 1 << 1
   };
   using ShowFlags = uint32_t;
 
-  using LogCallback = std::function<void(LogLevel, const std::string&)>;
+  using LogCallback = std::function<void(LogLevel, const std::string &)>;
 
   // Get the logger instance
-  static Logger& getInstance() noexcept
-  {
+  static Logger &getInstance() noexcept {
     static Logger instance;
     return instance;
   }
@@ -123,7 +117,7 @@ public:
   void setShowFlags(ShowFlags flags) noexcept;
 
   // Set the output file
-  void setOutputFile(const std::filesystem::path& filename) noexcept;
+  void setOutputFile(const std::filesystem::path &filename) noexcept;
 
   // Enable or disable file output
   void enableFileOutput(bool enable) noexcept;
@@ -133,17 +127,20 @@ public:
   void setFileFlush(bool enable) noexcept;
 
   // Set a custom log callback
-  void setLogCallback(LogCallback&& callback) noexcept;
+  void setLogCallback(LogCallback &&callback) noexcept;
 
   // Log a message
   void log(LogLevel level,
 #ifdef _MSC_VER
-           _Printf_format_string_  // Enable MSVC /analyze warnings about incorrect format strings
+           _Printf_format_string_ // Enable MSVC /analyze warnings about
+                                  // incorrect format strings
 #endif
-           const char* format,
+           const char *format,
            ...) noexcept
 #if defined(__GNUC__)
-      __attribute__((format(printf, 3, 4)))  // Enable GCC + clang warnings about incorrect format strings
+      __attribute__((format(
+          printf, 3,
+          4))) // Enable GCC + clang warnings about incorrect format strings
 #endif
       ;
 
@@ -152,43 +149,56 @@ public:
 
 private:
 #ifdef DEBUG
-  LogLevel m_minLogLevel = LogLevel::eDEBUG;  // Messages with levels lower than this are omitted
+  LogLevel m_minLogLevel =
+      LogLevel::eDEBUG; // Messages with levels lower than this are omitted
 #else
-  LogLevel m_minLogLevel = LogLevel::eSTATS;  // Messages with levels lower than this are omitted
+  LogLevel m_minLogLevel =
+      LogLevel::eSTATS; // Messages with levels lower than this are omitted
 #endif
-  std::ofstream        m_logFile;                    // Output file stream
-  bool                 m_logToFile = true;           // Enable file output
-  bool                 m_fileFlush = false;          // Whether to flush all prints to the log file
-  std::recursive_mutex m_logMutex;                   // Mutex to protect member variables
-  LogCallback          m_logCallback  = nullptr;     // Custom log callback
-  ShowFlags            m_show         = eSHOW_NONE;  // Default shows no extra information
-  bool                 m_breakOnError = true;        // Break on errors by default
+  std::ofstream m_logFile;  // Output file stream
+  bool m_logToFile = true;  // Enable file output
+  bool m_fileFlush = false; // Whether to flush all prints to the log file
+  std::recursive_mutex m_logMutex;     // Mutex to protect member variables
+  LogCallback m_logCallback = nullptr; // Custom log callback
+  ShowFlags m_show = eSHOW_NONE;       // Default shows no extra information
+  bool m_breakOnError = true;          // Break on errors by default
 
   Logger() {}
   ~Logger();
-  Logger(const Logger&)            = delete;
-  Logger& operator=(const Logger&) = delete;
+  Logger(const Logger &) = delete;
+  Logger &operator=(const Logger &) = delete;
 
-  void        ensureLogFileIsOpen() noexcept;
-  std::string formatString(const char* format, va_list args);
-  void        addPrefixes(LogLevel level, std::string& message);
-  void        outputToConsoles(LogLevel level, const std::string& message) noexcept;
-  void        outputToFile(const std::string& message) noexcept;
-  void        outputToCallback(LogLevel level, const std::string& message) noexcept;
-  void        breakOnErrors(LogLevel level, const std::string& message) noexcept;
+  void ensureLogFileIsOpen() noexcept;
+  std::string formatString(const char *format, va_list args);
+  void addPrefixes(LogLevel level, std::string &message);
+  void outputToConsoles(LogLevel level, const std::string &message) noexcept;
+  void outputToFile(const std::string &message) noexcept;
+  void outputToCallback(LogLevel level, const std::string &message) noexcept;
+  void breakOnErrors(LogLevel level, const std::string &message) noexcept;
 };
 
-}  // namespace nvutils
+} // namespace core
 
 // Logging macros
 
-#define LOGD(format, ...) nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eDEBUG, format, ##__VA_ARGS__)
-#define LOGSTATS(format, ...)                                                                                          \
-  nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eSTATS, format, ##__VA_ARGS__)
-#define LOGOK(format, ...) nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eOK, format, ##__VA_ARGS__)
-#define LOGI(format, ...) nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eINFO, format, ##__VA_ARGS__)
-#define LOGW(format, ...) nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eWARNING, format, ##__VA_ARGS__)
-#define LOGE(format, ...) nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eERROR, format, ##__VA_ARGS__)
+#define LOGD(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eDEBUG, format,      \
+                                  ##__VA_ARGS__)
+#define LOGSTATS(format, ...)                                                  \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eSTATS, format,      \
+                                  ##__VA_ARGS__)
+#define LOGOK(format, ...)                                                     \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eOK, format,         \
+                                  ##__VA_ARGS__)
+#define LOGI(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eINFO, format,       \
+                                  ##__VA_ARGS__)
+#define LOGW(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eWARNING, format,    \
+                                  ##__VA_ARGS__)
+#define LOGE(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eERROR, format,      \
+                                  ##__VA_ARGS__)
 
 // std::print-style macros and functions.
 // These are not allowed in CUDA source files, because cudafe++ transforms
@@ -198,25 +208,30 @@ private:
 // This macro catches exceptions from fmt::format. This gives us compile-time
 // checking, while still making these functions have the same noexcept
 // semantics as nvprintf.
-#define PRINT_CATCH(lvl, fmtstr, ...)                                                                                   \
-  {                                                                                                                     \
-    try                                                                                                                 \
-    {                                                                                                                   \
-      nvutils::Logger::getInstance().log(lvl, "%s", fmt::format(fmtstr, __VA_ARGS__).c_str());                          \
-    }                                                                                                                   \
-    catch(const std::exception&)                                                                                        \
-    {                                                                                                                   \
-      nvutils::Logger::getInstance().log(nvutils::Logger::LogLevel::eERROR, "PRINT_CATCH: Could not format string.\n"); \
-    }                                                                                                                   \
+#define PRINT_CATCH(lvl, fmtstr, ...)                                          \
+  {                                                                            \
+    try {                                                                      \
+      core::Logger::getInstance().log(                                         \
+          lvl, "%s", fmt::format(fmtstr, __VA_ARGS__).c_str());                \
+    } catch (const std::exception &) {                                         \
+      core::Logger::getInstance().log(                                         \
+          core::Logger::LogLevel::eERROR,                                      \
+          "PRINT_CATCH: Could not format string.\n");                          \
+    }                                                                          \
   }
 
-#define PRINTD(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eDEBUG, fmtstr, __VA_ARGS__)
-#define PRINTSTATS(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eSTATS, fmtstr, __VA_ARGS__)
-#define PRINTOK(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eOK, fmtstr, __VA_ARGS__)
-#define PRINTI(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eINFO, fmtstr, __VA_ARGS__)
-#define PRINTW(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eWARNING, fmtstr, __VA_ARGS__)
-#define PRINTE(fmtstr, ...) PRINT_CATCH(nvutils::Logger::LogLevel::eERROR, fmtstr, __VA_ARGS__)
-#endif  // defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
+#define PRINTD(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eDEBUG, fmtstr, __VA_ARGS__)
+#define PRINTSTATS(fmtstr, ...)                                                \
+  PRINT_CATCH(core::Logger::LogLevel::eSTATS, fmtstr, __VA_ARGS__)
+#define PRINTOK(fmtstr, ...)                                                   \
+  PRINT_CATCH(core::Logger::LogLevel::eOK, fmtstr, __VA_ARGS__)
+#define PRINTI(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eINFO, fmtstr, __VA_ARGS__)
+#define PRINTW(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eWARNING, fmtstr, __VA_ARGS__)
+#define PRINTE(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eERROR, fmtstr, __VA_ARGS__)
+#endif // defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
 
-
-#endif  // LOGGER_HPP
+#endif // LOGGER_HPP
