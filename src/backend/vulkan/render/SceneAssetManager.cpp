@@ -331,7 +331,7 @@ nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(
 /**********************************************************/
 {
   int w, h, comp, req_comp{4};
-  std::string filenameUtf8 = core2::utf8FromPath(filename);
+  std::string filenameUtf8 = core::utf8FromPath(filename);
   const stbi_uc *data =
       stbi_load(filenameUtf8.c_str(), &w, &h, &comp, req_comp);
   assert((data != nullptr) && "Could not load texture image!");

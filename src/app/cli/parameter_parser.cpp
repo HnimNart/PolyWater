@@ -48,7 +48,7 @@ ParameterParser::ParameterParser(
       if (m_verbose) {
         Logger::getInstance().log(Logger::eINFO,
                                   "parser: configfile %s - start\n",
-                                  core2::utf8FromPath(configFile).c_str());
+                                  core::utf8FromPath(configFile).c_str());
       }
 
       size_t maxArgs = tokenized.getArgs().size();
@@ -58,7 +58,7 @@ ParameterParser::ParameterParser(
       if (m_verbose) {
         Logger::getInstance().log(
             Logger::eINFO, "parser: configfile %s - completed %d of %d\n",
-            core2::utf8FromPath(configFile).c_str(), uint32_t(parsed),
+            core::utf8FromPath(configFile).c_str(), uint32_t(parsed),
             uint32_t(maxArgs));
       }
       return true;
@@ -472,7 +472,7 @@ bool ParameterParser::Tokenized::initFromFile(
   std::ifstream fileStream(filename);
   if (!fileStream) {
     LOGW("Parameter parser could not open file %s",
-         core2::utf8FromPath(filename).c_str());
+         core::utf8FromPath(filename).c_str());
     return false;
   }
 

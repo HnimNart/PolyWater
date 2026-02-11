@@ -92,7 +92,7 @@ struct CameraPresetManager {
 
   void setCameraJsonFile(const std::filesystem::path &filename) {
     std::filesystem::path jsonFile =
-        core2::getExecutablePath().parent_path() / filename.filename();
+        core::getExecutablePath().parent_path() / filename.filename();
     jsonFile.replace_extension(".json");
     m_jsonFilename = std::move(jsonFile);
     m_doLoadSetting = true;
@@ -156,7 +156,7 @@ struct CameraPresetManager {
   void loadSetting(std::shared_ptr<core::CameraManipulator> cameraM) {
     if (m_jsonFilename.empty()) {
       // Default name
-      m_jsonFilename = core2::getExecutablePath().replace_extension(".json");
+      m_jsonFilename = core::getExecutablePath().replace_extension(".json");
     }
 
     if (m_cameras.empty() || m_doLoadSetting == false)
@@ -244,7 +244,7 @@ struct CameraPresetManager {
       }
     } catch (const std::exception &e) {
       LOGE("Could not save camera settings to %s: %s\n",
-           core2::utf8FromPath(m_jsonFilename).c_str(), e.what());
+           core::utf8FromPath(m_jsonFilename).c_str(), e.what());
     }
   }
 

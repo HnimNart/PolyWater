@@ -77,7 +77,7 @@ void core::Logger::setOutputFile(
   }
 
   if (!m_logFile) {
-    std::cerr << "Failed to open log file: " << core2::utf8FromPath(filename)
+    std::cerr << "Failed to open log file: " << core::utf8FromPath(filename)
               << std::endl;
     m_logToFile = false;
   } else {
@@ -165,7 +165,7 @@ void core::Logger::ensureLogFileIsOpen() noexcept {
   if (firstLog && m_logToFile && !m_logFile.is_open()) {
     firstLog = false;
     try {
-      std::filesystem::path exePath = core2::getExecutablePath();
+      std::filesystem::path exePath = core::getExecutablePath();
       std::filesystem::path logName = "log_";
       logName += exePath.stem();
       logName += ".txt";

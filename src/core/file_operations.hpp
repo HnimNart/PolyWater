@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace core2 {
+namespace core {
 
 // Return the path to a file if it exists in one of the search paths.
 // if `reportError` is true, will report missing file as error, otherwise as
@@ -60,4 +60,4 @@ inline std::filesystem::path pathFromUtf8(const std::string &utf8) noexcept {
 // For example, extensionMatches("foo.txt", ".txt") returns `true`.
 bool extensionMatches(const std::filesystem::path &path, const char *extension);
 
-} // namespace core2
+} // namespace core

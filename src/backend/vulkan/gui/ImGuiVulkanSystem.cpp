@@ -88,7 +88,7 @@ void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo &info)
 /**********************************************************/
 {
   m_iniFilename =
-      core2::utf8FromPath(core2::getExecutablePath().replace_extension(".ini"));
+      core::utf8FromPath(core::getExecutablePath().replace_extension(".ini"));
 
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
   core::setStyle(false);

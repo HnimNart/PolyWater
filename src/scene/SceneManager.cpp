@@ -49,14 +49,14 @@ void SceneManager::buildSceneFromData(
   // Map: Index in SceneData -> Actual MeshID in Manager
   std::vector<MeshID> meshIdMap;
   for (const auto &val : data.meshPaths) {
-    std::string fullPath = core2::findFile(val.path, searchDirs);
+    std::string fullPath = core::findFile(val.path, searchDirs);
     meshIdMap.push_back(m_scene_resources.loadGltf(val.name, fullPath));
   }
 
   // 2. Load Textures & Keep ID Mapping
   std::vector<TextureID> texIdMap;
   for (const auto &val : data.texturePaths) {
-    std::string fullPath = core2::findFile(val.path, searchDirs);
+    std::string fullPath = core::findFile(val.path, searchDirs);
     texIdMap.push_back(m_scene_resources.loadTexture(val.name, fullPath));
   }
 

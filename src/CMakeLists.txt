@@ -41,6 +41,14 @@ target_compile_definitions(${LIB_NAME} PRIVATE
 
 find_package(nlohmann_json 3.10.5 REQUIRED)
 find_package(Slang)
+find_package(CUDAToolkit COMPONENTS CUDA::nvml)
+if(TARGET CUDA::nvml)
+  target_link_libraries(${LIB_NAME} PUBLIC CUDA::nvml)
+  target_compile_definitions(${LIB_NAME} PUBLIC NVML_SUPPORTED)
+  message(STATUS "NVML: Supported")
+else()
+  message(STATUS "CUDA (NVML) Toolkit not found.")
+endif()
 
 ###################################
 # Include paths
@@ -73,6 +81,7 @@ target_link_libraries(${LIB_NAME}
         glm    # Math library
         vma    # Vulkan Memory Allocator
         imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
+        implot # For Implot
         fmt    # For formatting strings
         Slang
         nlohmann_json::nlohmann_json

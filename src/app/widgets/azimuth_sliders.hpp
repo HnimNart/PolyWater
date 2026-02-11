@@ -20,7 +20,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "nvgui/property_editor.hpp"
+#include "app/widgets/property_editor.hpp"
 
 
 namespace core {

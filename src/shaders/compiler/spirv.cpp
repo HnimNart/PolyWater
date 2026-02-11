@@ -33,7 +33,7 @@ std::size_t core::hashSpirv(const uint32_t *spirvData, size_t spirvSize) {
 std::filesystem::path
 core::dumpSpirvName(const std::filesystem::path &filename,
                        const uint32_t *spirvData, size_t spirvSize) {
-  return core2::getExecutablePath().parent_path() /
+  return core::getExecutablePath().parent_path() /
          (filename.filename().replace_extension(
              std::to_string(hashSpirv(spirvData, spirvSize)) + ".spv"));
 }
@@ -43,14 +43,14 @@ void core::dumpSpirv(const std::filesystem::path &filename,
   std::ofstream file(filename, std::ios::binary);
   if (!file) {
     LOGE("Failed to open file for writing: %s\n",
-         core2::utf8FromPath(filename).c_str());
+         core::utf8FromPath(filename).c_str());
     return;
   }
 
   file.write(reinterpret_cast<const char *>(spirvData), spirvSize);
   if (!file) {
     LOGE("Failed to write SPIR-V data to file: %s\n",
-         core2::utf8FromPath(filename).c_str());
+         core::utf8FromPath(filename).c_str());
   }
 }
 

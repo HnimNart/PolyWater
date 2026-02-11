@@ -40,6 +40,7 @@
 #include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
+#include "app/elements/elem_gpu_monitor.hpp"
 #include "app/elements/geometryPicker.hpp"
 #include "app/elements/logger.hpp"
 #include "backend/vulkan/core/Backend.hpp"
@@ -51,7 +52,7 @@ int main(int argc, char **argv) {
   core::ApplicationCreateInfo appInfo{};
 
   // Parsing the command line
-  core::ParameterParser cli(core2::getExecutablePath().stem().string());
+  core::ParameterParser cli(core::getExecutablePath().stem().string());
   core::ParameterRegistry reg;
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
   cli.add(reg);
@@ -80,6 +81,7 @@ int main(int argc, char **argv) {
   auto windowTitle = std::make_shared<core::ElementDefaultWindowTitle>();
   auto windowMenu = std::make_shared<core::ElementDefaultMenu>();
   auto logger = std::make_shared<core::ElementLogger>();
+  auto monitor = std::make_shared<core::ElementGpuMonitor>();
 
   // Adding all elements
   application.addElement(windowMenu);
@@ -87,6 +89,7 @@ int main(int argc, char **argv) {
   application.addElement(renderElement);
   application.addElement(elemCamera);
   application.addElement(logger);
+  application.addElement(monitor);
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());
 

@@ -71,7 +71,7 @@ void core::ElementDefaultWindowTitle::onUIRender()
     }
 
     const std::string exeName =
-        core2::utf8FromPath(core2::getExecutablePath().stem());
+        core::utf8FromPath(core::getExecutablePath().stem());
 
     // 2. Add Frame Count to the format string
     title +=

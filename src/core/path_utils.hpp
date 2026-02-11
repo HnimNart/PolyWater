@@ -32,7 +32,7 @@
 namespace common {
 
 inline static std::vector<std::filesystem::path> getResourcesDirs() {
-  std::filesystem::path exePath = core2::getExecutablePath().parent_path();
+  std::filesystem::path exePath = core::getExecutablePath().parent_path();
   return {
       std::filesystem::absolute(exePath / TARGET_EXE_TO_ROOT_DIRECTORY /
                                 "assets"),
@@ -41,7 +41,7 @@ inline static std::vector<std::filesystem::path> getResourcesDirs() {
 }
 
 inline static std::vector<std::filesystem::path> getShaderDirs() {
-  std::filesystem::path exePath = core2::getExecutablePath().parent_path();
+  std::filesystem::path exePath = core::getExecutablePath().parent_path();
   std::filesystem::path rootDir = exePath / TARGET_EXE_TO_ROOT_DIRECTORY;
   // Define the common base path once
   const auto entryBase = rootDir / "src" / "shaders" / "entrypoints";
