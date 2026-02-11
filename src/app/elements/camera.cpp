@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "elem_camera.hpp"
+#include "camera.hpp"
 
 #include <nvgui/window.hpp>
 #include <nvutils/logger.hpp>

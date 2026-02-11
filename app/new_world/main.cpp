@@ -20,7 +20,6 @@
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the
 // application)
-#include "app/elements/elem_logger.hpp"
 #include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_IMPLEMENTATION
@@ -42,6 +41,7 @@
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
 #include "app/elements/geometryPicker.hpp"
+#include "app/elements/logger.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "core/path_utils.hpp"
 #include "shaders/compiler/slang.hpp"

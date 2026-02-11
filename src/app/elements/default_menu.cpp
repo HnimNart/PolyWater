@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "elem_default_menu.hpp"
+#include "default_menu.hpp"
 
 #include <imgui/imgui.h>
 #include <implot/implot.h>
@@ -27,50 +27,41 @@
 
 #include "app/App.hpp"
 
-void core::ElementDefaultMenu::onAttach(core::Application* app)
-{
+void core::ElementDefaultMenu::onAttach(core::Application *app) {
   LOGI("Adding Default Menu\n");
   m_app = app;
 }
 
-void core::ElementDefaultMenu::onUIMenu()
-{
+void core::ElementDefaultMenu::onUIMenu() {
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
 
-  if (ImGui::BeginMenu("File"))
-  {
-    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC"))
-    {
+  if (ImGui::BeginMenu("File")) {
+    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC")) {
       close_app = true;
     }
     ImGui::EndMenu();
   }
-  if (ImGui::BeginMenu("View"))
-  {
+  if (ImGui::BeginMenu("View")) {
     ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V",
                     &v_sync);
     ImGui::EndMenu();
   }
 
   // Shortcuts
-  if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-  {
+  if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
     close_app = true;
   }
 
   if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&
-      ImGui::IsKeyDown(ImGuiKey_LeftShift))
-  {
+      ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
     v_sync = !v_sync;
   }
 
-  if (close_app)
-  {
+  if (close_app) {
     m_app->close();
   }
-  if (m_app->isVsync() != v_sync)
-  {
+  if (m_app->isVsync() != v_sync) {
     m_app->setVsync(v_sync);
   }
 }

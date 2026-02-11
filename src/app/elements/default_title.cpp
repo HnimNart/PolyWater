@@ -17,16 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "default_title.hpp"
+
 #include <GLFW/glfw3.h>
 #undef APIENTRY
-
 #include <fmt/format.h>
-
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 
 #include "app/App.hpp"
-#include "elem_default_title.hpp"
 
 /**********************************************************/
 core::ElementDefaultWindowTitle::ElementDefaultWindowTitle(

@@ -40,13 +40,6 @@ target_compile_definitions(${LIB_NAME} PRIVATE
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
 
-# add_project_definitions(${LIB_NAME})
-set_target_properties(${LIB_NAME} PROPERTIES
-    UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE 32
-)
-
-
 
 ###################################
 # Include paths
