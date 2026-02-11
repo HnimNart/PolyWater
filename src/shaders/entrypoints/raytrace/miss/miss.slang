@@ -1,4 +1,4 @@
-#include "nvshaders/sky_functions.h.slang"
+#include "include/light/sky_functions.h.slang"
 #include "entrypoints/raytrace/ray_common.h.slang"
 
 //-----------------------------------------------------------------------

@@ -1,11 +1,11 @@
 #include "geometryPicker.hpp"
 #include "shaders/shared/structs.h" // For Instance definition
 
+#include "core/Camera.hpp"
 #include <glm/gtc/matrix_inverse.hpp> // For inverse transpose
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <nvgui/window.hpp>
-#include <nvutils/camera_manipulator.hpp>
 #include <nvutils/logger.hpp>
 
 /**********************************************************/

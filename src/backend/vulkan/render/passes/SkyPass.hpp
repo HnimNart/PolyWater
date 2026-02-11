@@ -1,17 +1,8 @@
 #pragma once
-#include <nvshaders_host/sky.hpp>
-#include <nvutils/camera_manipulator.hpp>
-#include <nvvk/gbuffers.hpp>
-
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "shaders/shared/sky_io.h.slang"
 
-// Generated Shaders
-#include "_autogen/sky_simple.slang.h"
-
-// -----------------------------------------------------------------------------
-// Sky Pass: Handles the procedural skybox via Compute Shader
-// -----------------------------------------------------------------------------
 class SkyPass : public IRenderPass {
 public:
   void init(VulkanContextManager *core) override;
@@ -21,5 +12,10 @@ public:
 
 private:
   VulkanContextManager *m_core = nullptr;
-  nvshaders::SkySimple m_skySimple;
+  VkDevice m_device = VK_NULL_HANDLE;
+
+  // Combined Vulkan Resources
+  VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+  VkShaderEXT m_shader = VK_NULL_HANDLE;
 };

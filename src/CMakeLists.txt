@@ -1,5 +1,7 @@
 set(LIB_NAME common)
 
+include(CompilerSlangShader)
+
 ###################################
 # Sources
 ###################################
@@ -37,6 +39,8 @@ target_compile_definitions(${LIB_NAME} PRIVATE
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
 
+find_package(nlohmann_json 3.10.5 REQUIRED)
+find_package(Slang)
 
 ###################################
 # Include paths
@@ -52,20 +56,27 @@ target_include_directories(${LIB_NAME}
 
     # ✅ ADD THIS: Add the path to stb_image
     "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/stb"
+
+    ${Slang_INCLUDE_DIR}
 )
 
 ###################################
 # Dependencies
 ###################################
-find_package(nlohmann_json 3.10.5 REQUIRED)
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
         glm
         volk
-        nvutils
+        glfw   # Windowing library (Application needs it)
+        glm    # Math library
+        vma    # Vulkan Memory Allocator
+        imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
+        implot # For Implot
+        fmt    # For formatting strings
         nvvk
-        nvpro2::nvslang
         imgui
+        Slang
         nlohmann_json::nlohmann_json
 )
 

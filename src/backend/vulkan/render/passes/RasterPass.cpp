@@ -3,7 +3,7 @@
 // Implementation Includes
 #include <shaders/shared/structs.h>
 
-#include <nvutils/camera_manipulator.hpp>
+#include <core/Camera.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>

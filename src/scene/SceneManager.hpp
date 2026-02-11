@@ -3,7 +3,7 @@
 #include <memory>
 
 #include <glm/glm.hpp>
-#include <nvutils/camera_manipulator.hpp>
+#include <core/Camera.hpp>
 
 #include "SceneData.hpp"
 #include "SceneResources.hpp"

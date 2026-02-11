@@ -47,14 +47,14 @@ function(setup_rt_tutorial_sample)
 
     # Link libraries and include directories (consistent across all samples)
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        nvpro2::nvapp
-        nvpro2::nvslang
-        nvpro2::nvutils
         nvpro2::nvvk
-        nvpro2::nvshaders_host
         nvpro2::nvaftermath
-        nvpro2::nvvkgltf
-        nvpro2::nvvkglsl
+        glfw   # Windowing library (Application needs it)
+        glm    # Math library
+        vma    # Vulkan Memory Allocator
+        imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
+        implot # For Implot
+        fmt    # For formatting strings
         common
     )
 

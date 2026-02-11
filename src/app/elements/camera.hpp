@@ -22,46 +22,48 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include <nvutils/camera_manipulator.hpp>
+#include <core/Camera.hpp>
 
 #include "app/IAppElement.hpp"
 
 /*-------------------------------------------------------------------------------------------------
 # class nvvkhl::ElementCamera
 
-This class is an element of the application that is responsible for the camera manipulation.
-It is using the `nvutils::CameraManipulator` to handle the camera movement and interaction.
+This class is an element of the application that is responsible for the camera
+manipulation. It is using the `nvutils::CameraManipulator` to handle the camera
+movement and interaction.
 
-To use this class, you need to add it to the `nvvkhl::Application` using the `addElement` method.
+To use this class, you need to add it to the `nvvkhl::Application` using the
+`addElement` method.
 
 -------------------------------------------------------------------------------------------------*/
 
-namespace core
-{
+namespace core {
 
-struct ElementCamera : public core::IAppElement
-{
-  ElementCamera(std::shared_ptr<nvutils::CameraManipulator> camera = nullptr)
-  {
+struct ElementCamera : public core::IAppElement {
+  ElementCamera(std::shared_ptr<nvutils::CameraManipulator> camera = nullptr) {
     m_cameraManip = std::move(camera);
   }
 
-  void setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator> pCamera)
-  {
+  void
+  setCameraManipulator(std::shared_ptr<nvutils::CameraManipulator> pCamera) {
     m_cameraManip = std::move(pCamera);
   }
-  void onAttach(core::Application* app) override;
+  void onAttach(core::Application *app) override;
   void onUIRender() override;
   void onResize(WindowSize size) override;
 
-  std::shared_ptr<nvutils::CameraManipulator> getCameraManipulator() const { return m_cameraManip; }
+  std::shared_ptr<nvutils::CameraManipulator> getCameraManipulator() const {
+    return m_cameraManip;
+  }
 
   // Can be called independently
-  static void updateCamera(std::shared_ptr<nvutils::CameraManipulator> m_cameraManip,
-                           ImGuiWindow* viewportWindow);
+  static void
+  updateCamera(std::shared_ptr<nvutils::CameraManipulator> m_cameraManip,
+               ImGuiWindow *viewportWindow);
 
 private:
   std::shared_ptr<nvutils::CameraManipulator> m_cameraManip{};
 };
 
-}  // namespace core
+} // namespace core

@@ -32,8 +32,8 @@
 // 2. Include the library headers that need implementation
 #include <vk_mem_alloc.h> // Assuming VMA is included via this or similar
 
-#include <nvutils/parameter_parser.hpp> // Parameter parser
-#include <nvutils/timers.hpp>           // Timers for profiling
+#include <app/cli/parameter_parser.hpp> // Parameter parser
+#include <core/timers.hpp>              // Timers for profiling
 
 #include "VulkanRenderElement.hpp"
 #include "app/App.hpp"
