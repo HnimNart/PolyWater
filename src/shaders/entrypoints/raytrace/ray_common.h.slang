@@ -3,7 +3,7 @@
 
 #define RAY_TRACE 1
 
-#include "nvshaders/constants.h.slang"
+#include "include/constants.h.slang"
 
 #include "shared/structs.h"      // Defines Material, Light, HitPayload
 #include "shared/bindings.h"     // Defines Descriptor Sets, topLevelAS

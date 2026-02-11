@@ -84,12 +84,6 @@ file(GLOB_RECURSE SHADER_GLSL_FILES CONFIGURE_DEPENDS "${SHADER_DIR}/*.glsl")
 file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "${SHADER_DIR}/*.slang")
 list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
 
-# Shared standard shaders
-list(APPEND SHADER_SLANG_FILES
-    ${NVSHADERS_DIR}/nvshaders/sky_simple.slang
-    # ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
-)
-
 message(STATUS "====> SHADER_SOURCES:")
 foreach(src IN LISTS SHADER_SOURCES)
     message(STATUS "  ${src}")
