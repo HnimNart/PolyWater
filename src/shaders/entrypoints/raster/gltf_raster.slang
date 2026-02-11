@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <nvshaders/slang_types.h>
+#include "shared/slang_types.h"
 
 #include "include/light/lights.h.slang"
 #include "include/bsdf/pbr.h.slang"

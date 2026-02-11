@@ -19,10 +19,7 @@ file(GLOB_RECURSE SHADER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.slang"
 )
 
-message(STATUS "====> SHADER_SOURCES:")
-foreach(src IN LISTS SHADER_SOURCES)
-    message(STATUS "  ${src}")
-endforeach()
+
 
 ###################################
 # Library target
@@ -68,9 +65,7 @@ target_link_libraries(${LIB_NAME}
         nvutils
         nvvk
         nvpro2::nvslang
-        nvpro2::nvgui
-        nvpro2::nvapp
-        nvpro2::nvshaders_host
+        imgui
         nlohmann_json::nlohmann_json
 )
 
@@ -92,8 +87,13 @@ list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
 # Shared standard shaders
 list(APPEND SHADER_SLANG_FILES
     ${NVSHADERS_DIR}/nvshaders/sky_simple.slang
-    ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
+    # ${NVSHADERS_DIR}/nvshaders/tonemapper.slang
 )
+
+message(STATUS "====> SHADER_SOURCES:")
+foreach(src IN LISTS SHADER_SOURCES)
+    message(STATUS "  ${src}")
+endforeach()
 
 set(SHADER_INCLUDE_FLAGS
     "-I${NVSHADERS_DIR}"

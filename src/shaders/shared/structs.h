@@ -38,9 +38,9 @@
 
 #endif
 
-#include <nvshaders/slang_types.h>
+#include "slang_types.h"
 
-#include <nvshaders/sky_io.h.slang>
+#include "sky_io.h.slang"
 
 #define MAX_LIGHTS 2
 

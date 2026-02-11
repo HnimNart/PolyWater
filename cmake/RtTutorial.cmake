@@ -48,7 +48,6 @@ function(setup_rt_tutorial_sample)
     # Link libraries and include directories (consistent across all samples)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         nvpro2::nvapp
-        nvpro2::nvgui
         nvpro2::nvslang
         nvpro2::nvutils
         nvpro2::nvvk

@@ -95,7 +95,7 @@ void Application::shutdown()
   }
   m_elements.clear();
 
-  // Shutdown order: GUI -> Backend -> ImPlot -> GLFW
+  // Shutdown order: GUI -> Backend -> GLFW
   if (m_gui) {
     m_gui->deinit();
   }

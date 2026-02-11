@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
+#include <nvvk/descriptors.hpp>
 #include <nvvk/gbuffers.hpp>
 
 #include "backend/interfaces/IRenderGraph.hpp"
@@ -25,7 +26,34 @@ public:
   ToneMapPass(const ToneMapPass &) = delete;
   ToneMapPass &operator=(const ToneMapPass &) = delete;
 
+  VkResult init(nvvk::ResourceAllocator *alloc,
+                std::span<const uint32_t> spirv);
+  void deinit();
+
+  void runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
+                  const shaderio::TonemapperData &tonemapper,
+                  const VkDescriptorImageInfo &inImage,
+                  const VkDescriptorImageInfo &outImage);
+
 private:
-  nvshaders::Tonemapper m_tonemapper{};
+  void runAutoExposureHistogram(VkCommandBuffer cmd, const VkExtent2D &size,
+                                const VkDescriptorImageInfo &inImage);
+  void runAutoExposure(VkCommandBuffer cmd);
+  void clearHistogram(VkCommandBuffer cmd);
+
+  nvvk::ResourceAllocator *m_alloc{};
+
+  VkDevice m_device{};
+  nvvk::DescriptorPack m_descriptorPack;
+  VkPipelineLayout m_pipelineLayout{};
+  VkPipeline m_tonemapPipeline{};
+  VkPipeline m_histogramPipeline{};
+  VkPipeline m_exposurePipeline{};
+
+  nvutils::PerformanceTimer m_timer; // Timer for performance measurement
+
+  // Auto-Exposure
+  nvvk::Buffer m_exposureBuffer;
+  nvvk::Buffer m_histogramBuffer;
   bool m_initialized = false;
 };
