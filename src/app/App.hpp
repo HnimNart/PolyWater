@@ -10,7 +10,7 @@
 
 #include <glm/vec2.hpp>
 #include <nvapp/frame_pacer.hpp>
-#include <nvgui/settings_handler.hpp>
+#include <app/widgets/settings_handler.hpp>
 
 #include "AppInfo.hpp"
 #include "IAppElement.hpp"
@@ -131,7 +131,7 @@ private:
 
   // Imgui
   std::shared_ptr<IGUISystem> m_gui;
-  nvgui::SettingsHandler m_settingsHandler;
+  core::SettingsHandler m_settingsHandler;
 
   // Queue of functions to free resources (double buffered or per-frame)
   std::vector<std::vector<std::function<void()>>> m_resourceFreeQueue;

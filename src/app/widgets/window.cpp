@@ -19,7 +19,7 @@
 
 #include "window.hpp"
 
-namespace nvgui {
+namespace core {
 
 bool isWindowHovered(ImGuiWindow* refWindow)
 {
@@ -43,4 +43,4 @@ bool isWindowHovered(ImGuiWindow* refWindow)
 
   return true;
 }
-}  // namespace nvgui
+}  // namespace core

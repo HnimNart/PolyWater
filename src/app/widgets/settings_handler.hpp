@@ -34,7 +34,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
-namespace nvgui {
+namespace core {
 
 class SettingsHandler
 {
@@ -63,7 +63,7 @@ private:
 
 // Default setting for int, float, double, vec2, vec3, bool, ...
 template <typename T>
-void nvgui::SettingsHandler::setSetting(const std::string& key, T* value)
+void core::SettingsHandler::setSetting(const std::string& key, T* value)
 {
   SettingEntry entry{.ptr = value};
   // value=23.3,45.2
@@ -111,4 +111,4 @@ void nvgui::SettingsHandler::setSetting(const std::string& key, T* value)
 }
 
 
-}  // namespace nvgui
+}  // namespace core

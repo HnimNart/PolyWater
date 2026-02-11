@@ -19,8 +19,8 @@
 
 #pragma once
 
-namespace nvgui {
+namespace core {
 
 void tooltip(const char* description, bool questionMark = false, float timerThreshold = 0.5f);
 
-}  // namespace nvgui
+}  // namespace core

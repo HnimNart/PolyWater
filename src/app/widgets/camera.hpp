@@ -25,7 +25,7 @@
 
 #include <nvutils/camera_manipulator.hpp>
 
-namespace nvgui {
+namespace core {
 
 // Bitset enum for controlling which camera widget sections are open by default
 enum CameraWidgetSections : uint32_t
@@ -55,4 +55,4 @@ void SetHomeCamera(const nvutils::CameraManipulator::Camera& camera);
 // Adds a camera to the list of cameras
 void AddCamera(const nvutils::CameraManipulator::Camera& camera);
 
-}  // namespace nvgui
+}  // namespace core

@@ -43,11 +43,11 @@
 
 struct ImFont;
 
-namespace nvgui {
+namespace core {
 
 void    addDefaultFont(float fontSize = 15.F, bool appendIcons = true);  // Initializes the default font.
 ImFont* getDefaultFont();                                                // Returns the default font.
 void    addMonospaceFont(float fontSize = 15.F);                         // Initializes the monospace font.
 ImFont* getMonospaceFont();                                              // Returns the monospace font
 
-}  // namespace nvgui
+}  // namespace core

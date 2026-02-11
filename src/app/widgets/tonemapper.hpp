@@ -23,10 +23,10 @@
 #include <glm/glm.hpp>
 #include <nvshaders/tonemap_io.h.slang>
 
-namespace nvgui {
+namespace core {
 
 // Displays ImGui UI for shaderio::TonemapperData properties.
 // Returns whether any fields changed.
 bool tonemapperWidget(shaderio::TonemapperData& tonemapper);
 
-}  // namespace nvgui
+}  // namespace core

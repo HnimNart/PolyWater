@@ -110,13 +110,13 @@ static void fixSingleFilter(std::string* pFilter)
   *pFilter = std::move(newFilter);
 }
 
-std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
   std::filesystem::path initialDir;
   return windowOpenFileDialog(glfwin, title, exts, initialDir);
 }
 
-std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
+std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
@@ -136,7 +136,7 @@ std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, con
   return result;
 }
 
-std::filesystem::path nvgui::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
@@ -145,7 +145,7 @@ std::filesystem::path nvgui::windowSaveFileDialog(struct GLFWwindow* glfwin, con
   return save_file(title, ".", filterArgs).result();
 }
 
-std::filesystem::path nvgui::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
+std::filesystem::path core::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);

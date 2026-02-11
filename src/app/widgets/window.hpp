@@ -22,6 +22,6 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-namespace nvgui {
+namespace core {
 bool isWindowHovered(ImGuiWindow* refWindow);
 }

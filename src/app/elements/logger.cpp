@@ -19,7 +19,7 @@
 
 #include "logger.hpp"
 
-#include <nvgui/fonts.hpp>
+#include <app/widgets/fonts.hpp>
 
 core::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show) {}
 

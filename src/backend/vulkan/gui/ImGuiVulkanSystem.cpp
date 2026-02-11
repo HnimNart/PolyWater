@@ -25,8 +25,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <nvgui/fonts.hpp>
-#include <nvgui/style.hpp>
+#include <app/widgets/fonts.hpp>
+#include <app/widgets/style.hpp>
 #include <nvutils/file_operations.hpp>
 
 #include "backend/vulkan/core/ContextManager.hpp"
@@ -93,7 +93,7 @@ void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo& info)
       nvutils::getExecutablePath().replace_extension(".ini"));
 
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
-  nvgui::setStyle(false);
+  core::setStyle(false);
 
   configureImGuiIO(info);
   initializeFonts();
@@ -122,9 +122,9 @@ void ImGuiVulkanSystem::initializeFonts()
 {
   ImGuiIO& io = ImGui::GetIO();
 
-  nvgui::addDefaultFont();
-  io.FontDefault = nvgui::getDefaultFont();
-  nvgui::addMonospaceFont();
+  core::addDefaultFont();
+  io.FontDefault = core::getDefaultFont();
+  core::addMonospaceFont();
 }
 
 /******************************************************************************

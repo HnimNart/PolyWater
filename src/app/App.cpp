@@ -2,7 +2,7 @@
 
 #include <volk/volk.h>
 
-#include <nvgui/style.hpp>
+#include <app/widgets/style.hpp>
 #undef APIENTRY
 
 #include <backends/imgui_impl_glfw.h>
@@ -12,7 +12,7 @@
 #define NVLOGGER_ENABLE_FMT
 #include <utility>
 
-#include <nvgui/fonts.hpp>
+#include <app/widgets/fonts.hpp>
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 

@@ -24,21 +24,21 @@
 
 #include <sstream>
 
-#include <nvutils/logger.hpp>
+#include <core/logger.hpp>
 
 #include "app/IAppElement.hpp"
-#include "nvgui/settings_handler.hpp"
+#include "app/widgets/settings_handler.hpp"
 
-namespace core
-{
+namespace core {
 
 /*-------------------------------------------------------------------------------------------------
 # class core::ElementLogger
 
->  This class is an element of the application that can redirect all logs to a ImGui window in the
-application
+>  This class is an element of the application that can redirect all logs to a
+ImGui window in the application
 
-To use this class, you need to add it to the `core::Application` using the `addElement` method.
+To use this class, you need to add it to the `core::Application` using the
+`addElement` method.
 
 Create the element such that it will be available to the target application
 
@@ -50,52 +50,53 @@ Example:
     g_logger.addLog("%s", fmt);
   });
 
-  app->addElement(std::make_unique<core::ElementLogger>(&g_logger, true));  // Add logger window
+  app->addElement(std::make_unique<core::ElementLogger>(&g_logger, true));  //
+Add logger window
   ```
 
 -------------------------------------------------------------------------------------------------*/
 
 // Helper class to show the log in the application
-class ElementLogger : public core::IAppElement
-{
+class ElementLogger : public core::IAppElement {
 public:
-  enum LogLevelBit
-  {
+  enum LogLevelBit {
     eBitDEBUG = 1 << nvutils::Logger::LogLevel::eDEBUG,
     eBitINFO = 1 << nvutils::Logger::LogLevel::eINFO,
     eBitWARNING = 1 << nvutils::Logger::LogLevel::eWARNING,
     eBitERROR = 1 << nvutils::Logger::LogLevel::eERROR,
     eBitSTATS = 1 << nvutils::Logger::LogLevel::eSTATS,
     eBitOK = 1 << nvutils::Logger::LogLevel::eOK,
-    eBitAll = eBitDEBUG | eBitINFO | eBitWARNING | eBitERROR | eBitSTATS | eBitOK
+    eBitAll =
+        eBitDEBUG | eBitINFO | eBitWARNING | eBitERROR | eBitSTATS | eBitOK
   };
 
   explicit ElementLogger(bool show = false);
   virtual ~ElementLogger() = default;
 
-  void onAttach(Application* app) override;
-  void onUIRender() override;  // Called for anything related to UI
-  void onUIMenu() override;    // This is the menubar to create
+  void onAttach(Application *app) override;
+  void onUIRender() override; // Called for anything related to UI
+  void onUIMenu() override;   // This is the menubar to create
 
   void setLevelFilter(uint32_t levelFilter);
-  void addLog(uint32_t level, const char* fmt, ...);
+  void addLog(uint32_t level, const char *fmt, ...);
 
 private:
-  nvgui::SettingsHandler m_settingsHandler;
+  core::SettingsHandler m_settingsHandler;
 
   void clear();
   void initColors();
-  void draw(const char* title, bool* p_open = nullptr);
+  void draw(const char *title, bool *p_open = nullptr);
 
   uint32_t m_levelFilter = eBitERROR | eBitWARNING | eBitINFO;
   ImGuiTextBuffer m_buf{};
   ImGuiTextFilter m_filter{};
-  ImVector<int> m_lineOffsets;  // Index to lines offset. We maintain this with AddLog() calls.
-  ImVector<int> m_lineLevels;   // Log level per line.
-  ImVector<ImVec4> m_colors;    // Line color based on log level
-  bool m_autoScroll{true};      // Keep scrolling if already at the bottom.
+  ImVector<int> m_lineOffsets; // Index to lines offset. We maintain this with
+                               // AddLog() calls.
+  ImVector<int> m_lineLevels;  // Log level per line.
+  ImVector<ImVec4> m_colors;   // Line color based on log level
+  bool m_autoScroll{true};     // Keep scrolling if already at the bottom.
   bool m_showLog{false};
-  std::mutex m_modificationMutex;  // To protect from concurrent access
+  std::mutex m_modificationMutex; // To protect from concurrent access
 };
 
-}  // namespace core
+} // namespace core

@@ -66,16 +66,14 @@ target_include_directories(${LIB_NAME}
 
 target_link_libraries(${LIB_NAME}
     PUBLIC
+        nvvk
         glm
         volk
         glfw   # Windowing library (Application needs it)
         glm    # Math library
         vma    # Vulkan Memory Allocator
         imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
-        implot # For Implot
         fmt    # For formatting strings
-        nvvk
-        imgui
         Slang
         nlohmann_json::nlohmann_json
 )

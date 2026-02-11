@@ -147,12 +147,12 @@ static std::filesystem::path unifiedDialog(struct GLFWwindow*           glfwin,
 }
 
 
-std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
   return unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(), nvutils::pathFromUtf8(exts).native(), DialogMode::OpenFile);
 }
 
-std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
+std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
 {
   std::filesystem::path result = unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(),
                                                nvutils::pathFromUtf8(exts).native(), DialogMode::OpenFile, initialDir);
@@ -164,12 +164,12 @@ std::filesystem::path nvgui::windowOpenFileDialog(struct GLFWwindow* glfwin, con
   return result;
 }
 
-std::filesystem::path nvgui::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
   return unifiedDialog(glfwin, nvutils::pathFromUtf8(title).native(), nvutils::pathFromUtf8(exts).native(), DialogMode::SaveFile);
 }
 
-std::filesystem::path nvgui::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
+std::filesystem::path core::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
 {
   return unifiedDialog(glfwin, nvutils::pathFromUtf8(title), {}, DialogMode::OpenFolder);
 }

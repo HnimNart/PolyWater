@@ -19,7 +19,7 @@
 
 #include "camera.hpp"
 
-#include <nvgui/window.hpp>
+#include <app/widgets/window.hpp>
 #include <nvutils/logger.hpp>
 
 /**********************************************************/
@@ -35,7 +35,7 @@ void core::ElementCamera::updateCamera(
 
   // Check if the mouse cursor is over the "Viewport", check for all inputs that
   // can manipulate the camera.
-  if (!nvgui::isWindowHovered(viewportWindow))
+  if (!core::isWindowHovered(viewportWindow))
     return;
 
   inputs.lmb = ImGui::IsMouseDown(ImGuiMouseButton_Left);

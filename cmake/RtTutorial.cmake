@@ -49,12 +49,6 @@ function(setup_rt_tutorial_sample)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         nvpro2::nvvk
         nvpro2::nvaftermath
-        glfw   # Windowing library (Application needs it)
-        glm    # Math library
-        vma    # Vulkan Memory Allocator
-        imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
-        implot # For Implot
-        fmt    # For formatting strings
         common
     )
 

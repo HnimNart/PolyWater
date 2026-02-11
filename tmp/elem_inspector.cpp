@@ -46,8 +46,8 @@
 #include "nvshaders/inspector_io.h"
 
 // Other includes
-#include <nvgui/file_dialog.hpp>
-#include <nvgui/fonts.hpp>
+#include <app/widgets/file_dialog.hpp>
+#include <app/widgets/fonts.hpp>
 #include <nvutils/file_operations.hpp>
 #include <nvutils/logger.hpp>
 #include <nvutils/parallel_work.hpp>
@@ -882,7 +882,7 @@ public:
 
   void requestFullSnapshotSave()
   {
-    std::filesystem::path filename = nvgui::windowSaveFileDialog(m_app->getWindowHandle(), "Save CSV", "csv (.csv)|*.csv");
+    std::filesystem::path filename = core::windowSaveFileDialog(m_app->getWindowHandle(), "Save CSV", "csv (.csv)|*.csv");
     if(filename.empty())
     {
       return;
@@ -1154,7 +1154,7 @@ void imguiCopy(core::Application* app, T& src, const std::vector<T>& existingOri
   {
     if(src.snapshotFileName.empty())
     {
-      src.snapshotFileName = nvgui::windowSaveFileDialog(app->getWindowHandle(), "Save CSV", "CSV(.csv)|*.csv");
+      src.snapshotFileName = core::windowSaveFileDialog(app->getWindowHandle(), "Save CSV", "CSV(.csv)|*.csv");
     }
     if(!src.snapshotFileName.empty())
     {

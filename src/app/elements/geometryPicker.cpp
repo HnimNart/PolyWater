@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_inverse.hpp> // For inverse transpose
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <nvgui/window.hpp>
+#include <app/widgets/window.hpp>
 #include <nvutils/logger.hpp>
 
 /**********************************************************/
@@ -29,7 +29,7 @@ void core::GeometryPickerElement::onUIRender()
 /**********************************************************/
 {
   ImGuiWindow *viewportWindow = ImGui::FindWindowByName("Viewport");
-  if (!viewportWindow || !nvgui::isWindowHovered(viewportWindow))
+  if (!viewportWindow || !core::isWindowHovered(viewportWindow))
     return;
 
   // We only care about picking if Ctrl is held

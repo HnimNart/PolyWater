@@ -150,7 +150,7 @@ struct AxisGeom
 };
 
 
-void nvgui::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
+void core::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
 {
   static AxisGeom a;
 

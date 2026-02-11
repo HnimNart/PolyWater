@@ -19,7 +19,7 @@
 
 #include "profiler.hpp"
 
-#include <nvgui/fonts.hpp>
+#include <app/widgets/fonts.hpp>
 #include <nvutils/logger.hpp>
 #include <nvvk/debug_util.hpp>
 
@@ -236,7 +236,7 @@ void core::ElementProfiler::displayTableNode(const EntryNode &node,
       ImGui::Text("%3.3f", value / 1000.0f);
   };
 
-  ImGui::PushFont(nvgui::getMonospaceFont());
+  ImGui::PushFont(core::getMonospaceFont());
   ImGui::TableNextColumn();
   drawValue(info.gpu.average);
   if (detailed) {

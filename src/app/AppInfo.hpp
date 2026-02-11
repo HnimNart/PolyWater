@@ -9,7 +9,7 @@
 
 #include <glm/vec2.hpp>
 #include <nvapp/frame_pacer.hpp>
-#include <nvgui/settings_handler.hpp>
+#include <app/widgets/settings_handler.hpp>
 
 #include "core/Types.hpp"
 

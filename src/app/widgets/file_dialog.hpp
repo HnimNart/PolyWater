@@ -26,7 +26,7 @@
 
 struct GLFWwindow;
 
-namespace nvgui {
+namespace core {
 
 // opens a file chooser dialog and returns the path to the selected file
 std::filesystem::path windowOpenFileDialog(GLFWwindow* glfwin, const char* title, const char* exts);
@@ -37,4 +37,4 @@ std::filesystem::path windowSaveFileDialog(GLFWwindow* glfwin, const char* title
 // opens a folder chooser dialog and returns the path to the selected directory
 std::filesystem::path windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title);
 
-};  // namespace nvgui
+};  // namespace core

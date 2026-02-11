@@ -31,11 +31,11 @@
 #include "fonts.hpp"
 
 
-namespace nvgui {
+namespace core {
 ImFont* g_defaultFont   = nullptr;
 ImFont* g_iconicFont    = nullptr;
 ImFont* g_monospaceFont = nullptr;
-}  // namespace nvgui
+}  // namespace core
 
 static ImFontConfig getDefaultConfig()
 {
@@ -70,7 +70,7 @@ static ImFont* appendFontWithMaterialSymbols(const void* fontData, int fontDataS
 
 
 // Add default Roboto fonts with the option to merge Material Symbols (icons)
-void nvgui::addDefaultFont(float fontSize, bool appendIcons)
+void core::addDefaultFont(float fontSize, bool appendIcons)
 {
   if(g_defaultFont == nullptr)
   {
@@ -85,12 +85,12 @@ void nvgui::addDefaultFont(float fontSize, bool appendIcons)
   }
 }
 
-ImFont* nvgui::getDefaultFont()
+ImFont* core::getDefaultFont()
 {
   return g_defaultFont;
 }
 
-void nvgui::addMonospaceFont(float fontSize)
+void core::addMonospaceFont(float fontSize)
 {
   if(g_monospaceFont == nullptr)
   {
@@ -100,7 +100,7 @@ void nvgui::addMonospaceFont(float fontSize)
   }
 }
 
-ImFont* nvgui::getMonospaceFont()
+ImFont* core::getMonospaceFont()
 {
   return g_monospaceFont;
 }

@@ -22,7 +22,7 @@
 #include <imgui/imgui.h>
 #include <implot/implot.h>
 
-#include <nvgui/fonts.hpp>
+#include <app/widgets/fonts.hpp>
 #include <nvutils/logger.hpp>
 
 #include "app/App.hpp"

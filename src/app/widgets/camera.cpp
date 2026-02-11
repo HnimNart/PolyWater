@@ -27,9 +27,9 @@
 #include <nvutils/camera_manipulator.hpp>
 #include <nvutils/logger.hpp>
 #include <nvutils/file_operations.hpp>
-#include <nvgui/property_editor.hpp>
-#include <nvgui/tooltip.hpp>
-#include <nvgui/fonts.hpp>
+#include <app/widgets/property_editor.hpp>
+#include <app/widgets/tooltip.hpp>
+#include <app/widgets/fonts.hpp>
 
 #include "camera.hpp"
 
@@ -42,7 +42,7 @@
 
 using nlohmann::json;
 
-namespace PE = nvgui::PropertyEditor;
+namespace PE = core::PropertyEditor;
 
 //--------------------------------------------------------------------------------------------------
 // Holds all saved cameras in a vector of Cameras
@@ -313,7 +313,7 @@ static bool QuickActionsBar(std::shared_ptr<nvutils::CameraManipulator> cameraM,
     camera  = CameraPresetManager::getInstance().m_cameras[0];
     changed = true;
   }
-  nvgui::tooltip("Reset to home camera position");
+  core::tooltip("Reset to home camera position");
 
   // Add/Save camera button
   ImGui::SameLine(0, s_buttonSpacing);
@@ -321,7 +321,7 @@ static bool QuickActionsBar(std::shared_ptr<nvutils::CameraManipulator> cameraM,
   {
     CameraPresetManager::getInstance().addCamera(cameraM->getCamera());
   }
-  nvgui::tooltip("Save current camera position");
+  core::tooltip("Save current camera position");
 
   // Copy button
   ImGui::SameLine(0, s_buttonSpacing);
@@ -330,7 +330,7 @@ static bool QuickActionsBar(std::shared_ptr<nvutils::CameraManipulator> cameraM,
     std::string text = camera.getString();
     ImGui::SetClipboardText(text.c_str());
   }
-  nvgui::tooltip("Copy camera state to clipboard");
+  core::tooltip("Copy camera state to clipboard");
 
 
   // Paste button
@@ -341,7 +341,7 @@ static bool QuickActionsBar(std::shared_ptr<nvutils::CameraManipulator> cameraM,
     std::string text(pPastedString);
     changed = camera.setFromString(text);
   }
-  nvgui::tooltip("Paste camera state from clipboard");
+  core::tooltip("Paste camera state from clipboard");
 
   // Help button, right-aligned
   const float button_size = ImGui::CalcTextSize(ICON_MS_HELP).x + ImGui::GetStyle().FramePadding.x * 2.f;
@@ -350,7 +350,7 @@ static bool QuickActionsBar(std::shared_ptr<nvutils::CameraManipulator> cameraM,
   {
     ImGui::OpenPopup("Camera Help");
   }
-  nvgui::tooltip("Show camera controls help");
+  core::tooltip("Show camera controls help");
 
   ImGui::PopStyleColor();
 
@@ -414,7 +414,7 @@ static bool PresetsSection(std::shared_ptr<nvutils::CameraManipulator> cameraM, 
     const auto& cam = presetManager.m_cameras[n];
     std::string tooltip =
         fmt::format("Camera #{}\n({:.1f}, {:.1f}, {:.1f})\nMiddle click to delete", n, cam.eye.x, cam.eye.y, cam.eye.z);
-    nvgui::tooltip(tooltip.c_str());
+    core::tooltip(tooltip.c_str());
 
     // Auto-wrap buttons
     float last_button_x2 = ImGui::GetItemRectMax().x;
@@ -469,7 +469,7 @@ static bool NavigationSettingsSection(std::shared_ptr<nvutils::CameraManipulator
     cameraM->setMode(nvutils::CameraManipulator::Examine);
     changed = true;
   }
-  nvgui::tooltip("Orbit around a point of interest");
+  core::tooltip("Orbit around a point of interest");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == nvutils::CameraManipulator::Fly);
   if(ImGui::Button(ICON_MS_FLIGHT))
@@ -477,7 +477,7 @@ static bool NavigationSettingsSection(std::shared_ptr<nvutils::CameraManipulator
     cameraM->setMode(nvutils::CameraManipulator::Fly);
     changed = true;
   }
-  nvgui::tooltip("Fly: Free camera movement");
+  core::tooltip("Fly: Free camera movement");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == nvutils::CameraManipulator::Walk);
   if(ImGui::Button(ICON_MS_DIRECTIONS_WALK))
@@ -485,7 +485,7 @@ static bool NavigationSettingsSection(std::shared_ptr<nvutils::CameraManipulator
     cameraM->setMode(nvutils::CameraManipulator::Walk);
     changed = true;
   }
-  nvgui::tooltip("Walk: Stay on a horizontal plane");
+  core::tooltip("Walk: Stay on a horizontal plane");
 
   ImGui::PopStyleColor();
   const bool showSettings = (mode == nvutils::CameraManipulator::Fly || mode == nvutils::CameraManipulator::Walk);
@@ -620,7 +620,7 @@ static bool OtherSettingsSection(std::shared_ptr<nvutils::CameraManipulator> cam
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
-bool nvgui::CameraWidget(std::shared_ptr<nvutils::CameraManipulator> cameraManip, bool embed, CameraWidgetSections openSections)
+bool core::CameraWidget(std::shared_ptr<nvutils::CameraManipulator> cameraManip, bool embed, CameraWidgetSections openSections)
 {
   assert(cameraManip && "CameraManipulator is not set");
 
@@ -679,17 +679,17 @@ bool nvgui::CameraWidget(std::shared_ptr<nvutils::CameraManipulator> cameraManip
   return changed || instantChanged;
 }
 
-void nvgui::SetCameraJsonFile(const std::filesystem::path& filename)
+void core::SetCameraJsonFile(const std::filesystem::path& filename)
 {
   CameraPresetManager::getInstance().setCameraJsonFile(filename);
 }
 
-void nvgui::SetHomeCamera(const nvutils::CameraManipulator::Camera& camera)
+void core::SetHomeCamera(const nvutils::CameraManipulator::Camera& camera)
 {
   CameraPresetManager::getInstance().setHomeCamera(camera);
 }
 
-void nvgui::AddCamera(const nvutils::CameraManipulator::Camera& camera)
+void core::AddCamera(const nvutils::CameraManipulator::Camera& camera)
 {
   CameraPresetManager::getInstance().addCamera(camera);
 }

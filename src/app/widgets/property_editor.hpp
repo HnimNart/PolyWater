@@ -23,9 +23,8 @@
 
 #include <imgui/imgui.h>
 
-
 // clang-format off
-namespace nvgui {
+namespace core {
 
 //--------------------------------------------------------------------------------------------------
 // This is a helper to create a nice property editor with ImGui, where the name of the property

@@ -42,7 +42,7 @@ Example
 --- @DOC_END ------------------------------------------------------- */
 
 // The API
-namespace nvgui {
+namespace core {
 
 // This utility is adding the 3D axis at `pos`, using the matrix `modelView`
 void Axis(ImVec2 pos, const glm::mat4& modelView, float size = 20.f);
@@ -58,4 +58,4 @@ inline void Axis(const glm::mat4& modelView, float size = 20.f)
 }
 
 
-};  // namespace nvgui
+};  // namespace core

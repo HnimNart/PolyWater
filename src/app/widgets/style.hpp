@@ -24,7 +24,7 @@
 
 #include <imgui/imgui.h>
 
-namespace nvgui {
+namespace core {
 
 //--------------------------------------------------------------------------------------------------
 // Setting a dark style for the GUI
@@ -115,4 +115,4 @@ inline void setStyle(bool useLinearColor)
 }
 
 
-}  // namespace nvgui
+}  // namespace core

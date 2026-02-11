@@ -20,12 +20,12 @@
 #include "tonemapper.hpp"
 
 #include <fmt/format.h>
-#include <nvgui/IconsMaterialSymbols.h>
-#include <nvgui/property_editor.hpp>
+#include <app/widgets/IconsMaterialSymbols.h>
+#include <app/widgets/property_editor.hpp>
 #include <nvshaders/tonemap_functions.h.slang>
 
-namespace nvgui {
-namespace PE = nvgui::PropertyEditor;
+namespace core {
+namespace PE = core::PropertyEditor;
 
 bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
 {
@@ -130,4 +130,4 @@ bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
   return changed;
 }
 
-}  // namespace nvgui
+}  // namespace core
