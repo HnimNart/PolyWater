@@ -37,10 +37,6 @@
 >  This class is an element of the application that is responsible for the NVML
 monitoring. It is using the `NVML` library to get information about the GPU and
 display it in the application.
-
-To use this class, you need to add it to the `core::Application` using the
-`addElement` method.
-
 -------------------------------------------------------------------------------------------------*/
 
 namespace core {
@@ -101,7 +97,7 @@ private:
 
   bool m_throttleDetected{false};
   uint64_t m_lastThrottleReason{0ull};
-  nvutils::PerformanceTimer m_throttleCooldownTimer;
+  core::PerformanceTimer m_throttleCooldownTimer;
 
   uint32_t m_selectedMemClock{0u};
   uint32_t m_selectedGraphicsClock{0u};

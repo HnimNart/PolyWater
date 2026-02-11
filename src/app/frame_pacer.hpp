@@ -20,7 +20,7 @@
 #pragma once
 
 #include <core/timers.hpp>
-namespace nvapp {
+namespace core {
 
 // Get the minimum refresh rate of the monitors
 double getMonitorsMinRefreshRate();
@@ -43,4 +43,4 @@ private:
   core::PerformanceTimer m_cpuTimer;
 };
 
-} // namespace nvapp
+} // namespace core

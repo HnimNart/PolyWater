@@ -8,7 +8,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <fmt/ranges.h>
 #include <imgui_internal.h>
-#include <implot/implot.h>
 #define NVLOGGER_ENABLE_FMT
 #include <utility>
 

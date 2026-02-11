@@ -1,21 +1,19 @@
 #pragma once
 
-#include <imgui/imgui.h>
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <vector>
 
-#include <glm/vec2.hpp>
-#include <nvapp/frame_pacer.hpp>
 #include <app/widgets/settings_handler.hpp>
+#include <glm/vec2.hpp>
 
 #include "AppInfo.hpp"
 #include "IAppElement.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 #include "core/Types.hpp"
+#include "frame_pacer.hpp"
 
 // Forward declarations
 struct GLFWwindow;
@@ -105,7 +103,7 @@ private:
   // 1. Core Systems
   std::unique_ptr<IRenderBackend> m_backend{};
   std::vector<std::shared_ptr<IAppElement>> m_elements{};
-  nvapp::FramePacer m_framePacer; // Low-latency system
+  core::FramePacer m_framePacer; // Low-latency system
 
   // 2. Windowing State
   GLFWwindow *m_windowHandle{nullptr};

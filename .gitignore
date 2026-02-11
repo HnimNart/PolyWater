@@ -5,3 +5,4 @@ compile_commands.json
 ext/vulkansdk
 
 **/_*/
+.DS_Store
