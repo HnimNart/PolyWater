@@ -22,6 +22,7 @@ else()
 endif()
 
 # Add common library first as other samples might depend on it
+add_subdirectory(ext)
 add_subdirectory(src)
 add_subdirectory(app)
 
