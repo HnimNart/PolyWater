@@ -16,13 +16,16 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER ${PROJECT_NAME})
 
 # Link libraries (consistent across all samples)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    nvpro2::nvvk
-    nvpro2::nvaftermath
+     #nvpro2::nvaftermath
     common
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        ROOT_DIR="${CMAKE_SOURCE_DIR}/"
+    )
+
 # Definitions and Includes
-add_project_definitions(${PROJECT_NAME})
+# add_project_definitions(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_BINARY_DIR} 
     ${CMAKE_SOURCE_DIR} 

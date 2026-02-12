@@ -32,23 +32,20 @@
 namespace common {
 
 inline static std::vector<std::filesystem::path> getResourcesDirs() {
-  std::filesystem::path exePath = core::getExecutablePath().parent_path();
-  return {
-      std::filesystem::absolute(exePath / TARGET_EXE_TO_ROOT_DIRECTORY /
-                                "assets"),
-      std::filesystem::absolute(exePath / "assets") //
-  };
+  std::filesystem::path rootDir = ROOT_DIR;
+  return {std::filesystem::absolute(rootDir / "assets")};
 }
 
 inline static std::vector<std::filesystem::path> getShaderDirs() {
   std::filesystem::path exePath = core::getExecutablePath().parent_path();
-  std::filesystem::path rootDir = exePath / TARGET_EXE_TO_ROOT_DIRECTORY;
+  std::filesystem::path rootDir = ROOT_DIR;
   // Define the common base path once
   const auto entryBase = rootDir / "src" / "shaders" / "entrypoints";
 
   return {
       // 1. The Root Shader Directory (CRITICAL)
       std::filesystem::absolute(rootDir / "src" / "shaders"),
+      std::filesystem::absolute(rootDir / "src" / "shaders / shared"),
       std::filesystem::absolute(entryBase / "raytrace" / "raygen"),
       std::filesystem::absolute(entryBase / "raytrace" / "hit"),
       std::filesystem::absolute(entryBase / "raytrace" / "miss"),
@@ -57,11 +54,6 @@ inline static std::vector<std::filesystem::path> getShaderDirs() {
       // 2. The Legacy/Binary Directory
       // Often used when shaders are copied next to the executable during build
       std::filesystem::absolute(exePath / "shaders"),
-
-      // 3. NV Shaders (External Library)
-      // Allows #include "nvshaders/..."
-      std::filesystem::absolute(exePath / TARGET_EXE_TO_NVSHADERS_DIRECTORY),
-      std::filesystem::absolute(NVSHADERS_DIR),
 
       // 4. Fallback/Root (Optional)
       std::filesystem::absolute(rootDir),

@@ -2,8 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include <nvvk/descriptors.hpp>
-#include <nvvk/sbt_generator.hpp>
+#include "../../nvvk/descriptors.hpp"
+#include "../../nvvk/sbt_generator.hpp"
 
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/render/Acceleration.hpp"

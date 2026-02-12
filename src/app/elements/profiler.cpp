@@ -21,7 +21,6 @@
 
 #include <app/widgets/fonts.hpp>
 #include <core/logger.hpp>
-#include <nvvk/debug_util.hpp>
 
 #include "app/App.hpp"
 

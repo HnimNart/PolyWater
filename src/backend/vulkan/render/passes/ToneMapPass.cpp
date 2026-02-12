@@ -1,7 +1,7 @@
 #include "ToneMapPass.hpp"
 
-#include <nvvk/debug_util.hpp>
 #include <nvvk/compute_pipeline.hpp>
+#include <nvvk/debug_util.hpp>
 
 #include "_autogen/tonemapper.slang.h"
 #include "backend/vulkan/core/RenderContext.hpp"

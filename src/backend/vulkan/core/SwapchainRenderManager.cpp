@@ -8,9 +8,9 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/helpers.hpp>
+#include "../nvvk/check_error.hpp"
+#include "../nvvk/debug_util.hpp"
+#include "../nvvk/helpers.hpp"
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"

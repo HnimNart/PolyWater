@@ -1,3 +1,4 @@
+
 {
   "version": 6,
   "cmakeMinimumRequired": { "major": 3, "minor": 24 },
@@ -14,7 +15,11 @@
         "CMAKE_C_COMPILER_LAUNCHER": "ccache",
         "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_COLOR_DIAGNOSTICS": "ON",
-        "CMAKE_POSITION_INDEPENDENT_CODE": "ON"
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+        "CMAKE_CXX_EXTENSIONS": "OFF"
       }
     },
     {

@@ -4,7 +4,7 @@
 
 #include <functional>
 
-#include <nvvk/swapchain.hpp>
+#include "../nvvk/swapchain.hpp"
 
 #include "backend/interfaces/IRenderContext.hpp"
 
@@ -12,19 +12,18 @@ class VulkanContextManager;
 class FrameSynchronizationManager;
 class GLFWwindow;
 
-class SwapchainRenderManager
-{
+class SwapchainRenderManager {
 public:
   SwapchainRenderManager() = default;
   ~SwapchainRenderManager() = default;
 
   // Initialization & Cleanup
-  void init(VulkanContextManager& coreManager, GLFWwindow* windowHandle);
-  void deinit(VulkanContextManager& coreManager);
+  void init(VulkanContextManager &coreManager, GLFWwindow *windowHandle);
+  void deinit(VulkanContextManager &coreManager);
 
   // Frame Lifecycle
-  bool beginFrame(VulkanContextManager& coreManager);
-  void present(VulkanContextManager& coreManager);
+  bool beginFrame(VulkanContextManager &coreManager);
+  void present(VulkanContextManager &coreManager);
 
   // Getters
   VkImage getOutputImage() const;
@@ -32,19 +31,19 @@ public:
   VkExtent2D getWindowSize() const { return m_windowSize; }
   bool getVsync() const { return m_vsyncWanted; }
 
-  const nvvk::Swapchain& getSwapchain() const { return m_swapchain; }
+  const nvvk::Swapchain &getSwapchain() const { return m_swapchain; }
 
   // Setters
   void setWindowSize(VkExtent2D size) { m_windowSize = size; }
   void setVsync(bool enabled);
 
-  using RenderCallback = std::function<void(const IRenderContext& ctx)>;
-  void setUICallback(const RenderCallback& renderCallback);
+  using RenderCallback = std::function<void(const IRenderContext &ctx)>;
+  void setUICallback(const RenderCallback &renderCallback);
   RenderCallback getUICallback() const { return m_uiCallback; }
 
 private:
   void reportSwapchainDiagnostics(VkInstance instance,
-                                  nvvk::Swapchain::InitInfo& swapchainParams);
+                                  nvvk::Swapchain::InitInfo &swapchainParams);
   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
   nvvk::Swapchain m_swapchain;
 

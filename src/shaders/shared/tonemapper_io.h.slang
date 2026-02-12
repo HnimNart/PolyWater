@@ -83,10 +83,6 @@ struct TonemapperData
 
 #define EXPOSURE_HISTOGRAM_SIZE 256
 
-NAMESPACE_SHADERIO_END()
-
-NAMESPACE_SHADERIO_BEGIN()
-
 // Converts a color from linear RGB to sRGB.
 inline float3 toSrgb(float3 rgb)
 {

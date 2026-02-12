@@ -23,12 +23,12 @@
 
 #include "include/core/math.h.slang"
 #include "include/core/sampler.h.slang"
+#include "include/core/functions.h.slang"
 
-#include "nvshaders/slang_types.h"
-#include "nvshaders/bsdf_types.h.slang"
-#include "nvshaders/bsdf_functions.h.slang"
-#include "nvshaders/functions.h.slang"
+#include "shared/slang_types.h"
 
+#include "bsdf_types.h.slang"
+#include "bsdf_functions.h.slang"
 #include "ibsdf.h.slang"
 
 struct PbrBaseMaterial

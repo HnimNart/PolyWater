@@ -1,7 +1,4 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
-
-#include "entrypoints/raytrace/ray_common.h.slang"
-
 #include "include/bsdf/pbr.h.slang"
 
 //-----------------------------------------------------------------------

@@ -17,16 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
 
 #include <glm/glm.hpp>
-#include <nvshaders/tonemap_io.h.slang>
+#include <shaders/shared/tonemapper_io.h.slang>
 
 namespace core {
 
 // Displays ImGui UI for shaderio::TonemapperData properties.
 // Returns whether any fields changed.
-bool tonemapperWidget(shaderio::TonemapperData& tonemapper);
+bool tonemapperWidget(shaderio::TonemapperData &tonemapper);
 
-}  // namespace core
+} // namespace core

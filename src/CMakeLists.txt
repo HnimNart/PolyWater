@@ -1,47 +1,27 @@
+# -------------------------------------------------------------------
+# Library: common
+# -------------------------------------------------------------------
 set(LIB_NAME common)
 
-include(CompilerSlangShader)
+# --- 1. Sources & Shaders ---
+# Note: GLOB is convenient but requires re-running CMake when adding files.
+file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
+file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
+file(GLOB_RECURSE SHADER_GLSL_FILES  CONFIGURE_DEPENDS "shaders/*.glsl")
 
-###################################
-# Sources
-###################################
-file(GLOB_RECURSE LIB_SOURCES
-    CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
-)
+# Filter out .h.slang files (headers) from compilation list
+list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
 
-message(STATUS "====> LIB_SOURCES:")
-foreach(src IN LISTS LIB_SOURCES)
-    message(STATUS "  ${src}")
-endforeach()
+# --- 2. Define Target ---
+add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
 
-file(GLOB_RECURSE SHADER_SOURCES
-    CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.slang"
-)
+# Enforce C++20 for this library specifically
+target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
-
-
-###################################
-# Library target
-###################################
-add_library(${LIB_NAME})
-
-target_sources(${LIB_NAME}
-    PRIVATE
-        ${LIB_SOURCES}
-        ${SHADER_SOURCES}
-)
-
-target_compile_definitions(${LIB_NAME} PRIVATE
-    $<$<CONFIG:Debug>:ENABLE_PROFILING>
-    $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
-)
-
+# --- 4. Dependencies ---
 find_package(nlohmann_json 3.10.5 REQUIRED)
-find_package(Slang)
-find_package(CUDAToolkit COMPONENTS CUDA::nvml)
+find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
+find_package(Slang REQUIRED)
 if(TARGET CUDA::nvml)
   target_link_libraries(${LIB_NAME} PUBLIC CUDA::nvml)
   target_compile_definitions(${LIB_NAME} PUBLIC NVML_SUPPORTED)
@@ -50,70 +30,68 @@ else()
   message(STATUS "CUDA (NVML) Toolkit not found.")
 endif()
 
-###################################
-# Include paths
-###################################
-target_include_directories(${LIB_NAME}
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
-        ${PROJECT_SOURCE_DIR}
-        ${CMAKE_BINARY_DIR}
-     # Add the path to tinygltf
-    "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/tinygltf"
-
-    # ✅ ADD THIS: Add the path to stb_image
-    "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/stb"
-
-    ${Slang_INCLUDE_DIR}
-)
-
-###################################
-# Dependencies
-###################################
-
 target_link_libraries(${LIB_NAME}
     PUBLIC
-        nvvk
         glm
         volk
-        glfw   # Windowing library (Application needs it)
-        glm    # Math library
-        vma    # Vulkan Memory Allocator
-        imgui  # Because GBuffer needs it (returns the ImTexture and uses ImGui_ImplVulkan_AddTexture
-        implot # For Implot
-        fmt    # For formatting strings
-        Slang
+        glfw
+        vma
+        imgui
+        implot
+        fmt
         nlohmann_json::nlohmann_json
+        Slang
 )
 
-###################################
-# IDE organization
-###################################
-source_group("Shaders" FILES ${SHADER_SOURCES})
+# --- 3. Include Directories ---
+target_include_directories(${LIB_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+        
+        # External includes
+        "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/tinygltf"
+        "${PROJECT_SOURCE_DIR}/ext/nvpro_core2/third_party/stb"
+        ${Slang_INCLUDE_DIR}
+        
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/backend/vulkan"
+        "${CMAKE_CURRENT_SOURCE_DIR}/backend/vulkan/nvvk"
+)
 
-###################################
-#### Shader compilation
-###################################
-set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
-set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
 
-file(GLOB_RECURSE SHADER_GLSL_FILES CONFIGURE_DEPENDS "${SHADER_DIR}/*.glsl")
-file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "${SHADER_DIR}/*.slang")
-list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
 
-message(STATUS "====> SHADER_SOURCES:")
-foreach(src IN LISTS SHADER_SOURCES)
-    message(STATUS "  ${src}")
-endforeach()
+# Optional CUDA NVML support
+if(TARGET CUDA::nvml)
+    target_link_libraries(${LIB_NAME} PUBLIC CUDA::nvml)
+    target_compile_definitions(${LIB_NAME} PUBLIC NVML_SUPPORTED)
+    message(STATUS "[${LIB_NAME}] NVML Support: ENABLED")
+else()
+    message(STATUS "[${LIB_NAME}] NVML Support: DISABLED (Not found)")
+endif()
+
+# Compiler Definitions
+target_compile_definitions(${LIB_NAME} PRIVATE
+    $<$<CONFIG:Debug>:ENABLE_PROFILING>
+    $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
+)
+
+# --- 5. Shader Compilation ---
+# Use the common variable from root if available, else default to binary dir
+if(NOT DEFINED SHADER_OUTPUT_DIR)
+    set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
+endif()
 
 set(SHADER_INCLUDE_FLAGS
     "-I${NVSHADERS_DIR}"
     "-I${ROOT_DIR}"
-    "-I${SHADER_DIR}"
+    "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders"
     "-I${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+# Compile Slang Shaders
 compile_slang(
     "${SHADER_SLANG_FILES}"
     "${SHADER_OUTPUT_DIR}"
@@ -121,6 +99,7 @@ compile_slang(
     EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
 )
 
+# Compile GLSL Shaders
 compile_glsl(
     "${SHADER_GLSL_FILES}"
     "${SHADER_OUTPUT_DIR}"
@@ -128,19 +107,20 @@ compile_glsl(
     EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
 )
 
-###################################
-# Attach generated shaders to lib
-###################################
-target_sources(${LIB_NAME}
-    PRIVATE
-        ${SHADER_SLANG_FILES}
-        ${SHADER_GLSL_FILES}
-        ${GENERATED_SHADER_SLANG_HEADERS}
-        ${GENERATED_SHADER_GLSL_HEADERS}
+# Add Generated Shaders to Target
+target_sources(${LIB_NAME} PRIVATE
+    ${SHADER_SLANG_FILES}
+    ${SHADER_GLSL_FILES}
+    ${GENERATED_SHADER_SLANG_HEADERS}
+    ${GENERATED_SHADER_GLSL_HEADERS}
 )
 
-source_group("Shaders/Compiled"
-    FILES
-        ${GENERATED_SHADER_SLANG_HEADERS}
-        ${GENERATED_SHADER_GLSL_HEADERS}
+# --- 6. IDE Organization (Visual Studio filters) ---
+source_group("Sources" FILES ${LIB_SOURCES})
+source_group("Shaders\\Slang" FILES ${SHADER_SLANG_FILES})
+source_group("Shaders\\GLSL" FILES ${SHADER_GLSL_FILES})
+source_group("Shaders\\Generated" FILES 
+    ${GENERATED_SHADER_SLANG_HEADERS} 
+    ${GENERATED_SHADER_GLSL_HEADERS}
 )
+

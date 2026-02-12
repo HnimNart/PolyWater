@@ -4,15 +4,13 @@
 
 #include <memory>
 
-#include <nvshaders_host/sky.hpp>
-#include <nvvk/descriptors.hpp>
+#include "../../nvvk/descriptors.hpp"
 
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "scene/gltf/gltf_utils.hpp"
 
-// Forward declarations to avoid heavy includes
-
+// Forward declarations
 class VulkanSceneGpuData;
 
 namespace nvvk {
@@ -54,7 +52,4 @@ private:
 
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
-
-  // Sky rendering helper
-  nvshaders::SkySimple m_skySimple{};
 };

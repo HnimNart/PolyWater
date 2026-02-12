@@ -6,8 +6,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-#include <nvvk/resource_allocator.hpp>
-#include <nvvk/sampler_pool.hpp>
+#include "../nvvk/resource_allocator.hpp"
+#include "../nvvk/sampler_pool.hpp"
 
 // Project Includes
 #include "backend/interfaces/IDeviceAssets.hpp"

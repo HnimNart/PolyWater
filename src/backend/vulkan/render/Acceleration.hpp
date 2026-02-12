@@ -2,10 +2,9 @@
 
 #include <vulkan/vulkan.h>
 
-#include <nvvk/acceleration_structures.hpp> // Required for m_asBuilder (by value)
+#include "../nvvk/acceleration_structures.hpp"
 
 // Forward Declarations
-
 class SceneResourcesManager;
 class ShaderManager;
 namespace shaderio {

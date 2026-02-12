@@ -88,8 +88,7 @@ SlangCompiler::compile(const std::filesystem::path &filename,
   }
 
   // --- 2. Find and Compile if not cached ---
-  std::filesystem::path shaderSource =
-      core::findFile(filename, m_shaderDirs);
+  std::filesystem::path shaderSource = core::findFile(filename, m_shaderDirs);
 
   if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource)) {
     const uint32_t *rawData = m_slangContext.getSpirv();
@@ -188,8 +187,7 @@ bool detail::SlangCompiler::compileFile(const std::filesystem::path &filename) {
   const std::filesystem::path sourceFile =
       core::findFile(filename, m_searchPaths);
   if (sourceFile.empty()) {
-    m_lastDiagnosticMessage =
-        "File not found: " + core::utf8FromPath(filename);
+    m_lastDiagnosticMessage = "File not found: " + core::utf8FromPath(filename);
     LOGW("%s\n", m_lastDiagnosticMessage.c_str());
     return false;
   }

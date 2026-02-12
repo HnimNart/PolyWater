@@ -2,22 +2,21 @@
 
 #include <backends/imgui_impl_vulkan.h>
 
-#include <nvvk/validation_settings.hpp>
+#include <../nvvk/validation_settings.hpp>
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
-#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #include "app/IGUISystem.hpp"
+#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 
 /**********************************************************/
 std::unique_ptr<VulkanBackend>
-VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
+VulkanBackend::create(const core::ApplicationCreateInfo &appInfo)
 /**********************************************************/
 {
   auto backend = std::unique_ptr<VulkanBackend>(new VulkanBackend());
-  if (!backend->initVulkan(appInfo))
-  {
+  if (!backend->initVulkan(appInfo)) {
     return nullptr;
   }
 
@@ -25,13 +24,12 @@ VulkanBackend::create(const core::ApplicationCreateInfo& appInfo)
 }
 
 /**********************************************************/
-bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
+bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo &appInfo)
 /**********************************************************/
 {
   m_coreManager = std::make_unique<VulkanContextManager>();
   bool ok = m_coreManager->init(appInfo);
-  if (!ok)
-  {
+  if (!ok) {
     return false;
   }
   m_frameSyncManager = std::make_unique<FrameSynchronizationManager>();
@@ -41,26 +39,23 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo& appInfo)
 }
 
 /**********************************************************/
-void VulkanBackend::initPresentation(GLFWwindow* windowHandle,
+void VulkanBackend::initPresentation(GLFWwindow *windowHandle,
                                      std::shared_ptr<core::IGUISystem> gui)
 /**********************************************************/
 {
   m_windowHandle = windowHandle;
-  if (m_windowHandle)
-  {
+  if (m_windowHandle) {
     m_swapchainManager = std::make_unique<SwapchainRenderManager>();
     m_swapchainManager->init(*m_coreManager, m_windowHandle);
     m_swapchainManager->setUICallback(std::bind(
         &VulkanBackend::recordRegistryCommands, this, std::placeholders::_1));
   }
 
-  if (!gui)
-  {
+  if (!gui) {
     return;
   }
   auto vulkan_gui = dynamic_pointer_cast<ImGuiVulkanSystem>(gui);
-  if (!vulkan_gui)
-  {
+  if (!vulkan_gui) {
     throw std::runtime_error(
         "GUI system given VulkanBackend is not a ImGuiVulkanSystem");
   }
@@ -79,41 +74,36 @@ void VulkanBackend::initPresentation(GLFWwindow* windowHandle,
 void VulkanBackend::deinit()
 /**********************************************************/
 {
-  if (m_coreManager)
-  {
+  if (m_coreManager) {
     m_coreManager->waitForDeviceIdle();
   }
 
-  if (m_swapchainManager)
-  {
+  if (m_swapchainManager) {
     m_swapchainManager->deinit(*m_coreManager);
   }
 
-  if (m_frameSyncManager)
-  {
+  if (m_frameSyncManager) {
     m_frameSyncManager->deinit(*m_coreManager);
   }
 
-  if (m_coreManager)
-  {
+  if (m_coreManager) {
     m_coreManager->deinit();
   }
 }
 
 /**********************************************************/
-IRenderContext& VulkanBackend::getCurrentContext()
+IRenderContext &VulkanBackend::getCurrentContext()
 /**********************************************************/
 {
   return *m_frameSyncManager->getActiveFrameContext();
 }
 
 /**********************************************************/
-IRenderContext* VulkanBackend::beginFrame()
+IRenderContext *VulkanBackend::beginFrame()
 /**********************************************************/
 {
   m_frameSyncManager->waitForFrameCompletion();
-  if (m_swapchainManager && !m_swapchainManager->beginFrame(*m_coreManager))
-  {
+  if (m_swapchainManager && !m_swapchainManager->beginFrame(*m_coreManager)) {
     return nullptr;
   }
   return m_frameSyncManager->beginFrame();
@@ -121,29 +111,25 @@ IRenderContext* VulkanBackend::beginFrame()
 
 /**********************************************************/
 void VulkanBackend::renderFrame(
-    const std::vector<std::shared_ptr<core::IAppElement>>& elements,
-    IRenderContext const& frame)
+    const std::vector<std::shared_ptr<core::IAppElement>> &elements,
+    IRenderContext const &frame)
 /**********************************************************/
 {
 
-  for (const std::shared_ptr<core::IAppElement>& e : elements)
-  {
+  for (const std::shared_ptr<core::IAppElement> &e : elements) {
     e->onPreRender();
   }
 
-  for (const std::shared_ptr<core::IAppElement>& e : elements)
-  {
+  for (const std::shared_ptr<core::IAppElement> &e : elements) {
     e->onRender(frame);
   }
 
-  for (const std::shared_ptr<core::IAppElement>& e : elements)
-  {
+  for (const std::shared_ptr<core::IAppElement> &e : elements) {
     e->onEndFrame(frame);
   }
 
   // Add swapchain semaphores
-  if (m_windowHandle)
-  {
+  if (m_windowHandle) {
     m_frameSyncManager->addWaitSemaphore({
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .semaphore =
@@ -160,11 +146,11 @@ void VulkanBackend::renderFrame(
 }
 
 /**********************************************************/
-void VulkanBackend::endFrame(IRenderContext const& frameCtx)
+void VulkanBackend::endFrame(IRenderContext const &frameCtx)
 /**********************************************************/
 {
   m_frameSyncManager->endFrame(
-      static_cast<VulkanRenderContext const&>(frameCtx));
+      static_cast<VulkanRenderContext const &>(frameCtx));
 
   const VkSubmitInfo2 submitInfo{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
@@ -183,11 +169,10 @@ void VulkanBackend::endFrame(IRenderContext const& frameCtx)
 }
 
 /**********************************************************/
-void VulkanBackend::recordRegistryCommands(IRenderContext const& frame)
+void VulkanBackend::recordRegistryCommands(IRenderContext const &frame)
 /**********************************************************/
 {
-  for (auto& renderable : m_renderRegistry.getElements())
-  {
+  for (auto &renderable : m_renderRegistry.getElements()) {
     renderable->onRender(frame);
   }
 }
@@ -228,14 +213,14 @@ VkInstance VulkanBackend::getInstance() const
 }
 
 /**********************************************************/
-const nvvk::QueueInfo& VulkanBackend::getQueueInfo(uint32_t index) const
+const nvvk::QueueInfo &VulkanBackend::getQueueInfo(uint32_t index) const
 /**********************************************************/
 {
   return m_coreManager->getQueueInfo(index);
 }
 
 /**********************************************************/
-VulkanContextManager* VulkanBackend::getContextManager() const
+VulkanContextManager *VulkanBackend::getContextManager() const
 /**********************************************************/
 {
   assert(m_coreManager != nullptr);
@@ -243,7 +228,7 @@ VulkanContextManager* VulkanBackend::getContextManager() const
 }
 
 /**********************************************************/
-FrameSynchronizationManager* VulkanBackend::getFrameSyncManager() const
+FrameSynchronizationManager *VulkanBackend::getFrameSyncManager() const
 /**********************************************************/
 {
   assert(m_frameSyncManager != nullptr);
@@ -251,7 +236,7 @@ FrameSynchronizationManager* VulkanBackend::getFrameSyncManager() const
 }
 
 /**********************************************************/
-SwapchainRenderManager* VulkanBackend::getSwapchainManager() const
+SwapchainRenderManager *VulkanBackend::getSwapchainManager() const
 /**********************************************************/
 {
   assert(m_swapchainManager != nullptr);
@@ -259,7 +244,7 @@ SwapchainRenderManager* VulkanBackend::getSwapchainManager() const
 }
 
 /**********************************************************/
-RenderRegistry& VulkanBackend::getRegistry()
+RenderRegistry &VulkanBackend::getRegistry()
 /**********************************************************/
 {
   return m_renderRegistry;
@@ -277,8 +262,7 @@ void VulkanBackend::setVsync(bool enabled)
 /**********************************************************/
 {
   IRenderBackend::setVsync(enabled);
-  if (m_swapchainManager)
-  {
+  if (m_swapchainManager) {
     m_swapchainManager->setVsync(enabled);
   }
 }

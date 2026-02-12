@@ -19,8 +19,6 @@
 
 #include "frame_pacer.hpp"
 
-#include <nvvk/check_error.hpp>
-
 #include <GLFW/glfw3.h>
 #include <volk/volk.h>
 #ifdef _WIN32

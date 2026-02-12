@@ -6,9 +6,9 @@
 #include <array>
 #include <vector>
 
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/gbuffers.hpp>
+#include "../nvvk/check_error.hpp"
+#include "../nvvk/debug_util.hpp"
+#include "../nvvk/gbuffers.hpp"
 
 #include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
