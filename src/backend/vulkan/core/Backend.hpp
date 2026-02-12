@@ -8,10 +8,10 @@
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
+#include "IRenderBackend.hpp"
+#include "IRenderable.hpp"
 #include "SwapchainRenderManager.hpp"
 #include "app/IGUISystem.hpp"
-#include "backend/interfaces/IRenderBackend.hpp"
-#include "backend/vulkan/gui/IRenderable.h"
 
 class ImGuiVulkanSystem;
 

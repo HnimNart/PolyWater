@@ -5,36 +5,24 @@ set(LIB_NAME common)
 
 
 
-find_package(nlohmann_json 3.10.5 REQUIRED)
-find_package(Slang REQUIRED)
-find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
-
-# --- 2. Sources & Shaders Discovery ---
-file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
-file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
-file(GLOB_RECURSE SHADER_GLSL_FILES  CONFIGURE_DEPENDS "shaders/*.glsl")
-
-# Filter out .h.slang headers from compilation list
-list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
-
-# --- 3. Define Target ---
 add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
-
+file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
-
 set_target_properties(${LIB_NAME} PROPERTIES
     UNITY_BUILD OFF
     UNITY_BUILD_BATCH_SIZE 8
     UNITY_BUILD_MODE BATCH
 )
-
 target_compile_definitions(${LIB_NAME} PUBLIC
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
-    ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"
 )
 
 # --- 4. Shader Compilation Logic ---
+file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
+# Filter out .h.slang headers from compilation list
+list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
+file(GLOB_RECURSE SHADER_GLSL_FILES  CONFIGURE_DEPENDS "shaders/*.glsl")
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
 file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
 
@@ -62,14 +50,17 @@ target_sources(${LIB_NAME} PRIVATE
     ${GLSL_OUT}
 )
 
-# --- 1. Subdirectories & External Dependencies ---
-# Add sub-libraries first so they are available for linking
+# --- Subdirectories & External Dependencies ---
+find_package(nlohmann_json 3.10.5 REQUIRED)
+find_package(Slang REQUIRED)
+find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
+
 add_subdirectory(core)
 add_subdirectory(scene)
 add_subdirectory(app)
 add_subdirectory(backend)
 
-# --- 5. Include Directories ---
+# --- Include Directories ---
 target_include_directories(${LIB_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
@@ -80,7 +71,7 @@ target_include_directories(${LIB_NAME} PUBLIC
     ${ROOT_DIR}/ext/stb
 )
 
-# --- 6. Linking ---
+# --- Linking ---
 target_link_libraries(${LIB_NAME} PUBLIC
     app_lib
     core_lib
