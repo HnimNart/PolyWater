@@ -5,7 +5,6 @@ project(my_render VERSION 1.0 LANGUAGES C CXX)
 # set(Slang_VERSION "2025.20" CACHE STRING "Version of Slang to use")
 
 # Include the RtTutorial common functions
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RtTutorial.cmake")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/ext/vulkansdk/x86_64")
 
 # Add the cmake folder to the module path
