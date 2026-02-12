@@ -45,7 +45,6 @@
 #include "app/elements/logger.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "core/path_utils.hpp"
-#include "shaders/compiler/slang.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
 int main(int argc, char **argv) {
@@ -57,9 +56,6 @@ int main(int argc, char **argv) {
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
   cli.add(reg);
   cli.parse(argc, argv);
-
-  // Initialize compiler
-  SlangCompiler::instance().init(common::getShaderDirs());
 
   // Setting up the application
   appInfo.name = "New World";

@@ -2,13 +2,13 @@
 
 #include <volk.h>
 
-#include "../nvvk/check_error.hpp"
-#include "../nvvk/commands.hpp"
-#include "../nvvk/context.hpp"
-#include "../nvvk/resource_allocator.hpp"
-#include "../nvvk/staging.hpp"
-#include "../nvvk/swapchain.hpp"
-#include "../nvvk/validation_settings.hpp"
+#include <nvvk/check_error.hpp>
+#include <nvvk/commands.hpp>
+#include <nvvk/context.hpp>
+#include <nvvk/resource_allocator.hpp>
+#include <nvvk/staging.hpp>
+#include <nvvk/swapchain.hpp>
+#include <nvvk/validation_settings.hpp>
 
 #include "app/AppInfo.hpp"
 

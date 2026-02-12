@@ -2,7 +2,7 @@
 
 #include <backends/imgui_impl_vulkan.h>
 
-#include <../nvvk/validation_settings.hpp>
+#include <nvvk/validation_settings.hpp>
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"

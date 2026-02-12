@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include "../../nvvk/descriptors.hpp"
+#include "nvvk/descriptors.hpp"
 
 #include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/core/Backend.hpp"

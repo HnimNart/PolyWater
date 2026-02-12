@@ -42,8 +42,8 @@
  */
 
 
-#include "shaders/shared/tonemapper_io.h.slang"
-#include "shaders/include/core/functions.h.slang"
+#include "shared/tonemapper_io.h.slang"
+#include "include/core/functions.h.slang"
 
 layout(push_constant) ConstantBuffer<TonemapperData> tm;
 

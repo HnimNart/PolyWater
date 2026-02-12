@@ -24,10 +24,12 @@ set_target_properties(${LIB_NAME} PROPERTIES
 )
 
 # --- 5. Link Libraries ---
+find_package(fmt REQUIRED)
+find_package(glm REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
-        glm          # Math headers used in Camera/Math.cpp
-        fmt     # Used in logger.cpp
+        glm          
+        fmt     
 )
 
 

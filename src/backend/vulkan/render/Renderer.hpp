@@ -27,7 +27,9 @@ struct PushConstant;
 
 class VulkanRenderer final : public IRenderer {
 public:
-  explicit VulkanRenderer(VulkanBackend *backend);
+  explicit VulkanRenderer(
+      VulkanBackend *backend,
+      const std::vector<std::filesystem::path> &shaderPaths);
   ~VulkanRenderer() override = default;
 
   // Delete copy/move

@@ -1,16 +1,16 @@
 #include "Renderer.hpp"
 
-#include <nvvk/check_error.hpp>
-#include <nvvk/commands.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/formats.hpp>
-#include <nvvk/gbuffers.hpp>
-#include <nvvk/helpers.hpp>
+#include "nvvk/check_error.hpp"
+#include "nvvk/debug_util.hpp"
+#include "nvvk/formats.hpp"
+#include "nvvk/gbuffers.hpp"
+#include "nvvk/helpers.hpp"
 
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
+#include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/SkyPass.hpp"
@@ -20,9 +20,11 @@
 #include "shaders/shared/structs.h"
 
 /**********************************************************/
-VulkanRenderer::VulkanRenderer(VulkanBackend *backend)
+VulkanRenderer::VulkanRenderer(VulkanBackend *backend,
+                               const std::vector<std::filesystem::path> &paths)
 /**********************************************************/
 {
+  SlangCompiler::instance().init(paths);
   m_context = backend->getContextManager();
   m_swapchain_manager = backend->getSwapchainManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_context);

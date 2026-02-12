@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "../nvvk/acceleration_structures.hpp"
+#include "nvvk/acceleration_structures.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;

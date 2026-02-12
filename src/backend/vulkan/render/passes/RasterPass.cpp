@@ -13,8 +13,8 @@
 #include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
+#include "compiler/slang.hpp"
 #include "core/timers.hpp"
-#include "shaders/compiler/slang.hpp"
 
 // Generated Shaders
 #include "_autogen/gltf_raster.slang.h"

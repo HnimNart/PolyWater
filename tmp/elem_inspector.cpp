@@ -52,12 +52,12 @@
 #include <core/logger.hpp>
 #include <core/parallel_work.hpp>
 #include <core/timers.hpp>
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/default_structs.hpp>
-#include <nvvk/helpers.hpp>
-#include <nvvk/staging.hpp>
-#include <nvvk/commands.hpp>
+#include <nvcheck_error.hpp>
+#include <nvdebug_util.hpp>
+#include <nvdefault_structs.hpp>
+#include <nvhelpers.hpp>
+#include <nvstaging.hpp>
+#include <nvcommands.hpp>
 
 #include "elem_inspector.hpp"
 #include "app/App.hpp"

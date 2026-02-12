@@ -15,9 +15,16 @@ file(GLOB EXE_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp" "*.md")
 add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 
 # 4. Link Dependencies
-# Note: 'common' should be PUBLIC so we inherit C++20, ROOT_DIR, and includes automatically.
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    common
+find_package(Slang REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    vulkan_plugin      # The "Leaf" - depends on almost everything
+    app_lib            # Depends on core and common
+    scene_lib          # Depends on core and common
+    core_lib           # Base application logic
+    common             # Utility base
+    glfw
+    volk
+    Slang
 )
 
 # 5. IDE Organization
@@ -30,6 +37,7 @@ source_group("Source Files" FILES ${EXE_SOURCES})
 # (Binary dir is usually needed for generated shaders/headers)
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_BINARY_DIR}
+    ${Slang_INCLUDE_DIR}
 )
 
 # 7. Post-Build / Install (Optional)

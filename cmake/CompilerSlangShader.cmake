@@ -77,6 +77,8 @@ function(compile_slang SHADER_FILES OUTPUT_DIR SHADER_HEADERS_VAR)
       get_filename_component(SHADER_NAME ${SHADER} NAME)
       string(REPLACE "." "_" VN_SHADER_NAME ${SHADER_NAME})
       set(OUTPUT_FILE ${OUTPUT_DIR}/${SHADER_NAME})
+
+      message(STATUS "====> SHADER_SOURCES: ${SHADER} -> ${OUTPUT_FILE}")
       if(UNIX)
           # Workaround: the Vulkan SDK sets LD_LIBRARY_PATH and
           # slangc may find a libslang.so there instead of its own

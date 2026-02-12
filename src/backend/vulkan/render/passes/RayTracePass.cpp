@@ -6,16 +6,16 @@
 #include <array>
 #include <vector>
 
-#include "../nvvk/check_error.hpp"
-#include "../nvvk/debug_util.hpp"
-#include "../nvvk/gbuffers.hpp"
+#include "nvvk/check_error.hpp"
+#include "nvvk/debug_util.hpp"
+#include "nvvk/gbuffers.hpp"
 
 #include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
+#include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "scene/SceneResources.hpp"
-#include "shaders/compiler/slang.hpp"
 
 /**********************************************************/
 RayTracePass::RayTracePass(nvvk::DescriptorPack *descPack,

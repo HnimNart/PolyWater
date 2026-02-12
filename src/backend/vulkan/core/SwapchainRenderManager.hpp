@@ -4,7 +4,7 @@
 
 #include <functional>
 
-#include "../nvvk/swapchain.hpp"
+#include "nvvk/swapchain.hpp"
 
 #include "backend/interfaces/IRenderContext.hpp"
 

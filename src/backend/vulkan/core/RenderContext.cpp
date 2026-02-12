@@ -1,6 +1,6 @@
 #include "RenderContext.hpp"
 
-#include "../nvvk/default_structs.hpp"
+#include "nvvk/default_structs.hpp"
 #include "Translator.hpp"
 
 /**********************************************************/

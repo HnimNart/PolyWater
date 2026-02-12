@@ -19,17 +19,20 @@
 
 #include "gltf_utils.hpp"
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <tiny_gltf.h>
+
 #include <fmt/format.h>
 #include <vulkan/vulkan_core.h>
 
+#include <core/logger.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <core/logger.hpp>
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
 
-#include "core/timers.hpp"
 #include "core/shape/primitives.hpp"
+#include "core/timers.hpp"
 
 namespace {
 

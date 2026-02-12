@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "../nvvk/gbuffers.hpp"
+#include "nvvk/gbuffers.hpp"
 
 #include "backend/interfaces/IRenderContext.hpp"
 #include "backend/interfaces/RHI_definitions.hpp"

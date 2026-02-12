@@ -1,19 +1,9 @@
 #include "SceneResources.hpp"
 #include "core/Math.hpp"
 
+#include <core/logger.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <core/logger.hpp>
-
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
-#include <tinygltf/tiny_gltf.h>
-
-#include <nvvk/check_error.hpp>
-#include <nvvk/debug_util.hpp>
-#include <nvvk/sampler_pool.hpp>
 
 namespace {
 

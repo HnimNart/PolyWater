@@ -21,7 +21,7 @@
 #include <iosfwd>
 #include <sstream>
 
-#include <nvvk/resource_allocator.hpp>
+#include <nvresource_allocator.hpp>
 
 #include "app/IAppElement.hpp"
 

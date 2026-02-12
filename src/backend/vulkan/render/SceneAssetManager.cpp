@@ -5,19 +5,15 @@
 
 #include <core/file_operations.hpp>
 #include <core/shape/primitives.hpp>
-#include <nvvk/check_error.hpp>
-#include <nvvk/default_structs.hpp>
-
-#include <tinygltf/tiny_gltf.h>
-
 #include <glm/gtc/type_ptr.hpp>
+#include <nvvk/check_error.hpp>
 #include <nvvk/commands.hpp>
 #include <nvvk/debug_util.hpp>
+#include <nvvk/default_structs.hpp>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
 
 #include "core/timers.hpp"
-#include "scene/gltf/gltf_utils.hpp"
 #include "shaders/shared/structs.h"
 
 /**********************************************************/

@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include "../nvvk/queue.hpp"
+#include "nvvk/queue.hpp"
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"

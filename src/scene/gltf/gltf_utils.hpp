@@ -19,12 +19,11 @@
 
 #pragma once
 
-#include <filesystem>
-#include <vector>
+#include <tiny_gltf.h>
 
-#include <glm/glm.hpp>
 #include <core/shape/primitives.hpp>
-#include <tinygltf/tiny_gltf.h>
+#include <filesystem>
+#include <glm/glm.hpp>
 
 #include "shaders/shared/structs.h"
 

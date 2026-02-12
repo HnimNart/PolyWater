@@ -11,7 +11,6 @@
 // Third Party
 #include <imgui/imgui.h>
 #include <shaders/shared/structs.h>
-#include <tinygltf/tiny_gltf.h>
 #include <vulkan/vulkan.h>
 
 #include <app/widgets/camera.hpp>
@@ -122,7 +121,8 @@ void VulkanRendererElement::onAttach(core::Application *app)
   m_app = app;
   auto *backend = dynamic_cast<VulkanBackend *>(app->getBackend());
   assert(backend && "Backend is not VulkanBackend");
-  m_renderer = std::make_shared<VulkanRenderer>(backend);
+  m_renderer =
+      std::make_shared<VulkanRenderer>(backend, common::getShaderDirs());
   m_sceneManager = SceneManager(m_renderer);
   setupScene();
 }
@@ -158,7 +158,10 @@ void VulkanRendererElement::onUIMenu()
   }
 }
 
-void VulkanRendererElement::onUIRender() {
+/**********************************************************/
+void VulkanRendererElement::onUIRender()
+/**********************************************************/
+{
   namespace PE = core::PropertyEditor;
   m_hasChanged = false;
 

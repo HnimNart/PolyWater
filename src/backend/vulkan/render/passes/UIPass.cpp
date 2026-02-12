@@ -15,7 +15,7 @@ UIPass::UIPass(RenderCallback callback)
 }
 
 /**********************************************************/
-void UIPass::setup(PassBuilder& builder)
+void UIPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
   // 1. Read the final HDR/SDR result from the previous pass
@@ -30,10 +30,10 @@ void UIPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void UIPass::execute(const IRenderContext& ctx)
+void UIPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
-  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const auto &vkCtx = VulkanRenderContext::get(ctx);
 
   // The graph has already transitioned the Swapchain image to
   // COLOR_ATTACHMENT_OPTIMAL and the ToneMapped image to
@@ -42,7 +42,7 @@ void UIPass::execute(const IRenderContext& ctx)
   VkRenderingAttachmentInfo colorAttachment{
       .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
       .imageView =
-          vkCtx.swapchainImageView,  // Provided by SwapchainManager via Context
+          vkCtx.swapchainImageView, // Provided by SwapchainManager via Context
       .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -62,8 +62,7 @@ void UIPass::execute(const IRenderContext& ctx)
   // Begin Rendering
   vkCmdBeginRendering(vkCtx.cmdBuffer, &renderingInfo);
 
-  if (m_callback)
-  {
+  if (m_callback) {
     m_callback(ctx);
   }
 
