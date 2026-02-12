@@ -13,17 +13,15 @@
 #ifndef BOOST_HASH_COMBINE_HPP
 #define BOOST_HASH_COMBINE_HPP
 
-#include <cstdint>
-#include <cstddef>
 #include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <typeindex> // For std::hash
 
-namespace boost
-{
-namespace hash_detail
-{
+namespace boost {
+namespace hash_detail {
 
-template<std::size_t Bits> struct hash_mix_impl;
+template <std::size_t Bits> struct hash_mix_impl;
 
 // hash_mix for 64 bit size_t
 //
@@ -73,20 +71,18 @@ template<std::size_t Bits> struct hash_mix_impl;
 //
 // (https://mostlymangling.blogspot.com/2019/12/stronger-better-morer-moremur-better.html)
 
-template<> struct hash_mix_impl<64>
-{
-    inline static std::uint64_t fn( std::uint64_t x )
-    {
-        std::uint64_t const m = 0xe9846af9b1a615d;
+template <> struct hash_mix_impl<64> {
+  inline static std::uint64_t fn(std::uint64_t x) {
+    std::uint64_t const m = 0xe9846af9b1a615d;
 
-        x ^= x >> 32;
-        x *= m;
-        x ^= x >> 32;
-        x *= m;
-        x ^= x >> 28;
+    x ^= x >> 32;
+    x *= m;
+    x ^= x >> 32;
+    x *= m;
+    x ^= x >> 28;
 
-        return x;
-    }
+    return x;
+  }
 };
 
 // hash_mix for 32 bit size_t
@@ -94,34 +90,29 @@ template<> struct hash_mix_impl<64>
 // We use the "best xmxmx" implementation from
 // https://github.com/skeeto/hash-prospector/issues/19
 
-template<> struct hash_mix_impl<32>
-{
-    inline static std::uint32_t fn( std::uint32_t x )
-    {
-        std::uint32_t const m1 = 0x21f0aaad;
-        std::uint32_t const m2 = 0x735a2d97;
+template <> struct hash_mix_impl<32> {
+  inline static std::uint32_t fn(std::uint32_t x) {
+    std::uint32_t const m1 = 0x21f0aaad;
+    std::uint32_t const m2 = 0x735a2d97;
 
-        x ^= x >> 16;
-        x *= m1;
-        x ^= x >> 15;
-        x *= m2;
-        x ^= x >> 15;
+    x ^= x >> 16;
+    x *= m1;
+    x ^= x >> 15;
+    x *= m2;
+    x ^= x >> 15;
 
-        return x;
-    }
+    return x;
+  }
 };
 
-inline std::size_t hash_mix( std::size_t v )
-{
-    return hash_mix_impl<sizeof(std::size_t) * CHAR_BIT>::fn( v );
+inline std::size_t hash_mix(std::size_t v) {
+  return hash_mix_impl<sizeof(std::size_t) * CHAR_BIT>::fn(v);
 }
 
 } // namespace hash_detail
 
-template <class T>
-inline void hash_combine(std::size_t& seed, T const& v)
-{
-    seed = boost::hash_detail::hash_mix(seed + 0x9e3779b9 + std::hash<T>()(v));
+template <class T> inline void hash_combine(std::size_t &seed, T const &v) {
+  seed = boost::hash_detail::hash_mix(seed + 0x9e3779b9 + std::hash<T>()(v));
 }
 
 } // namespace boost

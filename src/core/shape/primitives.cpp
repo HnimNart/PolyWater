@@ -27,7 +27,7 @@
 
 #include <glm/glm.hpp>
 
-#include "core/hash_operations.hpp"
+#include "hash_operations.hpp"
 #include "primitives.hpp"
 
 namespace core {

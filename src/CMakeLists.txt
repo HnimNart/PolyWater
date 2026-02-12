@@ -31,6 +31,9 @@ target_compile_definitions(${LIB_NAME} PUBLIC
     ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"
 )
 
+
+add_subdirectory(core)
+
 # --- 3. Dependencies ---
 find_package(nlohmann_json 3.10.5 REQUIRED)
 find_package(Slang REQUIRED)
@@ -38,6 +41,7 @@ find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 
 target_link_libraries(${LIB_NAME}
     PUBLIC
+        core_lib
         glm
         volk
         glfw

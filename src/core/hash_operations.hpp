@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <hash_combine/hash_combine.hpp>
+#include "hash_combine.hpp"
 
 namespace core {
 
