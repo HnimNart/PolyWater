@@ -1,40 +1,43 @@
+# -------------------------------------------------------------------
+# App: new_world 
+# -------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.22...3.31)
+
+# 1. Setup Project
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-project(${PROJECT_NAME})
-message(STATUS "Processing: ${PROJECT_NAME}")
+project(${PROJECT_NAME} LANGUAGES C CXX)
+message(STATUS "Processing App: ${PROJECT_NAME}")
 
-# Adding all sources (cpp, hpp, md)
-file(GLOB EXE_SOURCES "*.cpp" "*.hpp" "*.md")
-source_group("Source Files" FILES ${EXE_SOURCES})
+# 2. Sources
+file(GLOB EXE_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp" "*.md")
 
-# Handle RT common sources
-set(ALL_SOURCES ${EXE_SOURCES})
+# 3. Define Executable
+add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 
-# Add the executable
-add_executable(${PROJECT_NAME} ${ALL_SOURCES})
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER ${PROJECT_NAME})
-
-# Link libraries (consistent across all samples)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-     #nvpro2::nvaftermath
+# 4. Link Dependencies
+# Note: 'common' should be PUBLIC so we inherit C++20, ROOT_DIR, and includes automatically.
+target_link_libraries(${PROJECT_NAME} PRIVATE 
     common
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-        ROOT_DIR="${CMAKE_SOURCE_DIR}/"
-    )
+# 5. IDE Organization
+# Groups this project under a "Samples" folder in Visual Studio/Xcode
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Samples")
+source_group("Source Files" FILES ${EXE_SOURCES})
 
-# Definitions and Includes
-# add_project_definitions(${PROJECT_NAME})
+# 6. Include Directories
+# Only add specific includes if they are NOT already in 'common'.
+# (Binary dir is usually needed for generated shaders/headers)
 target_include_directories(${PROJECT_NAME} PRIVATE 
-    ${CMAKE_BINARY_DIR} 
-    ${CMAKE_SOURCE_DIR} 
-    ${ROOT_DIR}
+    ${CMAKE_BINARY_DIR}
 )
 
-# ------------------------------------------------------------------------------------------------------------------------------
-# Installation, copy files
-# Build copy files list
-set(COPY_FILES ${NsightAftermath_DLLS})
-
-
+# 7. Post-Build / Install (Optional)
+# If you need to copy Nsight DLLs or other assets next to the binary:
+if(NsightAftermath_DLLS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${NsightAftermath_DLLS}
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endif()

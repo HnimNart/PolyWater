@@ -33,3 +33,14 @@ include(CompilerSlangShader)
 add_subdirectory(ext)
 add_subdirectory(src)
 add_subdirectory(app)
+
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    set(CMAKE_DATABASE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/compile_commands.json")
+    add_custom_target(copy_compile_commands ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink 
+            "${CMAKE_DATABASE_OUTPUT_PATH}" 
+            "${CMAKE_SOURCE_DIR}/compile_commands.json"
+        COMMENT "Linking compile_commands.json to project root"
+    )
+endif()

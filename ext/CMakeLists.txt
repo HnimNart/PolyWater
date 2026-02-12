@@ -3,7 +3,7 @@
 project(third_party LANGUAGES C CXX)
 
 # We want static libraries for all packages defined here.
-set(BUILD_SHARED_LIBS OFF)
+set(BUILD_SHARED_LIBS ON)
 
 # Speed up CMake configuration by setting some properties if we recognize the toolchain.
 include(SetKnownToolchainProperties.cmake)
@@ -210,26 +210,26 @@ if(NOT TARGET gl_headers)
 endif()
 
 
-# zlib-ng
-if(NOT TARGET zlibstatic)
-  set(SKIP_INSTALL_ALL ON)
-  set(WITH_GTEST OFF)
-  set(ZLIB_COMPAT ON)
-  set(ZLIB_ENABLE_TESTS OFF)
-  set(ZLIBNG_ENABLE_TESTS OFF)
-  # zlib-ng's CMakeLists is pretty noisy.
-  # Make it so that only warning messages appear from this subdirectory.
-  set(_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-  set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
-  add_subdirectory(zlib-ng)
-  set(CMAKE_MESSAGE_LOG_LEVEL ${_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL})
-  set_property(TARGET zlib PROPERTY FOLDER "ThirdParty")
-endif()
+# # zlib-ng
+# if(NOT TARGET zlibstatic)
+#   set(SKIP_INSTALL_ALL ON)
+#   set(WITH_GTEST OFF)
+#   set(ZLIB_COMPAT ON)
+#   set(ZLIB_ENABLE_TESTS OFF)
+#   set(ZLIBNG_ENABLE_TESTS OFF)
+#   # zlib-ng's CMakeLists is pretty noisy.
+#   # Make it so that only warning messages appear from this subdirectory.
+#   set(_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+#   set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
+#   add_subdirectory(zlib-ng)
+#   set(CMAKE_MESSAGE_LOG_LEVEL ${_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL})
+#   set_property(TARGET zlib PROPERTY FOLDER "ThirdParty")
+# endif()
 
 # zstd
 if(NOT TARGET zstd)
   set(ZSTD_BUILD_PROGRAMS OFF)
-  set(ZSTD_BUILD_SHARED OFF)
+  set(ZSTD_BUILD_SHARED ON)
   set(ZSTD_BUILD_STATIC ON)
   set(ZSTD_BUILD_TESTS OFF)
   set(ZSTD_USE_STATIC_RUNTIME ON)

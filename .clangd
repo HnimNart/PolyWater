@@ -1,0 +1,11 @@
+# .clangd
+CompileFlags:
+  CompilationDatabase: "build/" # Point to where the JSON actually lives
+  Add: [-std=c++20]
+
+Index:
+  Background: Build
+
+# Ignore the generated Unity files in the UI
+Files:
+  Exclude: "**/unity_*"
