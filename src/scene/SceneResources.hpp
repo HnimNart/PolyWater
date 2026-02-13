@@ -89,15 +89,15 @@ public:
     return m_instanceMap;
   }
 
-  shaderio::Material &getMaterialFromName(const std::string &name) {
+  shaderio::Material *getMaterialFromName(const std::string &name) {
     auto it = m_materialMap.find(name);
     if (it != m_materialMap.end()) {
-      return m_resources.materials[it->second];
+      return &m_resources.materials[it->second];
     }
-    assert(0);
+    return nullptr;
   }
 
-  const MeshID getMeshIDFromName(const std::string &name) const {
+  MeshID getMeshIDFromName(const std::string &name) const {
     auto it = m_meshMap.find(name);
     if (it != m_meshMap.end()) {
       return it->second;
@@ -105,7 +105,7 @@ public:
     return MeshID(-1);
   }
 
-  const TextureID getTextureIDFromName(const std::string &name) const {
+  TextureID getTextureIDFromName(const std::string &name) const {
     auto it = m_textureMap.find(name);
     if (it != m_textureMap.end()) {
       return it->second;

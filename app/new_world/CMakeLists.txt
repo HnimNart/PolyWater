@@ -15,7 +15,6 @@ file(GLOB EXE_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp" "*.md")
 add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 
 # 4. Link Dependencies
-find_package(Slang REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     vulkan_plugin      # The "Leaf" - depends on almost everything
     app_lib            # Depends on core and common
@@ -24,7 +23,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     common             # Utility base
     glfw
     volk
-    Slang
 )
 
 # 5. IDE Organization

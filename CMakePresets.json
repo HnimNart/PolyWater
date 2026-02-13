@@ -1,4 +1,3 @@
-
 {
   "version": 6,
   "cmakeMinimumRequired": { "major": 3, "minor": 24 },
@@ -28,19 +27,19 @@
       "description": "Release build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra"
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
       }
     },
     {
-        "name": "relwithdebinfo",
-        "inherits": "base",
-        "description": "Release build with debug information",
-        "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra",
-            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra"
-        }
+      "name": "relwithdebinfo",
+      "inherits": "base",
+      "description": "Release build with debug information",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -Wall -Wextra"
+      }
     },
     {
       "name": "debug",
@@ -48,8 +47,8 @@
       "description": "Debug build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_C_FLAGS_DEBUG": "-g -O0 -Wall -Wextra",
-        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -Wextra"
+        "CMAKE_C_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wmissing-field-initializers",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wmissing-field-initializers"
       }
     }
   ],
@@ -57,21 +56,18 @@
     {
       "name": "release",
       "configurePreset": "release",
-      "description": "Build the Release configure preset",
       "configuration": "Release",
       "jobs": 0
     },
     {
       "name": "dev",
       "configurePreset": "relwithdebinfo",
-      "description": "Build the RelWithDebInfo configure preset",
       "configuration": "RelWithDebInfo",
       "jobs": 0
     },
     {
       "name": "debug",
       "configurePreset": "debug",
-      "description": "Build the Debug configure preset",
       "configuration": "Debug",
       "jobs": 0
     }

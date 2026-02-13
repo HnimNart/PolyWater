@@ -10,7 +10,7 @@
 
 class VulkanContextManager;
 class FrameSynchronizationManager;
-class GLFWwindow;
+struct GLFWwindow;
 
 class SwapchainRenderManager {
 public:

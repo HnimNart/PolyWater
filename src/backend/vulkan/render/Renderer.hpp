@@ -19,7 +19,9 @@ class IRenderBackend;
 class VulkanSceneAssetManager;
 class SceneResourcesManager;
 class FrameSynchronizationManager;
+class SwapchainRenderManager;
 class ToneMapPass;
+class VulkanBackend;
 
 namespace shaderio {
 struct PushConstant;

@@ -9,7 +9,7 @@
 
 // Forward Declarations
 class SceneResourcesManager;
-class WindowSize;
+struct WindowSize;
 
 namespace shaderio {
 struct SceneInfo;

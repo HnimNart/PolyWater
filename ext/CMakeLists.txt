@@ -27,6 +27,13 @@ if(NOT TARGET glfw)
   set(GLFW_BUILD_WAYLAND OFF)
   set(GLFW_INSTALL OFF)
   add_subdirectory(glfw)
+  target_include_directories(glfw SYSTEM INTERFACE glfw/include)
+# 3. Suppress warnings during the compilation of GLFW's .c files
+  if(MSVC)
+    target_compile_options(glfw PRIVATE /W0)
+  else()
+    target_compile_options(glfw PRIVATE -w)
+  endif()
   set_target_properties(glfw update_mappings PROPERTIES FOLDER "ThirdParty/GLFW")
 endif()
 
@@ -59,43 +66,54 @@ if(NOT TARGET volk)
 
   set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 endif()
-
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
+
 if(NOT TARGET imgui)
-  set(IMGUI_FILES
-      "${IMGUI_DIR}/imgui.cpp"
-      "${IMGUI_DIR}/imgui_demo.cpp"
-      "${IMGUI_DIR}/imgui_draw.cpp"
-      "${IMGUI_DIR}/imgui_tables.cpp"
-      "${IMGUI_DIR}/imgui_widgets.cpp"
-      "${IMGUI_DIR}/imconfig.h"
-      "${IMGUI_DIR}/imgui.h"
-      "${IMGUI_DIR}/imgui_internal.h"
-      "${IMGUI_DIR}/imstb_rectpack.h"
-      "${IMGUI_DIR}/imstb_textedit.h"
-      "${IMGUI_DIR}/imstb_truetype.h"
-      # For GLFW, Vulkan, and Volk:
-      "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
-      "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
-      "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
-      "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
-      "${IMGUI_DIR}/backends/imgui_impl_opengl3_loader.h"
-      "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
-      "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
-  )
+    set(IMGUI_FILES
+        "${IMGUI_DIR}/imgui.cpp"
+        "${IMGUI_DIR}/imgui_demo.cpp"
+        "${IMGUI_DIR}/imgui_draw.cpp"
+        "${IMGUI_DIR}/imgui_tables.cpp"
+        "${IMGUI_DIR}/imgui_widgets.cpp"
+        "${IMGUI_DIR}/imconfig.h"
+        "${IMGUI_DIR}/imgui.h"
+        "${IMGUI_DIR}/imgui_internal.h"
+        "${IMGUI_DIR}/imstb_rectpack.h"
+        "${IMGUI_DIR}/imstb_textedit.h"
+        "${IMGUI_DIR}/imstb_truetype.h"
+        # Backends
+        "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
+        "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
+        "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
+        "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+        "${IMGUI_DIR}/backends/imgui_impl_opengl3_loader.h"
+        "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
+        "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
+    )
 
-  add_library(imgui STATIC ${IMGUI_FILES})
-  target_include_directories(imgui PUBLIC 
-    ${IMGUI_DIR} # for those, such as implot, including as <imgui.h>
-    ${CMAKE_CURRENT_SOURCE_DIR}) # for those including as <imgui/imgui.h>
+    add_library(imgui STATIC ${IMGUI_FILES})
 
-  # Link against GLFW and Volk
-  target_link_libraries(imgui PUBLIC glfw volk)
-  # Mandatory for Imgui to work with Volk
-  target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+    # 1. Silence warnings for ImGui's source files
+    if(MSVC)
+        target_compile_options(imgui PRIVATE /W0)
+    else()
+        target_compile_options(imgui PRIVATE -w)
+    endif()
 
-  set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
+    # 2. Treat the include directories as SYSTEM
+    target_include_directories(imgui SYSTEM PUBLIC 
+        ${IMGUI_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # Link against GLFW and Volk
+    target_link_libraries(imgui PUBLIC glfw volk)
+
+    # Mandatory for ImGui to work with Volk
+    target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+
+    set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 endif()
 
 # implot
@@ -108,15 +126,27 @@ if(NOT TARGET implot)
   )
 
   add_library(implot STATIC ${IMPLOT_FILES})
-  target_include_directories(implot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  # This reduces the binary size of ImPlot by about 75%.
+
+  if(MSVC)
+    target_compile_options(implot PRIVATE /W0)
+  else()
+    target_compile_options(implot PRIVATE -w)
+  endif()
+
+  target_include_directories(implot SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
+  # -----------------------------------------------------------------------
+  # FIX: Quotes are REQUIRED here because of the parentheses ()
+  # -----------------------------------------------------------------------
   target_compile_definitions(implot PRIVATE
-    "-DIMPLOT_NO_FORCE_INLINE=1"
-    "-DIMPLOT_CUSTOM_NUMERIC_TYPES=(ImU32)(ImU64)(float)"
+    IMPLOT_NO_FORCE_INLINE=1
+    "IMPLOT_CUSTOM_NUMERIC_TYPES=(ImU32)(ImU64)(float)"
   )
+  
   target_link_libraries(implot PRIVATE imgui)
   set_property(TARGET implot PROPERTY FOLDER "ThirdParty")
 endif()
+
 
 # glm
 if(NOT TARGET glm)
@@ -142,12 +172,23 @@ endif()
 # tinygltf
 if(NOT TARGET tinygltf)
   set(TINYGLTF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinygltf)
-  add_library(
-    tinygltf INTERFACE ${TINYGLTF_DIR}/tiny_gltf.h ${TINYGLTF_DIR}/json.hpp
+  
+  # INTERFACE libraries don't compile .cpp files, so we just manage the headers
+  add_library(tinygltf INTERFACE)
+  
+  # 1. Use SYSTEM to tell the compiler to ignore warnings in these headers
+  target_include_directories(tinygltf SYSTEM INTERFACE 
+    ${TINYGLTF_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR} 
+    ${STB_DIR}
   )
-  target_include_directories(
-    tinygltf INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${STB_DIR}
+
+  # 2. Add definitions to reduce 'json.hpp' noise and disable exceptions if desired
+  target_compile_definitions(tinygltf INTERFACE 
+    TINYGLTF_NO_STB_IMAGE_WRITE  # Optional: skip writing if not needed
+    JSON_NOEXCEPTION             # Reduces overhead and warnings in nlohmann/json
   )
+
   set_property(TARGET tinygltf PROPERTY FOLDER "ThirdParty")
 endif()
 
@@ -174,13 +215,17 @@ if(NOT TARGET tinyobjloader)
   set_property(TARGET tinyobjloader PROPERTY FOLDER "ThirdParty")
 endif()
 
+
 # vma
 if(NOT TARGET vma AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vma)
   set(VMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vma/include)
-  add_library(vma INTERFACE ${VMA_DIR}/vk_mem_alloc.h)
-  target_include_directories(vma INTERFACE ${VMA_DIR})
+  add_library(vma INTERFACE) # Removed the header from the source list for a cleaner INTERFACE lib
+  # The SYSTEM keyword tells the compiler to ignore warnings from these headers
+  target_include_directories(vma SYSTEM INTERFACE ${VMA_DIR})
   set_property(TARGET vma PROPERTY FOLDER "ThirdParty")
 endif()
+
+
 
 # thread_pool
 if(NOT TARGET thread_pool)
@@ -193,11 +238,22 @@ endif()
 # offsetallocator
 if(NOT TARGET offsetAllocator)
   set(OFFSETALLOCATOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/offsetallocator)
-  add_library(
-    offsetAllocator STATIC ${OFFSETALLOCATOR_DIR}/offsetAllocator.cpp
-                           ${OFFSETALLOCATOR_DIR}/offsetAllocator.hpp
+  
+  add_library(offsetAllocator STATIC 
+    ${OFFSETALLOCATOR_DIR}/offsetAllocator.cpp
+    ${OFFSETALLOCATOR_DIR}/offsetAllocator.hpp
   )
-  target_include_directories(offsetAllocator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # 1. Silence warnings during compilation of the .cpp file
+  if(MSVC)
+    target_compile_options(offsetAllocator PRIVATE /W0)
+  else()
+    target_compile_options(offsetAllocator PRIVATE -w)
+  endif()
+
+  # 2. Treat the include directory as SYSTEM to silence header warnings in consumers
+  target_include_directories(offsetAllocator SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
   set_property(TARGET offsetAllocator PROPERTY FOLDER "ThirdParty")
 endif()
 
@@ -234,10 +290,20 @@ if(NOT TARGET zstd)
   set(ZSTD_BUILD_TESTS OFF)
   set(ZSTD_USE_STATIC_RUNTIME ON)
   set(_ZSTD_DIR ${CMAKE_CURRENT_LIST_DIR}/zstd)
-  # The EXCLUDE_FROM_ALL here removes Zstd from the INSTALL target
-  add_subdirectory(${_ZSTD_DIR}/build/cmake ${CMAKE_BINARY_DIR}/zstd EXCLUDE_FROM_ALL)
+
+  # 1. Use SYSTEM here to mark all includes coming from Zstd as system headers
+  add_subdirectory(${_ZSTD_DIR}/build/cmake ${CMAKE_BINARY_DIR}/zstd EXCLUDE_FROM_ALL SYSTEM)
+
+  # 2. Specifically suppress warnings during the compilation of Zstd source files
+  if(TARGET libzstd_static)
+    if(MSVC)
+      target_compile_options(libzstd_static PRIVATE /W0)
+    else()
+      target_compile_options(libzstd_static PRIVATE -w)
+    endif()
+  endif()
+
   # zstd defines clean-all and uninstall targets we can't seem to avoid.
-  # Remove them from BUILD_ALL so that it doesn't fail:
   set_target_properties(clean-all uninstall PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
   set_property(TARGET libzstd_static clean-all uninstall PROPERTY FOLDER "ThirdParty")
 endif()
@@ -246,11 +312,27 @@ endif()
 if(NOT TARGET basisu)
   set(_BASISU_DIR ${CMAKE_CURRENT_LIST_DIR}/basis_universal)
   file(GLOB_RECURSE _BASISU_FILES "${_BASISU_DIR}/transcoder/*.*" "${_BASISU_DIR}/encoder/*.*")
+  
   add_library(basisu STATIC ${_BASISU_FILES})
-  target_include_directories(basisu INTERFACE "${_BASISU_DIR}/transcoder" "${_BASISU_DIR}/encoder")
-  # Turn off some transcoding formats we don't use to reduce code size by about
-  # 500 KB. We require BC4 (DXT5A), BC5, BC7, and ASTC (in case a user sets
-  # device_supports_astc).
+
+  # -------------------------------------------------------------------
+  # WARNING SUPPRESSION (NEW)
+  # -------------------------------------------------------------------
+  # 1. Silence warnings when compiling basisu's own source files
+  if(MSVC)
+    target_compile_options(basisu PRIVATE /W0)
+  else()
+    target_compile_options(basisu PRIVATE -w)
+  endif()
+
+  # 2. Treat basisu headers as SYSTEM for your project
+  target_include_directories(basisu SYSTEM INTERFACE 
+    "${_BASISU_DIR}/transcoder" 
+    "${_BASISU_DIR}/encoder"
+  )
+  # -------------------------------------------------------------------
+
+  # Keep your existing definitions...
   target_compile_definitions(basisu PRIVATE
     BASISD_SUPPORT_ATC=0
     BASISD_SUPPORT_DXT1=0
@@ -260,24 +342,23 @@ if(NOT TARGET basisu)
     BASISD_SUPPORT_PVRTC1=0
     BASISD_SUPPORT_PVRTC2=0
   )
-  #basisu is using deprecated/unsecure POSIX functions.
+
+  # ... and your existing POSIX/SSE logic
   if(WIN32 AND NOT MSVC)
     add_compile_definitions(_CRT_NONSTDC_NO_DEPRECATE _CRT_INSECURE_NO_DEPRECATE)
   endif()
-  # On x86, our minimum compilers support SSE 4.2, so Basis Universal can
-  # compile with SSE intrinsics.
+
   if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "(x86_64|AMD64|i[3-6]86)")
     target_compile_definitions(basisu PRIVATE BASISU_SUPPORT_SSE=1)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      # We need to add a flag to make GCC allow SSE 4.2:
       target_compile_options(basisu PRIVATE -msse4.2)
     endif()
   endif()
-  # Set up linking between basisu and its dependencies, so that we always get
-  # a correct linking order on Linux:
+
   target_link_libraries(basisu PUBLIC libzstd_static)
   set_property(TARGET basisu PROPERTY FOLDER "ThirdParty")
 endif()
+
 
 # cgltf
 if (NOT TARGET cgltf AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cgltf)
@@ -304,10 +385,22 @@ if (NOT TARGET meshoptimizer)
   set(MESHOPT_BUILD_DEMO OFF)
   set(MESHOPT_BUILD_SHARED_LIBS OFF)
   set(MESHOPT_STABLE_EXPORTS OFF)
-  set(MESHOPT_WERROR OFF)
+  set(MESHOPT_WERROR OFF) # Important: stops meshopt from forcing its own strictness
+
   add_subdirectory(meshoptimizer)
+
+  # 1. Silence warnings when compiling meshoptimizer.cpp
+  if(MSVC)
+    target_compile_options(meshoptimizer PRIVATE /W0)
+  else()
+    target_compile_options(meshoptimizer PRIVATE -w)
+  endif()
+
+  # 2. Treat the public headers (in src/) as SYSTEM to silence consumer warnings
+  target_include_directories(meshoptimizer SYSTEM INTERFACE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/meshoptimizer/src"
+  )
+
   set_property(TARGET meshoptimizer PROPERTY FOLDER "ThirdParty")
 endif()
-
-
 

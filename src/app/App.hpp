@@ -122,11 +122,6 @@ private:
   bool m_headlessClose{false};
   uint32_t m_headlessFrameCount{1};
 
-  // 5. Utilities (Screenshots, Settings)
-  bool m_screenShotRequested = false;
-  int m_screenShotFrame = 0;
-  std::filesystem::path m_screenShotFilename;
-
   // Imgui
   std::shared_ptr<IGUISystem> m_gui;
   core::SettingsHandler m_settingsHandler;

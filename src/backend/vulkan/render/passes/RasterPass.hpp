@@ -2,16 +2,11 @@
 
 #include <vulkan/vulkan.h>
 
-#include <memory>
-
+#include "backend/interfaces/IRenderGraph.hpp"
 #include "nvvk/descriptors.hpp"
 
-#include "backend/interfaces/IRenderGraph.hpp"
-#include "backend/vulkan/core/Backend.hpp"
-#include "scene/gltf/gltf_utils.hpp"
-
 // Forward declarations
-class VulkanSceneGpuData;
+struct VulkanSceneGpuData;
 
 namespace nvvk {
 class GBuffer;

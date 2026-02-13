@@ -5,8 +5,7 @@
 #include "backend/interfaces/IRenderContext.hpp"
 #include "core/Types.hpp"
 
-namespace core
-{
+namespace core {
 
 class Application;
 
@@ -15,13 +14,13 @@ class Application;
  * Elements are attached to the Application and receive callbacks for
  * lifecycle events, OS signals, and rendering phases.
  */
-struct IAppElement
-{
+class IAppElement {
+public:
   virtual ~IAppElement() = default;
 
   // --- Lifecycle Management ---
   /** @brief Called once when the element is added to the application. */
-  virtual void onAttach(Application* app) {}
+  virtual void onAttach(Application * /*app*/) {}
 
   /** @brief Called once before the element is removed or the application shuts
    * down. */
@@ -29,11 +28,11 @@ struct IAppElement
 
   // --- Window & OS Events ---
   /** @brief Called when the swapchain or viewport is resized. */
-  virtual void onResize(WindowSize size) {}
+  virtual void onResize(WindowSize /*size*/) {}
 
   /** @brief Called when a file is dragged and dropped onto the application
    * window. */
-  virtual void onFileDrop(const std::filesystem::path& filename) {}
+  virtual void onFileDrop(const std::filesystem::path & /*filename*/) {}
 
   // --- UI Callbacks (ImGui) ---
   /** @brief Called within the ImGui frame to define custom menus (e.g., File,
@@ -50,15 +49,15 @@ struct IAppElement
 
   /** @brief Called at the start of the frame, before any rendering commands are
    * issued. */
-  virtual void onBeginFrame(const IRenderContext& frame) {}
+  virtual void onBeginFrame(const IRenderContext & /*frame*/) {}
 
   /** @brief Primary rendering callback. Record draw calls into the provided
    * context. */
-  virtual void onRender(const IRenderContext& frame) {}
+  virtual void onRender(const IRenderContext & /* frame */) {}
 
   /** @brief Called after all rendering commands have been recorded for the
    * frame. */
-  virtual void onEndFrame(const IRenderContext& frame) {}
+  virtual void onEndFrame(const IRenderContext & /* frame */) {}
 
   // --- Special Modes ---
   /** @brief Final callback for headless execution before the application exits.
@@ -68,4 +67,4 @@ struct IAppElement
 
 using IAppElementPtr = std::shared_ptr<IAppElement>;
 
-}  // namespace core
+} // namespace core

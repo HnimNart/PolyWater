@@ -270,6 +270,8 @@ void CameraManipulator::motion(const glm::vec2 &screenDisplacement,
   case CameraManipulator::LookAround:
     orbit({displacement.x, -displacement.y}, true);
     break;
+  case CameraManipulator::NoAction:
+    break;
   }
 
   // Resetting animation and update the camera

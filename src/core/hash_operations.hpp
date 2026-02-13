@@ -34,7 +34,7 @@ void hashCombine(std::size_t &seed, const T &val, const Types &...args) {
   hashCombine(seed, args...);
 }
 // Optional auxiliary generic functions to support hash_val() without arguments
-inline void hashCombine(std::size_t &seed) {}
+inline void hashCombine(std::size_t & /*seed*/) {}
 // Generic function to create a hash value out of a heterogeneous list of
 // arguments
 template <typename... Types> std::size_t hashVal(const Types &...args) {

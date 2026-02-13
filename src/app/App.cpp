@@ -57,7 +57,7 @@ void Application::init(ApplicationCreateInfo const &info)
 }
 
 /**********************************************************/
-void Application::initializeBackend(const ApplicationCreateInfo &info)
+void Application::initializeBackend(const ApplicationCreateInfo & /*info*/)
 /**********************************************************/
 {
   assert(m_backend);

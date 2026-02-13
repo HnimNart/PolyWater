@@ -115,7 +115,7 @@ void core::ElementCamera::updateCamera(
   }
 }
 /**********************************************************/
-void core::ElementCamera::onAttach(core::Application *app)
+void core::ElementCamera::onAttach(core::Application *)
 /**********************************************************/
 {
   LOGI("Adding Camera Element\n");

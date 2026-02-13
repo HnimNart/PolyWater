@@ -63,7 +63,6 @@ function(download_files)
         message(STATUS "Downloading ${_DOWNLOAD_URL} to ${_TARGET_FILENAME}")
         
         file(DOWNLOAD ${_DOWNLOAD_URL} ${_TARGET_FILENAME}
-          SHOW_PROGRESS
           STATUS _DOWNLOAD_STATUS)
 
         # Check whether the download succeeded. _DOWNLOAD_STATUS is a list of

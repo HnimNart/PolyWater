@@ -3,13 +3,19 @@
 # -------------------------------------------------------------------
 set(LIB_NAME vulkan_plugin)
 
+# NEW: Use a more specific glob or list directories manually to avoid nvvk
+# By excluding nvvk/* from this glob, we avoid duplicate symbols
 file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS 
-    "*/*.cpp" 
-    "*/*.hpp" 
-    "*/*.h"
+    "compiler/*.cpp" "compiler/*.hpp" "compiler/*.h"
+    "core/*.cpp" "core/*.hpp" "core/*.h"
+    "gui/*.cpp" "gui/*.hpp" "gui/*.h"
+    "render/*.cpp" "render/*.hpp" "render/*.h"
 )
 
 add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
+
+# Add the nvvk subdirectory
+add_subdirectory(nvvk)
 
 # Basic Target Properties
 set_target_properties(${LIB_NAME} PROPERTIES
@@ -17,20 +23,14 @@ set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 20
 )
 
-
-target_compile_options(${LIB_NAME} PRIVATE -w)
 # -------------------------------------------------------------------
 # 3. Linking & Include logic
 # -------------------------------------------------------------------
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
-        ${ROOT_DIR}/ext/tinygltf
-        ${ROOT_DIR}/ext/stb
         ${SHADER_OUTPUT_DIR}/../
         ${SHADER_OUTPUT_DIR}
-    PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nvvk/>
         ${Slang_INCLUDE_DIR}
 )
 
@@ -42,10 +42,10 @@ target_link_libraries(${LIB_NAME}
         volk
         glm
         imgui
+        nvvk   
         vma
         offsetAllocator
         Slang
-        vulkan      
 )
 
 # Proxy for LSP indexing

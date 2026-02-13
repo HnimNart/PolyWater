@@ -3,6 +3,11 @@
 # -------------------------------------------------------------------
 set(LIB_NAME common)
 
+# --- Subdirectories & External Dependencies ---
+find_package(nlohmann_json 3.10.5 REQUIRED)
+find_package(Slang REQUIRED)
+find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
+
 
 
 add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
@@ -19,6 +24,8 @@ target_compile_definitions(${LIB_NAME} PUBLIC
 )
 
 # --- 4. Shader Compilation Logic ---
+include(CompilerGlslShader)
+include(CompilerSlangShader)
 file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
 # Filter out .h.slang headers from compilation list
 list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
@@ -32,6 +39,9 @@ set(SHADER_INCLUDE_FLAGS
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/shared"
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
 )
+
+
+
 
 # Run custom compilation macros
 compile_slang("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
@@ -50,15 +60,12 @@ target_sources(${LIB_NAME} PRIVATE
     ${GLSL_OUT}
 )
 
-# --- Subdirectories & External Dependencies ---
-find_package(nlohmann_json 3.10.5 REQUIRED)
-find_package(Slang REQUIRED)
-find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 
 add_subdirectory(core)
 add_subdirectory(scene)
 add_subdirectory(app)
 add_subdirectory(backend)
+
 
 # --- Include Directories ---
 target_include_directories(${LIB_NAME} PUBLIC 
@@ -83,7 +90,6 @@ target_link_libraries(${LIB_NAME} PUBLIC
     implot
     fmt
     nlohmann_json::nlohmann_json
-    Slang
 )
 
 # Optional CUDA NVML support

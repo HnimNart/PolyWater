@@ -11,6 +11,7 @@
 #include <nvvk/graphics_pipeline.hpp>
 
 #include "backend/interfaces/IRenderer.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "compiler/slang.hpp"
@@ -57,7 +58,7 @@ void RasterPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void RasterPass::resize(VkCommandBuffer cmd, VkExtent2D size)
+void RasterPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
 {}
 
@@ -94,9 +95,10 @@ void RasterPass::execute(const IRenderContext &ctx)
   colorAttachment.loadOp = scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD
                                              : VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.imageView = gBuffers->getColorImageView(RenderOutput::Linear);
-  colorAttachment.clearValue = {.color = {scene_info.backgroundColor.x,
-                                          scene_info.backgroundColor.y,
-                                          scene_info.backgroundColor.z, 1.0f}};
+  colorAttachment.clearValue = {
+      .color = VkClearColorValue{scene_info.backgroundColor.x,
+                                 scene_info.backgroundColor.y,
+                                 scene_info.backgroundColor.z, 1.0f}};
 
   VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
   depthAttachment.imageView = gBuffers->getDepthImageView();

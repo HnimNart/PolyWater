@@ -22,13 +22,16 @@ BIN_DIR := $(BUILD_DIR)/bin/$(CONFIG_TYPE)
 # Targets
 # ------------------------------------------------------------------------------
 
-.PHONY: configure build install clean help
+.PHONY: configure build rebuild install clean help
 
 configure:
 	cmake --preset $(preset) -B $(BUILD_DIR)
 
 build:
 	cmake --build $(BUILD_DIR) --preset $(preset) --parallel
+
+rebuild:
+	cmake --build $(BUILD_DIR) --preset $(preset) --clean-first --parallel
 
 install:
 	cmake --build $(BUILD_DIR) --parallel --target install

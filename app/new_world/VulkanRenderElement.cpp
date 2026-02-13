@@ -23,6 +23,7 @@
 
 #include "app/App.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
+#include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
 #include "core/Math.hpp"
 #include "core/path_utils.hpp"
@@ -240,7 +241,6 @@ void VulkanRendererElement::onUIRender()
           m_hasChanged |= core::CameraWidget(m_sceneManager.camera());
         }
 
-        auto &sceneInfo = m_sceneManager.sceneInfo();
         if (ImGui::CollapsingHeader("Environment")) {
           auto &sceneInfo = m_sceneManager.sceneInfo();
           m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
@@ -339,7 +339,7 @@ void VulkanRendererElement::onRender(const IRenderContext &ctx)
 }
 
 /**********************************************************/
-void VulkanRendererElement::onEndFrame(const IRenderContext &ctx)
+void VulkanRendererElement::onEndFrame(const IRenderContext & /*ctx*/)
 /**********************************************************/
 {}
 
@@ -444,7 +444,6 @@ void VulkanRendererElement::renderInstancesUI()
   auto &resources = m_sceneManager.sceneResourceManager();
   auto &instances = resources.getInstances();
   const auto &materials = resources.getMaterials();
-  const auto &materialMap = resources.materialMap();
   const auto &instanceMap = resources.instanceMap();
   const auto &shaderRegistry = m_renderer->getShaderManager().getRegistry();
 
@@ -569,7 +568,7 @@ const SceneManager &VulkanRendererElement::getSceneManager() const
 }
 
 /**********************************************************/
-void VulkanRendererElement::onGeometryPicked(InstanceID id)
+void VulkanRendererElement::onGeometryPicked(InstanceID /*id*/)
 /**********************************************************/
 {
   // m_instanceSelected = id;

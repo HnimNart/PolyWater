@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include <glm/glm.hpp>
 #include <core/Camera.hpp>
+#include <glm/glm.hpp>
 
 #include "SceneData.hpp"
 #include "SceneResources.hpp"
@@ -11,7 +11,7 @@
 #include "core/Camera.hpp"
 
 namespace shaderio {
-class TonemapperData;
+struct TonemapperData;
 }
 
 class IRenderer;
@@ -36,7 +36,7 @@ public:
   const SceneResourcesManager &sceneResourceManager() const;
 
   bool isDirty() const { return has_changed || m_scene_resources.dirty(); }
-  bool setDirty(bool dirty) { has_changed = dirty; }
+  void setDirty(bool dirty) { has_changed = dirty; }
 
   // --------------------------------------------------
   // Rendering parameters

@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.h>
 
 #include <functional>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,7 +14,7 @@
 class VulkanContextManager;
 class FrameSynchronizationManager;
 class SwapchainRenderManager;
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace core {
 class IAppElement;
