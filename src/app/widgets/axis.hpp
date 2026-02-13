@@ -47,14 +47,21 @@ namespace app {
 // This utility is adding the 3D axis at `pos`, using the matrix `modelView`
 void Axis(ImVec2 pos, const glm::mat4 &modelView, float size = 20.f);
 
-// Place the axis at the bottom left corner of the window
-inline void Axis(const glm::mat4 &modelView, float size = 20.f) {
+// Place the axis at the bottom right corner of the window
+inline void Axis(const glm::mat4 &modelView, float size = 50.f) {
   ImVec2 windowPos = ImGui::GetWindowPos();
   ImVec2 windowSize = ImGui::GetWindowSize();
-  ImVec2 offset = ImVec2(size * 1.1F * ImGui::GetWindowDpiScale(),
-                         -size * 1.1F * ImGui::GetWindowDpiScale());
-  ImVec2 pos =
-      ImVec2(windowPos.x + offset.x, windowPos.y + windowSize.y + offset.y);
+  float dpiScale = ImGui::GetWindowDpiScale();
+
+  // Padding from the edges
+  ImVec2 offset = ImVec2(size * 1.5F * dpiScale, -size * 1.5F * dpiScale);
+
+  // Bottom-Right Calculation:
+  // x = Start of window + Total Width - Padding
+  // y = Start of window + Total Height - Padding (offset.y is already negative)
+  ImVec2 pos = ImVec2(windowPos.x + windowSize.x - offset.x,
+                      windowPos.y + windowSize.y + offset.y);
+
   Axis(pos, modelView, size);
 }
 

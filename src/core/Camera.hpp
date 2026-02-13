@@ -154,6 +154,12 @@ public:
     return projMatrix;
   }
 
+  const glm::mat4 getViewProjection() const {
+    auto projMatrix = getPerspectiveMatrix();
+    projMatrix[1][1] *= -1; // Flip the Y axis
+    return projMatrix * getViewMatrix();
+  }
+
   // Set the position, interest from the matrix.
   // instantSet = true will not interpolate to the new position
   // centerDistance is the distance of the center from the eye

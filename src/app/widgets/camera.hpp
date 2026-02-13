@@ -44,16 +44,16 @@ enum CameraWidgetSections : uint32_t {
 // If `embed` is true, it will have text before it and appear in
 // ImGui::BeginChild. `openSections` controls which sections are open by
 // default. Returns whether camera parameters changed.
-bool CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
+bool cameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
                   bool embed = false,
                   CameraWidgetSections openSections = CameraSection_Default);
 
 // Sets the name (without .json) of the setting file. It will load and replace
 // all cameras and settings
-void SetCameraJsonFile(const std::filesystem::path &filename);
+void setCameraJsonFile(const std::filesystem::path &filename);
 // Sets the home camera - replacing the one on load
-void SetHomeCamera(const core::CameraManipulator::Camera &camera);
+void setHomeCamera(const core::CameraManipulator::Camera &camera);
 // Adds a camera to the list of cameras
-void AddCamera(const core::CameraManipulator::Camera &camera);
+void addCamera(const core::CameraManipulator::Camera &camera);
 
 } // namespace app

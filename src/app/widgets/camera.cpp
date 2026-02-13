@@ -583,7 +583,7 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
-bool app::CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
+bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
                        bool embed, CameraWidgetSections openSections) {
   assert(cameraManip && "CameraManipulator is not set");
 
@@ -646,14 +646,14 @@ bool app::CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
   return changed || instantChanged;
 }
 
-void app::SetCameraJsonFile(const std::filesystem::path &filename) {
+void app::setCameraJsonFile(const std::filesystem::path &filename) {
   CameraPresetManager::getInstance().setCameraJsonFile(filename);
 }
 
-void app::SetHomeCamera(const core::CameraManipulator::Camera &camera) {
+void app::setHomeCamera(const core::CameraManipulator::Camera &camera) {
   CameraPresetManager::getInstance().setHomeCamera(camera);
 }
 
-void app::AddCamera(const core::CameraManipulator::Camera &camera) {
+void app::addCamera(const core::CameraManipulator::Camera &camera) {
   CameraPresetManager::getInstance().addCamera(camera);
 }

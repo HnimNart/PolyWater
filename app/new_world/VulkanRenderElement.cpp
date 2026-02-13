@@ -22,6 +22,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include "app/Application.hpp"
+#include "app/widgets/axis.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
@@ -171,6 +172,7 @@ void VulkanRendererElement::onUIRender()
     ImGui::Image(
         ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped)),
         ImGui::GetContentRegionAvail());
+    app::Axis(m_sceneManager.camera()->getViewProjection());
   }
   ImGui::End();
 
@@ -238,7 +240,7 @@ void VulkanRendererElement::onUIRender()
       // --- TAB 2: ENVIRONMENT & LIGHTING ---
       if (ImGui::BeginTabItem("SceneInfo")) {
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-          m_hasChanged |= app::CameraWidget(m_sceneManager.camera());
+          m_hasChanged |= app::cameraWidget(m_sceneManager.camera());
         }
 
         if (ImGui::CollapsingHeader("Environment")) {
