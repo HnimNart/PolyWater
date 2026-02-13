@@ -24,7 +24,7 @@
 
 #include <filesystem>
 
-namespace core {
+namespace app::cli {
 
 // The ParameterSequencer class allows parsing a parameter file
 // in sequences. Each sequence starts with the "SEQUENCE" keyword
@@ -83,7 +83,8 @@ public:
     uint32_t profilerResetFrameCount = 8; // parameter: "sequenceresetframes"
     // how many last N frames to average (0 averages entire sequence)
     uint32_t profilerAverageCount =
-        ProfilerTimeline::MAX_LAST_FRAMES; // parameter: "sequenceaverages"
+        core::ProfilerTimeline::MAX_LAST_FRAMES; // parameter:
+                                                 // "sequenceaverages"
 
     // mandatory, the scripts are parsed using this parser
     ParameterParser *parameterParser{};
@@ -92,7 +93,7 @@ public:
 
     // optional, after each sequence we print the results provided from this
     // manager
-    ProfilerManager *profilerManager{};
+    core::ProfilerManager *profilerManager{};
 
     // To get called after a new benchmark setting.
     // The input to each function is the description of the previous benchmark.
@@ -139,4 +140,4 @@ protected:
   // Info about the current sequence
   State m_sequenceState = {};
 };
-} // namespace core
+} // namespace app::cli

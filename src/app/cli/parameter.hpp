@@ -28,7 +28,7 @@
 
 #include <fmt/format.h>
 
-namespace core {
+namespace app::cli {
 
 // Parameters store information about tweakable values within an application.
 // A Parameter contains a pointer to the destination variable that must be valid
@@ -141,4 +141,4 @@ template <class T> class Parameter : public ParameterBase {
   T max() const { return *(const T *)&minMaxValues[1].u32[0]; }
 };
 
-} // namespace core
+} // namespace app::cli

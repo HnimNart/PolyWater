@@ -29,7 +29,7 @@
 #include "core/logger.hpp"
 #include "parameter_parser.hpp"
 
-namespace core {
+namespace app::cli {
 
 ParameterParser::ParameterParser(
     const std::string &description,
@@ -46,9 +46,9 @@ ParameterParser::ParameterParser(
 
     if (tokenized.initFromFile(configFile)) {
       if (m_verbose) {
-        Logger::getInstance().log(Logger::eINFO,
-                                  "parser: configfile %s - start\n",
-                                  core::utf8FromPath(configFile).c_str());
+        core::Logger::getInstance().log(core::Logger::eINFO,
+                                        "parser: configfile %s - start\n",
+                                        core::utf8FromPath(configFile).c_str());
       }
 
       size_t maxArgs = tokenized.getArgs().size();
@@ -56,8 +56,8 @@ ParameterParser::ParameterParser(
           parse(tokenized.getArgs(), false, tokenized.getFilenameBasePath());
 
       if (m_verbose) {
-        Logger::getInstance().log(
-            Logger::eINFO, "parser: configfile %s - completed %d of %d\n",
+        core::Logger::getInstance().log(
+            core::Logger::eINFO, "parser: configfile %s - completed %d of %d\n",
             core::utf8FromPath(configFile).c_str(), uint32_t(parsed),
             uint32_t(maxArgs));
       }
@@ -98,7 +98,8 @@ void ParameterParser::printHelp() const {
 
   // Print the general description.
   if (!m_helpDescription.empty())
-    Logger::getInstance().log(Logger::eINFO, "%s\n", m_helpDescription.c_str());
+    core::Logger::getInstance().log(core::Logger::eINFO, "%s\n",
+                                    m_helpDescription.c_str());
 
   // Find the argument with the longest combined flag length (in order to align
   // the help messages).
@@ -145,7 +146,8 @@ void ParameterParser::printHelp() const {
       spacePos = nextspacePos;
 
       if (lineWidth > MAX_LINE_WIDTH) {
-        Logger::getInstance().log(Logger::eINFO, "%s\n", sstr.str().c_str());
+        core::Logger::getInstance().log(core::Logger::eINFO, "%s\n",
+                                        sstr.str().c_str());
         sstr = std::stringstream();
         if (maxFlagLength > 0) {
           sstr << std::left
@@ -197,18 +199,20 @@ int ParameterParser::parseInt(const ParameterBase &parameter, const char *str,
     int value = std::stoi(std::string(str));
     return value;
   } catch (const std::invalid_argument &) {
-    Logger::getInstance().log(Logger::eERROR,
-                              "parser: %2d-%2d: --%s invalid parameter value "
-                              "\"%s\", not an integer \n",
-                              uint32_t(a), uint32_t(a + parameter.argCount),
-                              parameter.info.name.c_str(), str);
+    core::Logger::getInstance().log(
+        core::Logger::eERROR,
+        "parser: %2d-%2d: --%s invalid parameter value "
+        "\"%s\", not an integer \n",
+        uint32_t(a), uint32_t(a + parameter.argCount),
+        parameter.info.name.c_str(), str);
   } catch (const std::out_of_range &) {
     std::cerr << "Input is out of range for int" << std::endl;
-    Logger::getInstance().log(Logger::eERROR,
-                              "parser: %2d-%2d: --%s invalid parameter value "
-                              "\"%s\", out of range for int \n",
-                              uint32_t(a), uint32_t(a + parameter.argCount),
-                              parameter.info.name.c_str(), str);
+    core::Logger::getInstance().log(
+        core::Logger::eERROR,
+        "parser: %2d-%2d: --%s invalid parameter value "
+        "\"%s\", out of range for int \n",
+        uint32_t(a), uint32_t(a + parameter.argCount),
+        parameter.info.name.c_str(), str);
   }
 
   printHelp();
@@ -222,18 +226,19 @@ float ParameterParser::parseFloat(const ParameterBase &parameter,
     float value = std::stof(std::string(str));
     return value;
   } catch (const std::invalid_argument &) {
-    Logger::getInstance().log(
-        Logger::eERROR,
+    core::Logger::getInstance().log(
+        core::Logger::eERROR,
         "parser: %2d-%2d: --%s invalid parameter value \"%s\", not a float \n",
         uint32_t(a), uint32_t(a + parameter.argCount),
         parameter.info.name.c_str(), str);
   } catch (const std::out_of_range &) {
     std::cerr << "Input is out of range for int" << std::endl;
-    Logger::getInstance().log(Logger::eERROR,
-                              "parser: %2d-%2d: --%s invalid parameter value "
-                              "\"%s\", out of range for float \n",
-                              uint32_t(a), uint32_t(a + parameter.argCount),
-                              parameter.info.name.c_str(), str);
+    core::Logger::getInstance().log(
+        core::Logger::eERROR,
+        "parser: %2d-%2d: --%s invalid parameter value "
+        "\"%s\", out of range for float \n",
+        uint32_t(a), uint32_t(a + parameter.argCount),
+        parameter.info.name.c_str(), str);
   }
 
   printHelp();
@@ -356,21 +361,22 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
         }
 
         if (m_verbose && success) {
-          Logger::getInstance().log(
-              Logger::eINFO, "parser: %2d-%2d: --%s", uint32_t(a),
+          core::Logger::getInstance().log(
+              core::Logger::eINFO, "parser: %2d-%2d: --%s", uint32_t(a),
               uint32_t(a + parameter.argCount), parameter.info.name.c_str());
           for (uint32_t i = 0; i < parameter.argCount; i++) {
-            Logger::getInstance().log(Logger::eINFO, " %s", args[i + 1 + a]);
+            core::Logger::getInstance().log(core::Logger::eINFO, " %s",
+                                            args[i + 1 + a]);
           }
-          Logger::getInstance().log(Logger::eINFO, "\n");
+          core::Logger::getInstance().log(core::Logger::eINFO, "\n");
         }
 
         a += parameter.argCount;
       } else {
-        Logger::getInstance().log(
-            Logger::eERROR, "parser: %d - %d: %s - not enough arguments left\n",
-            uint32_t(a), uint32_t(a + parameter.argCount),
-            parameter.info.name.c_str());
+        core::Logger::getInstance().log(
+            core::Logger::eERROR,
+            "parser: %d - %d: %s - not enough arguments left\n", uint32_t(a),
+            uint32_t(a + parameter.argCount), parameter.info.name.c_str());
         printHelp();
         exit(1);
 
@@ -398,21 +404,21 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
         }
         if (m_verbose) {
           if (success) {
-            Logger::getInstance().log(Logger::eINFO, "parser: %2d-%2d: --%s",
-                                      uint32_t(a), uint32_t(a),
-                                      parameter->info.name.c_str());
-          } else {
-            Logger::getInstance().log(
-                Logger::eERROR, "parser: %2d-%2d: --%s failed\n", uint32_t(a),
+            core::Logger::getInstance().log(
+                core::Logger::eINFO, "parser: %2d-%2d: --%s", uint32_t(a),
                 uint32_t(a), parameter->info.name.c_str());
+          } else {
+            core::Logger::getInstance().log(
+                core::Logger::eERROR, "parser: %2d-%2d: --%s failed\n",
+                uint32_t(a), uint32_t(a), parameter->info.name.c_str());
             printHelp();
             exit(1);
           }
         }
       } else if (!silentUnknown) {
-        Logger::getInstance().log(Logger::eERROR,
-                                  "parser: %d: %s - unknown parameter\n",
-                                  uint32_t(a), arg.c_str());
+        core::Logger::getInstance().log(core::Logger::eERROR,
+                                        "parser: %d: %s - unknown parameter\n",
+                                        uint32_t(a), arg.c_str());
         printHelp();
         exit(1);
       }
@@ -437,7 +443,7 @@ static bool endsWith(const std::string &str, const std::string &suffix) {
          str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-const core::ParameterBase *
+const ParameterBase *
 ParameterParser::findViaExtension(const std::string &argin) const {
   std::string arg = argin;
 
@@ -548,60 +554,4 @@ void ParameterParser::Tokenized::processContent() {
   }
 }
 
-} // namespace core
-
-//--------------------------------------------------------------------------------------------------
-// Usage example
-//--------------------------------------------------------------------------------------------------
-static void usage_ParameterParser() {
-  // create registry
-  core::ParameterRegistry registry;
-
-  bool blubb = false;
-  uint32_t blah = 123;
-
-  // register some parameters
-  registry.add({"blubb", "triggering this parameter enables blubb"}, &blubb,
-               true);
-  registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
-
-  // create parser
-  core::ParameterParser parser("my test");
-
-  // add all parameters from the registry.
-  parser.add(registry);
-
-  // one can also add parameters individually, from other registries etc.
-  core::ParameterRegistry otherRegistry;
-  std::filesystem::path filename;
-  const core::Parameter<std::filesystem::path> *filenameParameter =
-      otherRegistry.add({"filename", "loads file"}, &filename);
-
-  // filenames that are relative will be automatically made relative to the
-  // `filenameBasePath` provided to the parsing function (default is none, so
-  // working directory) or indirectly provided when loaded from a configfile.
-  parser.add(filenameParameter);
-
-  // typically parses command line
-  {
-    // get from main...
-    int argc = 0;
-    char **argv = nullptr;
-
-    parser.parse(argc, argv);
-  }
-
-  // but can also parse a string through a helper class
-  // the --help and --configfile options always exist
-  std::string example = "--help --blubb --blah 12 --filename test.jpg";
-
-  core::ParameterParser::Tokenized tokenized;
-  tokenized.initFromString(example);
-
-  std::filesystem::path filenameBasePath = "/somedirectory";
-
-  parser.parse(tokenized.getArgs(), false, filenameBasePath);
-
-  // blah would be clamped to 10
-  // filename would be set to "/somedirectory/test.jpg"
-}
+} // namespace app::cli

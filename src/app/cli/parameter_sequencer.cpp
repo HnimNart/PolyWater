@@ -20,7 +20,7 @@
 #include "parameter_sequencer.hpp"
 #include "core/logger.hpp"
 
-namespace core {
+namespace app::cli {
 
 void ParameterSequencer::InitInfo::registerScriptParameters(
     ParameterRegistry &registry, ParameterParser &parser) {
@@ -92,8 +92,8 @@ bool ParameterSequencer::prepareFrame() {
       if (m_info.profilerManager) {
         m_info.profilerManager->appendPrint(statsFrame, statsSingle, true);
         // print old stats
-        Logger::getInstance().log(
-            Logger::eSTATS, "ParameterSequence %d \"%s\" = {\n%s\n%s}\n",
+        core::Logger::getInstance().log(
+            core::Logger::eSTATS, "ParameterSequence %d \"%s\" = {\n%s\n%s}\n",
             m_sequenceState.index, m_sequenceState.description.c_str(),
             statsFrame.c_str(), statsSingle.c_str());
       }
@@ -133,89 +133,4 @@ bool ParameterSequencer::prepareFrame() {
   return m_completed;
 }
 
-} // namespace core
-
-//--------------------------------------------------------------------------------------------------
-// Usage example
-//--------------------------------------------------------------------------------------------------
-[[maybe_unused]] static void usage_ParameterSequencer() {
-  // create registry & parser
-  core::ParameterRegistry registry;
-  core::ParameterParser parser("my test");
-
-  uint32_t blah = 123;
-
-  // register some parameters
-  registry.add({"blah", "modifies blah, clamped to [0,10]"}, &blah, 0, 10);
-
-  core::ParameterSequencer::InitInfo sequencerInfo;
-  sequencerInfo.registerScriptParameters(registry, parser);
-
-  // imagine we parse command line to get settings
-  {
-    // get from main...
-    int argc = 0;
-    char **argv = nullptr;
-
-    parser.parse(argc, argv);
-  }
-
-  // Here we just hardcode two sequences.
-  // Each sequence starts with the SEQUENCE keyword which is followed by a
-  // single string argument. That single string is then embedded into the
-  // automatic printing of results that are queried from the provided profiler.
-  sequencerInfo.scriptContent = "SEQUENCE \"first sequence\" --blah 7 SEQUENCE "
-                                "\"second sequence\" --blah 9";
-
-  // profiler should average over all frames not just last N
-  sequencerInfo.profilerAverageCount = 0;
-  // one sequence should run for 128 frames
-  sequencerInfo.sequenceFrameCount = 128;
-
-  // always need a parser
-  sequencerInfo.parameterParser = &parser;
-  // and registry of internal parameters
-  sequencerInfo.parameterRegistry = &registry;
-
-  // want to log profiling results with the sequencer
-  core::ProfilerManager profilerManager;
-  core::ProfilerTimeline *timeline =
-      profilerManager.createTimeline({"primary"});
-
-  sequencerInfo.profilerManager = &profilerManager;
-
-  // optionally, add a function called once each sequence is finished:
-  sequencerInfo.postCallbacks.push_back(
-      [](const core::ParameterSequencer::State &sequence) {
-        LOGI("Finished sequence %d: %s\n", sequence.index,
-             sequence.description.c_str());
-      });
-
-  // initialize the sequencer
-  core::ParameterSequencer sequencer;
-  bool doSequences = sequencer.init(sequencerInfo);
-
-  bool renderLoop = true;
-  while (renderLoop) {
-    // could be in onPreRender when using an Element
-    timeline->frameAdvance();
-
-    if (doSequences) {
-      // The `prepareFrame` call will change sequence settings every `128`
-      // frames (as defined in the settings above) and will print profiler
-      // results from the previous sequence to the global logger with full timer
-      // details.
-      if (sequencer.prepareFrame()) {
-        // returns true if there is left in the script
-        break;
-      }
-    }
-
-    // handle parameter changes triggered by sequencer preparation or other
-    // events mysetup(blah);
-
-    // do render or other processing logic
-  }
-
-  profilerManager.destroyTimeline(timeline);
-}
+} // namespace app::cli

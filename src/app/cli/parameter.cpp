@@ -19,7 +19,7 @@
 
 #include "parameter.hpp"
 
-namespace core {
+namespace app::cli {
 
 const char *ParameterBase::toString(Type type) {
   switch (type) {
@@ -51,4 +51,4 @@ const char *ParameterBase::toString(Type type) {
     return "";
   }
 }
-} // namespace core
+} // namespace app::cli

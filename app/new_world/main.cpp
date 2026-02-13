@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
   app::ApplicationCreateInfo appInfo{};
 
   // Parsing the command line
-  core::ParameterParser cli(core::getExecutablePath().stem().string());
-  core::ParameterRegistry reg;
+  app::cli::ParameterParser cli(core::getExecutablePath().stem().string());
+  app::cli::ParameterRegistry reg;
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
   cli.add(reg);
   cli.parse(argc, argv);
