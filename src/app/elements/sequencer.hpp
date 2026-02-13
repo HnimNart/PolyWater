@@ -19,35 +19,27 @@
 
 #pragma once
 
-#include <core/parameter_sequencer.hpp>
+#include <app/cli/parameter_sequencer.hpp>
 
 #include "app/IAppElement.hpp"
 
-namespace core
-{
+namespace app {
 
 // Element that contains a `ParameterSequencer` and advances it
 // if applicable.
 
-class ElementSequencer : public core::IAppElement
-{
+class ElementSequencer : public IAppElement {
 public:
-  ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
-      m_sequencerInfo(sequencerInfo)
-  {
-  }
-  virtual void onAttach(core::Application* app) override
-  {
+  ElementSequencer(const core::ParameterSequencer::InitInfo &sequencerInfo)
+      : m_sequencerInfo(sequencerInfo) {}
+  virtual void onAttach(Application *app) override {
     m_app = app;
     m_doSequences = m_sequencer.init(m_sequencerInfo);
   }
-  virtual void onPreRender() override
-  {
-    if (m_doSequences)
-    {
+  virtual void onPreRender() override {
+    if (m_doSequences) {
       bool finished = m_sequencer.prepareFrame();
-      if (finished)
-      {
+      if (finished) {
         m_app->close();
       }
     }
@@ -56,7 +48,7 @@ public:
 private:
   core::ParameterSequencer::InitInfo m_sequencerInfo;
   core::ParameterSequencer m_sequencer;
-  core::Application* m_app = nullptr;
+  Application *m_app = nullptr;
   bool m_doSequences = false;
 };
-}  // namespace core
+} // namespace app

@@ -12,7 +12,7 @@
 
 /**********************************************************/
 std::unique_ptr<VulkanBackend>
-VulkanBackend::create(const core::ApplicationCreateInfo &appInfo)
+VulkanBackend::create(const app::ApplicationCreateInfo &appInfo)
 /**********************************************************/
 {
   auto backend = std::unique_ptr<VulkanBackend>(new VulkanBackend());
@@ -24,7 +24,7 @@ VulkanBackend::create(const core::ApplicationCreateInfo &appInfo)
 }
 
 /**********************************************************/
-bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo &appInfo)
+bool VulkanBackend::initVulkan(const app::ApplicationCreateInfo &appInfo)
 /**********************************************************/
 {
   m_coreManager = std::make_unique<VulkanContextManager>();
@@ -40,7 +40,7 @@ bool VulkanBackend::initVulkan(const core::ApplicationCreateInfo &appInfo)
 
 /**********************************************************/
 void VulkanBackend::initPresentation(GLFWwindow *windowHandle,
-                                     std::shared_ptr<core::IGUISystem> gui)
+                                     std::shared_ptr<app::IGUISystem> gui)
 /**********************************************************/
 {
   m_windowHandle = windowHandle;
@@ -111,20 +111,20 @@ IRenderContext *VulkanBackend::beginFrame()
 
 /**********************************************************/
 void VulkanBackend::renderFrame(
-    const std::vector<std::shared_ptr<core::IAppElement>> &elements,
+    const std::vector<std::shared_ptr<app::IAppElement>> &elements,
     IRenderContext const &frame)
 /**********************************************************/
 {
 
-  for (const std::shared_ptr<core::IAppElement> &e : elements) {
+  for (const std::shared_ptr<app::IAppElement> &e : elements) {
     e->onPreRender();
   }
 
-  for (const std::shared_ptr<core::IAppElement> &e : elements) {
+  for (const std::shared_ptr<app::IAppElement> &e : elements) {
     e->onRender(frame);
   }
 
-  for (const std::shared_ptr<core::IAppElement> &e : elements) {
+  for (const std::shared_ptr<app::IAppElement> &e : elements) {
     e->onEndFrame(frame);
   }
 

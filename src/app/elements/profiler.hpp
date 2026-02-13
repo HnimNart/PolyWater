@@ -25,63 +25,57 @@
 
 #include "app/IAppElement.hpp"
 
-namespace core
-{
+namespace app {
 
-class ElementProfiler : public core::IAppElement
-{
+class ElementProfiler : public IAppElement {
 public:
-  typedef enum
-  {
-    TABLE,
-    BAR_CHART,
-    PIE_CHART,
-    LINE_CHART
-  } TabId;
+  typedef enum { TABLE, BAR_CHART, PIE_CHART, LINE_CHART } TabId;
 
-  struct ViewSettings
-  {
-    const std::string name = "Profiler";  // name of the view window (must be unique)
-    bool show = true;                     // toggle display of the view window
-    TabId defaultTab = TABLE;             // ID of the tab to open by default
-    int plotHeight = 250;                 // height common to all plots
-    struct
-    {
-      bool detailed = false;  // draw detailed timers avg, min, max, last
-      uint32_t levels = ~0u;  // number of levels to open first
-    } table;                  // table settings
-    struct
-    {
-      ImPlotBarGroupsFlags stacked = false;  // draw timers as stacked
-    } barChart;                              // barChart settings
-    struct
-    {
-      bool cpuTotal = true;  // Full pie is CPU total time; if false, uses GPU total time
-      int levels = 1;        // number of levels to draw; 1 = only the root node
-    } pieChart;              // pieChart settings
-    struct
-    {
-      bool cpuLine = true;   // draw higher level CPU timer
-      bool gpuLines = true;  // draw GPU timers as lines
-      bool gpuFills = true;  // draw GPU timers as filled areas
-    } lineChart;             // lineChart settings
+  struct ViewSettings {
+    const std::string name =
+        "Profiler";           // name of the view window (must be unique)
+    bool show = true;         // toggle display of the view window
+    TabId defaultTab = TABLE; // ID of the tab to open by default
+    int plotHeight = 250;     // height common to all plots
+    struct {
+      bool detailed = false; // draw detailed timers avg, min, max, last
+      uint32_t levels = ~0u; // number of levels to open first
+    } table;                 // table settings
+    struct {
+      ImPlotBarGroupsFlags stacked = false; // draw timers as stacked
+    } barChart;                             // barChart settings
+    struct {
+      bool cpuTotal =
+          true; // Full pie is CPU total time; if false, uses GPU total time
+      int levels = 1; // number of levels to draw; 1 = only the root node
+    } pieChart;       // pieChart settings
+    struct {
+      bool cpuLine = true;  // draw higher level CPU timer
+      bool gpuLines = true; // draw GPU timers as lines
+      bool gpuFills = true; // draw GPU timers as filled areas
+    } lineChart;            // lineChart settings
   };
 
 private:
   // internal per view storage, hidden from the API
-  struct View
-  {
-    float maxY = 0.0f;             // max Y axis size for lineChart
-    bool selectDefaultTab = true;  // used to select the default tab at first draw
+  struct View {
+    float maxY = 0.0f; // max Y axis size for lineChart
+    bool selectDefaultTab =
+        true; // used to select the default tab at first draw
 
-    std::shared_ptr<ViewSettings> state;  // settings are used as view state
+    std::shared_ptr<ViewSettings> state; // settings are used as view state
   };
 
 public:
-  // defaultViewSettings are optional, but can be used to set different defaults and also to expose
-  // to sample code (like hiding views for benchmark through parameter change)
-  // some default settings are created internally if not provided
-  ElementProfiler(core::ProfilerManager* profiler,
+  ElementProfiler(const ElementProfiler &) = default;
+  ElementProfiler(ElementProfiler &&) = delete;
+  ElementProfiler &operator=(const ElementProfiler &) = default;
+  ElementProfiler &operator=(ElementProfiler &&) = delete;
+  // defaultViewSettings are optional, but can be used to set different defaults
+  // and also to expose to sample code (like hiding views for benchmark through
+  // parameter change) some default settings are created internally if not
+  // provided
+  ElementProfiler(core::ProfilerManager *profiler,
                   std::shared_ptr<ViewSettings> defaultViewSettings = nullptr);
 
   ~ElementProfiler() = default;
@@ -89,7 +83,7 @@ public:
   // add a new view, view name in the state parameter must be unique
   void addView(std::shared_ptr<ViewSettings> state);
 
-  void onAttach(Application* app) override;
+  void onAttach(Application *app) override;
 
   // void onDetach() override {}
 
@@ -100,8 +94,7 @@ public:
   // void onRender(VkCommandBuffer /*cmd*/) override {}
 
 private:
-  struct EntryNode
-  {
+  struct EntryNode {
     std::string name;
     float cpuTime = 0.f;
     float gpuTime = -1.f;
@@ -116,39 +109,40 @@ private:
   void updateData(void);
 
   // TODOC
-  uint32_t addEntries(const core::ProfilerTimeline::Snapshot& snapshot,
-                      std::vector<EntryNode>& nodes, uint32_t startIndex, uint32_t endIndex,
-                      uint32_t currentLevel = 0);
+  uint32_t addEntries(const core::ProfilerTimeline::Snapshot &snapshot,
+                      std::vector<EntryNode> &nodes, uint32_t startIndex,
+                      uint32_t endIndex, uint32_t currentLevel = 0);
 
-  void displayTableNode(const EntryNode& node, bool detailed, uint32_t defaultOpenLevels,
-                        uint32_t depth);
+  void displayTableNode(const EntryNode &node, bool detailed,
+                        uint32_t defaultOpenLevels, uint32_t depth);
 
-  void renderTable(View& view);
+  void renderTable(View &view);
 
   // Rendering the data as a PieChart, showing the percentage of utilization
-  void renderPieChart(View& view);
+  void renderPieChart(View &view);
 
   // Renders the pie chart for a node and up to `numLevels - 1` descendants,
   // where the outer ring has a radius of `plotRadius`.
   // The wedge for the node starts at an angle of `angle0`.
   // 360 degrees == `totalTime`.
-  void renderPieChartNode(const EntryNode& node, int level, int numLevels, double plotRadius,
-                          double angle0, double totalTime);
+  void renderPieChartNode(const EntryNode &node, int level, int numLevels,
+                          double plotRadius, double angle0, double totalTime);
 
   // Rendering the data as a BarChart
-  void renderBarChart(View& view);
+  void renderBarChart(View &view);
 
   // Rendering the data as a cumulated line chart
-  void renderLineChart(View& view);
+  void renderLineChart(View &view);
 
-  // Save/read to/from the .ini file to remember the state of the view windows [open/close]
+  // Save/read to/from the .ini file to remember the state of the view windows
+  // [open/close]
   void addSettingsHandler();
 
   // draw v-sync toggle
   void drawVsyncCheckbox(void);
 
-  core::Application* m_app{nullptr};
-  core::ProfilerManager* m_profiler = nullptr;
+  Application *m_app{nullptr};
+  core::ProfilerManager *m_profiler = nullptr;
   std::vector<View> m_views;
   std::vector<EntryNode> m_frameNodes;
   std::vector<EntryNode> m_singleNodes;
@@ -157,4 +151,4 @@ private:
   std::vector<core::ProfilerTimeline::Snapshot> m_singleSnapshots;
 };
 
-}  // namespace core
+} // namespace app

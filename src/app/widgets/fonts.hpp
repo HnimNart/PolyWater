@@ -36,18 +36,18 @@
 //
 // The list of all icons can be seen online at https://fonts.google.com/icons.
 
-
 #pragma once
 
-#include "IconsMaterialSymbols.h"  // ICON_MS definitions
+#include "IconsMaterialSymbols.h" // ICON_MS definitions
 
 struct ImFont;
 
-namespace core {
+namespace app {
 
-void    addDefaultFont(float fontSize = 15.F, bool appendIcons = true);  // Initializes the default font.
-ImFont* getDefaultFont();                                                // Returns the default font.
-void    addMonospaceFont(float fontSize = 15.F);                         // Initializes the monospace font.
-ImFont* getMonospaceFont();                                              // Returns the monospace font
+void addDefaultFont(float fontSize = 15.F,
+                    bool appendIcons = true); // Initializes the default font.
+ImFont *getDefaultFont();                     // Returns the default font.
+void addMonospaceFont(float fontSize = 15.F); // Initializes the monospace font.
+ImFont *getMonospaceFont();                   // Returns the monospace font
 
-}  // namespace core
+} // namespace app

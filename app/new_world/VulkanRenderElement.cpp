@@ -21,7 +21,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#include "app/App.hpp"
+#include "app/Application.hpp"
 #include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/render/Renderer.hpp"
@@ -116,7 +116,7 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
 }
 
 /**********************************************************/
-void VulkanRendererElement::onAttach(core::Application *app)
+void VulkanRendererElement::onAttach(app::Application *app)
 /**********************************************************/
 {
   m_app = app;
@@ -163,7 +163,7 @@ void VulkanRendererElement::onUIMenu()
 void VulkanRendererElement::onUIRender()
 /**********************************************************/
 {
-  namespace PE = core::PropertyEditor;
+  namespace PE = app::PropertyEditor;
   m_hasChanged = false;
 
   // --- Viewport Window ---
@@ -238,7 +238,7 @@ void VulkanRendererElement::onUIRender()
       // --- TAB 2: ENVIRONMENT & LIGHTING ---
       if (ImGui::BeginTabItem("SceneInfo")) {
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-          m_hasChanged |= core::CameraWidget(m_sceneManager.camera());
+          m_hasChanged |= app::CameraWidget(m_sceneManager.camera());
         }
 
         if (ImGui::CollapsingHeader("Environment")) {
@@ -246,7 +246,7 @@ void VulkanRendererElement::onUIRender()
           m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
           if (sceneInfo.useSky) {
             m_hasChanged |=
-                core::skySimpleParametersUI(sceneInfo.skySimpleParam);
+                app::skySimpleParametersUI(sceneInfo.skySimpleParam);
           } else {
 
             PE::begin();
@@ -369,7 +369,7 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
 void VulkanRendererElement::renderMaterialsUI()
 /**********************************************************/
 {
-  namespace PE = core::PropertyEditor;
+  namespace PE = app::PropertyEditor;
   auto &resources = m_sceneManager.sceneResourceManager();
   auto &materials = resources.getMaterials();
   const auto &materialMap = resources.materialMap();
@@ -440,7 +440,7 @@ void VulkanRendererElement::renderMaterialsUI()
 void VulkanRendererElement::renderInstancesUI()
 /**********************************************************/
 {
-  namespace PE = core::PropertyEditor;
+  namespace PE = app::PropertyEditor;
   auto &resources = m_sceneManager.sceneResourceManager();
   auto &instances = resources.getInstances();
   const auto &materials = resources.getMaterials();

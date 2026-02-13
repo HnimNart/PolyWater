@@ -21,9 +21,9 @@
 
 #include <app/widgets/fonts.hpp>
 
-core::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show) {}
+app::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show) {}
 
-void core::ElementLogger::onAttach(Application * /*app*/) {
+void app::ElementLogger::onAttach(Application * /*app*/) {
   LOGI("Adding Logger UI\n");
 
   m_settingsHandler.setHandlerName("ElementLogger");
@@ -32,7 +32,7 @@ void core::ElementLogger::onAttach(Application * /*app*/) {
   m_settingsHandler.addImGuiHandler();
 }
 
-void core::ElementLogger::onUIRender() {
+void app::ElementLogger::onUIRender() {
   if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_ModShift |
                                ImGuiKey_L)) {
     m_showLog = !m_showLog;
@@ -48,26 +48,26 @@ void core::ElementLogger::onUIRender() {
   draw("Log", &m_showLog);
 }
 
-void core::ElementLogger::onUIMenu() {
+void app::ElementLogger::onUIMenu() {
   if (ImGui::BeginMenu("View")) {
     ImGui::MenuItem(ICON_MS_TEXT_AD " Log Window", "Ctrl+Shift+L", &m_showLog);
     ImGui::EndMenu();
   }
 }
 
-void core::ElementLogger::setLevelFilter(uint32_t levelFilter) {
+void app::ElementLogger::setLevelFilter(uint32_t levelFilter) {
   std::lock_guard<std::mutex> lock(m_modificationMutex);
   m_levelFilter = levelFilter;
 }
 
-void core::ElementLogger::clear() {
+void app::ElementLogger::clear() {
   m_buf.clear();
   m_lineOffsets.clear();
   m_lineOffsets.push_back(0);
   m_lineLevels.clear();
 }
 
-void core::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
+void app::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
   std::lock_guard<std::mutex> lock(m_modificationMutex);
 
   if ((m_levelFilter & (1 << level)) == 0)
@@ -86,7 +86,7 @@ void core::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
   }
 }
 
-void core::ElementLogger::initColors() {
+void app::ElementLogger::initColors() {
   ImGuiContext &g = *GImGui;
   m_colors.resize(8);
   m_colors[core::Logger::LogLevel::eINFO] =
@@ -99,11 +99,10 @@ void core::ElementLogger::initColors() {
       ImVec4(0.5, 0.5, 1.0, 1.0); // Light Blue
   m_colors[core::Logger::LogLevel::eSTATS] =
       ImVec4(0.0, 0.75, 0.0, 1.0); // Light Green
-  m_colors[core::Logger::LogLevel::eOK] =
-      ImVec4(0.0, 1.0, 0.0, 1.0); // Green
+  m_colors[core::Logger::LogLevel::eOK] = ImVec4(0.0, 1.0, 0.0, 1.0); // Green
 }
 
-void core::ElementLogger::draw(const char *title, bool *p_open /*= nullptr*/) {
+void app::ElementLogger::draw(const char *title, bool *p_open /*= nullptr*/) {
   if (ImGui::GetCurrentContext() == nullptr)
     return;
   if (m_colors.empty()) // Initialize colors late, as we need the ImGui context

@@ -5,7 +5,7 @@
 #include "backend/interfaces/IRenderContext.hpp"
 #include "core/Types.hpp"
 
-namespace core {
+namespace app {
 
 class Application;
 
@@ -67,4 +67,4 @@ public:
 
 using IAppElementPtr = std::shared_ptr<IAppElement>;
 
-} // namespace core
+} // namespace app

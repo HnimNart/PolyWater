@@ -33,8 +33,7 @@ public:
   //----------------------------------------------------------
   // Lifecycle
   //----------------------------------------------------------
-  virtual void initPresentation(GLFWwindow *window,
-                                core::IGUISystemPtr gui) = 0;
+  virtual void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) = 0;
   virtual void deinit() = 0;
   virtual void waitForDeviceIdle() = 0;
 
@@ -47,7 +46,7 @@ public:
   virtual IRenderContext *beginFrame() = 0;
 
   // Render the frame
-  virtual void renderFrame(const std::vector<core::IAppElementPtr> &elements,
+  virtual void renderFrame(const std::vector<app::IAppElementPtr> &elements,
                            IRenderContext const &ctx) = 0;
 
   // Complete the frame
@@ -103,5 +102,5 @@ protected:
   std::vector<std::vector<std::function<void()>>>
       m_resourceFreeQueue; // Queue of functions to free resources
 
-  core::IGUISystemPtr m_gui = nullptr;
+  app::IGUISystemPtr m_gui = nullptr;
 };

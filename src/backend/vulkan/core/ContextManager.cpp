@@ -8,7 +8,7 @@
 #include <nvvk/helpers.hpp>
 #include <nvvk/validation_settings.hpp>
 
-bool VulkanContextManager::init(const core::ApplicationCreateInfo &appInfo) {
+bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo) {
   // 1. Define Feature Structs
 
   // New: Extended Dynamic State 3 for Wireframe support

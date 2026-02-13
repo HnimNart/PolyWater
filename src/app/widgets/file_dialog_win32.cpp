@@ -147,15 +147,15 @@ static std::filesystem::path unifiedDialog(struct GLFWwindow*           glfwin,
 }
 
 
-std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
-  return unifiedDialog(glfwin, core::pathFromUtf8(title).native(), core::pathFromUtf8(exts).native(), DialogMode::OpenFile);
+  return unifiedDialog(glfwin, app::pathFromUtf8(title).native(), app::pathFromUtf8(exts).native(), DialogMode::OpenFile);
 }
 
-std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
+std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts, std::filesystem::path& initialDir)
 {
-  std::filesystem::path result = unifiedDialog(glfwin, core::pathFromUtf8(title).native(),
-                                               core::pathFromUtf8(exts).native(), DialogMode::OpenFile, initialDir);
+  std::filesystem::path result = unifiedDialog(glfwin, app::pathFromUtf8(title).native(),
+                                               app::pathFromUtf8(exts).native(), DialogMode::OpenFile, initialDir);
   // Update the initial directory to the directory of the selected file
   if(!result.empty())
   {
@@ -164,14 +164,14 @@ std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow* glfwin, cons
   return result;
 }
 
-std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
+std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow* glfwin, const char* title, const char* exts)
 {
-  return unifiedDialog(glfwin, core::pathFromUtf8(title).native(), core::pathFromUtf8(exts).native(), DialogMode::SaveFile);
+  return unifiedDialog(glfwin, app::pathFromUtf8(title).native(), app::pathFromUtf8(exts).native(), DialogMode::SaveFile);
 }
 
-std::filesystem::path core::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
+std::filesystem::path app::windowOpenFolderDialog(struct GLFWwindow* glfwin, const char* title)
 {
-  return unifiedDialog(glfwin, core::pathFromUtf8(title), {}, DialogMode::OpenFolder);
+  return unifiedDialog(glfwin, app::pathFromUtf8(title), {}, DialogMode::OpenFolder);
 }
 
 #endif

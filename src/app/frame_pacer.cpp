@@ -33,7 +33,7 @@
 #include <limits>
 #include <thread>
 
-namespace core {
+namespace app {
 
 double getMonitorsMinRefreshRate() {
   // We need our target frame rate. We get this once per frame in case the
@@ -99,4 +99,4 @@ void FramePacer::pace(double refreshRate) {
   m_cpuTimer.reset();
 }
 
-} // namespace core
+} // namespace app

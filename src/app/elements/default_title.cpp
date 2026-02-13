@@ -25,17 +25,17 @@
 #include <core/logger.hpp>
 #include <fmt/format.h>
 
-#include "app/App.hpp"
+#include "app/Application.hpp"
 
 /**********************************************************/
-core::ElementDefaultWindowTitle::ElementDefaultWindowTitle(
+app::ElementDefaultWindowTitle::ElementDefaultWindowTitle(
     std::string prefix /*= ""*/, std::string suffix /*= ""*/)
     : m_prefix(std::move(prefix)), m_suffix(std::move(suffix))
 /**********************************************************/
 {}
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::onAttach(core::Application *app)
+void app::ElementDefaultWindowTitle::onAttach(Application *app)
 /**********************************************************/
 {
   LOGI("Adding DefaultWindowTitle\n");
@@ -43,7 +43,7 @@ void core::ElementDefaultWindowTitle::onAttach(core::Application *app)
 }
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::onUIRender()
+void app::ElementDefaultWindowTitle::onUIRender()
 /**********************************************************/
 {
   GLFWwindow *window = m_app->getWindowHandle();
@@ -90,21 +90,21 @@ void core::ElementDefaultWindowTitle::onUIRender()
 }
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::setPrefix(const std::string &str)
+void app::ElementDefaultWindowTitle::setPrefix(const std::string &str)
 /**********************************************************/
 {
   m_prefix = str;
 }
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::setSuffix(const std::string &str)
+void app::ElementDefaultWindowTitle::setSuffix(const std::string &str)
 /**********************************************************/
 {
   m_suffix = str;
 }
 
 /**********************************************************/
-void core::ElementDefaultWindowTitle::setRenderer(const IRenderer *renderer)
+void app::ElementDefaultWindowTitle::setRenderer(const IRenderer *renderer)
 /**********************************************************/
 {
   m_renderer = renderer;

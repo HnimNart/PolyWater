@@ -39,7 +39,7 @@ Measurements:
 
 -------------------------------------------------------------------------------------------------*/
 
-namespace core {
+namespace app {
 
 class NvmlMonitor {
 public:
@@ -211,4 +211,4 @@ private:
   uint32_t m_minInterval = 100;    // Minimum interval lapse, in milliseconds
 };
 
-} // namespace core
+} // namespace app

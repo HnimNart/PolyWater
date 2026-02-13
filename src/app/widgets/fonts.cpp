@@ -30,15 +30,13 @@
 
 #include "fonts.hpp"
 
+namespace app {
+ImFont *g_defaultFont = nullptr;
+ImFont *g_iconicFont = nullptr;
+ImFont *g_monospaceFont = nullptr;
+} // namespace app
 
-namespace core {
-ImFont* g_defaultFont   = nullptr;
-ImFont* g_iconicFont    = nullptr;
-ImFont* g_monospaceFont = nullptr;
-}  // namespace core
-
-static ImFontConfig getDefaultConfig()
-{
+static ImFontConfig getDefaultConfig() {
   ImFontConfig config{};
   config.OversampleH = 3;
   config.OversampleV = 3;
@@ -47,15 +45,17 @@ static ImFontConfig getDefaultConfig()
 
 // Helper function to append a font with embedded Material Symbols icons
 // Icon fonts: https://fonts.google.com/icons?icon.set=Material+Symbols
-static ImFont* appendFontWithMaterialSymbols(const void* fontData, int fontDataSize, float fontSize)
-{
+static ImFont *appendFontWithMaterialSymbols(const void *fontData,
+                                             int fontDataSize, float fontSize) {
   // Configure Material Symbols icon font for merging
   ImFontConfig iconConfig = getDefaultConfig();
-  iconConfig.MergeMode    = true;
-  iconConfig.PixelSnapH   = true;
+  iconConfig.MergeMode = true;
+  iconConfig.PixelSnapH = true;
 
   // Material Symbols specific configuration
-  float iconFontSize       = 1.28571429f * fontSize;  // Material Symbols work best at 9/7x the base font size
+  float iconFontSize =
+      1.28571429f *
+      fontSize; // Material Symbols work best at 9/7x the base font size
   iconConfig.GlyphOffset.x = iconFontSize * 0.01f;
   iconConfig.GlyphOffset.y = iconFontSize * 0.2f;
 
@@ -63,44 +63,38 @@ static ImFont* appendFontWithMaterialSymbols(const void* fontData, int fontDataS
   static const ImWchar materialSymbolsRange[] = {ICON_MIN_MS, ICON_MAX_MS, 0};
 
   // Load embedded Material Symbols
-  ImFont* font = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(fontData, fontDataSize, iconFontSize, &iconConfig);
+  ImFont *font = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(
+      fontData, fontDataSize, iconFontSize, &iconConfig);
 
   return font;
 }
 
-
 // Add default Roboto fonts with the option to merge Material Symbols (icons)
-void core::addDefaultFont(float fontSize, bool appendIcons)
-{
-  if(g_defaultFont == nullptr)
-  {
+void app::addDefaultFont(float fontSize, bool appendIcons) {
+  if (g_defaultFont == nullptr) {
     ImFontConfig fontConfig = getDefaultConfig();
-    g_defaultFont           = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(g_roboto_regular_compressed_data,
-                                                                                   g_roboto_regular_compressed_size, fontSize, &fontConfig);
+    g_defaultFont = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(
+        g_roboto_regular_compressed_data, g_roboto_regular_compressed_size,
+        fontSize, &fontConfig);
 
-    if(appendIcons)  // If appendIcons is true, merge Material Symbols into the default font
+    if (appendIcons) // If appendIcons is true, merge Material Symbols into the
+                     // default font
     {
-      g_defaultFont = appendFontWithMaterialSymbols(MATERIAL_SYMBOLS_DATA, MATERIAL_SYMBOLS_SIZE, fontSize);
+      g_defaultFont = appendFontWithMaterialSymbols(
+          MATERIAL_SYMBOLS_DATA, MATERIAL_SYMBOLS_SIZE, fontSize);
     }
   }
 }
 
-ImFont* core::getDefaultFont()
-{
-  return g_defaultFont;
-}
+ImFont *app::getDefaultFont() { return g_defaultFont; }
 
-void core::addMonospaceFont(float fontSize)
-{
-  if(g_monospaceFont == nullptr)
-  {
+void app::addMonospaceFont(float fontSize) {
+  if (g_monospaceFont == nullptr) {
     ImFontConfig fontConfig = getDefaultConfig();
-    g_monospaceFont         = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(g_roboto_mono_compressed_data,
-                                                                                   g_roboto_mono_compressed_size, fontSize, &fontConfig);
+    g_monospaceFont = ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(
+        g_roboto_mono_compressed_data, g_roboto_mono_compressed_size, fontSize,
+        &fontConfig);
   }
 }
 
-ImFont* core::getMonospaceFont()
-{
-  return g_monospaceFont;
-}
+ImFont *app::getMonospaceFont() { return g_monospaceFont; }

@@ -33,27 +33,27 @@
 //   app->addEngine(std::make_shared<nvapp::ElementDefaultMenu>());
 //
 
-namespace core
-{
+namespace app {
 
 /*-------------------------------------------------------------------------------------------------
 # class nvapp::ElementDefaultMenu
 
->  This class is an element of the application that is responsible for the default menu of the
-application. It is using the `ImGui` library to create a menu with File/Exit and View/V-Sync.
+>  This class is an element of the application that is responsible for the
+default menu of the application. It is using the `ImGui` library to create a
+menu with File/Exit and View/V-Sync.
 
-To use this class, you need to add it to the `nvapp::Application` using the `addElement` method.
+To use this class, you need to add it to the `nvapp::Application` using the
+`addElement` method.
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultMenu : public core::IAppElement
-{
+class ElementDefaultMenu : public IAppElement {
 public:
-  void onAttach(core::Application* app) override;
+  void onAttach(Application *app) override;
   void onUIMenu() override;
 
 private:
-  core::Application* m_app{nullptr};
+  Application *m_app{nullptr};
 };
 
-}  // namespace core
+} // namespace app

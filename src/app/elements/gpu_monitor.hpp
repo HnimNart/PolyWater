@@ -26,7 +26,7 @@
 #include <imgui/imgui_internal.h>
 #include <implot/implot.h>
 
-#include "app/App.hpp"
+#include "app/Application.hpp"
 #include "app/widgets/settings_handler.hpp"
 #include "core/timers.hpp"
 #include "nvml_monitor.hpp"
@@ -39,7 +39,7 @@ monitoring. It is using the `NVML` library to get information about the GPU and
 display it in the application.
 -------------------------------------------------------------------------------------------------*/
 
-namespace core {
+namespace app {
 
 #define SAMPLING_NUM 100 // Show 100 measurements
 
@@ -64,13 +64,13 @@ template <typename T> struct AverageCircularBuffer {
   T average() { return totValue / data.size(); }
 };
 
-struct ElementGpuMonitor : public core::IAppElement {
+struct ElementGpuMonitor : public IAppElement {
   explicit ElementGpuMonitor(bool show = false);
   virtual ~ElementGpuMonitor() = default;
 
   void onUIRender() override;
   void onUIMenu() override;
-  void onAttach(core::Application *app) override;
+  void onAttach(Application *app) override;
   void onDetach() override;
 
   // attribute set public on purpose so external parameter parser and UI widgets
@@ -105,7 +105,7 @@ private:
   std::unique_ptr<NvmlMonitor> m_nvmlMonitor;
   AverageCircularBuffer<float> m_avgCpu = {SAMPLING_NUM};
 
-  core::SettingsHandler m_settingsHandler;
+  SettingsHandler m_settingsHandler;
 };
 
 template <typename T>
@@ -123,4 +123,4 @@ void ElementGpuMonitor::imguiNvmlField(const NvmlMonitor::NVMLField<T> &field,
   }
 }
 
-} // namespace core
+} // namespace app

@@ -23,7 +23,7 @@
 
 #include "tooltip.hpp"
 
-void core::tooltip(const char* description, bool questionMark /*= false*/, float timerThreshold /*= 0.5f*/)
+void app::tooltip(const char* description, bool questionMark /*= false*/, float timerThreshold /*= 0.5f*/)
 {
   ImGuiContext* GImGui = ImGui::GetCurrentContext();
 

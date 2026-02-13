@@ -21,7 +21,7 @@
 #include "app/widgets/property_editor.hpp"
 #include "core/logger.hpp"
 
-#include "elem_gpu_monitor.hpp"
+#include "gpu_monitor.hpp"
 
 #define SAMPLING_INTERVAL 100 // Sampling every 100 ms
 
@@ -31,7 +31,7 @@
 #define THROTTLE_COOLDOWN_TIME 5000
 #define MIB_SIZE 1'000'000
 
-using namespace core;
+namespace app {
 
 //-----------------------------------------------------------------------------
 inline int metricFormatter(double value, char *buff, int size, void *data) {
@@ -51,13 +51,13 @@ inline int metricFormatter(double value, char *buff, int size, void *data) {
   return snprintf(buff, size, "%g %s%s", value / s_value[6], s_prefix[6], unit);
 }
 
-namespace PE = core::PropertyEditor;
+namespace PE = PropertyEditor;
 
 ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show) {
   ImPlot::CreateContext();
 }
 
-void ElementGpuMonitor::onAttach(core::Application *app) {
+void ElementGpuMonitor::onAttach(Application *app) {
   LOGI("Adding GPU Monitor (NVML)\n");
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor =
@@ -1168,3 +1168,5 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
   }
 #endif
 }
+
+} // namespace app

@@ -38,13 +38,11 @@
 #include "logger.hpp"
 
 #include <fstream>
-#include <limits>
-#include <tuple>
 
 std::filesystem::path
 core::findFile(const std::filesystem::path &filename,
-                   const std::vector<std::filesystem::path> &searchPaths,
-                   bool reportError) {
+               const std::vector<std::filesystem::path> &searchPaths,
+               bool reportError) {
   for (const auto &path : searchPaths) {
     const std::filesystem::path filePath = path / filename;
     if (std::filesystem::exists(filePath)) {
@@ -198,7 +196,7 @@ std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept {
 }
 
 bool core::extensionMatches(const std::filesystem::path &path,
-                                const char *extension) {
+                            const char *extension) {
   // The standard implementation of this, tolower(path.extension()) ==
   // extension, would use 3 allocations: path.extension(), a copy for tolower,
   // and one for fs::path(extension) (since == is only implemented for path ==

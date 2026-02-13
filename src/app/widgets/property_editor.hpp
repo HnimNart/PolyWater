@@ -24,7 +24,7 @@
 #include <imgui/imgui.h>
 
 // clang-format off
-namespace core {
+namespace app {
 
 //--------------------------------------------------------------------------------------------------
 // This is a helper to create a nice property editor with ImGui, where the name of the property

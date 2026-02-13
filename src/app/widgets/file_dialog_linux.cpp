@@ -100,7 +100,7 @@ static void fixSingleFilter(std::string *pFilter) {
   *pFilter = std::move(newFilter);
 }
 
-std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow *glfwin,
+std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow *glfwin,
                                                  const char *title,
                                                  const char *exts) {
   std::filesystem::path initialDir;
@@ -108,7 +108,7 @@ std::filesystem::path core::windowOpenFileDialog(struct GLFWwindow *glfwin,
 }
 
 std::filesystem::path
-core::windowOpenFileDialog(struct GLFWwindow *glfwin, const char *title,
+app::windowOpenFileDialog(struct GLFWwindow *glfwin, const char *title,
                            const char *exts,
                            std::filesystem::path &initialDir) {
   // Not sure yet how to use this; maybe make as a child window somehow?
@@ -130,7 +130,7 @@ core::windowOpenFileDialog(struct GLFWwindow *glfwin, const char *title,
   return result;
 }
 
-std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow *glfwin,
+std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow *glfwin,
                                                  const char *title,
                                                  const char *exts) {
   // Not sure yet how to use this; maybe make as a child window somehow?
@@ -140,7 +140,7 @@ std::filesystem::path core::windowSaveFileDialog(struct GLFWwindow *glfwin,
   return save_file(title, ".", filterArgs).result();
 }
 
-std::filesystem::path core::windowOpenFolderDialog(struct GLFWwindow *glfwin,
+std::filesystem::path app::windowOpenFolderDialog(struct GLFWwindow *glfwin,
                                                    const char *title) {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);

@@ -9,7 +9,7 @@
 #include <imgui_internal.h>
 
 /**********************************************************/
-core::GeometryPickerElement::GeometryPickerElement(
+app::GeometryPickerElement::GeometryPickerElement(
     const SceneResourcesManager &sceneResources,
     std::shared_ptr<core::CameraManipulator> camera)
     : m_sceneResources(sceneResources), m_camera(std::move(camera))
@@ -17,7 +17,7 @@ core::GeometryPickerElement::GeometryPickerElement(
 {}
 
 /**********************************************************/
-void core::GeometryPickerElement::onAttach(core::Application *app)
+void app::GeometryPickerElement::onAttach(Application *app)
 /**********************************************************/
 {
   m_app = app;
@@ -25,7 +25,7 @@ void core::GeometryPickerElement::onAttach(core::Application *app)
 }
 
 /**********************************************************/
-void core::GeometryPickerElement::onUIRender()
+void app::GeometryPickerElement::onUIRender()
 /**********************************************************/
 {
   ImGuiWindow *viewportWindow = ImGui::FindWindowByName("Viewport");
@@ -65,9 +65,9 @@ void core::GeometryPickerElement::onUIRender()
 }
 
 /**********************************************************/
-math::Ray
-core::GeometryPickerElement::getRayFromMouse(float mouseX, float mouseY,
-                                             float width, float height)
+math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
+                                                      float mouseY, float width,
+                                                      float height)
 /**********************************************************/
 {
   // Get Matrices from Camera
@@ -94,8 +94,8 @@ core::GeometryPickerElement::getRayFromMouse(float mouseX, float mouseY,
 }
 
 /**********************************************************/
-InstanceID core::GeometryPickerElement::pickObject(float mouseX, float mouseY,
-                                                   float width, float height)
+InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
+                                                  float width, float height)
 /**********************************************************/
 {
 
@@ -141,7 +141,7 @@ InstanceID core::GeometryPickerElement::pickObject(float mouseX, float mouseY,
 }
 
 /**********************************************************/
-void core::GeometryPickerElement::drawGeometryModifier()
+void app::GeometryPickerElement::drawGeometryModifier()
 /**********************************************************/
 {
   if (m_instanceSelected == static_cast<uint>(-1)) {
@@ -154,8 +154,8 @@ void core::GeometryPickerElement::drawGeometryModifier()
 }
 
 /**********************************************************/
-void core::GeometryPickerElement::drawRotationBall(const glm::vec3 &center,
-                                                   float radius)
+void app::GeometryPickerElement::drawRotationBall(const glm::vec3 &center,
+                                                  float radius)
 /**********************************************************/
 {
   // ImDrawList *drawList = ImGui::GetForegroundDrawList();

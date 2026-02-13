@@ -20,13 +20,13 @@ namespace core {
 class IAppElement;
 }
 
-class ImGuiVulkanSystem : public core::IGUISystem, public IRenderable {
+class ImGuiVulkanSystem : public app::IGUISystem, public IRenderable {
 public:
   ImGuiVulkanSystem() = default;
   ~ImGuiVulkanSystem() override;
 
   // Lifecycle
-  void init(const core::ApplicationCreateInfo &info) override;
+  void init(const app::ApplicationCreateInfo &info) override;
   void deinit() override;
 
   // Frame Operations
@@ -35,7 +35,7 @@ public:
   void render() override;
 
   // UI Rendering
-  void renderMenu(const std::vector<core::IAppElementPtr> &elements) override;
+  void renderMenu(const std::vector<app::IAppElementPtr> &elements) override;
   bool getWindowSize(const std::string &windowName, WindowSize &size) override;
   void setWindowSize(const WindowSize &size) override;
 
@@ -53,9 +53,9 @@ public:
 
 private:
   // Initialization Helpers
-  void setupImGui(const core::ApplicationCreateInfo &info);
+  void setupImGui(const app::ApplicationCreateInfo &info);
   void destroyContext();
-  void configureImGuiIO(const core::ApplicationCreateInfo &info);
+  void configureImGuiIO(const app::ApplicationCreateInfo &info);
   void initializeFonts();
 
   // Vulkan Backend Helpers

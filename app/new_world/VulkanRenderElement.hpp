@@ -14,7 +14,7 @@ class Application;
 
 class VulkanRenderer;
 
-class VulkanRendererElement : public core::IAppElement {
+class VulkanRendererElement : public app::IAppElement {
 public:
   VulkanRendererElement() = default;
   ~VulkanRendererElement() override = default;
@@ -22,7 +22,7 @@ public:
   // -------------------------------------------------------------------------
   // 1. Lifecycle & Event Hooks
   // -------------------------------------------------------------------------
-  void onAttach(core::Application *app) override;
+  void onAttach(app::Application *app) override;
   void onDetach() override;
   void onResize(WindowSize size) override;
   void onFileDrop(const std::filesystem::path &filename) override;
@@ -68,7 +68,7 @@ private:
   // Members
   // -------------------------------------------------------------------------
   // Core components
-  core::Application *m_app = nullptr;
+  app::Application *m_app = nullptr;
   std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_sceneManager{};
 

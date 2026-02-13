@@ -5,8 +5,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "core/Math.hpp"
 #include "app/IAppElement.hpp"
+#include "core/Math.hpp"
 #include "scene/SceneResources.hpp"
 
 // Forward Declarations
@@ -17,16 +17,16 @@ namespace core {
 class CameraManipulator;
 }
 
-namespace core {
+namespace app {
 
-class GeometryPickerElement : public core::IAppElement {
+class GeometryPickerElement : public IAppElement {
 public:
   using SelectionCallback = std::function<void(InstanceID)>;
 
   GeometryPickerElement(const SceneResourcesManager &sceneResources,
                         std::shared_ptr<core::CameraManipulator> camera);
 
-  void onAttach(core::Application *app) override;
+  void onAttach(Application *app) override;
   void onUIRender() override;
 
   // Set the function to call when an object is clicked
@@ -44,7 +44,7 @@ private:
   // References
   const SceneResourcesManager &m_sceneResources;
   std::shared_ptr<core::CameraManipulator> m_camera;
-  core::Application *m_app = nullptr;
+  Application *m_app = nullptr;
 
   SelectionCallback m_onSelect;
   InstanceID m_instanceSelected = -1;
@@ -54,4 +54,4 @@ private:
   ImVec2 m_lastMousePos;
 };
 
-} // namespace core
+} // namespace app

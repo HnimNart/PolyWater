@@ -9,7 +9,7 @@
 
 #include "core/Types.hpp"
 
-namespace core {
+namespace app {
 
 //------------------------------------------------------------
 // ApplicationCreateInfo
@@ -34,4 +34,4 @@ struct ApplicationCreateInfo {
                                     ImGuiConfigFlags_DockingEnable};
 };
 
-} // namespace core
+} // namespace app

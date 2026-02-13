@@ -20,8 +20,7 @@
 #include "property_editor.hpp"
 #include "tooltip.hpp"
 
-namespace core {
-namespace PropertyEditor {
+namespace app::PropertyEditor {
 
 template <typename T> bool Clamped(bool changed, T *value, T min, T max) {
   *value = std::max(min, std::min(max, *value));
@@ -48,12 +47,12 @@ bool entry(const std::string &property_name,
   ImGui::AlignTextToFramePadding();
   ImGui::Text("%s", property_name.c_str());
   if (!tooltip.empty())
-    core::tooltip(tooltip.c_str(), false, 0);
+    app::tooltip(tooltip.c_str(), false, 0);
   ImGui::TableNextColumn();
   ImGui::SetNextItemWidth(-FLT_MIN);
   bool result = content_fct();
   if (!tooltip.empty())
-    core::tooltip(tooltip.c_str());
+    app::tooltip(tooltip.c_str());
   ImGui::PopID();
   return result; // returning if the widget changed
 }
@@ -519,5 +518,4 @@ void Text(const char *label, const char *fmt, ...) {
   va_end(args);
 }
 
-} // namespace PropertyEditor
-} // namespace core
+} // namespace app::PropertyEditor

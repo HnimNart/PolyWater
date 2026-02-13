@@ -26,21 +26,21 @@
 #include "azimuth_sliders.hpp"
 #include "property_editor.hpp"
 
-namespace core {
+namespace app {
 
 inline bool
 skySimpleParametersUI(shaderio::SkySimpleParameters &params,
                       const char *label = "PE::Table",
                       ImGuiTableFlags flag = ImGuiTableFlags_BordersOuter |
                                              ImGuiTableFlags_Resizable) {
-  namespace PE = core::PropertyEditor;
+  namespace PE = app::PropertyEditor;
 
   bool changed{false};
   if (PE::begin(label, flag)) {
 
-    changed |= core::azimuthElevationSliders(params.sunDirection, false,
-                                             params.directionUp.y >=
-                                                 params.directionUp.z);
+    changed |= app::azimuthElevationSliders(params.sunDirection, false,
+                                            params.directionUp.y >=
+                                                params.directionUp.z);
     changed |=
         PE::ColorEdit3("Color", &params.sunColor.x, ImGuiColorEditFlags_Float);
     changed |= PE::SliderFloat("Irradiance", &params.sunIntensity, 0.F, 100.F,
@@ -54,7 +54,7 @@ skySimpleParametersUI(shaderio::SkySimpleParameters &params,
     float lightAngularSize = glm::clamp(params.angularSizeOfLight,
                                         glm::radians(0.1F), glm::radians(90.F));
     float lightSolidAngle =
-        4.0F * glm::pi<float>() * square(sinf(lightAngularSize * 0.5F));
+        4.0F * std::numbers::pi * square(sinf(lightAngularSize * 0.5F));
     float lightRadiance = params.sunIntensity / lightSolidAngle;
     params.lightRadiance = params.sunColor * lightRadiance;
 
@@ -81,7 +81,7 @@ skySimpleParametersUI(shaderio::SkySimpleParameters &params,
 }
 
 inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
-  namespace PE = core::PropertyEditor;
+  namespace PE = app::PropertyEditor;
   bool changed{false};
   if (PE::begin()) {
     if (PE::entry(
@@ -90,8 +90,8 @@ inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
       params = shaderio::SkyPhysicalParameters();
       changed = true;
     }
-    changed |= core::azimuthElevationSliders(params.sunDirection, false,
-                                             params.yIsUp == 1);
+    changed |= app::azimuthElevationSliders(params.sunDirection, false,
+                                            params.yIsUp == 1);
     changed |=
         PE::SliderFloat("Sun Disk Scale", &params.sunDiskScale, 0.F, 10.F);
     changed |= PE::SliderFloat("Sun Disk Intensity", &params.sunDiskIntensity,
@@ -118,4 +118,4 @@ inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
   return changed;
 }
 
-} // namespace core
+} // namespace app

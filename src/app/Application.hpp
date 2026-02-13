@@ -19,7 +19,7 @@
 struct GLFWwindow;
 class IRenderContext;
 
-namespace core {
+namespace app {
 
 class Application {
 public:
@@ -103,7 +103,7 @@ private:
   // 1. Core Systems
   std::unique_ptr<IRenderBackend> m_backend{};
   std::vector<std::shared_ptr<IAppElement>> m_elements{};
-  core::FramePacer m_framePacer; // Low-latency system
+  FramePacer m_framePacer; // Low-latency system
 
   // 2. Windowing State
   GLFWwindow *m_windowHandle{nullptr};
@@ -124,10 +124,10 @@ private:
 
   // Imgui
   std::shared_ptr<IGUISystem> m_gui;
-  core::SettingsHandler m_settingsHandler;
+  SettingsHandler m_settingsHandler;
 
   // Queue of functions to free resources (double buffered or per-frame)
   std::vector<std::vector<std::function<void()>>> m_resourceFreeQueue;
 };
 
-} // namespace core
+} // namespace app

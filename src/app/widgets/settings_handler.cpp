@@ -26,12 +26,12 @@
 
 #include "settings_handler.hpp"
 
-core::SettingsHandler::SettingsHandler(const std::string& name)
+app::SettingsHandler::SettingsHandler(const std::string& name)
 {
   setHandlerName(name);
 }
 
-core::SettingsHandler::SettingsHandler() {}
+app::SettingsHandler::SettingsHandler() {}
 
 // This is reading the section in the .ini file and for each entry read or write the value
 // ex:
@@ -39,7 +39,7 @@ core::SettingsHandler::SettingsHandler() {}
 // WindowWidth=1513
 // WindowHeight=871
 //
-void core::SettingsHandler::addImGuiHandler()
+void app::SettingsHandler::addImGuiHandler()
 {
   assert(!handlerName.empty());
   ImGuiSettingsHandler ini_handler{};

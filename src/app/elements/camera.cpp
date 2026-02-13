@@ -23,7 +23,7 @@
 #include <core/logger.hpp>
 
 /**********************************************************/
-void core::ElementCamera::updateCamera(
+void app::ElementCamera::updateCamera(
     std::shared_ptr<core::CameraManipulator> cameraManip,
     ImGuiWindow *viewportWindow)
 /**********************************************************/
@@ -115,14 +115,14 @@ void core::ElementCamera::updateCamera(
   }
 }
 /**********************************************************/
-void core::ElementCamera::onAttach(core::Application *)
+void app::ElementCamera::onAttach(Application *)
 /**********************************************************/
 {
   LOGI("Adding Camera Element\n");
 }
 
 /**********************************************************/
-void core::ElementCamera::onUIRender()
+void app::ElementCamera::onUIRender()
 /**********************************************************/
 {
   assert(m_cameraManip && "Missing setCamera");
@@ -130,7 +130,7 @@ void core::ElementCamera::onUIRender()
 }
 
 /**********************************************************/
-void core::ElementCamera::onResize(WindowSize size)
+void app::ElementCamera::onResize(WindowSize size)
 /**********************************************************/
 {
   assert(m_cameraManip && "Missing setCamera");

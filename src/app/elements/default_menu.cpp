@@ -25,14 +25,14 @@
 #include <app/widgets/fonts.hpp>
 #include <core/logger.hpp>
 
-#include "app/App.hpp"
+#include "app/Application.hpp"
 
-void core::ElementDefaultMenu::onAttach(core::Application *app) {
+void app::ElementDefaultMenu::onAttach(Application *app) {
   LOGI("Adding Default Menu\n");
   m_app = app;
 }
 
-void core::ElementDefaultMenu::onUIMenu() {
+void app::ElementDefaultMenu::onUIMenu() {
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
 

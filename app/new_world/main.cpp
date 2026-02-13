@@ -20,7 +20,6 @@
 // Enable the use of Nsight Aftermath for crash tracking and shader debugging
 // #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the
 // application)
-#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_IMPLEMENTATION
 #define VMA_LEAK_LOG_FORMAT(format, ...)                                       \
@@ -36,19 +35,20 @@
 #include <core/timers.hpp>              // Timers for profiling
 
 #include "VulkanRenderElement.hpp"
-#include "app/App.hpp"
+#include "app/Application.hpp"
 #include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
-#include "app/elements/elem_gpu_monitor.hpp"
 #include "app/elements/geometryPicker.hpp"
+#include "app/elements/gpu_monitor.hpp"
 #include "app/elements/logger.hpp"
 #include "backend/vulkan/core/Backend.hpp"
+#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #include "core/path_utils.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-  core::ApplicationCreateInfo appInfo{};
+  app::ApplicationCreateInfo appInfo{};
 
   // Parsing the command line
   core::ParameterParser cli(core::getExecutablePath().stem().string());
@@ -69,15 +69,15 @@ int main(int argc, char **argv) {
   gui->init(appInfo);
 
   // Create the application
-  core::Application application(appInfo, std::move(backend), gui);
+  app::Application application(appInfo, std::move(backend), gui);
 
   // Elements added to the application
   auto renderElement = std::make_shared<VulkanRendererElement>();
-  auto elemCamera = std::make_shared<core::ElementCamera>();
-  auto windowTitle = std::make_shared<core::ElementDefaultWindowTitle>();
-  auto windowMenu = std::make_shared<core::ElementDefaultMenu>();
-  auto logger = std::make_shared<core::ElementLogger>();
-  auto monitor = std::make_shared<core::ElementGpuMonitor>();
+  auto elemCamera = std::make_shared<app::ElementCamera>();
+  auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
+  auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
+  auto logger = std::make_shared<app::ElementLogger>();
+  auto monitor = std::make_shared<app::ElementGpuMonitor>();
 
   // Adding all elements
   application.addElement(windowMenu);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());
 
-  auto geometryPicker = std::make_shared<core::GeometryPickerElement>(
+  auto geometryPicker = std::make_shared<app::GeometryPickerElement>(
       renderElement->getSceneManager().sceneResourceManager(),
       renderElement->getCameraManipulator());
   geometryPicker->setSelectionCallback(

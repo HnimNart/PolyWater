@@ -113,7 +113,7 @@ static const std::string computeModeToString(nvmlComputeMode_t computeMode) {
 }
 #endif
 
-using namespace core;
+using namespace app;
 
 //-------------------------------------------------------------------------------------------------
 //

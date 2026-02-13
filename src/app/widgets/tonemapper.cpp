@@ -24,7 +24,7 @@
 #include <fmt/format.h>
 
 namespace core {
-namespace PE = core::PropertyEditor;
+namespace PE = app::PropertyEditor;
 
 bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
   bool changed{false};

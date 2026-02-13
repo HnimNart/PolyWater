@@ -42,7 +42,7 @@ ImGuiVulkanSystem::~ImGuiVulkanSystem()
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::init(const core::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::init(const app::ApplicationCreateInfo &info)
 /**********************************************************/
 {
   if (m_contextCreated) {
@@ -84,14 +84,14 @@ void ImGuiVulkanSystem::destroyContext()
  *****************************************************************************/
 
 /**********************************************************/
-void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::setupImGui(const app::ApplicationCreateInfo &info)
 /**********************************************************/
 {
   m_iniFilename =
       core::utf8FromPath(core::getExecutablePath().replace_extension(".ini"));
 
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
-  core::setStyle(false);
+  app::setStyle(false);
 
   configureImGuiIO(info);
   initializeFonts();
@@ -99,8 +99,7 @@ void ImGuiVulkanSystem::setupImGui(const core::ApplicationCreateInfo &info)
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::configureImGuiIO(
-    const core::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo &info)
 /**********************************************************/
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -119,9 +118,9 @@ void ImGuiVulkanSystem::initializeFonts()
 {
   ImGuiIO &io = ImGui::GetIO();
 
-  core::addDefaultFont();
-  io.FontDefault = core::getDefaultFont();
-  core::addMonospaceFont();
+  app::addDefaultFont();
+  io.FontDefault = app::getDefaultFont();
+  app::addMonospaceFont();
 }
 
 /******************************************************************************
@@ -255,7 +254,7 @@ void ImGuiVulkanSystem::onRender(const IRenderContext &ctx)
 
 /**********************************************************/
 void ImGuiVulkanSystem::renderMenu(
-    const std::vector<std::shared_ptr<core::IAppElement>> &elements)
+    const std::vector<std::shared_ptr<app::IAppElement>> &elements)
 /**********************************************************/
 {
   setupImguiDock();

@@ -22,30 +22,30 @@
 #include <app/widgets/fonts.hpp>
 #include <core/logger.hpp>
 
-#include "app/App.hpp"
+#include "app/Application.hpp"
 
 // defaultViewSettings are optional, but can be used to set different defaults
 // and also to expose to sample code (like hiding views for benchmark through
 // parameter change) some default settings are created internally if not
 // provided
-core::ElementProfiler::ElementProfiler(
+app::ElementProfiler::ElementProfiler(
     core::ProfilerManager *profiler,
     std::shared_ptr<ViewSettings> defaultViewSettings)
     : m_profiler(profiler) {
   m_views.push_back(
       {.state = defaultViewSettings
                     ? defaultViewSettings
-                    : std::make_shared<core::ElementProfiler::ViewSettings>()});
+                    : std::make_shared<ElementProfiler::ViewSettings>()});
 };
 
-void core::ElementProfiler::onAttach(Application *app) {
+void app::ElementProfiler::onAttach(Application *app) {
   m_app = app;
   //
   addSettingsHandler();
 }
 
 // add a new view, view name in the state parameter must be unique
-void core::ElementProfiler::addView(std::shared_ptr<ViewSettings> state) {
+void app::ElementProfiler::addView(std::shared_ptr<ViewSettings> state) {
   // check if a view with same name already exists
   for (const auto &existingView : m_views) {
     if (existingView.state->name == state->name) {
@@ -57,7 +57,7 @@ void core::ElementProfiler::addView(std::shared_ptr<ViewSettings> state) {
   m_views.push_back({.state = std::move(state)});
 }
 
-void core::ElementProfiler::onUIMenu() {
+void app::ElementProfiler::onUIMenu() {
   if (ImGui::BeginMenu("View")) {
     for (auto &view : m_views) {
       ImGui::MenuItem((ICON_MS_BLOOD_PRESSURE " " + view.state->name).c_str(),
@@ -67,7 +67,7 @@ void core::ElementProfiler::onUIMenu() {
   }
 }
 
-void core::ElementProfiler::onUIRender() {
+void app::ElementProfiler::onUIRender() {
   constexpr float deltaTime = (1.0f / 60.0f); // Frequency 60Hz
   static float s_timeElapsed = 0;
   s_timeElapsed += ImGui::GetIO().DeltaTime;
@@ -138,7 +138,7 @@ void core::ElementProfiler::onUIRender() {
 /////////////////
 // Private methods
 
-void core::ElementProfiler::updateData() {
+void app::ElementProfiler::updateData() {
 
   // retrieve statistics, thread safe
   m_profiler->getSnapshots(m_frameSnapshots, m_singleSnapshots);
@@ -170,7 +170,7 @@ void core::ElementProfiler::updateData() {
   }
 }
 
-uint32_t core::ElementProfiler::addEntries(
+uint32_t app::ElementProfiler::addEntries(
     const core::ProfilerTimeline::Snapshot &snapshot,
     std::vector<EntryNode> &nodes, uint32_t startIndex, uint32_t endIndex,
     uint32_t currentLevel) {
@@ -208,10 +208,10 @@ uint32_t core::ElementProfiler::addEntries(
   return endIndex;
 }
 
-void core::ElementProfiler::displayTableNode(const EntryNode &node,
-                                             bool detailed,
-                                             uint32_t defaultOpenLevels,
-                                             uint32_t depth) {
+void app::ElementProfiler::displayTableNode(const EntryNode &node,
+                                            bool detailed,
+                                            uint32_t defaultOpenLevels,
+                                            uint32_t depth) {
   ImGuiTableFlags flags =
       ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_SpanAllColumns;
 
@@ -235,7 +235,7 @@ void core::ElementProfiler::displayTableNode(const EntryNode &node,
       ImGui::Text("%3.3f", value / 1000.0f);
   };
 
-  ImGui::PushFont(core::getMonospaceFont());
+  ImGui::PushFont(getMonospaceFont());
   ImGui::TableNextColumn();
   drawValue(info.gpu.average);
   if (detailed) {
@@ -268,7 +268,7 @@ void core::ElementProfiler::displayTableNode(const EntryNode &node,
   }
 }
 
-void core::ElementProfiler::drawVsyncCheckbox() {
+void app::ElementProfiler::drawVsyncCheckbox() {
   bool vsync = m_app->isVsync();
   const bool showRed = vsync;
 
@@ -287,7 +287,7 @@ void core::ElementProfiler::drawVsyncCheckbox() {
     m_app->setVsync(vsync);
 }
 
-void core::ElementProfiler::renderTable(View &view) {
+void app::ElementProfiler::renderTable(View &view) {
   bool copy = false;
 
   drawVsyncCheckbox();
@@ -376,7 +376,7 @@ void core::ElementProfiler::renderTable(View &view) {
   }
 }
 
-void core::ElementProfiler::renderPieChart(View &view) {
+void app::ElementProfiler::renderPieChart(View &view) {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
   const float width =
@@ -444,10 +444,9 @@ void core::ElementProfiler::renderPieChart(View &view) {
   }
 }
 
-void core::ElementProfiler::renderPieChartNode(const EntryNode &node, int level,
-                                               int numLevels, double plotRadius,
-                                               double angle0,
-                                               double totalTime) {
+void app::ElementProfiler::renderPieChartNode(const EntryNode &node, int level,
+                                              int numLevels, double plotRadius,
+                                              double angle0, double totalTime) {
   // Gather data
   std::vector<const char *> labels(node.child.size());
   std::vector<float> data(node.child.size());
@@ -479,7 +478,7 @@ void core::ElementProfiler::renderPieChartNode(const EntryNode &node, int level,
   }
 }
 
-void core::ElementProfiler::renderBarChart(View &view) {
+void app::ElementProfiler::renderBarChart(View &view) {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
   const float width =
@@ -547,7 +546,7 @@ void core::ElementProfiler::renderBarChart(View &view) {
 }
 
 //
-void core::ElementProfiler::renderLineChart(View &view) {
+void app::ElementProfiler::renderLineChart(View &view) {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
   const float width =
@@ -715,12 +714,12 @@ void core::ElementProfiler::renderLineChart(View &view) {
   }
 }
 
-void core::ElementProfiler::addSettingsHandler() {
+void app::ElementProfiler::addSettingsHandler() {
 
   // finds the wubsection in wich we are
   auto readOpen = [](ImGuiContext *, ImGuiSettingsHandler *handler,
                      const char *name) -> void * {
-    auto *self = static_cast<core::ElementProfiler *>(handler->UserData);
+    auto *self = static_cast<ElementProfiler *>(handler->UserData);
     // Identify which view subsection is being read and return its index
     for (size_t i = 0; i < self->m_views.size(); ++i) {
       if (strcmp(name, self->m_views[i].state->name.c_str()) == 0)
@@ -733,7 +732,7 @@ void core::ElementProfiler::addSettingsHandler() {
   // pointer
   auto saveAllToIni = [](ImGuiContext *ctx, ImGuiSettingsHandler *handler,
                          ImGuiTextBuffer *buf) {
-    auto *self = static_cast<core::ElementProfiler *>(handler->UserData);
+    auto *self = static_cast<ElementProfiler *>(handler->UserData);
     for (const auto &view : self->m_views) {
       buf->appendf("[%s][%s]\n", handler->TypeName, view.state->name.c_str());
       buf->appendf("ShowWindow=%d\n", view.state->show ? 1 : 0);
@@ -746,7 +745,7 @@ void core::ElementProfiler::addSettingsHandler() {
   auto loadLineFromIni = [](ImGuiContext *ctx, ImGuiSettingsHandler *handler,
                             void *entry, const char *line) {
     intptr_t view_id = (intptr_t)entry - 1;
-    auto *self = static_cast<core::ElementProfiler *>(handler->UserData);
+    auto *self = static_cast<ElementProfiler *>(handler->UserData);
     int value;
 
 #ifdef _MSC_VER

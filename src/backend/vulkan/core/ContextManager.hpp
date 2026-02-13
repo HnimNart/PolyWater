@@ -14,7 +14,7 @@
 
 class VulkanContextManager {
 public:
-  bool init(const core::ApplicationCreateInfo &appInfo);
+  bool init(const app::ApplicationCreateInfo &appInfo);
   void deinit();
 
   // Accessors

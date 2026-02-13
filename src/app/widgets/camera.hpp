@@ -21,11 +21,10 @@
 
 #pragma once
 #include <filesystem>
-#include <memory>
 
 #include <core/Camera.hpp>
 
-namespace core {
+namespace app {
 
 // Bitset enum for controlling which camera widget sections are open by default
 enum CameraWidgetSections : uint32_t {
@@ -41,7 +40,7 @@ enum CameraWidgetSections : uint32_t {
       CameraSection_Projection // Current behavior - only projection open
 };
 
-// Shows GUI for core::CameraManipulator.
+// Shows GUI for app::CameraManipulator.
 // If `embed` is true, it will have text before it and appear in
 // ImGui::BeginChild. `openSections` controls which sections are open by
 // default. Returns whether camera parameters changed.
@@ -57,4 +56,4 @@ void SetHomeCamera(const core::CameraManipulator::Camera &camera);
 // Adds a camera to the list of cameras
 void AddCamera(const core::CameraManipulator::Camera &camera);
 
-} // namespace core
+} // namespace app

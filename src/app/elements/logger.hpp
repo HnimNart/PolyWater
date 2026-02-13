@@ -29,7 +29,7 @@
 #include "app/IAppElement.hpp"
 #include "app/widgets/settings_handler.hpp"
 
-namespace core {
+namespace app {
 
 /*-------------------------------------------------------------------------------------------------
 # class core::ElementLogger
@@ -57,7 +57,7 @@ Add logger window
 -------------------------------------------------------------------------------------------------*/
 
 // Helper class to show the log in the application
-class ElementLogger : public core::IAppElement {
+class ElementLogger : public IAppElement {
 public:
   enum LogLevelBit {
     eBitDEBUG = 1 << core::Logger::LogLevel::eDEBUG,
@@ -81,7 +81,7 @@ public:
   void addLog(uint32_t level, const char *fmt, ...);
 
 private:
-  core::SettingsHandler m_settingsHandler;
+  SettingsHandler m_settingsHandler;
 
   void clear();
   void initColors();
@@ -99,4 +99,4 @@ private:
   std::mutex m_modificationMutex; // To protect from concurrent access
 };
 
-} // namespace core
+} // namespace app

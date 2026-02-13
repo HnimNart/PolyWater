@@ -23,18 +23,10 @@
 
 #pragma once
 
-#include "backend/interfaces/IRenderer.hpp"
 #include "app/IAppElement.hpp"
+#include "backend/interfaces/IRenderer.hpp"
 
-// Use:
-//  include this file at the end of all other includes,
-//  and add engines
-//
-// Ex:
-//   app->addEngine(std::make_shared<coreDefaultMenu>());
-//
-
-namespace core {
+namespace app {
 
 /*-------------------------------------------------------------------------------------------------
 # class core::ElementDefaultWindowTitle
@@ -49,11 +41,11 @@ To use this class, you need to add it to the `core::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultWindowTitle : public core::IAppElement {
+class ElementDefaultWindowTitle : public IAppElement {
 public:
   ElementDefaultWindowTitle(std::string prefix = "", std::string suffix = "");
 
-  void onAttach(core::Application *app) override;
+  void onAttach(Application *app) override;
   void onUIRender() override;
   void setPrefix(const std::string &str);
   void setSuffix(const std::string &str);
@@ -61,7 +53,7 @@ public:
   void setRenderer(const IRenderer *renderer);
 
 private:
-  core::Application *m_app{nullptr};
+  Application *m_app{nullptr};
   const IRenderer *m_renderer{nullptr};
 
   float m_dirtyTimer{0.0F};
@@ -69,4 +61,4 @@ private:
   std::string m_suffix;
 };
 
-} // namespace core
+} // namespace app

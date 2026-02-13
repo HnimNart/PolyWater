@@ -18,15 +18,15 @@ class ImGuiVulkanSystem;
 class VulkanBackend : public IRenderBackend {
 public:
   static std::unique_ptr<VulkanBackend>
-  create(const core::ApplicationCreateInfo &appInfo);
+  create(const app::ApplicationCreateInfo &appInfo);
 
-  void initPresentation(GLFWwindow *window, core::IGUISystemPtr gui) override;
+  void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) override;
   void deinit() override;
 
   // Frame lifecycle
   IRenderContext &getCurrentContext() override;
   IRenderContext *beginFrame() override;
-  void renderFrame(const std::vector<core::IAppElementPtr> &elements,
+  void renderFrame(const std::vector<app::IAppElementPtr> &elements,
                    IRenderContext const &ctx) override;
   void endFrame(IRenderContext const &ctx) override;
   void present() override;
@@ -57,5 +57,5 @@ private:
   std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
 
   RenderRegistry m_renderRegistry{};
-  bool initVulkan(const core::ApplicationCreateInfo &appInfo);
+  bool initVulkan(const app::ApplicationCreateInfo &appInfo);
 };

@@ -1,4 +1,4 @@
-#include "App.hpp"
+#include "Application.hpp"
 
 #include <volk/volk.h>
 
@@ -20,7 +20,7 @@
 #include "backend/interfaces/IRenderContext.hpp"
 #include "core/progress_bar.hpp"
 
-namespace core {
+namespace app {
 
 /**********************************************************/
 Application::Application(ApplicationCreateInfo const &info,
@@ -283,13 +283,13 @@ void Application::onResize(const WindowSize &size)
 /**********************************************************/
 {
   m_backend->onResize(size);
-  for (const std::shared_ptr<core::IAppElement> &e : m_elements) {
+  for (const std::shared_ptr<IAppElement> &e : m_elements) {
     e->onResize(size);
   }
 }
 
 /**********************************************************/
-void core::Application::onFileDrop(const std::filesystem::path &filename)
+void Application::onFileDrop(const std::filesystem::path &filename)
 /**********************************************************/
 {
   for (std::shared_ptr<IAppElement> &e : m_elements) {
@@ -322,7 +322,7 @@ void Application::initGlfw(const ApplicationCreateInfo &info)
 }
 
 /**********************************************************/
-void core::Application::testAndSetWindowSizeAndPos(const glm::uvec2 &winSize)
+void Application::testAndSetWindowSizeAndPos(const glm::uvec2 &winSize)
 /**********************************************************/
 {
   bool centerWindow = false;
@@ -395,4 +395,4 @@ bool Application::isWindowPosValid(const glm::ivec2 &winPos)
   return false;
 }
 
-} // namespace core
+} // namespace app

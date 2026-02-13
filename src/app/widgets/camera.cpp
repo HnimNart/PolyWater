@@ -40,7 +40,7 @@
 
 using nlohmann::json;
 
-namespace PE = core::PropertyEditor;
+namespace PE = app::PropertyEditor;
 
 //--------------------------------------------------------------------------------------------------
 // Holds all saved cameras in a vector of Cameras
@@ -284,14 +284,14 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
     camera = CameraPresetManager::getInstance().m_cameras[0];
     changed = true;
   }
-  core::tooltip("Reset to home camera position");
+  app::tooltip("Reset to home camera position");
 
   // Add/Save camera button
   ImGui::SameLine(0, s_buttonSpacing);
   if (ImGui::Button(ICON_MS_ADD_A_PHOTO)) {
     CameraPresetManager::getInstance().addCamera(cameraM->getCamera());
   }
-  core::tooltip("Save current camera position");
+  app::tooltip("Save current camera position");
 
   // Copy button
   ImGui::SameLine(0, s_buttonSpacing);
@@ -299,7 +299,7 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
     std::string text = camera.getString();
     ImGui::SetClipboardText(text.c_str());
   }
-  core::tooltip("Copy camera state to clipboard");
+  app::tooltip("Copy camera state to clipboard");
 
   // Paste button
   const char *pPastedString;
@@ -309,7 +309,7 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
     std::string text(pPastedString);
     changed = camera.setFromString(text);
   }
-  core::tooltip("Paste camera state from clipboard");
+  app::tooltip("Paste camera state from clipboard");
 
   // Help button, right-aligned
   const float button_size = ImGui::CalcTextSize(ICON_MS_HELP).x +
@@ -318,7 +318,7 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
   if (ImGui::Button(ICON_MS_HELP)) {
     ImGui::OpenPopup("Camera Help");
   }
-  core::tooltip("Show camera controls help");
+  app::tooltip("Show camera controls help");
 
   ImGui::PopStyleColor();
 
@@ -383,7 +383,7 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
     std::string tooltip = fmt::format(
         "Camera #{}\n({:.1f}, {:.1f}, {:.1f})\nMiddle click to delete", n,
         cam.eye.x, cam.eye.y, cam.eye.z);
-    core::tooltip(tooltip.c_str());
+    app::tooltip(tooltip.c_str());
 
     // Auto-wrap buttons
     float last_button_x2 = ImGui::GetItemRectMax().x;
@@ -439,21 +439,21 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
     cameraM->setMode(core::CameraManipulator::Examine);
     changed = true;
   }
-  core::tooltip("Orbit around a point of interest");
+  app::tooltip("Orbit around a point of interest");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == core::CameraManipulator::Fly);
   if (ImGui::Button(ICON_MS_FLIGHT)) {
     cameraM->setMode(core::CameraManipulator::Fly);
     changed = true;
   }
-  core::tooltip("Fly: Free camera movement");
+  app::tooltip("Fly: Free camera movement");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == core::CameraManipulator::Walk);
   if (ImGui::Button(ICON_MS_DIRECTIONS_WALK)) {
     cameraM->setMode(core::CameraManipulator::Walk);
     changed = true;
   }
-  core::tooltip("Walk: Stay on a horizontal plane");
+  app::tooltip("Walk: Stay on a horizontal plane");
 
   ImGui::PopStyleColor();
   const bool showSettings = (mode == core::CameraManipulator::Fly ||
@@ -583,8 +583,8 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
-bool core::CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
-                        bool embed, CameraWidgetSections openSections) {
+bool app::CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
+                       bool embed, CameraWidgetSections openSections) {
   assert(cameraManip && "CameraManipulator is not set");
 
   bool changed{false};
@@ -646,14 +646,14 @@ bool core::CameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
   return changed || instantChanged;
 }
 
-void core::SetCameraJsonFile(const std::filesystem::path &filename) {
+void app::SetCameraJsonFile(const std::filesystem::path &filename) {
   CameraPresetManager::getInstance().setCameraJsonFile(filename);
 }
 
-void core::SetHomeCamera(const core::CameraManipulator::Camera &camera) {
+void app::SetHomeCamera(const core::CameraManipulator::Camera &camera) {
   CameraPresetManager::getInstance().setHomeCamera(camera);
 }
 
-void core::AddCamera(const core::CameraManipulator::Camera &camera) {
+void app::AddCamera(const core::CameraManipulator::Camera &camera) {
   CameraPresetManager::getInstance().addCamera(camera);
 }
