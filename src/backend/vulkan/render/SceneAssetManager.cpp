@@ -50,7 +50,7 @@ void VulkanSceneAssetManager::endUploading()
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::deinit()
+void VulkanSceneAssetManager::clear()
 /**********************************************************/
 {
   for (auto &texture : m_textures) {
@@ -64,6 +64,15 @@ void VulkanSceneAssetManager::deinit()
   for (auto &gltfData : m_data.bDatas) {
     m_context_manager->getAllocator().destroyBuffer(gltfData);
   }
+  m_textures.clear();
+  m_data = {};
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::deinit()
+/**********************************************************/
+{
+  clear();
   m_samplerPool.deinit();
 }
 

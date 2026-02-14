@@ -7,6 +7,7 @@
 #include "SceneData.hpp"
 #include "backend/interfaces/IRenderer.hpp"
 #include "core/Math.hpp"
+#include "core/timers.hpp"
 
 /**********************************************************/
 SceneManager::SceneManager(std::shared_ptr<IDeviceAssets> deviceResources)
@@ -45,6 +46,7 @@ void SceneManager::buildSceneFromData(
     const SceneData &data, const std::vector<std::filesystem::path> &searchDirs)
 /**********************************************************/
 {
+  SCOPED_TIMER_FUNC();
   // 1. Load Meshes & Keep ID Mapping
   // Map: Index in SceneData -> Actual MeshID in Manager
   std::vector<MeshID> meshIdMap;
@@ -69,6 +71,7 @@ void SceneManager::buildSceneFromData(
     info.baseColorFactor = matData.baseColor;
     info.metallicFactor = matData.metallic;
     info.roughnessFactor = matData.roughness;
+    info.emission = matData.emission;
     info.ior = matData.ior;
 
     // Resolve Texture Index
@@ -83,30 +86,25 @@ void SceneManager::buildSceneFromData(
 
   // 4. Create Instances
   for (const auto &instData : data.instances) {
-    shaderio::Instance info{};
-    info.translation = instData.translation;
-    info.scale = instData.scale;
-    info.rotation = math::eulerToQuat(instData.rotation);
-    info.hit_group = instData.hitGroup;
+    shaderio::Instance inst{};
+    inst.translation = instData.translation;
+    inst.scale = instData.scale;
+    inst.rotation = math::eulerToQuat(instData.rotation);
+    inst.hit_group = instData.hitGroup;
 
     // Resolve Mesh ID
-    info.meshIndex = m_scene_resources.getMeshIDFromName(instData.meshId);
-    if (info.meshIndex == -1) {
+    inst.meshIndex = m_scene_resources.getMeshIDFromName(instData.meshId);
+    if (inst.meshIndex == -1) {
       std::cerr << "Invalid Mesh Index for instance: " << instData.name
                 << "[Skipping]" << std::endl;
       continue;
     }
 
     // Resolve Material ID
-    if (instData.materialIndex >= 0 &&
-        instData.materialIndex < matIdMap.size()) {
-      info.materialIndex = matIdMap[instData.materialIndex];
-    } else {
-      info.materialIndex = 0;
-      // Handle default material if needed
-    }
+    inst.materialIndex =
+        m_scene_resources.materialMap().at(instData.materialId);
 
-    m_scene_resources.addInstance(std::move(info), instData.name);
+    m_scene_resources.addInstance(std::move(inst), instData.name);
   }
 
   // 5. Fill SceneInfo (Lights & Globals)

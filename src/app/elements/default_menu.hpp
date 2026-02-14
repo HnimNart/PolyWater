@@ -24,6 +24,7 @@
 #pragma once
 
 #include "app/IAppElement.hpp"
+#include <functional>
 
 // Use:
 //  include this file at the end of all other includes,
@@ -52,8 +53,16 @@ public:
   void onAttach(Application *app) override;
   void onUIMenu() override;
 
+  using OnFileSelectedCallback =
+      std::function<void(const std::filesystem::path &path)>;
+
+  void addFileSelectedCallback(OnFileSelectedCallback callback) {
+    m_onSelect.emplace_back(std::move(callback));
+  }
+
 private:
   Application *m_app{nullptr};
+  std::vector<OnFileSelectedCallback> m_onSelect{};
 };
 
 } // namespace app

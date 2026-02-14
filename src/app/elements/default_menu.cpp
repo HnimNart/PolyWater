@@ -22,23 +22,36 @@
 #include <imgui/imgui.h>
 #include <implot/implot.h>
 
+#include <app/widgets/file_dialog.hpp>
 #include <app/widgets/fonts.hpp>
 #include <core/logger.hpp>
+#include <core/path_utils.hpp>
 
 #include "app/Application.hpp"
 
-void app::ElementDefaultMenu::onAttach(Application *app) {
+/**********************************************************/
+void app::ElementDefaultMenu::onAttach(Application *app)
+/**********************************************************/
+{
   LOGI("Adding Default Menu");
   m_app = app;
 }
 
-void app::ElementDefaultMenu::onUIMenu() {
+/**********************************************************/
+void app::ElementDefaultMenu::onUIMenu()
+/**********************************************************/
+{
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
+  std::filesystem::path file = "";
 
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC")) {
       close_app = true;
+    }
+    if (ImGui::MenuItem(ICON_MS_FOLDER_OPEN " Open File", "Ctrl+O")) {
+      file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
+                                  common::getSceneDir()[0]);
     }
     ImGui::EndMenu();
   }
@@ -53,9 +66,20 @@ void app::ElementDefaultMenu::onUIMenu() {
     close_app = true;
   }
 
+  if (ImGui::IsKeyPressed(ImGuiKey_O) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+    file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
+                                common::getSceneDir()[0]);
+  }
+
   if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&
       ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
     v_sync = !v_sync;
+  }
+
+  if (!file.empty()) {
+    for (auto &cb : m_onSelect) {
+      cb(file);
+    }
   }
 
   if (close_app) {

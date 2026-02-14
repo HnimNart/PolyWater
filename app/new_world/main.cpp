@@ -99,6 +99,10 @@ int main(int argc, char **argv) {
                 std::placeholders::_1));
   application.addElement(geometryPicker);
 
+  windowMenu->addFileSelectedCallback(
+      std::bind(&VulkanRendererElement::onFileDrop, renderElement.get(),
+                std::placeholders::_1));
+
   application.run(); // Start the application, loop until the window is closed
   application.shutdown(); // Closing application
 

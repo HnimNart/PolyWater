@@ -46,7 +46,7 @@ private:
   std::shared_ptr<core::CameraManipulator> m_camera;
   Application *m_app = nullptr;
 
-  SelectionCallback m_onSelect;
+  SelectionCallback m_onSelect{};
   InstanceID m_instanceSelected = -1;
   bool m_showModifier = true;
   enum class Axis { Undefined, X, Y, Z };

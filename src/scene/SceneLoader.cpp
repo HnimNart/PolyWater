@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include "SceneData.hpp"
+#include "core/timers.hpp"
 
 // Helper macro for cleaner JSON lookups with default values
 #define JSON_VAL(jsonObj, key, defaultVal)                                     \
@@ -21,7 +22,7 @@ using IDMap = std::unordered_map<std::string, int>;
 bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
 /**********************************************************/
 {
-  // SCOPED_TIMER_FUNC();
+  SCOPED_TIMER_FUNC();
   std::ifstream file(filepath);
   if (!file.is_open()) {
     LOGE("[SceneLoader] Error: Could not open file %s\n", filepath.c_str());
@@ -52,7 +53,7 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
 
     // 3. Instances (Uses meshMap and matMap)
     if (j.contains("instances")) {
-      parseInstances(j["instances"], outScene, meshMap, matMap);
+      parseInstances(j["instances"], outScene);
     }
 
     // 4. Global Scene Info
@@ -107,6 +108,8 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene,
         parseVec4(matJson.value("baseColor", json::array()), glm::vec4(1.0f));
     mat.metallic = JSON_VAL(matJson, "metallic", 1.0f);
     mat.roughness = JSON_VAL(matJson, "roughness", 1.0f);
+    mat.emission =
+        parseVec3(matJson.value("emission", json::array()), glm::vec4(0.0f));
     mat.ior = parseVec3(matJson.value("ior", json::array()), glm::vec3(1.5f));
 
     // Texture Resolution
@@ -132,8 +135,7 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene,
 }
 
 /**********************************************************/
-void SceneLoader::parseInstances(const json &j, SceneData &scene,
-                                 const IDMap &meshMap, const IDMap &matMap)
+void SceneLoader::parseInstances(const json &j, SceneData &scene)
 /**********************************************************/
 {
   for (const auto &instJson : j) {
@@ -146,12 +148,7 @@ void SceneLoader::parseInstances(const json &j, SceneData &scene,
 
     // Resolve Material Index
     std::string matName = JSON_VAL(instJson, "materialId", std::string(""));
-    auto matIt = matMap.find(matName);
-    if (matIt != matMap.end()) {
-      inst.materialIndex = matIt->second;
-    } else {
-      inst.materialIndex = 0;
-    }
+    inst.materialId = matName;
 
     // Transforms
     if (instJson.contains("transform")) {

@@ -64,6 +64,14 @@ void VulkanRenderer::deinit()
 }
 
 /**********************************************************/
+void VulkanRenderer::clear()
+/**********************************************************/
+{
+  m_context->waitForDeviceIdle();
+  m_resources->clear();
+}
+
+/**********************************************************/
 void VulkanRenderer::registerShaders()
 /**********************************************************/
 {
@@ -73,6 +81,7 @@ void VulkanRenderer::registerShaders()
   m_shaderManager.registerMaterial(MaterialType::eDieletrics, "dielectric");
   m_shaderManager.registerMaterial(MaterialType::eMirror, "mirror");
   m_shaderManager.registerMaterial(MaterialType::eVolumetric, "volumetric");
+  m_shaderManager.registerMaterial(MaterialType::eEmissive, "emissive");
 }
 
 /**********************************************************/

@@ -51,6 +51,7 @@ public:
   // -------------------------------------------------------------------------
   explicit VulkanSceneAssetManager(VulkanContextManager *backend);
   void deinit() override;
+  void clear();
 
   // -------------------------------------------------------------------------
   // 2. Upload Flow Control

@@ -73,7 +73,6 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
-
   if (model.meshes.empty()) {
     LOGE("Error: GLTF file %s contains no meshes.", filename.c_str());
     return {};
@@ -124,8 +123,8 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
   MeshID baseID = getNextFreeMeshID();
 
   // Process materials
-  std::vector<MaterialID> materialVec;
-  materialVec.reserve(materials.size());
+  std::vector<MaterialID> matIdMap;
+  matIdMap.reserve(materials.size());
   for (auto &material : materials) {
     if (!material.diffuseTexturePath.empty()) {
       TextureID texId =
@@ -135,7 +134,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
     }
     MaterialID materialId =
         addMaterial(std::move(material.pbrData), material.name);
-    materialVec.emplace_back(materialId);
+    matIdMap.emplace_back(materialId);
   }
 
   // Process the meshes now
@@ -162,11 +161,12 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
 
     // Add instance
     shaderio::Instance inst;
-    if (materialIdx >= 0 && materialIdx < materialVec.size()) {
-      inst.materialIndex = materialVec[materialIdx];
+    if (materialIdx >= 0 && materialIdx < matIdMap.size()) {
+      inst.materialIndex = matIdMap[materialIdx];
     } else {
       inst.materialIndex = 0; // Use a default material ID
     }
+
     inst.meshIndex = currentID;
     inst.hit_group = MaterialType::eDiffuse;
     addInstance(std::move(inst), uniqueName);
@@ -272,7 +272,7 @@ void SceneResourcesManager::uploadGltfMesh(const tinygltf::Model &model)
     m_resources.meshes.emplace_back(mesh);
   }
   m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
-  m_pendingMeshes -= 1;
+  m_pendingMeshes -= model.meshes.size();
 }
 
 /**********************************************************/
@@ -345,15 +345,18 @@ void SceneResourcesManager::finalizeSceneResources()
 void SceneResourcesManager::clear()
 /**********************************************************/
 {
-  m_resources.instances.clear();
-  m_resources.meshes.clear();
-  m_resources.materials.clear();
+  m_materialMap.clear();
+  m_resources = {};
+  m_meshMap = {};
+  m_textureMap = {};
+  m_instanceMap = {};
+  m_materialMap = {};
+
   m_pendingMeshes = 0;
+  m_loadOrder.clear();
   m_pendingGltfModels.clear();
   m_pendingPrimitives.clear();
   m_pendingTextures.clear();
-  m_resources.sceneInfo = {};
-  m_resources.sceneResources = {};
 }
 
 /**********************************************************/

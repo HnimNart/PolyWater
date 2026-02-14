@@ -48,7 +48,7 @@ namespace app {
 void Axis(ImVec2 pos, const glm::mat4 &modelView, float size = 20.f);
 
 // Place the axis at the bottom right corner of the window
-inline void Axis(const glm::mat4 &modelView, float size = 50.f) {
+inline void drawAxis(const glm::mat4 &modelView, float size = 50.f) {
   ImVec2 windowPos = ImGui::GetWindowPos();
   ImVec2 windowSize = ImGui::GetWindowSize();
   float dpiScale = ImGui::GetWindowDpiScale();

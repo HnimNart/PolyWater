@@ -51,6 +51,7 @@ enum class MaterialType : uint16_t {
   eDieletrics,
   eMirror,
   eVolumetric,
+  eEmissive,
   eCount
 };
 
@@ -135,9 +136,12 @@ struct Material {
   // --- 4-byte aligned (scalars) ---
   float metallicFactor;      // 0.0 = dielectric, 1.0 = metal
   float roughnessFactor;     // 0.0 = smooth, 1.0 = rough
-  float sigma_t;             // Extinction coefficient (density)
+  float3 sigma_t;            // Extinction coefficient (density)
   int baseColorTextureIndex; // Texture ID
+
+  uint32_t pad;
 };
+CHECK_STRUCT_ALIGNMENT(Material)
 
 enum LightType {
   ePoint = 0,      // Point light type

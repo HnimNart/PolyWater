@@ -22,6 +22,7 @@ struct DataMaterial {
   glm::vec4 baseColor{1.0f};
   float metallic{1.0f};
   float roughness{1.0f};
+  glm::vec3 emission{0.0f};
   glm::vec3 ior{1.5f};
   int textureIndex = -1; // Index into SceneData::texturePaths
 };
@@ -29,7 +30,7 @@ struct DataMaterial {
 struct DataInstance {
   std::string name;
   std::string meshId = ""; // name of mesh
-  int materialIndex = -1;  // Index into SceneData::materials
+  std::string materialId = "";
   glm::vec3 translation{0.0f};
   glm::vec3 scale{1.0f};
   glm::vec3 rotation{0.0f};

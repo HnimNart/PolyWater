@@ -45,6 +45,7 @@ public:
   // ---------------------------------------------------------------------------
   void init(const SceneResourcesManager &scene) override;
   void deinit() override;
+  void clear();
   void reload() override;
   void update(const SceneResourcesManager &scene) override;
 

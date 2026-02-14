@@ -56,7 +56,10 @@ private:
   // -------------------------------------------------------------------------
   // Internal UI & Logic Helpers
   // -------------------------------------------------------------------------
-  void setupScene(const std::filesystem::path &filename = "default_scene.json");
+
+  void init();
+  void reset();
+  void loadScene(const std::filesystem::path &filename);
   void renderMaterialsUI();
   void renderInstancesUI();
 
@@ -70,7 +73,7 @@ private:
   // -------------------------------------------------------------------------
   // Core components
   app::Application *m_app = nullptr;
-  std::shared_ptr<VulkanRenderer> m_renderer = nullptr;
+  std::unique_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_sceneManager{};
 
   // Editor/Render state

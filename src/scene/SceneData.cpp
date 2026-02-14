@@ -45,8 +45,8 @@ void SceneData::dump() const
   std::cout << "\n[Instances]\n";
   for (const auto &inst : instances) {
     std::cout << "  - Name: " << inst.name << "\n";
-    std::cout << "    MeshIdx: " << inst.meshId
-              << " | MatIdx: " << inst.materialIndex << "\n";
+    std::cout << "    MeshId: " << inst.meshId
+              << " | MatId: " << inst.materialId << "\n";
     printVec("Pos", inst.translation);
     printVec("Scale", inst.scale);
     std::cout << "    HitGroup: " << (int)inst.hitGroup << "\n";

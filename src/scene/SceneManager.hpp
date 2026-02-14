@@ -21,6 +21,7 @@ class SceneManager {
 public:
   SceneManager() = default;
   explicit SceneManager(std::shared_ptr<IDeviceAssets> deviceResources);
+
   void clear();
 
   void buildSceneFromData(const SceneData &data,

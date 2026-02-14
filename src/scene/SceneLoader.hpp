@@ -32,8 +32,7 @@ private:
                    IDMap &texMap);
   void parseMaterials(const json &j, SceneData &scene, const IDMap &texMap,
                       IDMap &matMap);
-  void parseInstances(const json &j, SceneData &scene, const IDMap &meshMap,
-                      const IDMap &matMap);
+  void parseInstances(const json &j, SceneData &scene);
   void parseSceneInfo(const json &j, SceneData &scene);
 
   // --- Utility / Math Converters ---

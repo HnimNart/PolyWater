@@ -36,7 +36,7 @@ inline static std::vector<std::filesystem::path> getSceneDir()
 /**********************************************************/
 {
   std::filesystem::path rootDir = ROOT_DIR;
-  return {std::filesystem::absolute(rootDir / "assets" / "scenes")};
+  return {std::filesystem::absolute(rootDir / "assets" / "scenes/")};
 }
 
 /**********************************************************/
@@ -44,7 +44,7 @@ inline static std::vector<std::filesystem::path> getAssetDirs()
 /**********************************************************/
 {
   std::filesystem::path rootDir = ROOT_DIR;
-  return {std::filesystem::absolute(rootDir / "assets")};
+  return {std::filesystem::absolute(rootDir / "assets/")};
 }
 
 /**********************************************************/
