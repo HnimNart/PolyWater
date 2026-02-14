@@ -124,13 +124,28 @@ private:
 #endif
 
 #if defined(_DEBUG) || defined(ENABLE_PROFILING)
-  // --- Debug / Profiling Mode: Enable Timers ---
-#define SCOPED_TIMER_SIG() common::ScopedTimer _timer_##__LINE__(FUNC_SIG)
-#define SCOPED_TIMER(name) common::ScopedTimer _timer_##__LINE__(name)
-#define SCOPED_TIMER_FUNC() common::ScopedTimer _timer_##__LINE__(__FUNCTION__)
+  // --- Helpers for __LINE__ expansion ---
+#define TIMER_CONCAT_INNER(a, b) a##b
+#define TIMER_CONCAT(a, b) TIMER_CONCAT_INNER(a, b)
+
+// --- Debug / Profiling Mode: Enable Timers ---
+// Using app::ScopedTimer (Adjust to app::common if nested)
+#define SCOPED_TIMER_SIG()                                                     \
+  core::ScopedTimer TIMER_CONCAT(_timer_, __LINE__)(FUNC_SIG)
+#define SCOPED_TIMER(name)                                                     \
+  core::ScopedTimer TIMER_CONCAT(_timer_, __LINE__)(name)
+#define SCOPED_TIMER_FUNC()                                                    \
+  core::ScopedTimer TIMER_CONCAT(_timer_, __LINE__)(__FUNCTION__)
+
 #else
   // --- Release Mode: Compile to Nothing ---
-#define SCOPED_TIMER_SIG()
-#define SCOPED_TIMER(name)
-#define SCOPED_TIMER_FUNC()
+#define SCOPED_TIMER_SIG()                                                     \
+  do {                                                                         \
+  } while (0)
+#define SCOPED_TIMER(name)                                                     \
+  do {                                                                         \
+  } while (0)
+#define SCOPED_TIMER_FUNC()                                                    \
+  do {                                                                         \
+  } while (0)
 #endif

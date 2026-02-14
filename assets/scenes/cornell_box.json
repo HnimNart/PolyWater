@@ -19,7 +19,7 @@
   },
   "assets": {
     "meshes": {
-      "cornellbox": "scenes/cornellBox.gltf"
+      "cornellbox": "models/cornellBox.gltf"
     }
   },
 "materials": [

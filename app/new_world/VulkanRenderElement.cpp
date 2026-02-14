@@ -38,11 +38,11 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
   SCOPED_TIMER_FUNC();
   SceneLoader loader;
   SceneData sceneData;
-  auto filepath = core::findFile(filename, common::getResourcesDirs());
+  auto filepath = core::findFile(filename, common::getSceneDir());
   if (!loader.load(filepath, sceneData)) {
     return;
   }
-  m_sceneManager.buildSceneFromData(sceneData, common::getResourcesDirs());
+  m_sceneManager.buildSceneFromData(sceneData, common::getAssetDirs());
 
 // #define ADD_SPHERES
 #ifdef ADD_SPHERES
@@ -93,18 +93,17 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
     std::string name = "Sphere" + std::to_string(i);
     MaterialID randomMatId = scene_resources.addMaterial(
         {.baseColorFactor = glm::vec4(spiralColor, 1.0f),
-         .metallicFactor =
-             (i % 2 == 0) ? 1.0f : 0.0f,        // Alternate metal/dielectric
-         .roughnessFactor = 0.1f + (r / 30.0f), // Smoother in center
+         .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
+         .roughnessFactor = 0.1f + (r / 30.0f),
          .sigma_t = density},
         name);
 
     // 3. Add the Instance
     scene_resources.addInstance(
         {.translation = pos,
-         .scale = glm::vec3(randScale * 0.8f), // Slightly uniform scale
+         .scale = glm::vec3(randScale * 0.8f),
          .materialIndex = randomMatId,
-         .meshIndex = scene_resources.getMeshIDFromName("sphere"),
+         .meshIndex = scene_resources.getMeshIDFromName("Sphere"),
          .hit_group = MaterialType::eVolumetric},
         name);
   }

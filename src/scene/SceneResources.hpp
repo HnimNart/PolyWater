@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fmt/format.h>
 #include <map>
 #include <memory>
 #include <string>
@@ -102,6 +103,9 @@ public:
     if (it != m_meshMap.end()) {
       return it->second;
     }
+    throw std::runtime_error(fmt::format(
+        "[SceneResourcesManager] Error: Mesh name '{}' not found in mesh map.",
+        name));
     return MeshID(-1);
   }
 
@@ -110,6 +114,10 @@ public:
     if (it != m_textureMap.end()) {
       return it->second;
     }
+    throw std::runtime_error(
+        fmt::format("[SceneResourcesManager] Error: Texture name '{}' not "
+                    "found in mesh map.",
+                    name));
     return TextureID(-1);
   }
 

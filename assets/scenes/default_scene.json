@@ -19,9 +19,9 @@
   },
   "assets": {
     "meshes": {
-      "teapot": "teapot.gltf",
-      "plane": "plane.gltf",
-      "sphere": "sphere.gltf"
+      "teapot": "models/teapot.gltf",
+      "plane": "models/plane.gltf",
+      "sphere": "models/sphere.gltf"
     },
     "textures": {
       "floor": "textures/tiled_floor.png"
