@@ -50,7 +50,9 @@ void SceneManager::buildSceneFromData(
   std::vector<MeshID> meshIdMap;
   for (const auto &val : data.meshPaths) {
     std::string fullPath = core::findFile(val.path, searchDirs);
-    meshIdMap.push_back(m_scene_resources.loadGltf(val.name, fullPath));
+    std::vector<MeshID> newMeshIds =
+        m_scene_resources.loadGltf(val.name, fullPath);
+    meshIdMap.insert(meshIdMap.end(), newMeshIds.begin(), newMeshIds.end());
   }
 
   // 2. Load Textures & Keep ID Mapping
@@ -63,7 +65,7 @@ void SceneManager::buildSceneFromData(
   // 3. Create Materials & Keep ID Mapping
   std::vector<MaterialID> matIdMap;
   for (const auto &matData : data.materials) {
-    shaderio::Material info{}; // Your engine's struct
+    shaderio::Material info{};
     info.baseColorFactor = matData.baseColor;
     info.metallicFactor = matData.metallic;
     info.roughnessFactor = matData.roughness;
@@ -88,11 +90,10 @@ void SceneManager::buildSceneFromData(
     info.hit_group = instData.hitGroup;
 
     // Resolve Mesh ID
-    if (instData.meshIndex >= 0 && instData.meshIndex < meshIdMap.size()) {
-      info.meshIndex = meshIdMap[instData.meshIndex];
-    } else {
+    info.meshIndex = m_scene_resources.getMeshIDFromName(instData.meshId);
+    if (info.meshIndex == -1) {
       std::cerr << "Invalid Mesh Index for instance: " << instData.name
-                << std::endl;
+                << "[Skipping]" << std::endl;
       continue;
     }
 
@@ -101,6 +102,7 @@ void SceneManager::buildSceneFromData(
         instData.materialIndex < matIdMap.size()) {
       info.materialIndex = matIdMap[instData.materialIndex];
     } else {
+      info.materialIndex = 0;
       // Handle default material if needed
     }
 

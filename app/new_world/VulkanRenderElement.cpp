@@ -44,7 +44,7 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
   }
   m_sceneManager.buildSceneFromData(sceneData, common::getResourcesDirs());
 
-#define ADD_SPHERES
+// #define ADD_SPHERES
 #ifdef ADD_SPHERES
   SceneResourcesManager &scene_resources =
       m_sceneManager.sceneResourceManager();
@@ -126,7 +126,7 @@ void VulkanRendererElement::onAttach(app::Application *app)
   m_renderer =
       std::make_shared<VulkanRenderer>(backend, common::getShaderDirs());
   m_sceneManager = SceneManager(m_renderer);
-  setupScene();
+  setupScene(m_sceneFile);
 }
 
 /**********************************************************/

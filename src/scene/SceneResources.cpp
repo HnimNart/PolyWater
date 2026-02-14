@@ -32,17 +32,44 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 }
 
 /**********************************************************/
-MeshID SceneResourcesManager::loadGltf(const std::string &name,
-                                       const std::string &filename)
+std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
+                                                    const std::string &filename)
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
+
+  if (model.meshes.empty()) {
+    LOGE("Error: GLTF file %s contains no meshes.\n", filename.c_str());
+    return {};
+  }
+
+  // 1. Calculate the Base ID
+  MeshID baseID =
+      static_cast<MeshID>(m_resources.meshes.size() + m_pendingMeshes);
+
+  std::vector<MeshID> meshIDs;
+  meshIDs.resize(model.meshes.size());
+  for (size_t i = 0; i < model.meshes.size(); i++) {
+    const auto &gltfMesh = model.meshes[i];
+    std::string subMeshName = gltfMesh.name;
+    if (subMeshName.empty()) {
+      subMeshName = name + "_" + std::to_string(i); // Fallback if unnamed
+    }
+
+    // Combine user-provided name with internal mesh name
+    std::string fullName = subMeshName;
+    std::string uniqueName = getUniqueName(m_meshMap, fullName);
+    MeshID currentID = baseID + static_cast<MeshID>(i);
+    m_meshMap[uniqueName] = currentID;
+    meshIDs.emplace_back(currentID);
+    LOGD("Registered: %s -> ID %d\n", uniqueName.c_str(), currentID);
+  }
+
+  // 6. Update Counters and Storage
+  m_pendingMeshes += model.meshes.size(); // <--- You need to track this!
   m_pendingModels.push_back(std::move(model));
-  auto id = static_cast<MeshID>(m_resources.meshes.size() +
-                                m_pendingModels.size() - 1);
-  std::string uniqueName = getUniqueName(m_meshMap, name);
-  m_meshMap[uniqueName] = id;
-  return id;
+
+  return meshIDs;
 }
 
 /**********************************************************/
@@ -114,6 +141,7 @@ void SceneResourcesManager::finalizeSceneResources()
     m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
   }
   m_pendingModels.clear();
+  m_pendingMeshes = 0;
 
   // --- Process Pending Textures ---
   for (const auto &[id, filename] : m_pendingTextures) {
@@ -131,6 +159,9 @@ void SceneResourcesManager::clear()
   m_resources.instances.clear();
   m_resources.meshes.clear();
   m_resources.materials.clear();
+  m_pendingMeshes = 0;
+  m_pendingModels.clear();
+  m_pendingTextures.clear();
   m_resources.sceneInfo = {};
   m_resources.sceneResources = {};
 }

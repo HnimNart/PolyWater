@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   app::cli::ParameterParser cli(core::getExecutablePath().stem().string());
   app::cli::ParameterRegistry reg;
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
+  reg.add({"scene", "Scene file"}, &appInfo.sceneFile);
   cli.add(reg);
   cli.parse(argc, argv);
 
@@ -72,7 +73,8 @@ int main(int argc, char **argv) {
   app::Application application(appInfo, std::move(backend), gui);
 
   // Elements added to the application
-  auto renderElement = std::make_shared<VulkanRendererElement>();
+  auto renderElement =
+      std::make_shared<VulkanRendererElement>(appInfo.sceneFile);
   auto elemCamera = std::make_shared<app::ElementCamera>();
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
   auto windowMenu = std::make_shared<app::ElementDefaultMenu>();

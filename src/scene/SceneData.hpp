@@ -29,8 +29,8 @@ struct DataMaterial {
 
 struct DataInstance {
   std::string name;
-  int meshIndex = -1;     // Index into SceneData::meshPaths
-  int materialIndex = -1; // Index into SceneData::materials
+  std::string meshId = ""; // name of mesh
+  int materialIndex = -1;  // Index into SceneData::materials
   glm::vec3 translation{0.0f};
   glm::vec3 scale{1.0f};
   glm::vec3 rotation{0.0f};

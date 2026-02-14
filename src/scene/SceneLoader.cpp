@@ -24,7 +24,7 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
   // SCOPED_TIMER_FUNC();
   std::ifstream file(filepath);
   if (!file.is_open()) {
-    LOGE("[SceneLoader] Error: Could not open file %s", filepath.c_str());
+    LOGE("[SceneLoader] Error: Could not open file %s\n", filepath.c_str());
     return false;
   } else {
   }
@@ -61,7 +61,7 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
     }
 
   } catch (const json::parse_error &e) {
-    LOGE("[SceneLoader] JSON Parse Error in %s: %s", filepath.c_str(),
+    LOGE("[SceneLoader] JSON Parse Error in %s: %s\n", filepath.c_str(),
          e.what());
     return false;
   }
@@ -117,7 +117,7 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene,
       if (it != texMap.end()) {
         mat.textureIndex = it->second;
       } else {
-        LOGW("[SceneLoader] Warning: Texture '%s' not found for material %s",
+        LOGW("[SceneLoader] Warning: Texture '%s' not found for material %s\n",
              texName.c_str(), mat.name.c_str());
         mat.textureIndex = -1;
       }
@@ -142,14 +142,7 @@ void SceneLoader::parseInstances(const json &j, SceneData &scene,
 
     // Resolve Mesh Index
     std::string meshName = JSON_VAL(instJson, "meshId", std::string(""));
-    auto mIt = meshMap.find(meshName);
-    if (mIt != meshMap.end()) {
-      inst.meshIndex = mIt->second;
-    } else {
-      LOGW("[SceneLoader] Warning: Mesh '%s' not found for instance %s",
-           meshName.c_str(), inst.name.c_str());
-      continue; // Skip invalid instances
-    }
+    inst.meshId = meshName;
 
     // Resolve Material Index
     std::string matName = JSON_VAL(instJson, "materialId", std::string(""));

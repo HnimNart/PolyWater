@@ -17,6 +17,7 @@ namespace app {
 struct ApplicationCreateInfo {
   // General
   std::string name{"Application"};
+  std::string sceneFile{"default_scene.json"};
 
   // Window / runtime
   WindowSize windowSize{0, 0}; // Window size or Viewport size (headless)

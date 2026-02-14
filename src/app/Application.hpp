@@ -37,7 +37,7 @@ public:
   Application(Application &&) = delete;
   Application &operator=(Application &&) = delete;
 
-  // Explicit Initialization/Shutdown (if separated from constructor/destructor)
+  // Explicit Initialization/Shutdown
   void init(const ApplicationCreateInfo &info);
   void shutdown();
 
@@ -115,7 +115,7 @@ private:
   bool m_running = false;
   uint64_t m_frameCounter = 0;
   bool m_useMenubar{true};
-  bool m_vsyncWanted{true}; // TODO figure out if this needed
+  bool m_vsyncWanted{true};
 
   // 4. Headless Mode
   bool m_headless{false};
@@ -126,8 +126,8 @@ private:
   std::shared_ptr<IGUISystem> m_gui;
   SettingsHandler m_settingsHandler;
 
-  // Queue of functions to free resources (double buffered or per-frame)
-  std::vector<std::vector<std::function<void()>>> m_resourceFreeQueue;
+  // Queue of functions to free resources
+  std::vector<std::function<void()>> m_resourceFreeQueue;
 };
 
 } // namespace app

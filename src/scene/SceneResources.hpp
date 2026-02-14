@@ -3,7 +3,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
@@ -34,7 +33,8 @@ public:
   // ---------------------------------------------------------------------------
   // Asset Loading (IO)
   // ---------------------------------------------------------------------------
-  MeshID loadGltf(const std::string &name, const std::string &filename);
+  std::vector<MeshID> loadGltf(const std::string &name,
+                               const std::string &filename);
   TextureID loadTexture(const std::string &name, const std::string &filename);
 
   // ---------------------------------------------------------------------------
@@ -119,6 +119,7 @@ private:
 
   // Things to be uploaded to gpu
   std::vector<tinygltf::Model> m_pendingModels{};
+  uint m_pendingMeshes = 0;
   struct PendingTexture {
     std::string filename;
     TextureID id;

@@ -10,7 +10,6 @@
 
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
-#include "nvvk/helpers.hpp"
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
@@ -64,8 +63,7 @@ bool SwapchainRenderManager::beginFrame(VulkanContextManager &coreManager)
     NVVK_CHECK(m_swapchain.reinitResources(m_windowSize, m_vsyncWanted));
   }
 
-  // This acquires the next image index and signals the 'imageAvailable'
-  // semaphore
+  // acquire the next image index and signals the 'imageAvailable' semaphore
   VkResult res = m_swapchain.acquireNextImage(coreManager.getDevice());
   if (!(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR)) {
     return false;
@@ -78,8 +76,6 @@ bool SwapchainRenderManager::beginFrame(VulkanContextManager &coreManager)
 void SwapchainRenderManager::present(VulkanContextManager &coreManager)
 /**********************************************************/
 {
-  // This submits the present command to the queue, waiting on the
-  // 'renderingFinished' semaphore
   m_swapchain.presentFrame(coreManager.getQueueInfo(0).queue);
 }
 
@@ -101,8 +97,10 @@ void SwapchainRenderManager::deinit(VulkanContextManager &coreManager)
   vkDestroySurfaceKHR(coreManager.getInstance(), m_surface, nullptr);
 }
 
-void SwapchainRenderManager::setUICallback(
-    const RenderCallback &renderCallback) {
+/**********************************************************/
+void SwapchainRenderManager::setUICallback(const RenderCallback &renderCallback)
+/**********************************************************/
+{
   m_uiCallback = renderCallback;
 }
 

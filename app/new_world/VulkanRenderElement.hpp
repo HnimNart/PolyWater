@@ -16,7 +16,8 @@ class VulkanRenderer;
 
 class VulkanRendererElement : public app::IAppElement {
 public:
-  VulkanRendererElement() = default;
+  VulkanRendererElement(std::string sceneFile)
+      : m_sceneFile(std::move(sceneFile)) {}
   ~VulkanRendererElement() override = default;
 
   // -------------------------------------------------------------------------
@@ -75,4 +76,6 @@ private:
   // Editor/Render state
   RenderMode m_renderMode = RenderMode::RAYTRACE;
   bool m_hasChanged = false;
+
+  std::string m_sceneFile{};
 };

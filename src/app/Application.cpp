@@ -242,6 +242,7 @@ void Application::runFrame()
   // Handle Viewport Updates
   WindowSize viewportSize = m_windowSize;
   bool ok = m_gui->getWindowSize("Viewport", viewportSize);
+
   // Update viewport if size changed
   if (m_backend->getViewportSize() != viewportSize) {
     onResize(viewportSize);
