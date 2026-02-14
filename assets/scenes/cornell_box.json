@@ -1,9 +1,9 @@
 {
   "sceneInfo": {
-    "backgroundColor": [0.85, 0.85, 0.85],
-    "useSky": true,
+    "backgroundColor": [0.0, 0.0, 0.0],
+    "useSky": false,
     "camera": {
-      "eye": [0.0, 0, 20.0],
+      "eye": [0.0, 0, 14.0],
       "center": [0.0, 0.0, 0.0],
       "up": [0.0, 1.0, 0.0],
       "clip": [0.01, 100.0]
@@ -11,9 +11,9 @@
     "lights": [
       {
         "type": "Point",
-        "position": [1.0, 1.0, 1.0],
+        "position": [1.0, 4.0, 1.0],
         "color": [1.0, 1.0, 1.0],
-        "intensity": 2.0
+        "intensity": 30.0
       }
     ]
   },
