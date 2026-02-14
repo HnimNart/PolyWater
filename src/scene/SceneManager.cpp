@@ -9,10 +9,10 @@
 #include "core/Math.hpp"
 
 /**********************************************************/
-SceneManager::SceneManager(const std::shared_ptr<IRenderer> &renderer)
+SceneManager::SceneManager(std::shared_ptr<IDeviceAssets> deviceResources)
 /**********************************************************/
 {
-  m_scene_resources.init(renderer->deviceResources());
+  m_scene_resources.init(std::move(deviceResources));
 }
 
 /**********************************************************/

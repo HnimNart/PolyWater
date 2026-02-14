@@ -25,7 +25,7 @@
       "cube": "models/cube.obj"
     },
     "textures": {
-      "floor": "textures/tiled_floor.png"
+        "floor": "textures/tiled_floor.png"
     }
   },
   "materials": [

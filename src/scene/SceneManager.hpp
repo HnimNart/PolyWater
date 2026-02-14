@@ -20,7 +20,7 @@ class IRenderContext;
 class SceneManager {
 public:
   SceneManager() = default;
-  explicit SceneManager(const std::shared_ptr<IRenderer> &renderer);
+  explicit SceneManager(std::shared_ptr<IDeviceAssets> deviceResources);
   void clear();
 
   void buildSceneFromData(const SceneData &data,

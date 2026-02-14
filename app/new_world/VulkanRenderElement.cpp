@@ -124,7 +124,7 @@ void VulkanRendererElement::onAttach(app::Application *app)
   assert(backend && "Backend is not VulkanBackend");
   m_renderer =
       std::make_shared<VulkanRenderer>(backend, common::getShaderDirs());
-  m_sceneManager = SceneManager(m_renderer);
+  m_sceneManager = SceneManager(m_renderer->deviceResources());
   setupScene(m_sceneFile);
 }
 
