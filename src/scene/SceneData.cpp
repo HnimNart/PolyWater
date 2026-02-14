@@ -15,25 +15,24 @@ void printVec(const std::string &label, const glm::vec3 &v)
 } // namespace
 
 /**********************************************************/
-void dumpSceneData(const SceneData &scene)
+void SceneData::dump() const
 /**********************************************************/
 {
   std::cout << "\n================= SCENE DATA DUMP =================\n";
-
   // --- Assets ---
   std::cout << "[Assets]\n";
-  std::cout << "  Meshes (" << scene.meshPaths.size() << "):\n";
-  for (const auto &p : scene.meshPaths)
+  std::cout << "  Meshes (" << meshPaths.size() << "):\n";
+  for (const auto &p : meshPaths)
     std::cout << "    - " << p.name << ":" << p.path << "\n";
 
-  std::cout << "  Textures (" << scene.texturePaths.size() << "):\n";
-  for (const auto &p : scene.texturePaths)
+  std::cout << "  Textures (" << texturePaths.size() << "):\n";
+  for (const auto &p : texturePaths)
     std::cout << "    - " << p.name << ":" << p.path << "\n";
 
   // --- Materials ---
   std::cout << "\n[Materials]\n";
-  for (size_t i = 0; i < scene.materials.size(); ++i) {
-    const auto &m = scene.materials[i];
+  for (size_t i = 0; i < materials.size(); ++i) {
+    const auto &m = materials[i];
     std::cout << "  " << i << ": " << m.name << "\n";
     std::cout << "    BaseColor: [" << m.baseColor.x << ", " << m.baseColor.y
               << ", " << m.baseColor.z << "]\n";
@@ -44,7 +43,7 @@ void dumpSceneData(const SceneData &scene)
 
   // --- Instances ---
   std::cout << "\n[Instances]\n";
-  for (const auto &inst : scene.instances) {
+  for (const auto &inst : instances) {
     std::cout << "  - Name: " << inst.name << "\n";
     std::cout << "    MeshIdx: " << inst.meshId
               << " | MatIdx: " << inst.materialIndex << "\n";
@@ -55,7 +54,7 @@ void dumpSceneData(const SceneData &scene)
 
   // --- Lights ---
   std::cout << "\n[Lights]\n";
-  for (const auto &l : scene.lights) {
+  for (const auto &l : lights) {
     std::cout << "  Type: " << (int)l.type << " | Intensity: " << l.intensity
               << "\n";
     printVec("Color", l.color);
@@ -64,11 +63,11 @@ void dumpSceneData(const SceneData &scene)
 
   // --- Globals ---
   std::cout << "\n[Globals]\n";
-  std::cout << "  UseSky: " << (scene.useSky ? "True" : "False") << "\n";
-  printVec("Background", scene.backgroundColor);
-  printVec("Cam Eye", scene.camera.eye);
-  printVec("Cam Center", scene.camera.center);
-  printVec("Cam up", scene.camera.up);
+  std::cout << "  UseSky: " << (useSky ? "True" : "False") << "\n";
+  printVec("Background", backgroundColor);
+  printVec("Cam Eye", camera.eye);
+  printVec("Cam Center", camera.center);
+  printVec("Cam up", camera.up);
 
   std::cout << "===================================================\n\n";
 }

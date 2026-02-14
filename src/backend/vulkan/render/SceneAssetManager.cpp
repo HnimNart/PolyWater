@@ -16,6 +16,8 @@
 #include "core/timers.hpp"
 #include "shaders/shared/structs.h"
 
+#include <tinygltf/tiny_gltf.h>
+
 /**********************************************************/
 VulkanSceneAssetManager::VulkanSceneAssetManager(
     VulkanContextManager *contextManager)
@@ -59,7 +61,7 @@ void VulkanSceneAssetManager::deinit()
   m_context_manager->getAllocator().destroyBuffer(m_data.bMeshes);
   m_context_manager->getAllocator().destroyBuffer(m_data.bMaterials);
   m_context_manager->getAllocator().destroyBuffer(m_data.bInstances);
-  for (auto &gltfData : m_data.bGltfDatas) {
+  for (auto &gltfData : m_data.bDatas) {
     m_context_manager->getAllocator().destroyBuffer(gltfData);
   }
   m_samplerPool.deinit();
@@ -123,7 +125,7 @@ VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
 {
   assert(meshIndex < m_data.meshToBufferIndex.size());
   uint32_t bufferIndex = m_data.meshToBufferIndex[meshIndex];
-  return m_data.bGltfDatas[bufferIndex];
+  return m_data.bDatas[bufferIndex];
 }
 
 /**********************************************************/
@@ -163,30 +165,26 @@ void VulkanSceneAssetManager::update(
 
 /**********************************************************/
 std::pair<uint8_t *, uint32_t>
-VulkanSceneAssetManager::upload(const tinygltf::Model &model)
+VulkanSceneAssetManager::upload(const std::span<const unsigned char> &data)
 /**********************************************************/
 {
-  nvvk::Buffer bGltfData;
+  nvvk::Buffer bData;
   nvvk::ResourceAllocator *allocator =
       m_context_manager->getStagingUploader().getResourceAllocator();
 
-  // We can only handle one buffer for now
-  assert(model.buffers.size() == 1);
-
   NVVK_CHECK(allocator->createBuffer(
-      bGltfData,
-      std::span<const unsigned char>(model.buffers[0].data).size_bytes(),
+      bData, data.size_bytes(),
       VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT |
           VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
           VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR));
 
-  NVVK_CHECK(m_context_manager->getStagingUploader().appendBuffer(
-      bGltfData, 0, std::span<const unsigned char>(model.buffers[0].data)));
-  NVVK_DBG_NAME(bGltfData.buffer);
+  NVVK_CHECK(
+      m_context_manager->getStagingUploader().appendBuffer(bData, 0, data));
+  NVVK_DBG_NAME(bData.buffer);
 
-  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bGltfDatas.size());
-  m_data.bGltfDatas.push_back(bGltfData);
-  return {(uint8_t *)bGltfData.address, bufferIndex};
+  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
+  m_data.bDatas.push_back(bData);
+  return {(uint8_t *)bData.address, bufferIndex};
 }
 
 /**********************************************************/

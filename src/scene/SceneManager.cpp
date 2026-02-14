@@ -51,7 +51,7 @@ void SceneManager::buildSceneFromData(
   for (const auto &val : data.meshPaths) {
     std::string fullPath = core::findFile(val.path, searchDirs);
     std::vector<MeshID> newMeshIds =
-        m_scene_resources.loadGltf(val.name, fullPath);
+        m_scene_resources.loadModel(val.name, fullPath);
     meshIdMap.insert(meshIdMap.end(), newMeshIds.begin(), newMeshIds.end());
   }
 

@@ -2,8 +2,11 @@
 #include "core/Math.hpp"
 
 #include <core/logger.hpp>
+#include <core/string_utils.h>
 #include <glm/gtx/string_cast.hpp>
-#include <iostream>
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tinyobjloader/tiny_obj_loader.h>
 
 namespace {
 
@@ -19,7 +22,7 @@ std::string getUniqueName(const std::map<std::string, uint32_t> &nameMap,
   while (nameMap.find(candidate) != nameMap.end()) {
     candidate = baseName + "_" + std::to_string(counter++);
   }
-  return candidate;
+  return common::trim(candidate);
 }
 
 } // namespace
@@ -29,6 +32,37 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 /**********************************************************/
 {
   m_device_resources = std::move(deviceResource);
+}
+
+/**********************************************************/
+std::vector<MeshID>
+SceneResourcesManager::loadModel(const std::string &name,
+                                 const std::string &filename)
+/**********************************************************/
+{
+  // 1. Extract Extension
+  std::string ext = common::getExtension(filename);
+  common::toLower(ext);
+
+  // 3. Dispatch
+  if (ext == ".gltf" || ext == ".glb") {
+    LOGD("Loading GLTF: %s\n", filename.c_str());
+    return loadGltf(name, filename);
+  } else if (ext == ".obj") {
+    LOGD("Loading OBJ: %s\n", filename.c_str());
+    return loadObj(name, filename);
+  } else {
+    LOGE("Error: Unsupported file extension '%s' for file '%s'\n", ext.c_str(),
+         filename.c_str());
+    return {};
+  }
+}
+
+/**********************************************************/
+MeshID SceneResourcesManager::getNextFreeMeshID()
+/**********************************************************/
+{
+  return static_cast<MeshID>(m_resources.meshes.size() + m_pendingMeshes);
 }
 
 /**********************************************************/
@@ -44,8 +78,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
   }
 
   // 1. Calculate the Base ID
-  MeshID baseID =
-      static_cast<MeshID>(m_resources.meshes.size() + m_pendingMeshes);
+  MeshID baseID = getNextFreeMeshID();
 
   std::vector<MeshID> meshIDs;
   meshIDs.resize(model.meshes.size());
@@ -66,8 +99,50 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
   }
 
   // 6. Update Counters and Storage
-  m_pendingMeshes += model.meshes.size(); // <--- You need to track this!
-  m_pendingModels.push_back(std::move(model));
+  m_pendingMeshes += model.meshes.size();
+  m_loadOrder.push_back(
+      {PendingMeshTask::Type::GLTF, m_pendingGltfModels.size()});
+  m_pendingGltfModels.push_back(std::move(model));
+
+  return meshIDs;
+}
+
+/**********************************************************/
+std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
+                                                   const std::string &filename)
+/**********************************************************/
+{
+  // 1. Call Helper
+  auto loadedShapes = obj::loadObjPrimitives(filename);
+  if (loadedShapes.empty()) {
+    return {};
+  }
+
+  MeshID baseID = getNextFreeMeshID();
+
+  std::vector<MeshID> meshIDs;
+  meshIDs.reserve(loadedShapes.size());
+  for (size_t i = 0; i < loadedShapes.size(); i++) {
+    auto &[shapeName, meshPrimitive] = loadedShapes[i];
+
+    std::string subMeshName = shapeName;
+    if (subMeshName.empty()) {
+      subMeshName = name + "_" + std::to_string(i);
+    }
+
+    std::string uniqueName = getUniqueName(m_meshMap, subMeshName);
+    MeshID currentID = baseID + static_cast<MeshID>(i);
+
+    m_meshMap[uniqueName] = currentID;
+    meshIDs.push_back(currentID);
+
+    LOGD("Registered OBJ: %s -> ID %d\n", uniqueName.c_str(), currentID);
+    m_loadOrder.push_back(
+        {PendingMeshTask::Type::PRIMITIVE, m_pendingPrimitives.size()});
+    m_pendingPrimitives.push_back(std::move(meshPrimitive));
+  }
+
+  m_pendingMeshes += loadedShapes.size();
 
   return meshIDs;
 }
@@ -119,35 +194,89 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
 }
 
 /**********************************************************/
+void SceneResourcesManager::uploadGltfMesh(const tinygltf::Model &model)
+/**********************************************************/
+{
+  // --- Process Pending Models ---
+  assert(model.buffers.size() == 1);
+  std::span<const uint8_t> data = model.buffers[0].data;
+  const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
+  const size_t startSize = m_resources.meshes.size();
+  const auto [bmin, bmax] = gltf::computeModelBounds(model);
+  m_resources.meshes.reserve(startSize + model.meshes.size());
+  for (size_t i = 0; i < model.meshes.size(); i++) {
+    auto mesh = gltf::extractGltfMesh(model, i);
+    mesh.boxMin = bmin;
+    mesh.boxMax = bmax;
+    mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
+    m_resources.meshes.emplace_back(mesh);
+  }
+  m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
+  m_pendingMeshes -= 1;
+}
+
+/**********************************************************/
+void SceneResourcesManager::uploadPrimitiveMesh(
+    const core::PrimitiveMesh &meshData)
+/**********************************************************/
+{
+  std::vector<uint8_t> stagingBuffer = obj::packMeshToBuffer(meshData);
+  const auto [bufferAddr, bufferIndex] =
+      m_device_resources->upload(std::span(stagingBuffer));
+  auto [bmin, bmax] = obj::computeMeshBounds(meshData);
+  shaderio::MeshPrimitive gpuMesh = obj::createGpuMeshFromPrimitive(meshData);
+  gpuMesh.buffer = bufferAddr;
+  gpuMesh.boxMin = bmin;
+  gpuMesh.boxMax = bmax;
+  m_resources.meshes.emplace_back(gpuMesh);
+
+  // 5. Update Device Resources (1 mesh added)
+  m_device_resources->addMeshes(1, bufferIndex);
+  m_pendingMeshes -= 1;
+}
+
+/**********************************************************/
+void SceneResourcesManager::finalizePendingTextures()
+/**********************************************************/
+{
+  for (const auto &[id, filename] : m_pendingTextures) {
+    m_device_resources->uploadTexture(id, filename);
+  }
+  m_pendingTextures.clear();
+}
+
+/**********************************************************/
 void SceneResourcesManager::finalizeSceneResources()
 /**********************************************************/
 {
   // Start the Batch
   m_device_resources->beginUploading();
 
-  // --- Process Pending Models ---
-  for (const auto &model : m_pendingModels) {
-    const auto [bufferAddr, bufferIndex] = m_device_resources->upload(model);
-    const size_t startSize = m_resources.meshes.size();
-    const auto [bmin, bmax] = gltf::computeModelBounds(model);
-    m_resources.meshes.reserve(startSize + model.meshes.size());
-    for (size_t i = 0; i < model.meshes.size(); i++) {
-      auto mesh = gltf::extractGltfMesh(model, i);
-      mesh.boxMin = bmin;
-      mesh.boxMax = bmax;
-      mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
-      m_resources.meshes.emplace_back(mesh);
+  // Upload models
+  size_t gltfIdx = 0;
+  size_t primIdx = 0;
+  for (const auto &task : m_loadOrder) {
+    switch (task.type) {
+    case PendingMeshTask::Type::GLTF: {
+      uploadGltfMesh(m_pendingGltfModels[gltfIdx++]);
+      break;
     }
-    m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
+    case PendingMeshTask::Type::PRIMITIVE: {
+      uploadPrimitiveMesh(m_pendingPrimitives[primIdx++]);
+      break;
+    }
+    default:
+      assert(0 && "Recieved unknown task type");
+    }
   }
-  m_pendingModels.clear();
-  m_pendingMeshes = 0;
 
-  // --- Process Pending Textures ---
-  for (const auto &[id, filename] : m_pendingTextures) {
-    m_device_resources->uploadTexture(id, filename);
-  }
-  m_pendingTextures.clear();
+  m_loadOrder.clear();
+  m_pendingGltfModels.clear();
+  m_pendingPrimitives.clear();
+  assert(m_pendingMeshes == 0);
+
+  // Upload textures
+  finalizePendingTextures();
   m_device_resources->finalizeSceneResources(m_resources);
   m_device_resources->endUploading();
 }
@@ -160,7 +289,8 @@ void SceneResourcesManager::clear()
   m_resources.meshes.clear();
   m_resources.materials.clear();
   m_pendingMeshes = 0;
-  m_pendingModels.clear();
+  m_pendingGltfModels.clear();
+  m_pendingPrimitives.clear();
   m_pendingTextures.clear();
   m_resources.sceneInfo = {};
   m_resources.sceneResources = {};
@@ -226,7 +356,7 @@ Scene &SceneResourcesManager::data()
 void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 /**********************************************************/
 {
-  m_resources.sceneInfo = std::move(sceneInfo);
+  m_resources.sceneInfo = sceneInfo;
 }
 
 /**********************************************************/

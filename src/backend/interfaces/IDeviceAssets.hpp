@@ -1,10 +1,12 @@
 
 #pragma once
 #include <cstdint>
+#include <span>
 #include <string>
 
 #include <core/shape/primitives.hpp>
 
+#include "obj/obj_utils.hpp"
 #include "scene/Scene.h"
 #include "shaders/shared/structs.h"
 
@@ -38,7 +40,7 @@ public:
   // Geometry Upload (Buffers)
   // ---------------------------------------------------------------------------
   virtual std::pair<BufferAddr, BufferID>
-  upload(const tinygltf::Model &model) = 0;
+  upload(const std::span<const unsigned char> &data) = 0;
 
   // ---------------------------------------------------------------------------
   // Scene Registration

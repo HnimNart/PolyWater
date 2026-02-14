@@ -6,13 +6,11 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-#include "nvvk/resource_allocator.hpp"
 #include "nvvk/sampler_pool.hpp"
 
 // Project Includes
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
-#include "scene/SceneResources.hpp"
 
 // Forward Declarations
 namespace tinygltf {
@@ -29,7 +27,7 @@ struct PrimitiveMesh;
 // Holds the GPU-side buffers for the scene geometry and assets
 struct VulkanSceneGpuData {
   std::vector<nvvk::Buffer>
-      bGltfDatas; // Binary GLTF data per scene (Vertex/Index buffers)
+      bDatas; // Binary data per scene (Vertex/Index buffers)
 
   // Shader Storage Buffers (SSBOs)
   nvvk::Buffer bMeshes;    // Mesh metadata array
@@ -75,7 +73,8 @@ public:
   // 4. Geometry & Model Management (Initialization)
   //    Uploading static model data (GLTF buffers) and initial mesh setup.
   // -------------------------------------------------------------------------
-  std::pair<BufferAddr, BufferID> upload(const tinygltf::Model &model) override;
+  std::pair<BufferAddr, BufferID>
+  upload(const std::span<const unsigned char> &data) override;
   void addMeshes(size_t count, BufferID bufferIndex) override;
   void finalizeSceneResources(const Scene &resources) override;
 

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/hash.hpp>
 #include <vector>
 
 /*-------------------------------------------------------------------------------------------------
@@ -59,6 +60,9 @@ struct PrimitiveVertex {
   glm::vec3 pos; // Position
   glm::vec3 nrm; // Normal
   glm::vec2 tex; // Texture Coordinates
+  bool operator==(const PrimitiveVertex &other) const {
+    return pos == other.pos && nrm == other.nrm && tex == other.tex;
+  }
 };
 
 struct PrimitiveTriangle {
@@ -118,3 +122,24 @@ PrimitiveMesh wobblePrimitive(const PrimitiveMesh &mesh,
                               float amplitude = 0.05F);
 
 } // namespace core
+
+// 2. Hash Specialization (Must be in namespace std)
+namespace std {
+template <> struct hash<core::PrimitiveVertex> {
+  size_t operator()(core::PrimitiveVertex const &vertex) const {
+    // Start with a seed
+    size_t seed = 0;
+
+    // Use GLM's hash function to hash each component
+    // and combine them using a standard hash_combine logic
+    std::hash<glm::vec3> hasherVec3;
+    std::hash<glm::vec2> hasherVec2;
+
+    glm::detail::hash_combine(seed, hasherVec3(vertex.pos));
+    glm::detail::hash_combine(seed, hasherVec3(vertex.nrm));
+    glm::detail::hash_combine(seed, hasherVec2(vertex.tex));
+
+    return seed;
+  }
+};
+} // namespace std

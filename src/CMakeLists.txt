@@ -90,6 +90,7 @@ target_link_libraries(${LIB_NAME} PUBLIC
     implot
     fmt
     nlohmann_json::nlohmann_json
+    tinyobjloader
 )
 
 # Optional CUDA NVML support

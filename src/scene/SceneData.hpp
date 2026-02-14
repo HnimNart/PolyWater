@@ -6,8 +6,7 @@
 
 #include "shaders/shared/structs.h"
 
-// Lightweight structs to hold JSON data temporarily
-
+// Lightweight structs to hold Scene data temporarily
 struct DataMesh {
   std::string name;
   std::string path;
@@ -75,7 +74,6 @@ struct SceneData {
     lights.clear();
   }
 
-  // Simple adders for the Loader to use
   int addMesh(const std::string &name, const std::string &path) {
     meshPaths.push_back({name, path});
     return (int)meshPaths.size() - 1;
@@ -84,6 +82,6 @@ struct SceneData {
     texturePaths.push_back({name, path});
     return (int)texturePaths.size() - 1;
   }
-};
 
-void dumpSceneData(const SceneData &scene);
+  void dump() const;
+};

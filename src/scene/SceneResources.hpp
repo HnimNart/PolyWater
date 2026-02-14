@@ -7,8 +7,10 @@
 
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
-#include "scene/Scene.h"
-#include "scene/gltf/gltf_utils.hpp"
+
+#include "Scene.h"
+#include "gltf/gltf_utils.hpp"
+#include "obj/obj_utils.hpp"
 
 using InstanceID = uint32_t;
 using MaterialID = uint32_t;
@@ -34,8 +36,8 @@ public:
   // ---------------------------------------------------------------------------
   // Asset Loading (IO)
   // ---------------------------------------------------------------------------
-  std::vector<MeshID> loadGltf(const std::string &name,
-                               const std::string &filename);
+  std::vector<MeshID> loadModel(const std::string &name,
+                                const std::string &filename);
   TextureID loadTexture(const std::string &name, const std::string &filename);
 
   // ---------------------------------------------------------------------------
@@ -103,6 +105,7 @@ public:
     if (it != m_meshMap.end()) {
       return it->second;
     }
+
     throw std::runtime_error(fmt::format(
         "[SceneResourcesManager] Error: Mesh name '{}' not found in mesh map.",
         name));
@@ -125,8 +128,28 @@ private:
   Scene m_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
 
+  MeshID getNextFreeMeshID();
+
+  std::vector<MeshID> loadGltf(const std::string &name,
+                               const std::string &filename);
+  std::vector<MeshID> loadObj(const std::string &name,
+                              const std::string &filename);
+
+  void uploadGltfMesh(const tinygltf::Model &model);
+  void uploadPrimitiveMesh(const core::PrimitiveMesh &meshData);
+  void finalizePendingTextures();
+
   // Things to be uploaded to gpu
-  std::vector<tinygltf::Model> m_pendingModels{};
+  struct PendingMeshTask {
+    enum class Type { GLTF, PRIMITIVE };
+    Type type;
+    size_t index; // Index into m_pendingGltfModels or m_pendingPrimitives
+  };
+
+  // Add this to your class header
+  std::vector<PendingMeshTask> m_loadOrder;
+  std::vector<core::PrimitiveMesh> m_pendingPrimitives{};
+  std::vector<tinygltf::Model> m_pendingGltfModels{};
   uint m_pendingMeshes = 0;
   struct PendingTexture {
     std::string filename;

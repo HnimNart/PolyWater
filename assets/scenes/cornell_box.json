@@ -43,7 +43,7 @@
   },
   {
     "id": "mat_glass",
-    "baseColor": [1.0, 1.0, 1.0, 1.0],
+    "baseColor": [0.0, 1.0, 1.0, 1.0],
     "metallic": 0.0,
     "roughness": 0.01,
     "ior": 1.5
