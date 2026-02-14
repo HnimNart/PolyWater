@@ -1,12 +1,14 @@
 #include "SceneResources.hpp"
 #include "core/Math.hpp"
 
-#include <core/logger.hpp>
-#include <core/string_utils.h>
-#include <glm/gtx/string_cast.hpp>
-
 #define TINYOBJLOADER_IMPLEMENTATION
+#include <glm/gtx/string_cast.hpp>
 #include <tinyobjloader/tiny_obj_loader.h>
+
+#include <core/logger.hpp>
+#include <core/path_utils.hpp>
+#include <core/string_utils.h>
+#include <shaders/shared/bindings.h>
 
 namespace {
 
@@ -46,13 +48,13 @@ SceneResourcesManager::loadModel(const std::string &name,
 
   // 3. Dispatch
   if (ext == ".gltf" || ext == ".glb") {
-    LOGD("Loading GLTF: %s\n", filename.c_str());
+    LOGD("Loading GLTF: %s", filename.c_str());
     return loadGltf(name, filename);
   } else if (ext == ".obj") {
-    LOGD("Loading OBJ: %s\n", filename.c_str());
+    LOGD("Loading OBJ: %s", filename.c_str());
     return loadObj(name, filename);
   } else {
-    LOGE("Error: Unsupported file extension '%s' for file '%s'\n", ext.c_str(),
+    LOGE("Error: Unsupported file extension '%s' for file '%s'", ext.c_str(),
          filename.c_str());
     return {};
   }
@@ -73,11 +75,10 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
   tinygltf::Model model = gltf::loadModel(filename);
 
   if (model.meshes.empty()) {
-    LOGE("Error: GLTF file %s contains no meshes.\n", filename.c_str());
+    LOGE("Error: GLTF file %s contains no meshes.", filename.c_str());
     return {};
   }
 
-  // 1. Calculate the Base ID
   MeshID baseID = getNextFreeMeshID();
 
   std::vector<MeshID> meshIDs;
@@ -89,13 +90,12 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
       subMeshName = name + "_" + std::to_string(i); // Fallback if unnamed
     }
 
-    // Combine user-provided name with internal mesh name
     std::string fullName = subMeshName;
     std::string uniqueName = getUniqueName(m_meshMap, fullName);
     MeshID currentID = baseID + static_cast<MeshID>(i);
     m_meshMap[uniqueName] = currentID;
     meshIDs.emplace_back(currentID);
-    LOGD("Registered: %s -> ID %d\n", uniqueName.c_str(), currentID);
+    LOGD("Registered: %s -> ID %d", uniqueName.c_str(), currentID);
   }
 
   // 6. Update Counters and Storage
@@ -114,16 +114,35 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
 {
   // 1. Call Helper
   auto loadedShapes = obj::loadObjPrimitives(filename);
-  if (loadedShapes.empty()) {
+  if (loadedShapes.meshes.empty()) {
     return {};
   }
 
+  auto &meshes = loadedShapes.meshes;
+  auto &materials = loadedShapes.materials;
+
   MeshID baseID = getNextFreeMeshID();
 
+  // Process materials
+  std::vector<MaterialID> materialVec;
+  materialVec.reserve(materials.size());
+  for (auto &material : materials) {
+    if (!material.diffuseTexturePath.empty()) {
+      TextureID texId =
+          loadTexture(material.name, core::findFile(material.diffuseTexturePath,
+                                                    common::getTextureDir()));
+      material.pbrData.baseColorTextureIndex = texId;
+    }
+    MaterialID materialId =
+        addMaterial(std::move(material.pbrData), material.name);
+    materialVec.emplace_back(materialId);
+  }
+
+  // Process the meshes now
   std::vector<MeshID> meshIDs;
-  meshIDs.reserve(loadedShapes.size());
-  for (size_t i = 0; i < loadedShapes.size(); i++) {
-    auto &[shapeName, meshPrimitive] = loadedShapes[i];
+  meshIDs.reserve(meshes.size());
+  for (size_t i = 0; i < meshes.size(); i++) {
+    auto &[shapeName, meshPrimitive, materialIdx] = meshes[i];
 
     std::string subMeshName = shapeName;
     if (subMeshName.empty()) {
@@ -136,13 +155,23 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
     m_meshMap[uniqueName] = currentID;
     meshIDs.push_back(currentID);
 
-    LOGD("Registered OBJ: %s -> ID %d\n", uniqueName.c_str(), currentID);
+    LOGD("Registered OBJ: %s -> ID %d", uniqueName.c_str(), currentID);
     m_loadOrder.push_back(
         {PendingMeshTask::Type::PRIMITIVE, m_pendingPrimitives.size()});
     m_pendingPrimitives.push_back(std::move(meshPrimitive));
-  }
 
-  m_pendingMeshes += loadedShapes.size();
+    // Add instance
+    shaderio::Instance inst;
+    if (materialIdx >= 0 && materialIdx < materialVec.size()) {
+      inst.materialIndex = materialVec[materialIdx];
+    } else {
+      inst.materialIndex = 0; // Use a default material ID
+    }
+    inst.meshIndex = currentID;
+    inst.hit_group = MaterialType::eDiffuse;
+    addInstance(std::move(inst), uniqueName);
+  }
+  m_pendingMeshes += meshes.size();
 
   return meshIDs;
 }
@@ -153,27 +182,47 @@ TextureID SceneResourcesManager::loadTexture(const std::string &name,
 /**********************************************************/
 {
   IDeviceAssets::TextureID id = m_device_resources->reserveTextureSlot();
+  assert(id < MAX_SCENE_TEXTURES);
   m_pendingTextures.push_back({filename, id});
   auto retval_id = id + 1;
   std::string uniqueName = getUniqueName(m_textureMap, name);
   m_textureMap[uniqueName] = retval_id;
   return retval_id;
 }
+
 /**********************************************************/
 InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
                                               std::string name)
 /**********************************************************/
 {
+  // 1. Prepare the transform
   instance.transform = math::composeTransform(
       instance.translation, instance.rotation, instance.scale);
+
+  // 2. Clean the name
+  name = common::trim(name);
+
+  // 3. Check for existing instance
+  auto it = m_instanceMap.find(name);
+  if (it != m_instanceMap.end()) {
+    InstanceID existingID = it->second;
+    LOGD("[SceneResourcesManager] Replacing Instance: '%s' (ID: %d)",
+         name.c_str(), existingID);
+    m_resources.instances[existingID] = instance;
+    return existingID;
+  }
+
+  // 4. If new, push back as normal
   m_resources.instances.push_back(instance);
   InstanceID id = static_cast<InstanceID>(m_resources.instances.size() - 1);
 
   if (name.empty()) {
     name = "Instance_" + std::to_string(id);
   }
+
   std::string uniqueName = getUniqueName(m_instanceMap, name);
   m_instanceMap[uniqueName] = id;
+
   return id;
 }
 
@@ -182,12 +231,23 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
                                               std::string name)
 /**********************************************************/
 {
-  m_resources.materials.push_back(material);
-  MaterialID id = static_cast<MaterialID>(m_resources.materials.size() - 1);
+  name = common::trim(name);
+  auto it = m_materialMap.find(name);
+  if (it != m_materialMap.end()) {
+    MaterialID existingID = it->second;
+    LOGD("[SceneResourcesManager] Overwriting existing material: '%s' (ID: %d)",
+         name.c_str(), existingID);
+    m_resources.materials[existingID] = material;
+    setDirty(true);
+    return existingID;
+  }
 
+  m_resources.materials.push_back(std::move(material));
+  MaterialID id = static_cast<MaterialID>(m_resources.materials.size() - 1);
   if (name.empty()) {
     name = "Material_" + std::to_string(id);
   }
+
   std::string uniqueName = getUniqueName(m_materialMap, name);
   m_materialMap[uniqueName] = id;
   return id;

@@ -24,7 +24,7 @@
 app::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show) {}
 
 void app::ElementLogger::onAttach(Application * /*app*/) {
-  LOGI("Adding Logger UI\n");
+  LOGI("Adding Logger UI");
 
   m_settingsHandler.setHandlerName("ElementLogger");
   m_settingsHandler.setSetting("ShowLog", &m_showLog);

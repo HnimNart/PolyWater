@@ -21,7 +21,7 @@ void app::GeometryPickerElement::onAttach(Application *app)
 /**********************************************************/
 {
   m_app = app;
-  LOGI("Adding Geometry Picker Element\n");
+  LOGI("Adding Geometry Picker Element");
 }
 
 /**********************************************************/

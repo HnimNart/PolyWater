@@ -118,7 +118,7 @@ void app::ElementCamera::updateCamera(
 void app::ElementCamera::onAttach(Application *)
 /**********************************************************/
 {
-  LOGI("Adding Camera Element\n");
+  LOGI("Adding Camera Element");
 }
 
 /**********************************************************/

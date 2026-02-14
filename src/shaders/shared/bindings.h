@@ -1,4 +1,6 @@
+#pragma once
 
+#ifndef __cplusplus
 // clang-format off
 // Push constants containing scene information, camera data, and material overrides
 [[vk::push_constant]]                           ConstantBuffer<PushConstant> pushConst;
@@ -11,3 +13,6 @@
 // Output image where the final rendered result will be stored
 [[vk::binding(BindingPoints::eAccumImage, 1)]]    RWTexture2D<float4> accumImage;
 // clang-format on
+#endif
+
+#define MAX_SCENE_TEXTURES 4096

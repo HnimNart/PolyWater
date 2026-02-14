@@ -10,7 +10,6 @@
 
 #include "Scene.h"
 #include "gltf/gltf_utils.hpp"
-#include "obj/obj_utils.hpp"
 
 using InstanceID = uint32_t;
 using MaterialID = uint32_t;

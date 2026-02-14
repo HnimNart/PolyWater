@@ -28,7 +28,7 @@
 #include "app/Application.hpp"
 
 void app::ElementDefaultMenu::onAttach(Application *app) {
-  LOGI("Adding Default Menu\n");
+  LOGI("Adding Default Menu");
   m_app = app;
 }
 

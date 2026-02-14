@@ -44,71 +44,69 @@ void VulkanRendererElement::setupScene(const std::filesystem::path &filename)
   }
   m_sceneManager.buildSceneFromData(sceneData, common::getAssetDirs());
 
-// #define ADD_SPHERES
-#ifdef ADD_SPHERES
-  SceneResourcesManager &scene_resources =
-      m_sceneManager.sceneResourceManager();
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> disColor(1e-5f, 1.0f);
-  std::uniform_real_distribution<float> disPos(-20.0f, 20.0f);
-  std::uniform_real_distribution<float> disScale(0.1f, 1.0f);
+  if (filename == "default_scene.json") {
+    SceneResourcesManager &scene_resources =
+        m_sceneManager.sceneResourceManager();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> disColor(1e-5f, 1.0f);
+    std::uniform_real_distribution<float> disPos(-20.0f, 20.0f);
+    std::uniform_real_distribution<float> disScale(0.1f, 1.0f);
 
-  const int numInstances = 400; // Increased count for better spiral effect
-  const float goldenAngle = 2.39996323f; // radians (approx 137.5 degrees)
-  const float spread = 0.8f;             // Controls spacing between spheres
-  const float centerOpenRadius = 5.0f;
+    const int numInstances = 400; // Increased count for better spiral effect
+    const float goldenAngle = 2.39996323f; // radians (approx 137.5 degrees)
+    const float spread = 0.8f;             // Controls spacing between spheres
+    const float centerOpenRadius = 5.0f;
 
-  for (int i = 0; i < numInstances; ++i) {
-    // 1. Calculate Spiral Position (Phyllotaxis)
-    float t = (float)i;
-    float r = centerOpenRadius +
-              (spread * std::sqrt(t)); // Radius grows with sqrt of index
-    float theta = t * goldenAngle;
+    for (int i = 0; i < numInstances; ++i) {
+      // 1. Calculate Spiral Position (Phyllotaxis)
+      float t = (float)i;
+      float r = centerOpenRadius +
+                (spread * std::sqrt(t)); // Radius grows with sqrt of index
+      float theta = t * goldenAngle;
 
-    float x = r * std::cos(theta);
-    float z = r * std::sin(theta);
+      float x = r * std::cos(theta);
+      float z = r * std::sin(theta);
 
-    // Cool Wave Effect: Bob the height (Y) based on distance from center
-    float y = std::sin(r * 0.5f) * 2.0f + 2.0f;
+      // Cool Wave Effect: Bob the height (Y) based on distance from center
+      float y = std::sin(r * 0.5f) * 2.0f + 2.0f;
 
-    glm::vec3 pos = glm::vec3(x, y, z);
+      glm::vec3 pos = glm::vec3(x, y, z);
 
-    // 2. Procedural Material Generation
-    // Map color Hue to the angle (theta) for a rainbow spiral
-    float hue = std::fmod(theta * 0.1f, 1.0f);
-    glm::vec3 spiralColor =
-        glm::vec3(0.5f + 0.5f * std::cos(6.28f * (hue + 0.0f)),  // R
-                  0.5f + 0.5f * std::cos(6.28f * (hue + 0.33f)), // G
-                  0.5f + 0.5f * std::cos(6.28f * (hue + 0.67f))  // B
-        );
+      // 2. Procedural Material Generation
+      // Map color Hue to the angle (theta) for a rainbow spiral
+      float hue = std::fmod(theta * 0.1f, 1.0f);
+      glm::vec3 spiralColor =
+          glm::vec3(0.5f + 0.5f * std::cos(6.28f * (hue + 0.0f)),  // R
+                    0.5f + 0.5f * std::cos(6.28f * (hue + 0.33f)), // G
+                    0.5f + 0.5f * std::cos(6.28f * (hue + 0.67f))  // B
+          );
 
-    // Make outer spheres denser/darker, inner spheres lighter
-    float density = (r / 20.0f) * 10.0f;
+      // Make outer spheres denser/darker, inner spheres lighter
+      float density = (r / 20.0f) * 10.0f;
 
-    // Generate randomness for variation
-    float randScale = disScale(gen);
+      // Generate randomness for variation
+      float randScale = disScale(gen);
 
-    // Create Material
-    std::string name = "Sphere" + std::to_string(i);
-    MaterialID randomMatId = scene_resources.addMaterial(
-        {.baseColorFactor = glm::vec4(spiralColor, 1.0f),
-         .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
-         .roughnessFactor = 0.1f + (r / 30.0f),
-         .sigma_t = density},
-        name);
+      // Create Material
+      std::string name = "Sphere" + std::to_string(i);
+      MaterialID randomMatId = scene_resources.addMaterial(
+          {.baseColorFactor = glm::vec4(spiralColor, 1.0f),
+           .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
+           .roughnessFactor = 0.1f + (r / 30.0f),
+           .sigma_t = density},
+          name);
 
-    // 3. Add the Instance
-    scene_resources.addInstance(
-        {.translation = pos,
-         .scale = glm::vec3(randScale * 0.8f),
-         .materialIndex = randomMatId,
-         .meshIndex = scene_resources.getMeshIDFromName("Sphere"),
-         .hit_group = MaterialType::eVolumetric},
-        name);
+      // 3. Add the Instance
+      scene_resources.addInstance(
+          {.translation = pos,
+           .scale = glm::vec3(randScale * 0.8f),
+           .materialIndex = randomMatId,
+           .meshIndex = scene_resources.getMeshIDFromName("Sphere"),
+           .hit_group = MaterialType::eVolumetric},
+          name);
+    }
   }
-
-#endif
 
   // build scene
   m_sceneManager.sceneResourceManager().finalizeSceneResources();

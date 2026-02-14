@@ -31,17 +31,37 @@
 
 namespace common {
 
-inline static std::vector<std::filesystem::path> getSceneDir() {
+/**********************************************************/
+inline static std::vector<std::filesystem::path> getSceneDir()
+/**********************************************************/
+{
   std::filesystem::path rootDir = ROOT_DIR;
   return {std::filesystem::absolute(rootDir / "assets" / "scenes")};
 }
 
-inline static std::vector<std::filesystem::path> getAssetDirs() {
+/**********************************************************/
+inline static std::vector<std::filesystem::path> getAssetDirs()
+/**********************************************************/
+{
   std::filesystem::path rootDir = ROOT_DIR;
   return {std::filesystem::absolute(rootDir / "assets")};
 }
 
-inline static std::vector<std::filesystem::path> getShaderDirs() {
+/**********************************************************/
+inline static std::vector<std::filesystem::path> getTextureDir()
+/**********************************************************/
+{
+  std::vector<std::filesystem::path> dirs = getAssetDirs();
+  std::filesystem::path rootDir = ROOT_DIR;
+  auto texturePath = std::filesystem::absolute(rootDir / "assets" / "textures");
+  dirs.push_back(std::move(texturePath));
+  return dirs;
+}
+
+/**********************************************************/
+inline static std::vector<std::filesystem::path> getShaderDirs()
+/**********************************************************/
+{
   std::filesystem::path exePath = core::getExecutablePath().parent_path();
   std::filesystem::path rootDir = ROOT_DIR;
   // Define the common base path once

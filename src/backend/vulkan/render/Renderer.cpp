@@ -217,7 +217,8 @@ void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
   bindings.addBinding(
       {.binding = shaderio::BindingPoints::eTextures,
        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-       .descriptorCount = 10, // TODO this sohuld benumber of textures?
+       .descriptorCount =
+           static_cast<uint32_t>(m_resources->getMaximumNumberOfTextures()),
        .stageFlags = VK_SHADER_STAGE_ALL},
       VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
           VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |

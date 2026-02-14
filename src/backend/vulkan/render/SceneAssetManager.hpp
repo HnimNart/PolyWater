@@ -11,6 +11,7 @@
 // Project Includes
 #include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "shaders/shared/bindings.h"
 
 // Forward Declarations
 namespace tinygltf {
@@ -63,7 +64,8 @@ public:
   //    Handling image loading, creation, and descriptor slots.
   // -------------------------------------------------------------------------
   TextureID uploadTexture(const std::string &filepath, TextureID = -1) override;
-  unsigned int reserveTextureSlot() override;
+  TextureID reserveTextureSlot() override;
+  uint32_t getMaximumNumberOfTextures() const { return MAX_SCENE_TEXTURES; }
 
   // Accessors
   const std::vector<nvvk::Image> &textures() const { return m_textures; }
