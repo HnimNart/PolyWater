@@ -103,7 +103,7 @@
   ],
   "instances": [
     {
-      "name": "Cube",
+      "name": "cube",
       "meshId": "cube",
       "materialId": "mat_cube",
       "transform": {

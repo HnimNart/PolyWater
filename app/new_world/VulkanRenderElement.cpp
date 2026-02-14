@@ -300,12 +300,14 @@ void VulkanRendererElement::onUIRender()
           ImGui::EndCombo();
         }
 
-        if (ImGui::CollapsingHeader("Tonemapper")) {
+        if (ImGui::CollapsingHeader("Tonemapper",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
           core::tonemapperWidget(m_renderer->postProcessor().data());
         }
 
         if (m_renderMode == RenderMode::RAYTRACE) {
-          if (ImGui::CollapsingHeader("Integrator Params")) {
+          if (ImGui::CollapsingHeader("Integrator Params",
+                                      ImGuiTreeNodeFlags_DefaultOpen)) {
             PE::begin();
             auto &params = m_renderer->renderParams();
             m_hasChanged |=
@@ -327,7 +329,8 @@ void VulkanRendererElement::onUIRender()
         }
 
         auto &sceneInfo = m_sceneManager.sceneInfo();
-        if (ImGui::CollapsingHeader("Environment")) {
+        if (ImGui::CollapsingHeader("Environment",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
           auto &sceneInfo = m_sceneManager.sceneInfo();
           m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
           if (sceneInfo.useSky) {
@@ -408,7 +411,7 @@ void VulkanRendererElement::renderMaterialsUI()
   // Static buffer to persist search text between frames
   static char materialSearch[128] = "";
 
-  if (ImGui::CollapsingHeader("Materials")) {
+  if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
     // 1. Search Bar
     ImGui::InputTextWithHint("##MatSearch", "Filter by name...", materialSearch,
                              IM_ARRAYSIZE(materialSearch));
@@ -485,7 +488,7 @@ void VulkanRendererElement::renderInstancesUI()
   bool changed = false;
   static char instanceSearch[128] = "";
 
-  if (ImGui::CollapsingHeader("Instances")) {
+  if (ImGui::CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::InputTextWithHint("##InstSearch", "Search instances...",
                              instanceSearch, IM_ARRAYSIZE(instanceSearch));
     ImGui::Separator();
