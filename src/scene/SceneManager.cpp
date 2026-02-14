@@ -58,14 +58,12 @@ void SceneManager::buildSceneFromData(
   }
 
   // 2. Load Textures & Keep ID Mapping
-  std::vector<TextureID> texIdMap;
   for (const auto &val : data.texturePaths) {
     std::string fullPath = core::findFile(val.path, searchDirs);
-    texIdMap.push_back(m_scene_resources.loadTexture(val.name, fullPath));
+    m_scene_resources.loadTexture(val.name, fullPath);
   }
 
   // 3. Create Materials & Keep ID Mapping
-  std::vector<MaterialID> matIdMap;
   for (const auto &matData : data.materials) {
     shaderio::Material info{};
     info.baseColorFactor = matData.baseColor;
@@ -75,13 +73,11 @@ void SceneManager::buildSceneFromData(
     info.ior = matData.ior;
 
     // Resolve Texture Index
-    if (matData.textureIndex >= 0 && matData.textureIndex < texIdMap.size()) {
+    if (!matData.textureId.empty()) {
       info.baseColorTextureIndex =
-          static_cast<int>(texIdMap[matData.textureIndex]);
+          m_scene_resources.getTextureIDFromName(matData.textureId);
     }
-
-    matIdMap.push_back(
-        m_scene_resources.addMaterial(std::move(info), matData.name));
+    m_scene_resources.addMaterial(std::move(info), matData.name);
   }
 
   // 4. Create Instances

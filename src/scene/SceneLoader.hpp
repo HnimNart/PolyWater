@@ -28,10 +28,8 @@ private:
   using json = nlohmann::json;
 
   // --- Parsing Helpers ---
-  void parseAssets(const json &j, SceneData &scene, IDMap &meshMap,
-                   IDMap &texMap);
-  void parseMaterials(const json &j, SceneData &scene, const IDMap &texMap,
-                      IDMap &matMap);
+  void parseAssets(const json &j, SceneData &scene);
+  void parseMaterials(const json &j, SceneData &scene);
   void parseInstances(const json &j, SceneData &scene);
   void parseSceneInfo(const json &j, SceneData &scene);
 

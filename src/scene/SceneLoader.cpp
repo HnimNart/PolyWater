@@ -33,22 +33,18 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
   // Clear any old data
   outScene.clear();
 
-  // Local lookup maps to resolve names to indices during loading
-  IDMap meshMap;
-  IDMap texMap;
-  IDMap matMap;
   try {
     json j;
     file >> j;
 
     // 1. Assets (Populates meshMap and texMap)
     if (j.contains("assets")) {
-      parseAssets(j["assets"], outScene, meshMap, texMap);
+      parseAssets(j["assets"], outScene);
     }
 
     // 2. Materials (Uses texMap, populates matMap)
     if (j.contains("materials")) {
-      parseMaterials(j["materials"], outScene, texMap, matMap);
+      parseMaterials(j["materials"], outScene);
     }
 
     // 3. Instances (Uses meshMap and matMap)
@@ -71,8 +67,7 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
 }
 
 /**********************************************************/
-void SceneLoader::parseAssets(const json &j, SceneData &scene, IDMap &meshMap,
-                              IDMap &texMap)
+void SceneLoader::parseAssets(const json &j, SceneData &scene)
 /**********************************************************/
 {
   // 1. Meshes
@@ -80,7 +75,6 @@ void SceneLoader::parseAssets(const json &j, SceneData &scene, IDMap &meshMap,
     for (auto &[key, val] : j["meshes"].items()) {
       std::string path = val.get<std::string>();
       int id = scene.addMesh(key, path);
-      meshMap[key] = id;
     }
   }
 
@@ -89,14 +83,12 @@ void SceneLoader::parseAssets(const json &j, SceneData &scene, IDMap &meshMap,
     for (auto &[key, val] : j["textures"].items()) {
       std::string path = val.get<std::string>();
       int id = scene.addTexture(key, path);
-      texMap[key] = id;
     }
   }
 }
 
 /**********************************************************/
-void SceneLoader::parseMaterials(const json &j, SceneData &scene,
-                                 const IDMap &texMap, IDMap &matMap)
+void SceneLoader::parseMaterials(const json &j, SceneData &scene)
 /**********************************************************/
 {
   for (const auto &matJson : j) {
@@ -115,22 +107,11 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene,
     // Texture Resolution
     if (matJson.contains("textureId")) {
       std::string texName = matJson["textureId"];
-
-      auto it = texMap.find(texName);
-      if (it != texMap.end()) {
-        mat.textureIndex = it->second;
-      } else {
-        LOGW("[SceneLoader] Warning: Texture '%s' not found for material %s\n",
-             texName.c_str(), mat.name.c_str());
-        mat.textureIndex = -1;
-      }
+      mat.textureId = texName;
     }
 
     // Add to SceneData
     scene.materials.push_back(mat);
-
-    // Store index for lookup (Material Name -> Index)
-    matMap[mat.name] = static_cast<int>(scene.materials.size() - 1);
   }
 }
 
@@ -147,8 +128,7 @@ void SceneLoader::parseInstances(const json &j, SceneData &scene)
     inst.meshId = meshName;
 
     // Resolve Material Index
-    std::string matName = JSON_VAL(instJson, "materialId", std::string(""));
-    inst.materialId = matName;
+    inst.materialId = JSON_VAL(instJson, "materialId", std::string(""));
 
     // Transforms
     if (instJson.contains("transform")) {

@@ -24,7 +24,7 @@ struct DataMaterial {
   float roughness{1.0f};
   glm::vec3 emission{0.0f};
   glm::vec3 ior{1.5f};
-  int textureIndex = -1; // Index into SceneData::texturePaths
+  std::string textureId = ""; // name of texture
 };
 
 struct DataInstance {

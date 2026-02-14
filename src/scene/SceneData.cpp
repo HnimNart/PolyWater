@@ -38,7 +38,7 @@ void SceneData::dump() const
               << ", " << m.baseColor.z << "]\n";
     std::cout << "    Roughness: " << m.roughness
               << " | Metallic: " << m.metallic << "\n";
-    std::cout << "    TexIndex : " << m.textureIndex << "\n";
+    std::cout << "    TexId : " << m.textureId << "\n";
   }
 
   // --- Instances ---
