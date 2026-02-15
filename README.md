@@ -1,22 +1,15 @@
 # VulkanRenderer
 
-
+# VulkanRenderer
 
 ## TODOS
 [x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
-
 [x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
-
 [x] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
-
 [ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
-
 [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
-
 [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
-
 [ ] Add a geometry picker and widget
-
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
@@ -25,118 +18,46 @@ It can be used for both **rasterization** and **ray tracing**, with a focus on m
 
 ## Project Structure
 
-### Applications
-```
-app/
-├─ sandbox/       # Example app using the engine
-├─ editor/        # Optional editor/front-end
-└─ tests/         # Rendering and regression tests
-```
-
-### Engine
-```
-engine/
-├─ core/          # Core utilities (no platform/API deps)
-│   ├─ math/          # linear algebra, geometry helpers
-│   ├─ containers/    # span, small_vector, hash maps
-│   ├─ memory/        # allocators, arenas
-│   ├─ logging/       # logging, assertions
-│   └─ threading/     # jobs, fibers, task graph basics
+### Source (`src/`)
+src/
+├─ app/                     # Application layer
+│  ├─ cli/                  # CLI parameter parsing and registry
+│  ├─ elements/             # Application logic (Camera, Logger, Profiler, GPUMonitor)
+│  └─ widgets/              # GUI widgets (ImGui wrappers, Property Editors, Windows)
 │
-├─ os/            # Platform abstraction layer (PAL)
-│   ├─ win32/         # Win32 + XInput + WGI
-│   ├─ linux/         # X11/Wayland + evdev
-│   ├─ macos/         # Cocoa/MetalLayer, IOKit
-│   └─ windowing/     # SDL/GLFW integration
+├─ backend/                 # Low-level Render Hardware Interface (RHI)
+│  ├─ interfaces/           # Abstract RHI interfaces (IRenderContext, IRenderBackend)
+│  └─ vulkan/               # Concrete Vulkan implementation
+│     ├─ compiler/          # Slang/SPIR-V compilation logic
+│     ├─ core/              # Context, Swapchain, and Frame Sync managers
+│     ├─ gui/               # ImGui Vulkan backend integration
+│     └─ nvvk/              # Nvidia Vulkan wrappers (Allocators, Barriers, RayTracing)
 │
-├─ gfx/           # Optional API-agnostic rendering facade
-│   └─ interfaces/    # IGpuDevice, handles, descriptors
+├─ core/                    # Engine utilities (No graphics deps)
+│  ├─ shape/                # Geometric primitives
+│  └─ [utils]               # Math, Logging, File I/O, Profiling, Timers
 │
-├─ rhi/           # Render Hardware Interface (API-agnostic layer)
-│   ├─ rhi_device.h     # IDevice (caps, queues)
-│   ├─ rhi_resources.h  # BufferDesc, ImageDesc, SamplerDesc, Views
-│   ├─ rhi_pipeline.h   # RasterPipelineDesc, RTPipelineDesc
-│   ├─ rhi_cmd.h        # ICommandList, barriers by usage
-│   ├─ rhi_swapchain.h
-│   ├─ rhi_shaders.h    # Shader bytecode + reflection schema
-│   ├─ rhi_enums.h      # Formats, usage, stages, access, queue types
-│   └─ rhi_utils.h      # Helpers, debug names
+├─ renderer/                # High-level Rendering Logic
+│  ├─ interfaces/           # Render interfaces (IRenderGraph, IToneMapper)
+│  └─ vulkan/               # Vulkan-specific renderer implementation
+│     ├─ passes/            # Render Passes (Raster, RayTrace, Sky, ToneMap, UI)
+│     └─ Renderer.cpp       # Main rendering loop orchestration
 │
-├─ backends/      # Backend implementations
-│   ├─ vulkan/         # Vulkan
-│   │   vk_device.*, vk_buffer.*, vk_image.*, vk_pipeline.*, vk_rt.*
-│   ├─ d3d12/          # Direct3D12
-│   │   dx_device.*, dx_heap.*, dx_descriptor.*, dx_pipeline.*, dx_rt.*
-│   ├─ metal/          # Metal
-│   │   mtl_device.*, mtl_buffer.*, mtl_texture.*, mtl_pipeline.*, mtl_rt.*
-│   └─ webgpu/         # WebGPU (e.g. Dawn)
-│       wgpu_device.*, ...
+├─ scene/                   # Scene Management
+│  ├─ gltf/ & obj/          # Asset loaders
+│  ├─ Scene.h               # Scene graph definitions
+│  └─ SceneManager          # Asset registry and scene traversal
 │
-├─ shader/        # Shader system
-│   ├─ compiler/      # DXC/glslang wrappers
-│   ├─ reflection/    # SPIR-V reflection
-│   ├─ packer/        # package SPIR-V + metadata
-│   └─ codegen/       # generate C++ headers for layouts
-│
-├─ res/           # Runtime resource & asset system
-│   ├─ vfs/           # virtual FS: .pak, loose files, http
-│   ├─ asset_db/      # asset registry, dependencies
-│   ├─ loaders/       # mesh_loader, texture_loader, material_loader
-│   ├─ upload/        # staging buffers, async GPU upload
-│   └─ cache/         # RAM/GPU residency management
-│
-├─ scene/         # Scene representation
-│   ├─ components/    # Mesh, Material, Transform, Light, Camera
-│   ├─ systems/       # Mesh system, material system, RT AS builder
-│   └─ ecs/           # optional: entity/component framework
-│
-├─ graph/         # Framegraph
-│   ├─ core/          # logical resources, passes
-│   ├─ compile/       # dependency analysis, scheduling
-│   └─ execute/       # barrier emission, cmd buffer recording
-│
-├─ task/          # Parallelism
-│   ├─ scheduler/     # job system
-│   └─ fiber/         # optional fiber-based tasks
-│
-└─ modules/       # Feature modules (plug into framegraph)
-    ├─ taa/           # temporal AA
-    ├─ tonemap/
-    ├─ imgui/
-    ├─ sky/
-    ├─ pathtracer/
-    └─ shadows/
-```
-### Offline Tools
-```
-tools/
-├─ assetc/        # Asset compiler
-│   ├─ importers/     # glTF, OBJ, FBX, USD
-│   ├─ processors/    # meshopt, meshlets, LODs, tangent calc
-│   ├─ materializer/  # pack PBR params, transcode textures
-│   └─ packer/        # bundle into .pak/.bundle
-│
-├─ shadersync/    # Offline shader build & reflection
-└─ validation/    # Compare GPU results with reference
-```
-
-### Third Party Deps
-```
-third_party/
-├─ vma/           # Vulkan Memory Allocator
-├─ spirv-tools/
-├─ spirv-reflect/
-├─ meshoptimizer/
-├─ basisu/
-└─ stb/
-```
-
-### Documentation
-```
-docs/             # Design docs, diagrams, samples
-```
-
-
+└─ shaders/                 # Slang Shader Library
+   ├─ entrypoints/          # Shader Stages
+   │  ├─ compute/           # Sky, Tonemapping
+   │  ├─ raster/            # GLTF Rasterization
+   │  └─ raytrace/          # Raygen, Miss, Hit groups (PBR, Mirror, Shadow)
+   ├─ include/              # Shared Shader Code
+   │  ├─ bsdf/              # BRDF/BSDF functions (Dielectric, Diffuse, GGX)
+   │  ├─ core/              # Math, Random, Sampling utilities
+   │  └─ light/             # Lighting and Sky functions
+   └─ shared/               # C++/Slang shared structs and bindings
 
 
 ### INSTALLATION

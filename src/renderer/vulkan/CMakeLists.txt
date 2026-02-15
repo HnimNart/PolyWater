@@ -15,6 +15,25 @@ set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 20
 )
 
+# Link it to your project (Replace 'VulkanRenderer' with your actual target name!)
+include(DownloadOIDN)
+target_link_libraries(VulkanRenderer PRIVATE OpenImageDenoise)
+
+# On Windows, the .dll files must be next to your .exe to run.
+if(WIN32)
+    add_custom_command(TARGET VulkanRenderer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${OIDN_INSTALL_DIR}/bin/OpenImageDenoise.dll"
+        $<TARGET_FILE_DIR:VulkanRenderer>
+        
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${OIDN_INSTALL_DIR}/bin/tbb.dll" 
+        $<TARGET_FILE_DIR:VulkanRenderer>
+        
+        COMMENT "Copying OIDN and TBB DLLs to output directory..."
+    )
+endif()
+
 # -------------------------------------------------------------------
 # 3. Linking & Include logic
 # -------------------------------------------------------------------
