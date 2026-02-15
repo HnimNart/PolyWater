@@ -3,6 +3,10 @@ build/
 compile_commands.json
 
 ext/vulkansdk
+ext/oidn
 
 **/_*/
 .DS_Store
+
+
+

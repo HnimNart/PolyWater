@@ -9,15 +9,10 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
 
 add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
 
-# Basic Target Properties
-set_target_properties(${LIB_NAME} PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_STANDARD 20
-)
 
 # Link it to your project (Replace 'VulkanRenderer' with your actual target name!)
 include(DownloadOIDN)
-target_link_libraries(VulkanRenderer PRIVATE OpenImageDenoise)
+target_link_libraries(${LIB_NAME} PRIVATE OpenImageDenoise)
 
 # On Windows, the .dll files must be next to your .exe to run.
 if(WIN32)

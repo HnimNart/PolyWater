@@ -10,12 +10,7 @@ find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 
 add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
-target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
-set_target_properties(${LIB_NAME} PROPERTIES
-    UNITY_BUILD OFF
-    UNITY_BUILD_BATCH_SIZE 8
-    UNITY_BUILD_MODE BATCH
-)
+
 target_compile_definitions(${LIB_NAME} PUBLIC
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
@@ -39,9 +34,7 @@ set(SHADER_INCLUDE_FLAGS
 )
 
 
-
-
-# Run custom compilation macros
+# Run compilation macros
 compile_slang("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
 compile_glsl("${SHADER_GLSL_FILES}" "${SHADER_OUTPUT_DIR}" GLSL_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
 

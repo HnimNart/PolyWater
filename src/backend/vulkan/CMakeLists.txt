@@ -16,11 +16,6 @@ add_library(${LIB_NAME} STATIC ${PLUGIN_SOURCES})
 # Add the nvvk subdirectory
 add_subdirectory(nvvk)
 
-# Basic Target Properties
-set_target_properties(${LIB_NAME} PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_STANDARD 20
-)
 
 # -------------------------------------------------------------------
 # 3. Linking & Include logic
