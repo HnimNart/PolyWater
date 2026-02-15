@@ -6,8 +6,8 @@
 
 #include <nvvk/gbuffers.hpp>
 
-#include "backend/interfaces/IRenderGraph.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
 
 /**
  * @brief Final pass of the frame.

@@ -1,6 +1,8 @@
 #include "RenderContext.hpp"
 
-#include "nvvk/default_structs.hpp"
+#include <volk.h>
+#include <vulkan/vulkan.h>
+
 #include "Translator.hpp"
 
 /**********************************************************/

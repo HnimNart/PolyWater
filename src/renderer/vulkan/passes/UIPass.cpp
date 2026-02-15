@@ -1,8 +1,5 @@
 #include "UIPass.hpp"
 
-#include <backends/imgui_impl_vulkan.h>
-#include <imgui.h>
-
 #include <nvvk/debug_util.hpp>
 
 #include "backend/vulkan/core/RenderContext.hpp"

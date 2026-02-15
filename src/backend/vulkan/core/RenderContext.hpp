@@ -6,8 +6,9 @@
 
 #include "backend/interfaces/IRenderContext.hpp"
 #include "backend/interfaces/RHI_definitions.hpp"
-#include "backend/vulkan/render/Acceleration.hpp"
-#include "backend/vulkan/render/SceneAssetManager.hpp"
+
+class VulkanSceneAssetManager;
+class AccelerationStructures;
 
 //------------------------------------------------------------
 // VulkanFrameContext

@@ -9,8 +9,8 @@
 #include "nvvk/sampler_pool.hpp"
 
 // Project Includes
-#include "backend/interfaces/IDeviceAssets.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "renderer/interfaces/IDeviceAssets.hpp"
 #include "shaders/shared/bindings.h"
 
 // Forward Declarations

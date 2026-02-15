@@ -5,8 +5,8 @@
 #include "nvvk/descriptors.hpp"
 #include "nvvk/sbt_generator.hpp"
 
-#include "backend/interfaces/IRenderGraph.hpp"
-#include "backend/vulkan/render/Acceleration.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
+#include "renderer/vulkan/Acceleration.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;

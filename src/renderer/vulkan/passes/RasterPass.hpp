@@ -2,8 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "backend/interfaces/IRenderGraph.hpp"
-#include "nvvk/descriptors.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
+#include <nvvk/descriptors.hpp>
 
 // Forward declarations
 struct VulkanSceneGpuData;

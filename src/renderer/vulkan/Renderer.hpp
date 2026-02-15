@@ -5,12 +5,12 @@
 #include <memory>
 
 #include "Acceleration.hpp"
-#include "backend/interfaces/IDeviceAssets.hpp"
-#include "backend/interfaces/IRenderGraph.hpp"
-#include "backend/interfaces/IRenderer.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/RayTracePass.hpp"
+#include "renderer/interfaces/IDeviceAssets.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
+#include "renderer/interfaces/IRenderer.hpp"
 #include "scene/SceneManager.hpp"
 #include "shaders/shared/structs.h"
 

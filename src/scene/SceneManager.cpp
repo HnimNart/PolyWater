@@ -5,9 +5,9 @@
 #include <core/file_operations.hpp>
 
 #include "SceneData.hpp"
-#include "backend/interfaces/IRenderer.hpp"
 #include "core/Math.hpp"
 #include "core/timers.hpp"
+#include "renderer/interfaces/IRenderer.hpp"
 
 /**********************************************************/
 SceneManager::SceneManager(std::shared_ptr<IDeviceAssets> deviceResources)

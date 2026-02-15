@@ -10,12 +10,12 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
-#include "backend/interfaces/IRenderer.hpp"
-#include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
-#include "backend/vulkan/render/SceneAssetManager.hpp"
+#include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
+#include "renderer/interfaces/IRenderer.hpp"
+#include "renderer/vulkan/SceneAssetManager.hpp"
 
 // Generated Shaders
 #include "_autogen/gltf_raster.slang.h"

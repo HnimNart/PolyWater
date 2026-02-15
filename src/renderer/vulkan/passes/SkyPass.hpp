@@ -1,7 +1,7 @@
 #pragma once
-#include "backend/interfaces/IRenderGraph.hpp"
+
 #include "backend/vulkan/core/ContextManager.hpp"
-#include "shaders/shared/sky_io.h.slang"
+#include "renderer/interfaces/IRenderGraph.hpp"
 
 class SkyPass : public IRenderPass {
 public:

@@ -23,13 +23,13 @@
 
 #include "app/Application.hpp"
 #include "app/widgets/axis.hpp"
-#include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/render/Renderer.hpp"
 #include "core/Math.hpp"
 #include "core/path_utils.hpp"
 #include "core/string_utils.h"
 #include "core/timers.hpp"
+#include "renderer/interfaces/IToneMapper.hpp"
+#include "renderer/vulkan/Renderer.hpp"
 #include "scene/SceneLoader.hpp"
 
 // ============================================================================
@@ -224,7 +224,6 @@ void VulkanRendererElement::onPreRender()
 void VulkanRendererElement::onRender(const IRenderContext &ctx)
 /**********************************************************/
 {
-  // Safety check: Don't render if resources are being reloaded
   if (!m_renderer)
     return;
 

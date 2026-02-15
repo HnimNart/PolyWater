@@ -7,10 +7,10 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/gbuffers.hpp>
 
-#include "backend/interfaces/IRenderGraph.hpp"
-#include "backend/interfaces/IToneMapper.hpp"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "core/timers.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
+#include "renderer/interfaces/IToneMapper.hpp"
 
 class ToneMapPass : public IToneMapper, public IRenderPass {
 public:

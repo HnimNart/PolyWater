@@ -17,20 +17,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Enable the use of Nsight Aftermath for crash tracking and shader debugging
-// #define USE_NSIGHT_AFTERMATH  // (not always on, as it slows down the
-// application)
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
-#define VMA_IMPLEMENTATION
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                       \
-  {                                                                            \
-    printf((format), __VA_ARGS__);                                             \
-    printf("\n");                                                              \
-  }
-
-// 2. Include the library headers that need implementation
-#include <vk_mem_alloc.h> // Assuming VMA is included via this or similar
-
 #include <app/cli/parameter_parser.hpp> // Parameter parser
 #include <core/timers.hpp>              // Timers for profiling
 

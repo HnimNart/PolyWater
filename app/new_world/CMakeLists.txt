@@ -16,13 +16,8 @@ add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 
 # 4. Link Dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    vulkan_plugin      # The "Leaf" - depends on almost everything
-    app_lib            # Depends on core and common
-    scene_lib          # Depends on core and common
-    core_lib           # Base application logic
-    common             # Utility base
-    glfw
-    volk
+    vk_render
+    common             
 )
 
 # 5. IDE Organization

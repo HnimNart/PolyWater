@@ -24,7 +24,7 @@
 #pragma once
 
 #include "app/IAppElement.hpp"
-#include "backend/interfaces/IRenderer.hpp"
+#include "renderer/interfaces/IRenderer.hpp"
 
 namespace app {
 

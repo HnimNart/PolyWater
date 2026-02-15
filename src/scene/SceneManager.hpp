@@ -7,14 +7,12 @@
 
 #include "SceneData.hpp"
 #include "SceneResources.hpp"
-#include "backend/interfaces/IRenderer.hpp"
 #include "core/Camera.hpp"
 
 namespace shaderio {
 struct TonemapperData;
 }
 
-class IRenderer;
 class IRenderContext;
 
 class SceneManager {
@@ -42,7 +40,6 @@ public:
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
-  glm::vec2 &metallicRoughness();
   shaderio::SceneInfo &sceneInfo();
 
   // --------------------------------------------------
@@ -57,5 +54,3 @@ private:
 
   bool has_changed = false;
 };
-
-;

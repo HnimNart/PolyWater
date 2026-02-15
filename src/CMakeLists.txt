@@ -65,6 +65,7 @@ add_subdirectory(core)
 add_subdirectory(scene)
 add_subdirectory(app)
 add_subdirectory(backend)
+add_subdirectory(renderer)
 
 
 # --- Include Directories ---
@@ -78,19 +79,12 @@ target_include_directories(${LIB_NAME} PUBLIC
     ${ROOT_DIR}/ext/stb
 )
 
+
 # --- Linking ---
 target_link_libraries(${LIB_NAME} PUBLIC
-    app_lib
     core_lib
+    app_lib
     scene_lib
-    backend_interfaces
-    vulkan_plugin
-    glfw
-    imgui
-    implot
-    fmt
-    nlohmann_json::nlohmann_json
-    tinyobjloader
 )
 
 # Optional CUDA NVML support
@@ -105,3 +99,5 @@ source_group("Sources" FILES ${LIB_SOURCES})
 source_group("Shaders\\Slang" FILES ${SHADER_SLANG_FILES})
 source_group("Shaders\\GLSL" FILES ${SHADER_GLSL_FILES})
 source_group("Shaders\\Generated" FILES ${SLANG_OUT} ${GLSL_OUT})
+
+

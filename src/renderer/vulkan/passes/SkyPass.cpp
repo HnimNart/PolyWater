@@ -1,4 +1,5 @@
 #include "SkyPass.hpp"
+
 #include <backend/vulkan/core/RenderContext.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
@@ -6,6 +7,7 @@
 
 // Shader bytecode
 #include "_autogen/sky_simple.slang.h"
+#include "scene/Scene.h"
 
 void SkyPass::init(VulkanContextManager *core) {
   m_core = core;

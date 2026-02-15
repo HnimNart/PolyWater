@@ -3,9 +3,9 @@
 #include <memory>
 
 #include "app/IAppElement.hpp"
-#include "backend/vulkan/render/Renderer.hpp"
 #include "core/Camera.hpp"
 #include "scene/SceneManager.hpp"
+#include <renderer/vulkan/Renderer.hpp>
 
 // Forward declarations to reduce compile time
 namespace core {

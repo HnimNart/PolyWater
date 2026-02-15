@@ -6,16 +6,16 @@
 #include "nvvk/gbuffers.hpp"
 #include "nvvk/helpers.hpp"
 
-#include "backend/interfaces/IToneMapper.hpp"
+#include "SceneAssetManager.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
-#include "backend/vulkan/render/SceneAssetManager.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/SkyPass.hpp"
 #include "passes/ToneMapPass.hpp"
 #include "passes/UIPass.hpp"
+#include "renderer/interfaces/IToneMapper.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/shared/structs.h"
 

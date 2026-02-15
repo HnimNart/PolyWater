@@ -5,8 +5,8 @@
 #include <memory>
 #include <string>
 
-#include "backend/interfaces/IDeviceAssets.hpp"
 #include "core/Camera.hpp"
+#include "renderer/interfaces/IDeviceAssets.hpp"
 
 #include "Scene.h"
 #include "gltf/gltf_utils.hpp"
