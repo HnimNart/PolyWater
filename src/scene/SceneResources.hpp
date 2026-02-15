@@ -79,6 +79,10 @@ public:
     return m_resources.materials;
   }
 
+  const std::vector<shaderio::MeshPrimitive> &getMeshes() {
+    return m_resources.meshes;
+  }
+
   const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const {
     assert(m_resources.meshes.size() < index);
     return m_resources.meshes[index];
@@ -90,6 +94,8 @@ public:
   const std::map<std::string, InstanceID> &instanceMap() const {
     return m_instanceMap;
   }
+
+  const std::map<std::string, MeshID> &meshMap() const { return m_meshMap; }
 
   shaderio::Material *getMaterialFromName(const std::string &name) {
     auto it = m_materialMap.find(name);

@@ -36,4 +36,6 @@ shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model &model,
 std::pair<glm::vec3, glm::vec3>
 computeModelBounds(const tinygltf::Model &model);
 
+shaderio::BoundingBox getMeshBounds(const tinygltf::Model &model, uint meshIdx);
+
 } // namespace gltf

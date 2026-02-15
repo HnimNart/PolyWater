@@ -277,3 +277,28 @@ gltf::computeModelBounds(const tinygltf::Model &model)
 
   return {minBound, maxBound};
 }
+
+/**********************************************************/
+shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model &model,
+                                          uint meshIdx)
+/**********************************************************/
+{
+  shaderio::BoundingBox bbox;
+  const tinygltf::Mesh &mesh = model.meshes.at(meshIdx);
+  for (const auto &primitive : mesh.primitives) {
+    auto it = primitive.attributes.find("POSITION");
+    if (it != primitive.attributes.end()) {
+      const tinygltf::Accessor &accessor = model.accessors[it->second];
+
+      // tinygltf accessors for POSITION usually already contain the min/max
+      if (accessor.minValues.size() == 3 && accessor.maxValues.size() == 3) {
+
+        bbox.add(glm::vec3(accessor.minValues[0], accessor.minValues[1],
+                           accessor.minValues[2]));
+        bbox.add(glm::vec3(accessor.maxValues[0], accessor.maxValues[1],
+                           accessor.maxValues[2]));
+      }
+    }
+  }
+  return bbox;
+}

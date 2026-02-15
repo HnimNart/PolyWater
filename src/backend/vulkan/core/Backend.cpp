@@ -95,9 +95,17 @@ void VulkanBackend::initProfiler(core::ProfilerTimeline *timeline)
 void VulkanBackend::deinit()
 /**********************************************************/
 {
+
   if (m_coreManager) {
     m_coreManager->waitForDeviceIdle();
   }
+
+#ifdef PROFILE_APP
+  if (m_profileTimeline) {
+    m_gpuTimer.deinit();
+    m_profileTimeline = nullptr;
+  }
+#endif
 
   if (m_swapchainManager) {
     m_swapchainManager->deinit(*m_coreManager);
@@ -110,13 +118,6 @@ void VulkanBackend::deinit()
   if (m_coreManager) {
     m_coreManager->deinit();
   }
-
-#ifdef PROFILE_APP
-  if (m_profileTimeline) {
-    m_profileTimeline = nullptr;
-    m_gpuTimer.deinit();
-  }
-#endif
 }
 
 /**********************************************************/

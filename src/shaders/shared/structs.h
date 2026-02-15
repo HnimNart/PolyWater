@@ -98,13 +98,43 @@ struct TriangleMesh {
   BufferView tangents;  // tangents buffer view (vec4, optional)
 };
 
+struct BoundingBox {
+  float3 min;
+  float3 max;
+
+#ifdef __cplusplus
+  BoundingBox()
+      : min(std::numeric_limits<float>::max()),
+        max(std::numeric_limits<float>::lowest()) {}
+
+  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
+
+  // Add a point to the bounding box (Encapsulate)
+  void add(const float3 &p) {
+    min = glm::min(min, p);
+    max = glm::max(max, p);
+  }
+
+  // Merge another bounding box into this one
+  void add(const BoundingBox &other) {
+    min = glm::min(min, other.min);
+    max = glm::max(max, other.max);
+  }
+
+  bool isEmpty() const {
+    return min.x > max.x || min.y > max.y || min.z > max.z;
+  }
+
+  float3 center() const { return (min + max) * 0.5f; }
+#endif
+};
+
 struct MeshPrimitive {
   uint8_t *buffer =
       nullptr;          // Buffer to the data (index, position, normal, ...)
   TriangleMesh triMesh; // Mesh data
   int indexType;        // Index type (uint16_t or uint32_t)
-  float3 boxMin = float3(0);
-  float3 boxMax = float3(0);
+  BoundingBox bbox;
   // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
   // the pointer), the GPU treats it as though it has a stride of 84.

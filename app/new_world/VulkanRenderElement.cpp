@@ -224,8 +224,9 @@ void VulkanRendererElement::onPreRender()
 void VulkanRendererElement::onRender(const IRenderContext &ctx)
 /**********************************************************/
 {
-  if (!m_renderer)
+  if (!m_renderer || m_app->isPaused()) {
     return;
+  }
 
   shaderio::PushConstant pushValues{};
   IRenderContext &ctx_ref = const_cast<IRenderContext &>(ctx);
@@ -274,7 +275,7 @@ void VulkanRendererElement::onUIRender()
   namespace PE = app::PropertyEditor;
   m_hasChanged = false;
 
-  if (ImGui::Begin("Viewport")) {
+  if (ImGui::Begin("Viewport") && !m_app->isPaused()) {
     ImGui::Image(
         ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped)),
         ImGui::GetContentRegionAvail());
@@ -388,6 +389,10 @@ void VulkanRendererElement::onUIRender()
       }
       if (ImGui::BeginTabItem("Instances")) {
         renderInstancesUI();
+        ImGui::EndTabItem();
+      }
+      if (ImGui::BeginTabItem("Meshes")) {
+        renderMeshesUI();
         ImGui::EndTabItem();
       }
 
@@ -585,6 +590,75 @@ void VulkanRendererElement::renderInstancesUI()
 
   if (changed) {
     resources.onInstanceChange();
+  }
+}
+
+/**********************************************************/
+void VulkanRendererElement::renderMeshesUI()
+/**********************************************************/
+{
+  namespace PE = app::PropertyEditor;
+  auto &resources = m_sceneManager.sceneResourceManager();
+  auto &meshes = resources.getMeshes();
+  const auto &meshMap = resources.meshMap();
+
+  static char meshSearch[128] = "";
+
+  if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::InputTextWithHint("##MeshSearch", "Search meshes...", meshSearch,
+                             IM_ARRAYSIZE(meshSearch));
+    ImGui::Separator();
+
+    std::string searchStr = meshSearch;
+    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
+                   ::tolower);
+
+    for (const auto &[name, id] : meshMap) {
+      if (id >= meshes.size())
+        continue;
+
+      // Filter logic
+      std::string nameLower = name;
+      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+                     ::tolower);
+      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
+        continue;
+
+      std::string label = fmt::format("{}##mesh_{}", name, id);
+      if (ImGui::TreeNode(label.c_str())) {
+        auto &mesh = meshes[id];
+
+        PE::begin();
+
+        // Read-only info (Architecture: Logic lives in core/scene, UI just
+        // displays it)
+        PE::Text("Mesh ID", fmt::format("{}", id).c_str());
+        PE::Text("Vertices",
+                 fmt::format("{}", mesh.triMesh.positions.count).c_str());
+        PE::Text("Indices",
+                 fmt::format("{}", mesh.triMesh.indices.count).c_str());
+
+        // Bounding Box info
+        if (ImGui::TreeNode("Bounding Box")) {
+          PE::begin();
+          const shaderio::BoundingBox &bbox = mesh.bbox;
+          PE::Text("Min", fmt::format("{:.2f}, {:.2f}, {:.2f}", bbox.min.x,
+                                      bbox.min.y, bbox.min.z)
+                              .c_str());
+          PE::Text("Max", fmt::format("{:.2f}, {:.2f}, {:.2f}", bbox.max.x,
+                                      bbox.max.y, bbox.max.z)
+                              .c_str());
+          PE::end();
+          ImGui::TreePop();
+        }
+
+        // If you have a way to reload or change the source path
+        // PE::Text("Source Path", mesh.sourcePath.c_str());
+
+        PE::end();
+        ImGui::TreePop();
+      }
+    }
   }
 }
 

@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
   auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
   auto logger = std::make_shared<app::ElementLogger>();
-  auto monitor = std::make_shared<app::ElementGpuMonitor>();
 
   // Adding all elements
   application.addElement(windowMenu);
@@ -74,12 +73,14 @@ int main(int argc, char **argv) {
   application.addElement(renderElement);
   application.addElement(elemCamera);
   application.addElement(logger);
-  application.addElement(monitor);
 
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();
   auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
   application.addElement(profiler);
+
+  auto monitor = std::make_shared<app::ElementGpuMonitor>();
+  application.addElement(monitor);
 #endif
 
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());

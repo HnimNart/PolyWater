@@ -37,8 +37,7 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename);
 shaderio::MeshPrimitive
 createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData);
 
-std::pair<glm::vec3, glm::vec3>
-computeMeshBounds(const core::PrimitiveMesh &mesh);
+shaderio::BoundingBox computeMeshBounds(const core::PrimitiveMesh &mesh);
 
 std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh &meshData);
 

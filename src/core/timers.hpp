@@ -123,13 +123,12 @@ private:
 #define FUNC_SIG __func__
 #endif
 
-#if defined(_DEBUG) || defined(ENABLE_PROFILING)
+#if defined(NDEBUG) || defined(ENABLE_PROFILING)
   // --- Helpers for __LINE__ expansion ---
 #define TIMER_CONCAT_INNER(a, b) a##b
 #define TIMER_CONCAT(a, b) TIMER_CONCAT_INNER(a, b)
 
 // --- Debug / Profiling Mode: Enable Timers ---
-// Using app::ScopedTimer (Adjust to app::common if nested)
 #define SCOPED_TIMER_SIG()                                                     \
   core::ScopedTimer TIMER_CONCAT(_timer_, __LINE__)(FUNC_SIG)
 #define SCOPED_TIMER(name)                                                     \

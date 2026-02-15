@@ -62,6 +62,7 @@ private:
   void loadScene(const std::filesystem::path &filename);
   void renderMaterialsUI();
   void renderInstancesUI();
+  void renderMeshesUI();
 
   void updateMaterialList();
   std::string m_matNamesList;

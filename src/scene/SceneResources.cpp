@@ -262,12 +262,10 @@ void SceneResourcesManager::uploadGltfMesh(const tinygltf::Model &model)
   std::span<const uint8_t> data = model.buffers[0].data;
   const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
   const size_t startSize = m_resources.meshes.size();
-  const auto [bmin, bmax] = gltf::computeModelBounds(model);
   m_resources.meshes.reserve(startSize + model.meshes.size());
   for (size_t i = 0; i < model.meshes.size(); i++) {
     auto mesh = gltf::extractGltfMesh(model, i);
-    mesh.boxMin = bmin;
-    mesh.boxMax = bmax;
+    mesh.bbox = gltf::getMeshBounds(model, i);
     mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
     m_resources.meshes.emplace_back(mesh);
   }
@@ -283,11 +281,9 @@ void SceneResourcesManager::uploadPrimitiveMesh(
   std::vector<uint8_t> stagingBuffer = obj::packMeshToBuffer(meshData);
   const auto [bufferAddr, bufferIndex] =
       m_device_resources->upload(std::span(stagingBuffer));
-  auto [bmin, bmax] = obj::computeMeshBounds(meshData);
   shaderio::MeshPrimitive gpuMesh = obj::createGpuMeshFromPrimitive(meshData);
   gpuMesh.buffer = bufferAddr;
-  gpuMesh.boxMin = bmin;
-  gpuMesh.boxMax = bmax;
+  gpuMesh.bbox = obj::computeMeshBounds(meshData);
   m_resources.meshes.emplace_back(gpuMesh);
 
   // 5. Update Device Resources (1 mesh added)

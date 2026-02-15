@@ -2,6 +2,7 @@
 #include "shaders/shared/structs.h" // For Instance definition
 
 #include "core/Camera.hpp"
+#include "core/timers.hpp"
 #include <app/widgets/window.hpp>
 #include <core/logger.hpp>
 #include <glm/gtc/matrix_inverse.hpp> // For inverse transpose
@@ -99,6 +100,8 @@ InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
 /**********************************************************/
 {
 
+  SCOPED_TIMER_FUNC();
+
   const std::vector<shaderio::Instance> &instances =
       m_sceneResources.getInstances();
   if (instances.empty()) {
@@ -124,10 +127,10 @@ InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
     localRay.origin = glm::vec3(invModel * glm::vec4(ray.origin, 1.0f));
     localRay.direction = glm::vec3(invModel * glm::vec4(ray.direction, 0.0f));
 
-    glm::vec3 aabbMin = mesh.boxMin;
-    glm::vec3 aabbMax = mesh.boxMax;
+    glm::vec3 aabbMin = mesh.bbox.min;
+    glm::vec3 aabbMax = mesh.bbox.max;
 
-    float dist = 0.0f;
+    float dist = std::numeric_limits<float>::max();
     if (math::rayAABBIntersection(localRay, aabbMin, aabbMax, dist)) {
       // dist is the distance in local space.
       if (dist < closestDist && dist > 0.0f) {

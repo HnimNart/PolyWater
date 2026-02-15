@@ -144,21 +144,17 @@ createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData)
 }
 
 /**********************************************************/
-std::pair<glm::vec3, glm::vec3>
-computeMeshBounds(const core::PrimitiveMesh &mesh)
+shaderio::BoundingBox computeMeshBounds(const core::PrimitiveMesh &mesh)
 /**********************************************************/
 {
-  if (mesh.vertices.empty())
+  if (mesh.vertices.empty()) {
     return {glm::vec3(0.0f), glm::vec3(0.0f)};
-
-  glm::vec3 bmin(std::numeric_limits<float>::max());
-  glm::vec3 bmax(std::numeric_limits<float>::lowest());
-
-  for (const auto &vertex : mesh.vertices) {
-    bmin = glm::min(bmin, vertex.pos);
-    bmax = glm::max(bmax, vertex.pos);
   }
-  return {bmin, bmax};
+  shaderio::BoundingBox bbox;
+  for (const auto &vertex : mesh.vertices) {
+    bbox.add(vertex.pos);
+  }
+  return bbox;
 }
 
 /**********************************************************/
