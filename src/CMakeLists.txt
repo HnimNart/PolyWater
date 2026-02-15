@@ -7,6 +7,8 @@ set(LIB_NAME common)
 find_package(nlohmann_json 3.10.5 REQUIRED)
 find_package(Slang REQUIRED)
 find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
+include(DownloadZSTD)
+include(DownloadZlibng)
 
 add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")

@@ -266,47 +266,6 @@ if(NOT TARGET gl_headers)
 endif()
 
 
-# # zlib-ng
-# if(NOT TARGET zlibstatic)
-#   set(SKIP_INSTALL_ALL ON)
-#   set(WITH_GTEST OFF)
-#   set(ZLIB_COMPAT ON)
-#   set(ZLIB_ENABLE_TESTS OFF)
-#   set(ZLIBNG_ENABLE_TESTS OFF)
-#   # zlib-ng's CMakeLists is pretty noisy.
-#   # Make it so that only warning messages appear from this subdirectory.
-#   set(_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-#   set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
-#   add_subdirectory(zlib-ng)
-#   set(CMAKE_MESSAGE_LOG_LEVEL ${_ORIGINAL_CMAKE_MESSAGE_LOG_LEVEL})
-#   set_property(TARGET zlib PROPERTY FOLDER "ThirdParty")
-# endif()
-
-# zstd
-if(NOT TARGET zstd)
-  set(ZSTD_BUILD_PROGRAMS OFF)
-  set(ZSTD_BUILD_SHARED ON)
-  set(ZSTD_BUILD_STATIC ON)
-  set(ZSTD_BUILD_TESTS OFF)
-  set(ZSTD_USE_STATIC_RUNTIME ON)
-  set(_ZSTD_DIR ${CMAKE_CURRENT_LIST_DIR}/zstd)
-
-  # 1. Use SYSTEM here to mark all includes coming from Zstd as system headers
-  add_subdirectory(${_ZSTD_DIR}/build/cmake ${CMAKE_BINARY_DIR}/zstd EXCLUDE_FROM_ALL SYSTEM)
-
-  # 2. Specifically suppress warnings during the compilation of Zstd source files
-  if(TARGET libzstd_static)
-    if(MSVC)
-      target_compile_options(libzstd_static PRIVATE /W0)
-    else()
-      target_compile_options(libzstd_static PRIVATE -w)
-    endif()
-  endif()
-
-  # zstd defines clean-all and uninstall targets we can't seem to avoid.
-  set_target_properties(clean-all uninstall PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
-  set_property(TARGET libzstd_static clean-all uninstall PROPERTY FOLDER "ThirdParty")
-endif()
 
 # Basis Universal
 if(NOT TARGET basisu)
