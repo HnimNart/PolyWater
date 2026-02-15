@@ -53,15 +53,22 @@ void Application::init(ApplicationCreateInfo const &info)
 
   setupDefaultSettings();
   initializeBackend(info);
+
   m_running = true;
 }
 
 /**********************************************************/
-void Application::initializeBackend(const ApplicationCreateInfo & /*info*/)
+void Application::initializeBackend(const ApplicationCreateInfo &info)
 /**********************************************************/
 {
   assert(m_backend);
   m_backend->initPresentation(m_windowHandle, m_gui);
+
+#ifdef PROFILE_APP
+  m_profilerManager = std::make_unique<core::ProfilerManager>();
+  m_profileTimeline = m_profilerManager->createTimeline({.name = info.name});
+  m_backend->initProfiler(m_profileTimeline);
+#endif
 }
 
 /**********************************************************/
@@ -103,6 +110,13 @@ void Application::shutdown()
     m_backend->deinit();
   }
 
+#ifdef PROFILE_APP
+  if (m_profilerManager) {
+    m_profileTimeline->clear();
+    m_profilerManager.reset();
+  }
+#endif
+
   if (!m_headless) {
     glfwDestroyWindow(m_windowHandle);
     m_windowHandle = nullptr;
@@ -130,6 +144,20 @@ bool Application::isVsync() const
 /**********************************************************/
 {
   return m_vsyncWanted;
+}
+
+/**********************************************************/
+void Application::setPause(bool v)
+/**********************************************************/
+{
+  m_pause = v;
+}
+
+/**********************************************************/
+bool Application::isPaused() const
+/**********************************************************/
+{
+  return m_pause;
 }
 
 /**********************************************************/
@@ -202,6 +230,10 @@ void Application::headlessRun()
 void Application::runOneFrame()
 /**********************************************************/
 {
+#ifdef PROFILE_APP
+  const auto profiledSection = m_profileTimeline->frameSection(__func__);
+#endif
+
   if (m_vsyncWanted) {
     m_framePacer.pace();
   }
@@ -214,6 +246,9 @@ void Application::runOneFrame()
 
   runFrame();
   m_frameCounter++;
+#ifdef PROFILE_APP
+  m_profileTimeline->frameAdvance();
+#endif
 }
 
 /**********************************************************/
@@ -231,6 +266,10 @@ void Application::close()
 void Application::runFrame()
 /**********************************************************/
 {
+#ifdef PROFILE_APP
+  const auto profiledSection = m_profileTimeline->frameSection(__func__);
+#endif
+
   // 1. Begin GUI Frame
   m_gui->beginFrame();
 

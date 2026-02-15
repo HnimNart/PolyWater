@@ -760,7 +760,7 @@ void app::ElementProfiler::addSettingsHandler() {
 
   //
   ImGuiSettingsHandler iniHandler;
-  iniHandler.TypeName = "core::ElementProfiler";
+  iniHandler.TypeName = "ElementProfiler";
   iniHandler.TypeHash = ImHashStr(iniHandler.TypeName);
   iniHandler.ReadOpenFn = readOpen;
   iniHandler.WriteAllFn = saveAllToIni;

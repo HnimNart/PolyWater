@@ -3,15 +3,14 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 
-#include <filesystem>
 #include <functional>
 #include <vector>
 
 #include "IRenderContext.hpp"
-#include "app/AppInfo.hpp"
 #include "app/IAppElement.hpp"
 #include "app/IGUISystem.hpp"
 #include "core/Types.hpp"
+#include "core/profiler.hpp"
 
 //------------------------------------------------------------
 // IRenderBackend
@@ -32,6 +31,7 @@ public:
   // Lifecycle
   //----------------------------------------------------------
   virtual void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) = 0;
+  virtual void initProfiler(core::ProfilerTimeline *timeline) = 0;
   virtual void deinit() = 0;
   virtual void waitForDeviceIdle() = 0;
 
@@ -86,6 +86,12 @@ public:
   //----------------------------------------------------------
   virtual void freeResourcesQueue() {};
 
+#ifdef PROFILE_APP
+  void setProfileTimer(core::ProfilerTimeline *timeline) {
+    m_profileTimeline = timeline;
+  }
+#endif
+
 protected:
   //  Window stuff
   GLFWwindow *m_windowHandle{nullptr}; // GLFW Window
@@ -101,4 +107,8 @@ protected:
       m_resourceFreeQueue; // Queue of functions to free resources
 
   app::IGUISystemPtr m_gui = nullptr;
+
+#ifdef PROFILE_APP
+  core::ProfilerTimeline *m_profileTimeline = nullptr;
+#endif
 };

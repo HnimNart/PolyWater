@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nvvk/profiler_vk.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include <memory>
@@ -21,6 +22,7 @@ public:
   create(const app::ApplicationCreateInfo &appInfo);
 
   void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) override;
+  void initProfiler(core::ProfilerTimeline *timeline) override;
   void deinit() override;
 
   // Frame lifecycle
@@ -58,4 +60,10 @@ private:
 
   RenderRegistry m_renderRegistry{};
   bool initVulkan(const app::ApplicationCreateInfo &appInfo);
+
+  // Profiling
+#ifdef PROFILE_APP
+  core::ProfilerTimeline *m_profileTimeline = nullptr;
+  nvvk::ProfilerGpuTimer m_gpuTimer;
+#endif
 };

@@ -61,6 +61,8 @@ public:
   // ---------------------------------------------------------------------------
   void setVsync(bool v);
   bool isVsync() const;
+  void setPause(bool v);
+  bool isPaused() const;
 
   IRenderBackend *getBackend() const;
 
@@ -77,6 +79,10 @@ public:
   const WindowSize &getViewportSize() const {
     return m_backend->getViewportSize();
   }
+
+#ifdef PROFILE_APP
+  core::ProfilerManager *getProfiler() const { return m_profilerManager.get(); }
+#endif
 
 private:
   // ---------------------------------------------------------------------------
@@ -125,9 +131,14 @@ private:
   // Imgui
   std::shared_ptr<IGUISystem> m_gui;
   SettingsHandler m_settingsHandler;
+  bool m_pause = false;
 
   // Queue of functions to free resources
   std::vector<std::function<void()>> m_resourceFreeQueue;
+
+  // Profile
+  std::unique_ptr<core::ProfilerManager> m_profilerManager;
+  core::ProfilerTimeline* m_profileTimeline = nullptr;
 };
 
 } // namespace app

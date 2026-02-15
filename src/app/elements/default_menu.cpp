@@ -43,6 +43,7 @@ void app::ElementDefaultMenu::onUIMenu()
 {
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
+  bool isPaused = m_app->isPaused();
   std::filesystem::path file = "";
 
   if (ImGui::BeginMenu("File")) {
@@ -58,12 +59,17 @@ void app::ElementDefaultMenu::onUIMenu()
   if (ImGui::BeginMenu("View")) {
     ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V",
                     &v_sync);
+    ImGui::MenuItem(ICON_MS_PAUSE_CIRCLE " Pause", "Ctrl+P", &isPaused);
     ImGui::EndMenu();
   }
 
   // Shortcuts
   if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
     close_app = true;
+  }
+
+  if (ImGui::IsKeyPressed(ImGuiKey_P) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+    isPaused = !isPaused;
   }
 
   if (ImGui::IsKeyPressed(ImGuiKey_O) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
@@ -85,7 +91,12 @@ void app::ElementDefaultMenu::onUIMenu()
   if (close_app) {
     m_app->close();
   }
+
   if (m_app->isVsync() != v_sync) {
     m_app->setVsync(v_sync);
+  }
+
+  if (m_app->isPaused() != isPaused) {
+    m_app->setPause(isPaused);
   }
 }

@@ -32,5 +32,9 @@ target_link_libraries(${LIB_NAME}
         scene_lib
 )
 
-
-
+# Optional CUDA NVML support
+if(TARGET CUDA::nvml)
+    target_link_libraries(${LIB_NAME} PUBLIC CUDA::nvml)
+    target_compile_definitions(${LIB_NAME} PUBLIC NVML_SUPPORTED)
+    message(STATUS "[${LIB_NAME}] NVML Support: ENABLED")
+endif()

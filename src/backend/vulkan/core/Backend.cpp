@@ -13,8 +13,10 @@
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
 #include "SwapchainRenderManager.hpp"
+
 #include "app/IGUISystem.hpp"
 #include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
+#include "core/profiler.hpp"
 
 /**********************************************************/
 std::unique_ptr<VulkanBackend>
@@ -41,6 +43,7 @@ bool VulkanBackend::initVulkan(const app::ApplicationCreateInfo &appInfo)
   m_frameSyncManager = std::make_unique<FrameSynchronizationManager>();
   uint32_t numFrames = appInfo.headless ? 2 : 3;
   m_frameSyncManager->init(*m_coreManager, numFrames);
+
   return ok;
 }
 
@@ -72,8 +75,20 @@ void VulkanBackend::initPresentation(GLFWwindow *windowHandle,
                      : VK_FORMAT_B8G8R8A8_UNORM;
   vulkan_gui->initVulkanBackend(*m_coreManager, numFrames, imageFormat,
                                 m_windowHandle);
-
   m_renderRegistry.registerElement(vulkan_gui);
+}
+
+/**********************************************************/
+void VulkanBackend::initProfiler(core::ProfilerTimeline *timeline)
+/**********************************************************/
+{
+#ifdef PROFILE_APP
+  m_profileTimeline = timeline;
+  if (m_profileTimeline) {
+    m_gpuTimer.init(m_profileTimeline, getDevice(), getPhysicalDevice(),
+                    getQueueInfo(0).familyIndex, true);
+  }
+#endif
 }
 
 /**********************************************************/
@@ -95,6 +110,13 @@ void VulkanBackend::deinit()
   if (m_coreManager) {
     m_coreManager->deinit();
   }
+
+#ifdef PROFILE_APP
+  if (m_profileTimeline) {
+    m_profileTimeline = nullptr;
+    m_gpuTimer.deinit();
+  }
+#endif
 }
 
 /**********************************************************/
@@ -108,6 +130,7 @@ IRenderContext &VulkanBackend::getCurrentContext()
 IRenderContext *VulkanBackend::beginFrame()
 /**********************************************************/
 {
+
   m_frameSyncManager->waitForFrameCompletion();
   if (m_swapchainManager && !m_swapchainManager->beginFrame(*m_coreManager)) {
     return nullptr;
@@ -122,8 +145,16 @@ void VulkanBackend::renderFrame(
 /**********************************************************/
 {
 
-  for (const std::shared_ptr<app::IAppElement> &e : elements) {
-    e->onPreRender();
+#ifdef PROFILE_APP
+  const VulkanRenderContext &vkCtx = VulkanRenderContext::get(frame);
+  auto profiledSection =
+      m_gpuTimer.cmdFrameSection(vkCtx.cmdBuffer, "renderFrame");
+#endif
+
+  {
+    for (const std::shared_ptr<app::IAppElement> &e : elements) {
+      e->onPreRender();
+    }
   }
 
   for (const std::shared_ptr<app::IAppElement> &e : elements) {

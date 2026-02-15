@@ -28,6 +28,7 @@
 #include "app/elements/geometryPicker.hpp"
 #include "app/elements/gpu_monitor.hpp"
 #include "app/elements/logger.hpp"
+#include "app/elements/profiler.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
 #include "core/path_utils.hpp"
@@ -74,6 +75,13 @@ int main(int argc, char **argv) {
   application.addElement(elemCamera);
   application.addElement(logger);
   application.addElement(monitor);
+
+#ifdef PROFILE_APP
+  core::ProfilerManager *profilerManager = application.getProfiler();
+  auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
+  application.addElement(profiler);
+#endif
+
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());
 

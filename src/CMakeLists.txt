@@ -8,8 +8,6 @@ find_package(nlohmann_json 3.10.5 REQUIRED)
 find_package(Slang REQUIRED)
 find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 
-
-
 add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
@@ -87,17 +85,8 @@ target_link_libraries(${LIB_NAME} PUBLIC
     scene_lib
 )
 
-# Optional CUDA NVML support
-if(TARGET CUDA::nvml)
-    target_link_libraries(${LIB_NAME} PUBLIC CUDA::nvml)
-    target_compile_definitions(${LIB_NAME} PUBLIC NVML_SUPPORTED)
-    message(STATUS "[${LIB_NAME}] NVML Support: ENABLED")
-endif()
-
 # --- 7. IDE Organization ---
 source_group("Sources" FILES ${LIB_SOURCES})
 source_group("Shaders\\Slang" FILES ${SHADER_SLANG_FILES})
 source_group("Shaders\\GLSL" FILES ${SHADER_GLSL_FILES})
 source_group("Shaders\\Generated" FILES ${SLANG_OUT} ${GLSL_OUT})
-
-
