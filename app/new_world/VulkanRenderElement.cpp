@@ -157,6 +157,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
           {.baseColorFactor = glm::vec4(color, 1.0f),
            .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
            .roughnessFactor = 0.1f + (r / 30.0f),
+           .ior = glm::vec3(1.3f),
            .sigma_t = glm::vec3((r / 20.0f) * 10.0f)},
           name);
 
@@ -625,43 +626,30 @@ void VulkanRendererElement::renderMeshesUI()
         continue;
 
       std::string label = fmt::format("{}##mesh_{}", name, id);
+
+      // 1. Root Mesh Node
       if (ImGui::TreeNode(label.c_str())) {
         auto &mesh = meshes[id];
-
         PE::begin();
-
-        // Read-only info (Architecture: Logic lives in core/scene, UI just
-        // displays it)
         PE::Text("Mesh ID", fmt::format("{}", id).c_str());
         PE::Text("Vertices",
                  fmt::format("{}", mesh.triMesh.positions.count).c_str());
         PE::Text("Indices",
                  fmt::format("{}", mesh.triMesh.indices.count).c_str());
-
-        // Bounding Box info
-        if (ImGui::TreeNode("Bounding Box")) {
-          PE::begin();
-          const shaderio::BoundingBox &bbox = mesh.bbox;
-          PE::Text("Min", fmt::format("{:.2f}, {:.2f}, {:.2f}", bbox.min.x,
-                                      bbox.min.y, bbox.min.z)
-                              .c_str());
-          PE::Text("Max", fmt::format("{:.2f}, {:.2f}, {:.2f}", bbox.max.x,
-                                      bbox.max.y, bbox.max.z)
-                              .c_str());
-          PE::end();
-          ImGui::TreePop();
-        }
-
-        // If you have a way to reload or change the source path
-        // PE::Text("Source Path", mesh.sourcePath.c_str());
-
+        const shaderio::BoundingBox &bbox = mesh.bbox;
+        PE::Text("BBox Min", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.min.x,
+                                         bbox.min.y, bbox.min.z)
+                                 .c_str());
+        PE::Text("BBox Max", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.max.x,
+                                         bbox.max.y, bbox.max.z)
+                                 .c_str());
         PE::end();
+
         ImGui::TreePop();
       }
     }
   }
 }
-
 // ============================================================================
 // 5. Accessors & Interaction
 // ============================================================================
