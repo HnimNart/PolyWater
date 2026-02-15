@@ -33,10 +33,6 @@ namespace gltf {
 tinygltf::Model loadModel(const std::filesystem::path &filename);
 shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model &model,
                                         uint meshIdx);
-shaderio::MeshPrimitive
-createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                            const core::PrimitiveMesh &primMesh);
-
 std::pair<glm::vec3, glm::vec3>
 computeModelBounds(const tinygltf::Model &model);
 

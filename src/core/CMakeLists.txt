@@ -17,7 +17,6 @@ add_library(${LIB_NAME} SHARED ${CORE_SOURCES})
 # 3. Essential Properties for Shared Libs
 set_target_properties(${LIB_NAME} PROPERTIES
     POSITION_INDEPENDENT_CODE ON
-    # Standard C++20
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )

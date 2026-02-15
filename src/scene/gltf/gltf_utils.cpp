@@ -25,12 +25,12 @@
 #include <tiny_gltf.h>
 
 #include <fmt/format.h>
-#include <vulkan/vulkan_core.h>
 
 #include <core/logger.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#include "backend/interfaces/RHI_definitions.hpp"
 #include "core/shape/primitives.hpp"
 #include "core/timers.hpp"
 
@@ -247,51 +247,14 @@ shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model &model,
   };
   mesh.indexType =
       accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT
-          ? VK_INDEX_TYPE_UINT16
-          : VK_INDEX_TYPE_UINT32;
+          ? IndexType16
+          : IndexType32;
 
   extractAttribute(model, primitive, "POSITION", mesh.triMesh.positions);
   extractAttribute(model, primitive, "NORMAL", mesh.triMesh.normals);
   extractAttribute(model, primitive, "COLOR_0", mesh.triMesh.colorVert);
   extractAttribute(model, primitive, "TEXCOORD_0", mesh.triMesh.texCoords);
   extractAttribute(model, primitive, "TANGENT", mesh.triMesh.tangents);
-  return mesh;
-}
-
-/**********************************************************/
-shaderio::MeshPrimitive
-gltf::createGltfMeshFromPrimitive(uint64_t bufferAddress, size_t verticesSize,
-                                  const core::PrimitiveMesh &primMesh)
-/**********************************************************/
-{
-  shaderio::MeshPrimitive mesh;
-  uint32_t vertexCount = static_cast<uint32_t>(primMesh.vertices.size());
-
-  // Positions
-  mesh.triMesh.positions = {.offset = 0,
-                            .count = vertexCount,
-                            .byteStride = sizeof(core::PrimitiveVertex)};
-
-  // Normals
-  mesh.triMesh.normals = {.offset = offsetof(core::PrimitiveVertex, nrm),
-                          .count = vertexCount,
-                          .byteStride = sizeof(core::PrimitiveVertex)};
-
-  // Texture Coordinates
-  mesh.triMesh.texCoords = {.offset = offsetof(core::PrimitiveVertex, tex),
-                            .count = vertexCount,
-                            .byteStride = sizeof(core::PrimitiveVertex)};
-
-  // Indices
-  mesh.triMesh.indices = {
-      .offset = static_cast<uint32_t>(verticesSize),
-      .count = static_cast<uint32_t>(primMesh.triangles.size() * 3),
-      .byteStride = sizeof(uint32_t)};
-
-  // Metadata
-  mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddress);
-  mesh.indexType = VK_INDEX_TYPE_UINT32;
-
   return mesh;
 }
 
@@ -311,9 +274,6 @@ gltf::computeModelBounds(const tinygltf::Model &model)
   for (int nodeIndex : scene.nodes) {
     processNode(model, nodeIndex, glm::mat4(1.0f), minBound, maxBound);
   }
-
-  // std::cout << glm::to_string(minBound) << std::endl;
-  // std::cout << glm::to_string(maxBound) << std::endl;
 
   return {minBound, maxBound};
 }

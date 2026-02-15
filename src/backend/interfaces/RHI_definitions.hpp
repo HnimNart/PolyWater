@@ -3,22 +3,20 @@
 #include <cstdint>
 
 // 1. Generic Resource States
-enum class ResourceState
-{
+enum class ResourceState {
   Undefined,
-  General,         // Read/Write (e.g., Storage Image)
-  RenderTarget,    // Color Attachment
-  DepthRead,       // Depth Test (Read-Only)
-  DepthWrite,      // Depth Write
-  ShaderResource,  // Texture Sampled (Read-Only)
-  TransferSrc,     // Copy Source
-  TransferDst,     // Copy Dest
-  Present          // Ready for Swapchain
+  General,        // Read/Write (e.g., Storage Image)
+  RenderTarget,   // Color Attachment
+  DepthRead,      // Depth Test (Read-Only)
+  DepthWrite,     // Depth Write
+  ShaderResource, // Texture Sampled (Read-Only)
+  TransferSrc,    // Copy Source
+  TransferDst,    // Copy Dest
+  Present         // Ready for Swapchain
 };
 
 // 2. Generic Pipeline Stages
-enum class PipelineStage
-{
+enum class PipelineStage {
   // clang-format off
   TopOfPipe,    // The very start of the GPU command processor, before any work begins
   Vertex,       // Processing vertex shaders, input assembly, and geometry data
@@ -32,22 +30,26 @@ enum class PipelineStage
   // clang-format on
 };
 
-enum RenderOutput : uint8_t
-{
-  Linear = 0,       // HDR, raw output
-  ToneMapped = 1,   // SDR, final output for presentation
-  AccumLinear = 2,  //
-  DepthBuffer = 3,  // Depth buffer
-  Swapchain = 4,    //
+enum RenderOutput : uint8_t {
+  Linear = 0,      // HDR, raw output
+  ToneMapped = 1,  // SDR, final output for presentation
+  AccumLinear = 2, //
+  DepthBuffer = 3, // Depth buffer
+  Swapchain = 4,   //
   Count = 5,
 };
 
 // 3. A Generic Barrier "Instruction" calculated by the Graph
-struct BarrierInfo
-{
+struct BarrierInfo {
   RenderOutput resource;
   ResourceState oldState;
   PipelineStage srcStage;
   ResourceState newState;
   PipelineStage dstStage;
+};
+
+// This maps to enum VkIndexType
+enum IndexType {
+  IndexType16 = 0,
+  IndexType32 = 1,
 };

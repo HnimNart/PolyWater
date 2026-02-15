@@ -157,8 +157,8 @@ void RasterPass::execute(const IRenderContext &ctx)
 
     const shaderio::Instance &instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
-    const shaderio::MeshPrimitive &gltfMesh = sceneResources->meshes[meshIndex];
-    const shaderio::TriangleMesh &triMesh = gltfMesh.triMesh;
+    const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
+    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
 
     // Push constants
     constants.normalMatrix =
@@ -169,7 +169,7 @@ void RasterPass::execute(const IRenderContext &ctx)
     // Index Buffer
     const nvvk::Buffer &v = assetManager->getBufferFromIndex(meshIndex);
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
-                         VkIndexType(gltfMesh.indexType));
+                         VkIndexType(meshPrim.indexType));
 
     // Draw
     vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);

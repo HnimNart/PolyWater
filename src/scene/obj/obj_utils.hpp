@@ -4,7 +4,6 @@
 #include <string>
 #include <tinyobjloader/tiny_obj_loader.h>
 #include <vector>
-#include <vulkan/vulkan_core.h>
 
 #include "shaders/shared/structs.h"
 #include "shape/primitives.hpp"

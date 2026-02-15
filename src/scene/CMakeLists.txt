@@ -32,7 +32,6 @@ target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces  
         core_lib
-        volk
         tinyobjloader
 )
 

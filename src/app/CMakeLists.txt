@@ -24,14 +24,12 @@ target_include_directories(${LIB_NAME}
 
 target_link_libraries(${LIB_NAME}
     PUBLIC
+        imgui
+        implot
+    PRIVATE
         backend_interfaces  
         core_lib
         scene_lib
-        backend_interfaces
-        volk
-        glm
-        imgui
-        implot
 )
 
 

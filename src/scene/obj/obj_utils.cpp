@@ -1,6 +1,6 @@
 #include "obj_utils.hpp"
+#include "RHI_definitions.hpp"
 #include "core/logger.hpp"
-#include <algorithm>
 #include <cstring>
 #include <unordered_map>
 
@@ -138,7 +138,7 @@ createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData)
   gpuMesh.triMesh.indices = {.offset = (uint32_t)vSize,
                              .count = (uint32_t)(meshData.triangles.size() * 3),
                              .byteStride = sizeof(uint32_t)};
-  gpuMesh.indexType = VK_INDEX_TYPE_UINT32;
+  gpuMesh.indexType = IndexType32;
 
   return gpuMesh;
 }
