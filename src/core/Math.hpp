@@ -18,7 +18,10 @@ glm::vec4 eulerToQuat(const glm::vec3 &euler);
 struct Ray {
   glm::vec3 origin;
   glm::vec3 direction;
+  float minDist = 1e-5f;
+  float maxDist = 1e10f;
 };
+
 bool rayAABBIntersection(const Ray &ray, const glm::vec3 &boxMin,
                          const glm::vec3 &boxMax, float &t);
 

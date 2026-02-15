@@ -629,7 +629,7 @@ void VulkanRendererElement::renderMeshesUI()
 
       // 1. Root Mesh Node
       if (ImGui::TreeNode(label.c_str())) {
-        auto &mesh = meshes[id];
+        const auto &mesh = meshes[id];
         PE::begin();
         PE::Text("Mesh ID", fmt::format("{}", id).c_str());
         PE::Text("Vertices",

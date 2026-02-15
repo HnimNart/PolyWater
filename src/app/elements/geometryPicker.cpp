@@ -15,7 +15,9 @@ app::GeometryPickerElement::GeometryPickerElement(
     std::shared_ptr<core::CameraManipulator> camera)
     : m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
-{}
+{
+  m_accel.build(sceneResources.data());
+}
 
 /**********************************************************/
 void app::GeometryPickerElement::onAttach(Application *app)
@@ -99,48 +101,13 @@ InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
                                                   float width, float height)
 /**********************************************************/
 {
-
-  SCOPED_TIMER_FUNC();
-
-  const std::vector<shaderio::Instance> &instances =
-      m_sceneResources.getInstances();
-  if (instances.empty()) {
+  math::Ray ray = getRayFromMouse(mouseX, mouseY, width, height);
+  std::optional<RayHit> hit = m_accel.intersect(ray.origin, ray.direction);
+  if (hit) {
+    return hit.value().instanceID;
+  } else {
     return -1;
   }
-
-  math::Ray ray = getRayFromMouse(mouseX, mouseY, width, height);
-
-  InstanceID closestIdx = -1;
-  float closestDist = FLT_MAX;
-
-  // Loop through all instances in the scene
-  for (size_t i = 0; i < instances.size(); ++i) {
-    const auto &inst = instances[i];
-    const auto &mesh = m_sceneResources.getMeshFromIdx(inst.meshIndex);
-
-    // Optimization: Ray-AABB in Local Space.
-    // Instead of transforming the AABB to world space
-    // we transform the Ray to the Object's Local space.
-    glm::mat4 invModel = glm::inverse(inst.transform);
-
-    math::Ray localRay;
-    localRay.origin = glm::vec3(invModel * glm::vec4(ray.origin, 1.0f));
-    localRay.direction = glm::vec3(invModel * glm::vec4(ray.direction, 0.0f));
-
-    glm::vec3 aabbMin = mesh.bbox.min;
-    glm::vec3 aabbMax = mesh.bbox.max;
-
-    float dist = std::numeric_limits<float>::max();
-    if (math::rayAABBIntersection(localRay, aabbMin, aabbMax, dist)) {
-      // dist is the distance in local space.
-      if (dist < closestDist && dist > 0.0f) {
-        closestDist = dist;
-        closestIdx = static_cast<InstanceID>(i);
-      }
-    }
-  }
-
-  return closestIdx;
 }
 
 /**********************************************************/

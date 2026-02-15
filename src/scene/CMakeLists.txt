@@ -33,6 +33,7 @@ target_link_libraries(${LIB_NAME}
         backend_interfaces  
         core_lib
         tinyobjloader
+        bvh
 )
 
 

@@ -81,23 +81,6 @@ enum BindingPoints {
   eAccumImage = 3, //
 };
 
-// GLTF
-struct BufferView {
-  uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
-  uint32_t count;      // Number of elements in the buffer view
-  uint32_t byteStride; // Stride in bytes between consecutive elements (0 if
-                       // tightly packed)
-};
-
-struct TriangleMesh {
-  BufferView indices;   // Index buffer view
-  BufferView positions; // Position buffer view (vec3)
-  BufferView normals;   // Normal buffer view (vec3)
-  BufferView colorVert; // color at vertices (vec4, optional)
-  BufferView texCoords; // texture coordinates buffer view (vec2, optional)
-  BufferView tangents;  // tangents buffer view (vec4, optional)
-};
-
 struct BoundingBox {
   float3 min;
   float3 max;
@@ -129,11 +112,28 @@ struct BoundingBox {
 #endif
 };
 
+struct BufferView {
+  uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
+  uint32_t count;      // Number of elements in the buffer view
+  uint32_t byteStride; // Stride in bytes between consecutive elements (0 if
+                       // tightly packed)
+};
+
+struct TriangleMesh {
+  BufferView indices;   // Index buffer view
+  BufferView positions; // Position buffer view (vec3)
+  BufferView normals;   // Normal buffer view (vec3)
+  BufferView colorVert; // color at vertices (vec4, optional)
+  BufferView texCoords; // texture coordinates buffer view (vec2, optional)
+  BufferView tangents;  // tangents buffer view (vec4, optional)
+};
+
 struct MeshPrimitive {
   uint8_t *buffer =
-      nullptr;          // Buffer to the data (index, position, normal, ...)
-  TriangleMesh triMesh; // Mesh data
-  int indexType;        // Index type (uint16_t or uint32_t)
+      nullptr;             // Buffer to the data (index, position, normal, ...)
+  TriangleMesh triMesh;    // Mesh data
+  uint32_t rawBufferIndex; // Index into raw data buffers
+  int indexType;           // Index type (uint16_t or uint32_t)
   BoundingBox bbox;
   // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to

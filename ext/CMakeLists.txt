@@ -404,3 +404,9 @@ if (NOT TARGET meshoptimizer)
   set_property(TARGET meshoptimizer PROPERTY FOLDER "ThirdParty")
 endif()
 
+# BVH Library (Header-only)
+if(NOT TARGET bvh)
+    add_subdirectory(bvh)
+    set_property(TARGET bvh PROPERTY FOLDER "ThirdParty")
+endif()
+

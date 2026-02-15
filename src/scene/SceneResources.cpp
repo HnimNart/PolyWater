@@ -257,14 +257,15 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
 void SceneResourcesManager::uploadGltfMesh(const tinygltf::Model &model)
 /**********************************************************/
 {
-  // --- Process Pending Models ---
   assert(model.buffers.size() == 1);
   std::span<const uint8_t> data = model.buffers[0].data;
+  m_resources.meshData.emplace_back(model.buffers[0].data);
   const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
   const size_t startSize = m_resources.meshes.size();
   m_resources.meshes.reserve(startSize + model.meshes.size());
   for (size_t i = 0; i < model.meshes.size(); i++) {
     auto mesh = gltf::extractGltfMesh(model, i);
+    mesh.rawBufferIndex = m_resources.meshData.size() - 1;
     mesh.bbox = gltf::getMeshBounds(model, i);
     mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
     m_resources.meshes.emplace_back(mesh);
@@ -284,6 +285,8 @@ void SceneResourcesManager::uploadPrimitiveMesh(
   shaderio::MeshPrimitive gpuMesh = obj::createGpuMeshFromPrimitive(meshData);
   gpuMesh.buffer = bufferAddr;
   gpuMesh.bbox = obj::computeMeshBounds(meshData);
+  gpuMesh.rawBufferIndex = m_resources.meshData.size();
+  m_resources.meshData.emplace_back(stagingBuffer);
   m_resources.meshes.emplace_back(gpuMesh);
 
   // 5. Update Device Resources (1 mesh added)

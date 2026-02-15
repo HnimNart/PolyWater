@@ -26,7 +26,7 @@ find_package(glm REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         glm          
-        fmt     
+        fmt
 )
 
 target_include_directories(${LIB_NAME}

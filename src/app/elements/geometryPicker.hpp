@@ -9,6 +9,8 @@
 #include "core/Math.hpp"
 #include "scene/SceneResources.hpp"
 
+#include "scene/ScenePicker.hpp"
+
 // Forward Declarations
 namespace shaderio {
 struct Instance;
@@ -45,6 +47,7 @@ private:
   const SceneResourcesManager &m_sceneResources;
   std::shared_ptr<core::CameraManipulator> m_camera;
   Application *m_app = nullptr;
+  InstanceAccelerator m_accel;
 
   SelectionCallback m_onSelect{};
   InstanceID m_instanceSelected = -1;
