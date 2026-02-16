@@ -23,12 +23,14 @@ target_include_directories(${LIB_NAME}
 
 )
 
+find_package(nlohmann_json REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces  
         core_lib
         tinyobjloader
         bvh
+        nlohmann_json::nlohmann_json
 )
 
 
