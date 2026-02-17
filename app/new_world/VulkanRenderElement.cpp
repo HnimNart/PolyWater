@@ -155,9 +155,9 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
       std::string name = baseObject + std::to_string(i);
       MaterialID matId = scene_resources.addMaterial(
           {.baseColorFactor = glm::vec4(color, 1.0f),
+           .ior = glm::vec3(1.3f),
            .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
            .roughnessFactor = 0.1f + (r / 30.0f),
-           .ior = glm::vec3(1.3f),
            .sigma_t = glm::vec3((r / 20.0f) * 10.0f)},
           name);
 

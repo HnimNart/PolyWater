@@ -217,7 +217,7 @@
           2.0
         ]
       },
-      "hitGroup": "Diffuse"
+      "hitGroup": "Emissive"
     },
     {
       "name": "main_sphere",

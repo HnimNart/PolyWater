@@ -197,6 +197,20 @@ VulkanSceneAssetManager::upload(const std::span<const unsigned char> &data)
 }
 
 /**********************************************************/
+std::pair<void *, IDeviceAssets::BufferID>
+VulkanSceneAssetManager::upload(const void *data, size_t bytes)
+/**********************************************************/
+{
+  // Wrap the raw pointer in a span to delegate to the existing implementation.
+  // This ensures consistent buffer usage flags and memory handling.
+  std::span<const unsigned char> dataSpan(
+      static_cast<const unsigned char *>(data), bytes);
+  auto [deviceAddress, bufferIndex] = upload(dataSpan);
+  return {static_cast<void *>(deviceAddress),
+          static_cast<BufferID>(bufferIndex)};
+}
+
+/**********************************************************/
 void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
 /**********************************************************/
 {

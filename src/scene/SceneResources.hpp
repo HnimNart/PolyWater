@@ -10,6 +10,7 @@
 
 #include "Scene.h"
 #include "gltf/gltf_utils.hpp"
+#include "lights/LightManager.hpp"
 
 using InstanceID = uint32_t;
 using MaterialID = uint32_t;
@@ -142,6 +143,7 @@ private:
 
   void uploadGltfMesh(const tinygltf::Model &model);
   void uploadPrimitiveMesh(const core::PrimitiveMesh &meshData);
+  void uploadLights();
   void finalizePendingTextures();
 
   // Things to be uploaded to gpu
@@ -168,4 +170,6 @@ private:
   std::map<std::string, TextureID> m_textureMap{};
 
   bool m_dirty = false;
+
+  LightManager m_lights;
 };

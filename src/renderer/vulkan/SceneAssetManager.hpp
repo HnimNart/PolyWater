@@ -78,6 +78,8 @@ public:
   // -------------------------------------------------------------------------
   std::pair<BufferAddr, BufferID>
   upload(const std::span<const unsigned char> &data) override;
+
+  std::pair<void *, BufferID> upload(const void *data, size_t bytes) override;
   void addMeshes(size_t count, BufferID bufferIndex) override;
   void finalizeSceneResources(const Scene &resources) override;
 

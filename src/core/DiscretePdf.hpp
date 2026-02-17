@@ -6,7 +6,7 @@
 
 class DiscretePDF {
 public:
-  DiscretePDF() : sum(0.0f) {}
+  DiscretePDF(const std::vector<float> &weights) : sum(0.0f) { build(weights); }
 
   // 1. Initialize with a list of weights (e.g., Light Power)
   void build(const std::vector<float> &weights) {
@@ -53,6 +53,8 @@ public:
   }
 
   float getTotalSum() const { return sum; }
+  const std::vector<float> &getCdf() const { return cdf; }
+  const std::vector<float> &getPmf() const { return pmf; }
 
 private:
   std::vector<float> cdf; // Cumulative Distribution Function

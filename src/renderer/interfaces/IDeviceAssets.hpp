@@ -41,6 +41,8 @@ public:
   // ---------------------------------------------------------------------------
   virtual std::pair<BufferAddr, BufferID>
   upload(const std::span<const unsigned char> &data) = 0;
+  virtual std::pair<void *, BufferID> upload(const void *data,
+                                             size_t bytes) = 0;
 
   // ---------------------------------------------------------------------------
   // Scene Registration

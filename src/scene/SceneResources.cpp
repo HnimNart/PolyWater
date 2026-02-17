@@ -336,8 +336,21 @@ void SceneResourcesManager::finalizeSceneResources()
 
   // Upload textures
   finalizePendingTextures();
+
+  // Extract light
+  uploadLights();
+
+  // Upload to GPU
   m_device_resources->finalizeSceneResources(m_resources);
   m_device_resources->endUploading();
+}
+
+/**********************************************************/
+void SceneResourcesManager::uploadLights()
+/**********************************************************/
+{
+  m_resources.sceneInfo.areaLight =
+      m_lights.uploadAreaLights(m_resources, m_device_resources);
 }
 
 /**********************************************************/

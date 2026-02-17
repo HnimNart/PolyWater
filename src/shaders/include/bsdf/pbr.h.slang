@@ -207,6 +207,7 @@ struct PbrEvaluator : IBSDF {
   float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
                 inout float3 bounceDir) {
 
+
     // Deciding where to go next (Specular vs Diffuse)
     // A. Fresnel Calculation
     float3 F0 = lerp(float3(0.04), albedo, metallic);
@@ -217,7 +218,7 @@ struct PbrEvaluator : IBSDF {
       probSpecular = 1.0;
     }
 
-    float3 weight = float3(0);
+    float3 weight = float3(1);
     // B. Russian Roulette
     float rndVal = rnd(seed);
     bool isSpecular = rndVal < probSpecular;
@@ -235,7 +236,7 @@ struct PbrEvaluator : IBSDF {
       weight *= safe_div(F, probSpecular);
     } else {
       bounceDir = sampleCosineWeightedHemisphere(worldNormal, seed);
-      weight *= albedo / max(EPSILON, (1.0 - probSpecular));
+      weight *= safe_div(albedo, 1.0 - probSpecular);
     }
 
     return weight;

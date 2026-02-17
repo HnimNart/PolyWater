@@ -237,8 +237,12 @@ MaterialType SceneLoader::parseHitGroup(const std::string &type)
     return MaterialType::eGltfPbr;
   if (type == "Diffuse")
     return MaterialType::eDiffuse;
+  if (type == "Volumetric")
+    return MaterialType::eVolumetric;
   if (type == "Normals")
     return MaterialType::eNormals;
+  if (type == "Emissive")
+    return MaterialType::eEmissive;
 
   throw std::runtime_error("[SceneLoader] Unknown hit group type: " + type);
 }

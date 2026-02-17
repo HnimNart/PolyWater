@@ -174,9 +174,10 @@ struct Material {
 CHECK_STRUCT_ALIGNMENT(Material)
 
 enum LightType {
-  ePoint = 0,      // Point light type
-  eSpot = 1,       // Spot light type
-  eDirectional = 2 // Directional light type
+  ePoint = 0,       // Point light type
+  eSpot = 1,        // Spot light type
+  eDirectional = 2, // Directional light type
+  eAreaLight = 3
 };
 
 struct PunctualLight {
@@ -187,6 +188,20 @@ struct PunctualLight {
   float3 color;     // Color of the light (RGB)
   float coneAngle;  // Cone angle for spot lights (in radians, 0 for point and
                     // directional lights)
+};
+
+struct TriangleLight {
+  float3 v0, v1, v2; // World Space Positions
+  float3 emission;
+  float area;
+  uint pad;
+};
+CHECK_STRUCT_ALIGNMENT(TriangleLight)
+
+struct AreaLight {
+  TriangleLight *triangles = nullptr;
+  float *cdf = nullptr;
+  uint nTriangles = 0;
 };
 
 struct RenderParams {
@@ -222,6 +237,8 @@ struct SceneInfo {
   PunctualLight
       punctualLights[MAX_LIGHTS];     // punctual lights in the scene (up to 2)
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
+
+  AreaLight areaLight;
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
