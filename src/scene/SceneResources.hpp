@@ -83,11 +83,6 @@ public:
     return m_resources.meshes;
   }
 
-  const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const {
-    assert(m_resources.meshes.size() < index);
-    return m_resources.meshes[index];
-  }
-
   const std::map<std::string, MaterialID> &materialMap() const {
     return m_materialMap;
   }
@@ -103,6 +98,11 @@ public:
       return &m_resources.materials[it->second];
     }
     return nullptr;
+  }
+
+  const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const {
+    assert(m_resources.meshes.size() < index);
+    return m_resources.meshes[index];
   }
 
   MeshID getMeshIDFromName(const std::string &name) const {
