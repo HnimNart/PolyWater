@@ -44,6 +44,13 @@ struct DataLight {
   float intensity;
 };
 
+struct DataEnvmap {
+  std::string path;
+  float scale = 1.0f;
+  float rotation = 0.0f;
+  bool useEnvMap = false;
+};
+
 struct DataCamera {
   glm::vec3 eye, center, up;
   glm::vec2 clip;
@@ -61,6 +68,8 @@ struct SceneData {
   std::vector<DataMaterial> materials;
   std::vector<DataInstance> instances;
   std::vector<DataLight> lights;
+
+  DataEnvmap envmap;
 
   // Scene Globals
   DataCamera camera;

@@ -5,6 +5,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <tinyobjloader/tiny_obj_loader.h>
 
+#include <core/Image.hpp>
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
 #include <core/string_utils.h>
@@ -97,7 +98,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
     LOGD("Registered: %s -> ID %d", uniqueName.c_str(), currentID);
   }
 
-  // 6. Update Counters and Storage
+  // Update Counters and Storage
   m_pendingMeshes += model.meshes.size();
   m_loadOrder.push_back(
       {PendingMeshTask::Type::GLTF, m_pendingGltfModels.size()});
@@ -181,13 +182,11 @@ TextureID SceneResourcesManager::loadTexture(const std::string &name,
                                              const std::string &filename)
 /**********************************************************/
 {
-  IDeviceAssets::TextureID id = m_device_resources->reserveTextureSlot();
-  assert(id < MAX_SCENE_TEXTURES);
-  m_pendingTextures.push_back({filename, id});
-  auto retval_id = id + 1;
+  IDeviceAssets::TextureID textureID = m_device_resources->reserveTextureSlot();
+  m_pendingTextures.push_back({filename, textureID});
   std::string uniqueName = getUniqueName(m_textureMap, name);
-  m_textureMap[uniqueName] = retval_id;
-  return retval_id;
+  m_textureMap[uniqueName] = textureID;
+  return textureID;
 }
 
 /**********************************************************/
@@ -298,8 +297,14 @@ void SceneResourcesManager::uploadPrimitiveMesh(
 void SceneResourcesManager::finalizePendingTextures()
 /**********************************************************/
 {
-  for (const auto &[id, filename] : m_pendingTextures) {
-    m_device_resources->uploadTexture(id, filename);
+  for (const auto &[filename, id] : m_pendingTextures) {
+    // TODO check if file exists in database and return id
+    core::Image raw = core::loadRawImage(filename);
+    if (!raw.isValid()) {
+      assert(false && "Failed to load texture image!");
+      continue;
+    }
+    m_device_resources->uploadTexture(raw, id);
   }
   m_pendingTextures.clear();
 }
@@ -351,6 +356,9 @@ void SceneResourcesManager::uploadLights()
 {
   m_resources.sceneInfo.areaLight =
       m_lights.uploadAreaLights(m_resources, m_device_resources);
+
+  m_resources.sceneInfo.envmapLight =
+      m_lights.uploadEnvmap(m_resources, m_device_resources);
 }
 
 /**********************************************************/
@@ -432,6 +440,13 @@ void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 /**********************************************************/
 {
   m_resources.sceneInfo = sceneInfo;
+}
+
+/**********************************************************/
+void SceneResourcesManager::loadEnvmap(const DataEnvmap &envmap)
+/**********************************************************/
+{
+  m_resources.envmapInfo = m_lights.loadEnvmap(envmap);
 }
 
 /**********************************************************/

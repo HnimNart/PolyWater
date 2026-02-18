@@ -255,50 +255,50 @@ void VulkanRendererElement::onLastHeadlessFrame()
 // ============================================================================
 
 /**********************************************************/
-void VulkanRendererElement::onUIMenu()
-/**********************************************************/
-{
-  bool reload = false;
-  if (ImGui::BeginMenu("Tools")) {
-    reload |= ImGui::MenuItem("Reload Shaders", "F5");
-    ImGui::EndMenu();
-  }
-  reload |= ImGui::IsKeyPressed(ImGuiKey_F5);
-
-  if (reload)
-    m_renderer->reload();
-}
-
-/**********************************************************/
 void VulkanRendererElement::onUIRender()
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
   m_hasChanged = false;
 
+  // --- VIEWPORT WINDOW ---
   if (ImGui::Begin("Viewport") && !m_app->isPaused()) {
-    ImGui::Image(
-        ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped)),
-        ImGui::GetContentRegionAvail());
+    ImTextureID toneMappedId =
+        ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped));
+    ImGui::Image(toneMappedId, ImGui::GetContentRegionAvail());
     app::drawAxis(m_sceneManager.camera()->getViewProjection());
   }
   ImGui::End();
 
+  // --- SETTINGS WINDOW ---
   if (ImGui::Begin("Settings")) {
     if (ImGui::BeginTabBar("MainTabs")) {
+
+      // --- TAB 1: RENDERING ---
       if (ImGui::BeginTabItem("Render")) {
-        const char *preview = renderModeToString(m_renderMode);
-        if (ImGui::BeginCombo("Render Mode", preview)) {
-          for (int n = 0; n < static_cast<int>(RenderMode::COUNT); n++) {
-            auto mode = static_cast<RenderMode>(n);
-            if (ImGui::Selectable(renderModeToString(mode),
-                                  m_renderMode == mode)) {
-              m_renderMode = mode;
-              m_renderer->setRenderMode(m_renderMode);
-              m_sceneManager.sceneResourceManager().setDirty(true);
-            }
+        if (PE::begin("RenderModeTable")) {
+          const char *preview = renderModeToString(m_renderMode);
+          if (PE::entry("Render Mode", [&]() {
+                bool changed = false;
+                if (ImGui::BeginCombo("##mode", preview)) {
+                  for (int n = 0; n < static_cast<int>(RenderMode::COUNT);
+                       n++) {
+                    auto mode = static_cast<RenderMode>(n);
+                    if (ImGui::Selectable(renderModeToString(mode),
+                                          m_renderMode == mode)) {
+                      m_renderMode = mode;
+                      m_renderer->setRenderMode(m_renderMode);
+                      m_sceneManager.sceneResourceManager().setDirty(true);
+                      changed = true;
+                    }
+                  }
+                  ImGui::EndCombo();
+                }
+                return changed;
+              })) {
+            m_hasChanged = true;
           }
-          ImGui::EndCombo();
+          PE::end();
         }
 
         if (ImGui::CollapsingHeader("Tonemapper",
@@ -309,15 +309,16 @@ void VulkanRendererElement::onUIRender()
         if (m_renderMode == RenderMode::RAYTRACE) {
           if (ImGui::CollapsingHeader("Integrator Params",
                                       ImGuiTreeNodeFlags_DefaultOpen)) {
-            PE::begin();
-            auto &params = m_renderer->renderParams();
-            m_hasChanged |=
-                PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
-            m_hasChanged |=
-                PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-            if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f)))
-              m_hasChanged = true;
-            PE::end();
+            if (PE::begin("IntegratorTable")) {
+              auto &params = m_renderer->renderParams();
+              m_hasChanged |=
+                  PE::DragInt("Samples", &params.nSamples, 1.0f, 1, 1024);
+              m_hasChanged |=
+                  PE::DragInt("Max Bounces", &params.maxBounces, 1.0f, 0, 32);
+              if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f)))
+                m_hasChanged = true;
+              PE::end();
+            }
           }
         }
         ImGui::EndTabItem();
@@ -332,58 +333,100 @@ void VulkanRendererElement::onUIRender()
         auto &sceneInfo = m_sceneManager.sceneInfo();
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          auto &sceneInfo = m_sceneManager.sceneInfo();
-          m_hasChanged |= ImGui::Checkbox("Use Sky", (bool *)&sceneInfo.useSky);
+
+          // Environment Type Selection (Radio Buttons)
+          if (PE::begin("EnvTypeTable")) {
+            if (PE::RadioButton("Physical Sky", sceneInfo.useSky)) {
+              sceneInfo.useSky = true;
+              sceneInfo.useEnv = false;
+              m_hasChanged = true;
+            }
+            if (sceneInfo.envmapLight.totalSum > 0 &&
+                PE::RadioButton("HDR Environment", sceneInfo.useEnv)) {
+              sceneInfo.useEnv = true;
+              sceneInfo.useSky = false;
+              m_hasChanged = true;
+            }
+            bool useSolid = !sceneInfo.useSky && !sceneInfo.useEnv;
+            if (PE::RadioButton("Solid Color", useSolid)) {
+              sceneInfo.useSky = false;
+              sceneInfo.useEnv = false;
+              m_hasChanged = true;
+            }
+            PE::end();
+          }
+
+          ImGui::Separator();
+
+          // Specific Settings based on selection
           if (sceneInfo.useSky) {
             m_hasChanged |=
                 app::skySimpleParametersUI(sceneInfo.skySimpleParam);
+          } else if (sceneInfo.useEnv) {
+            auto &env = sceneInfo.envmapLight;
+            if (PE::begin("EnvParamsTable")) {
+              // Example for intensity if needed:
+              // m_hasChanged |= PE::DragFloat("Intensity", &env.scale, 0.1f,
+              // 0.0f, 100.0f);
+
+              if (PE::treeNode("Technical Info")) {
+                PE::Text("Resolution", "%u x %u", env.dims.x, env.dims.y);
+                PE::Text("Tex Index", "%d", env.envTextureIdx);
+                PE::Text("Integral", "%.4f", env.totalSum);
+                PE::treePop();
+              }
+
+              if (PE::Button(
+                      "Reload Map",
+                      ImVec2(-1, 0))) { /* m_sceneManager.reloadEnvmap(); */
+              }
+              PE::end();
+            }
           } else {
+            if (PE::begin("SolidColorTable")) {
+              m_hasChanged |= PE::ColorEdit3(
+                  "Background Color", (float *)&sceneInfo.backgroundColor);
+              PE::end();
+            }
+          }
 
-            PE::begin();
-            m_hasChanged |= PE::ColorEdit3("Background",
-                                           (float *)&sceneInfo.backgroundColor);
-            PE::end();
+          // Punctual Light Section
+          if (ImGui::TreeNodeEx("Punctual Light",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
             auto &light = sceneInfo.punctualLights[0];
-            PE::begin();
-            if (light.type == shaderio::LightType::ePoint ||
-                light.type == shaderio::LightType::eSpot) {
-              m_hasChanged |= PE::DragFloat3("Light Position",
-                                             glm::value_ptr(light.position),
+            if (PE::begin("LightTable")) {
+              int typeInt = static_cast<int>(light.type);
+              if (PE::Combo("Type", &typeInt, "Point\0Spot\0Directional\0")) {
+                light.type = (shaderio::LightType)typeInt;
+                m_hasChanged = true;
+              }
 
-                                             0.1f, -20.0f, 20.0f);
-            }
-            if (light.type == shaderio::LightType::eDirectional ||
-                light.type == shaderio::LightType::eSpot) {
-              m_hasChanged |= PE::SliderFloat3("Light Direction",
-                                               glm::value_ptr(light.direction),
-                                               -1.0f, 1.0f);
-            }
+              if (light.type != shaderio::LightType::eDirectional)
+                m_hasChanged |= PE::DragFloat3(
+                    "Position", glm::value_ptr(light.position), 0.1f);
+              if (light.type != shaderio::LightType::ePoint)
+                m_hasChanged |= PE::SliderFloat3(
+                    "Direction", glm::value_ptr(light.direction), -1.0f, 1.0f);
 
-            m_hasChanged |=
-                PE::SliderFloat("Light Intensity", &light.intensity, 0.0f,
-                                1000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
-            m_hasChanged |=
-                PE::ColorEdit3("Light Color", glm::value_ptr(light.color),
-                               ImGuiColorEditFlags_NoInputs);
-
-            // Using a temp int for the combo to capture changes properly
-            int typeInt = static_cast<int>(light.type);
-            if (PE::Combo("Light Type", &typeInt, "Point\0Spot\0Directional\0",
-                          3)) {
-              light.type = static_cast<shaderio::LightType>(typeInt);
-              m_hasChanged = true;
-            }
-
-            if (light.type == shaderio::LightType::eSpot) {
               m_hasChanged |=
-                  PE::SliderAngle("Cone Angle", &light.coneAngle, 0.f, 90.f);
+                  PE::DragFloat("Intensity", &light.intensity, 1.0f, 0.0f,
+                                10000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+              m_hasChanged |=
+                  PE::ColorEdit3("Color", glm::value_ptr(light.color));
+
+              if (light.type == shaderio::LightType::eSpot)
+                m_hasChanged |= PE::SliderAngle("Cone Angle", &light.coneAngle,
+                                                0.0f, 90.0f);
+
+              PE::end();
             }
-            PE::end();
+            ImGui::TreePop();
           }
         }
         ImGui::EndTabItem();
       }
 
+      // --- OTHER TABS ---
       if (ImGui::BeginTabItem("Materials")) {
         renderMaterialsUI();
         ImGui::EndTabItem();
@@ -399,8 +442,23 @@ void VulkanRendererElement::onUIRender()
 
       ImGui::EndTabBar();
     }
+    ImGui::End();
   }
-  ImGui::End();
+}
+
+/**********************************************************/
+void VulkanRendererElement::onUIMenu()
+/**********************************************************/
+{
+  bool reload = false;
+  if (ImGui::BeginMenu("Tools")) {
+    reload |= ImGui::MenuItem("Reload Shaders", "F5");
+    ImGui::EndMenu();
+  }
+  reload |= ImGui::IsKeyPressed(ImGuiKey_F5);
+
+  if (reload)
+    m_renderer->reload();
 }
 
 /**********************************************************/

@@ -6,6 +6,7 @@
 
 #include <core/shape/primitives.hpp>
 
+#include "core/Image.hpp"
 #include "obj/obj_utils.hpp"
 #include "scene/Scene.h"
 #include "shaders/shared/structs.h"
@@ -34,7 +35,8 @@ public:
   // Texture Management
   // ---------------------------------------------------------------------------
   virtual unsigned int reserveTextureSlot() = 0;
-  virtual TextureID uploadTexture(const std::string &filepath, TextureID) = 0;
+  virtual TextureID uploadTexture(const core::Image &image,
+                                  TextureID id = -1) = 0;
 
   // ---------------------------------------------------------------------------
   // Geometry Upload (Buffers)

@@ -123,6 +123,13 @@ void SceneManager::buildSceneFromData(
     sceneInfo.numLights++;
   }
 
+  if (data.envmap.useEnvMap) {
+    DataEnvmap envmapInfo = data.envmap;
+    envmapInfo.path = core::findFile(data.envmap.path, searchDirs).string();
+    m_scene_resources.loadEnvmap(envmapInfo);
+    sceneInfo.useEnv = true;
+    sceneInfo.useSky = false;
+  }
   m_scene_resources.setSceneInfo(sceneInfo);
 
   // 2. Setup Camera

@@ -1,6 +1,5 @@
 #include "SceneAssetManager.hpp"
 
-#include <stb/stb_image.h>
 #include <volk.h>
 
 #include <core/file_operations.hpp>
@@ -13,6 +12,7 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
 
+#include "Image.hpp"
 #include "core/timers.hpp"
 #include "shaders/shared/structs.h"
 
@@ -43,8 +43,7 @@ void VulkanSceneAssetManager::endUploading()
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE);
-  m_context_manager->getStagingUploader().cmdUploadAppended(
-      m_cmd); // Upload the scene information to the GPU
+  m_context_manager->getStagingUploader().cmdUploadAppended(m_cmd);
   m_context_manager->endSingleTimeCmd(m_cmd);
   m_cmd = VK_NULL_HANDLE;
 }
@@ -77,35 +76,31 @@ void VulkanSceneAssetManager::deinit()
 }
 
 /**********************************************************/
-VulkanSceneAssetManager::TextureID
-VulkanSceneAssetManager::uploadTexture(const std::string &filepath,
-                                       VulkanSceneAssetManager::TextureID id)
+VulkanSceneAssetManager::TextureID VulkanSceneAssetManager::uploadTexture(
+    const core::Image &image, VulkanSceneAssetManager::TextureID textureID)
 /**********************************************************/
 {
+  if (textureID == -1) {
+    textureID = reserveTextureSlot();
+  }
   nvvk::Image texture =
-      loadAndCreateImage(m_cmd, m_context_manager->getStagingUploader(),
-                         m_context_manager->getDevice(), filepath);
-
+      createImageFromRaw(image, m_context_manager->getStagingUploader());
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
 
-  if (id == -1) {
-    m_textures.emplace_back(texture);
-    return static_cast<TextureID>(m_textures.size() - 1);
-  } else {
-    assert(id < m_textures.size());
-    m_textures[id] = texture;
-    return id;
-  }
+  assert(textureId >= 0 && textureID < m_textures.size());
+  m_textures[textureID - 1] = texture;
+  return textureID;
 }
 
 /**********************************************************/
 IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
 /**********************************************************/
 {
-  TextureID id = static_cast<TextureID>(m_textures.size());
   m_textures.emplace_back();
-  return static_cast<TextureID>(id);
+  TextureID textureId = static_cast<TextureID>(m_textures.size());
+  assert(textureId < MAX_SCENE_TEXTURES);
+  return static_cast<TextureID>(textureId);
 }
 
 /**********************************************************/
@@ -121,7 +116,6 @@ void VulkanSceneAssetManager::updateDescriptors(
   auto write_set =
       descriptorPack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
                                static_cast<uint32_t>(m_textures.size()));
-
   write.append(write_set, m_textures.data());
   vkUpdateDescriptorSets(m_context_manager->getDevice(), write.size(),
                          write.data(), 0, nullptr);
@@ -201,8 +195,6 @@ std::pair<void *, IDeviceAssets::BufferID>
 VulkanSceneAssetManager::upload(const void *data, size_t bytes)
 /**********************************************************/
 {
-  // Wrap the raw pointer in a span to delegate to the existing implementation.
-  // This ensures consistent buffer usage flags and memory handling.
   std::span<const unsigned char> dataSpan(
       static_cast<const unsigned char *>(data), bytes);
   auto [deviceAddress, bufferIndex] = upload(dataSpan);
@@ -342,29 +334,50 @@ template void VulkanSceneAssetManager::updateBuffer<shaderio::Material>(
     nvvk::Buffer &, std::span<shaderio::Material> &&);
 
 /**********************************************************/
-nvvk::Image VulkanSceneAssetManager::loadAndCreateImage(
-    VkCommandBuffer cmd, nvvk::StagingUploader &staging, VkDevice device,
-    const std::filesystem::path &filename, bool sRgb)
+nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
+    const core::Image &raw, nvvk::StagingUploader &staging, bool sRgb)
 /**********************************************************/
 {
-  int w, h, comp, req_comp{4};
-  std::string filenameUtf8 = core::utf8FromPath(filename);
-  const stbi_uc *data =
-      stbi_load(filenameUtf8.c_str(), &w, &h, &comp, req_comp);
-  assert((data != nullptr) && "Could not load texture image!");
+  assert(raw.isValid() && "Attempting to upload invalid image data!");
 
   VkImageCreateInfo imageInfo = DEFAULT_VkImageCreateInfo;
-  imageInfo.format = sRgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-  imageInfo.extent = {uint32_t(w), uint32_t(h), 1};
-  imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+  imageInfo.extent = {uint32_t(raw.width), uint32_t(raw.height), 1};
+  imageInfo.usage =
+      VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+  // Determine Vulkan Format based on core::ImageFormat
+  switch (raw.format) {
+  case core::ImageFormat::RGBA8_UNORM:
+    imageInfo.format =
+        sRgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    break;
+  case core::ImageFormat::RGBA32_SFLOAT:
+    imageInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    break;
+  case core::ImageFormat::DEPTH32_SFLOAT:
+    imageInfo.format = VK_FORMAT_D32_SFLOAT;
+    // Depth images often need different usage flags
+    imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    break;
+  default:
+    assert(false && "Unsupported image format!");
+    return {};
+  }
 
   nvvk::ResourceAllocator *allocator = staging.getResourceAllocator();
-  const std::span dataSpan(data, w * h * req_comp);
   nvvk::Image texture;
+  // Create the image resource
   NVVK_CHECK(allocator->createImage(texture, imageInfo,
                                     DEFAULT_VkImageViewCreateInfo));
-  NVVK_CHECK(staging.appendImage(texture, dataSpan,
-                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+
+  // 3. Upload via staging buffer
+  const std::span<const uint8_t> dataSpan(raw.pixels.data(), raw.pixels.size());
+  VkImageLayout finalLayout =
+      (raw.format == core::ImageFormat::DEPTH32_SFLOAT)
+          ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+          : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
 
   return texture;
 }

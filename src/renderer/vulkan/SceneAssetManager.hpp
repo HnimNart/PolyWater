@@ -10,6 +10,7 @@
 
 // Project Includes
 #include "backend/vulkan/core/ContextManager.hpp"
+#include "core/Image.hpp"
 #include "renderer/interfaces/IDeviceAssets.hpp"
 #include "shaders/shared/bindings.h"
 
@@ -64,7 +65,8 @@ public:
   // 3. Texture Management
   //    Handling image loading, creation, and descriptor slots.
   // -------------------------------------------------------------------------
-  TextureID uploadTexture(const std::string &filepath, TextureID = -1) override;
+  TextureID uploadTexture(const core::Image &image,
+                          VulkanSceneAssetManager::TextureID id = -1) override;
   TextureID reserveTextureSlot() override;
   uint32_t getMaximumNumberOfTextures() const { return MAX_SCENE_TEXTURES; }
 
@@ -116,12 +118,10 @@ private:
   void updateBuffer(nvvk::Buffer &buffer, std::span<T> &&dataSpan);
   void updateSceneResources(VkCommandBuffer cmd) const;
 
-  // Static helpers for complex logic
-  static nvvk::Image loadAndCreateImage(VkCommandBuffer cmd,
-                                        nvvk::StagingUploader &staging,
-                                        VkDevice device,
-                                        const std::filesystem::path &filename,
-                                        bool sRgb = true);
+  nvvk::Image createImageFromRaw(const core::Image &raw,
+                                 nvvk::StagingUploader &staging,
+                                 bool sRgb = true);
+
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------

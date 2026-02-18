@@ -1,5 +1,7 @@
 #include "include/light/sky_functions.h.slang"
+#include "include/light/envmap.h.slang"
 #include "entrypoints/raytrace/ray_common.h.slang"
+
 
 //-----------------------------------------------------------------------
 // MISS SHADER - Called when ray doesn't hit any geometry (background/sky)
@@ -14,8 +16,11 @@
     return;
   }
 
-  // Check if sky system is enabled
-  if (sceneInfo.useSky == 1)
+  if (sceneInfo.useEnv == 1) {
+      EnvmapSampler env;
+      payload.color += env.evalRadiance(sceneInfo.envmapLight, WorldRayDirection(), textures) * payload.weight;
+  }
+  else if (sceneInfo.useSky == 1) // Check if sky system is enabled
   {
     // Evaluate procedural sky color based on ray direction
     // This creates realistic sky gradients based on sun position and

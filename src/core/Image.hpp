@@ -1,29 +1,20 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
+#include <cstring>
+#include <filesystem>
 #include <string>
+#include <vector>
 
-namespace core
-{
+#include <stb/stb_image.h>
 
-enum class ImageFormat
-{
-  RGBA8_UNORM,
-  RGBA32_SFLOAT,
-  DEPTH32_SFLOAT,
-  // Add more as needed
-};
+namespace core {
 
-enum class ImageUsage
-{
-  Texture,
-  Attachment,
-  Storage
-};
+enum class ImageFormat { RGBA8_UNORM, RGBA32_SFLOAT, DEPTH32_SFLOAT, UNKNOWN };
 
-struct ImageCreateInfo
-{
+enum class ImageUsage { Texture, Attachment, Storage };
+
+struct ImageCreateInfo {
   uint32_t width{0};
   uint32_t height{0};
   ImageFormat format{ImageFormat::RGBA8_UNORM};
@@ -35,14 +26,21 @@ struct ImageCreateInfo
  * @brief Agnostic Image interface.
  * The actual Vulkan/DX12 resources are managed by the backend.
  */
-struct Image
-{
-public:
-  uint32_t width;
-  uint32_t height;
-  ImageFormat format;
-  void* native_handle = nullptr;
-  void* descriptor = nullptr;
+struct Image {
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t components = 4;
+  ImageFormat format = ImageFormat::UNKNOWN;
+
+  // CPU Pixel storage
+  std::vector<uint8_t> pixels;
+
+  bool isValid() const { return !pixels.empty(); }
+
+  // Helper to get raw float pointer for HDR maps
+  float *asFloat() { return reinterpret_cast<float *>(pixels.data()); }
 };
 
-}  // namespace core
+core::Image loadRawImage(const std::filesystem::path &filename);
+
+} // namespace core

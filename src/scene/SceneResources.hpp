@@ -66,6 +66,7 @@ public:
 
   const shaderio::SceneInfo &sceneInfo() const;
   shaderio::SceneInfo &sceneInfo();
+  void loadEnvmap(const DataEnvmap &envmap);
   void setSceneInfo(shaderio::SceneInfo sceneInfo);
   const std::vector<shaderio::Instance> &getInstances() const {
     return m_resources.instances;

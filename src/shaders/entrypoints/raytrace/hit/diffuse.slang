@@ -39,5 +39,5 @@ rchit_diffuse(inout HitPayload payload,
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(bounceDir);
   payload.stop = false;
-  payload.emit = false;
+  payload.emit = true;
 }

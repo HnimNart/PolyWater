@@ -1,7 +1,6 @@
 #include "SceneLoader.hpp"
 #include <core/logger.hpp>
 #include <fstream>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 
@@ -170,6 +169,22 @@ void SceneLoader::parseSceneInfo(const json &j, SceneData &scene)
         parseVec3(c.value("up", json::array()), glm::vec3(0, 1, 0));
     scene.camera.clip =
         parseVec2(c.value("clip", json::array()), glm::vec2(0.01f, 100.0f));
+  }
+
+  // --- Environment Map ---
+  if (j.contains("envmap")) {
+    const auto &env = j["envmap"];
+    scene.envmap.path = JSON_VAL(env, "file", std::string(""));
+    scene.envmap.scale = JSON_VAL(env, "scale", 1.0f);
+
+    // Rotation is often easier to pass as a single float (degrees)
+    // or a Vec3 for full orientation control
+    scene.envmap.rotation = JSON_VAL(env, "rotation", 0.0f);
+
+    // Ensure we flag that an envmap should be loaded/used
+    if (!scene.envmap.path.empty()) {
+      scene.envmap.useEnvMap = true;
+    }
   }
 
   // Lights

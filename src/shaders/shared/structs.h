@@ -204,6 +204,22 @@ struct AreaLight {
   uint nTriangles = 0;
 };
 
+struct EnvmapLight {
+  // GPU Buffer Addresses for MIS
+  float *cdfRows = nullptr; // Conditional CDF: (width + 1) * height
+  float *cdfCols = nullptr; // Marginal CDF: (height + 1)
+
+  // Transformation & Intensity
+  float4x4 rotation; // Pre-computed rotation matrix (world to local)
+  float scale;       // Intensity/Brightness multiplier
+  float totalSum;    // The integral of the importance map (needed for PDF)
+
+  // Texture Information
+  int envTextureIdx; // Index for bindless texture lookup
+  uint2 dims;        // Width and Height of the texture
+};
+CHECK_STRUCT_ALIGNMENT(EnvmapLight)
+
 struct RenderParams {
   int nSamples = 1; // Number of samples pr pass
   int maxBounces = 16;
@@ -231,7 +247,8 @@ struct SceneInfo {
   float3 cameraPosition;   // Camera position in world space
 
   // Light info
-  int useSky;             // Whether to use the sky rendering
+  int useSky; // Whether to use the sky rendering
+  int useEnv;
   float3 backgroundColor; // Background color of the scene
   int numLights;          // Number of punctual lights in the scene (up to 2)
   PunctualLight
@@ -239,6 +256,7 @@ struct SceneInfo {
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
 
   AreaLight areaLight;
+  EnvmapLight envmapLight;
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 

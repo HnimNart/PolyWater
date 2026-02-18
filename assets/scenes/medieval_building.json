@@ -27,22 +27,11 @@
         1000.0
       ]
     },
-    "lights": [
-      {
-        "type": "Point",
-        "position": [
-          5.0,
-          10.0,
-          5.0
-        ],
-        "color": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "intensity": 100.0
-      }
-    ]
+    "envmap": {
+      "file": "envs/ludwikowice_farmland_1k.hdr",
+      "scale": 1.0,
+      "rotation": 0.0
+    }
   },
   "assets": {
     "meshes": {

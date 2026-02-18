@@ -2,8 +2,24 @@
 
 #include <vector>
 
+#include "core/Image.hpp"
+
 #include "shaders/shared/structs.h"
 #include <backend/interfaces/RHI_definitions.hpp>
+
+struct EnvmapInfo {
+  float scale = 1.0f;
+  float rotation = 0.0f;
+
+  // CPU Raw Data
+  core::Image image;
+
+  // MIS Data (Calculated on CPU)
+  std::vector<float> importanceMap;
+  std::vector<float> cdfRows;
+  std::vector<float> cdfCols;
+  float totalIntegral;
+};
 
 struct Scene {
   std::vector<std::vector<uint8_t>> meshData{};
@@ -14,6 +30,9 @@ struct Scene {
       sceneInfo; // Scene information (camera matrices and lights)
   shaderio::SceneResources
       sceneResources; // pointers to meshes, instances, materials
+
+  // Intermediate data for envmap
+  EnvmapInfo envmapInfo;
 };
 
 template <typename T>
