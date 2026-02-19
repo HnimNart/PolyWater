@@ -172,7 +172,7 @@ void Application::addElement(const std::shared_ptr<IAppElement> &element)
 void Application::run()
 /**********************************************************/
 {
-  LOGI("Running application");
+  LOGI("Running application\n");
 
   // Handle headless mode
   if (m_headless) {

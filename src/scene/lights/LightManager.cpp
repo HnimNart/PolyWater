@@ -123,7 +123,6 @@ EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
   if (filename.empty()) {
     return info;
   }
-  LOGI("Loading %s", filename.string().c_str());
 
   // 1. Load HDR Image into our agnostic CPU struct
   info.image = core::loadRawImage(filename);
@@ -203,7 +202,7 @@ EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
     }
   }
 
-  LOGI("Environment map processed: %dx%d", width, height);
+  LOGD("Environment map processed: %dx%d", width, height);
 
   return info;
 }

@@ -14,8 +14,9 @@
 namespace {
 
 /**********************************************************/
-std::string getUniqueName(const std::map<std::string, uint32_t> &nameMap,
-                          const std::string &baseName)
+std::string
+getUniqueName(const std::unordered_map<std::string, uint32_t> &nameMap,
+              const std::string &baseName)
 /**********************************************************/
 {
   std::string candidate = baseName;
@@ -182,10 +183,27 @@ TextureID SceneResourcesManager::addTexture(const std::string &name,
                                             const std::string &filename)
 /**********************************************************/
 {
-  IDeviceAssets::TextureID textureID = m_device_resources->reserveTextureSlot();
+  auto fileIt = m_fileToTextureMap.find(filename);
+  if (fileIt != m_fileToTextureMap.end()) {
+    if (m_textureMap.find(name) == m_textureMap.end()) {
+      m_textureMap[name] = fileIt->second;
+    }
+    return fileIt->second;
+  }
+
+  std::string finalName = name;
+  if (m_textureMap.find(name) != m_textureMap.end()) {
+    LOGW("Texture name collision: '%s' already exists for a different file. "
+         "Renaming...",
+         name.c_str());
+    finalName = getUniqueName(m_textureMap, name);
+  }
+
+  TextureID textureID = m_device_resources->reserveTextureSlot();
   m_pendingTextures.push_back({filename, textureID});
-  std::string uniqueName = getUniqueName(m_textureMap, name);
-  m_textureMap[uniqueName] = textureID;
+  m_fileToTextureMap[filename] = textureID;
+  m_textureMap[finalName] = textureID;
+
   return textureID;
 }
 
@@ -195,8 +213,6 @@ void SceneResourcesManager::addEnvmap(const std::filesystem::path &filename,
 /**********************************************************/
 {
   m_pendingEnvmap.emplace(filename, scale, rotation);
-  std::string uniqueName =
-      getUniqueName(m_textureMap, core::getLowercasedStem(filename));
 }
 
 /**********************************************************/
@@ -302,7 +318,6 @@ void SceneResourcesManager::finalizePendingTextures()
 /**********************************************************/
 {
   for (const auto &[filename, id] : m_pendingTextures) {
-    // TODO check if file exists in database and return id
     core::Image raw = core::loadRawImage(filename);
     if (!raw.isValid()) {
       assert(false && "Failed to load texture image!");
@@ -317,7 +332,7 @@ void SceneResourcesManager::finalizePendingTextures()
 void SceneResourcesManager::finalizeSceneResources()
 /**********************************************************/
 {
-  // Start the Batch
+  // Start the upload
   m_device_resources->beginUploading();
 
   // Upload models
@@ -376,18 +391,24 @@ void SceneResourcesManager::uploadLights()
 void SceneResourcesManager::clear()
 /**********************************************************/
 {
-  m_materialMap.clear();
-  m_resources = {};
-  m_meshMap = {};
-  m_textureMap = {};
-  m_instanceMap = {};
-  m_materialMap = {};
+  // Reset the core data structures
+  m_resources = Scene{}; // This handles instances, materials, etc.
 
+  // Clear all naming and deduplication maps
+  m_materialMap.clear();
+  m_meshMap.clear();
+  m_textureMap.clear();
+  m_instanceMap.clear();
+  m_fileToTextureMap.clear();
+
+  // Reset pending task counters and queues
   m_pendingMeshes = 0;
   m_loadOrder.clear();
   m_pendingGltfModels.clear();
   m_pendingPrimitives.clear();
   m_pendingTextures.clear();
+
+  m_pendingEnvmap.reset();
 }
 
 /**********************************************************/
@@ -433,20 +454,6 @@ void SceneResourcesManager::onInstanceChange()
 }
 
 /**********************************************************/
-const Scene &SceneResourcesManager::data() const
-/**********************************************************/
-{
-  return m_resources;
-}
-
-/**********************************************************/
-Scene &SceneResourcesManager::data()
-/**********************************************************/
-{
-  return m_resources;
-}
-
-/**********************************************************/
 void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 /**********************************************************/
 {
@@ -454,15 +461,45 @@ void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 }
 
 /**********************************************************/
-shaderio::SceneInfo &SceneResourcesManager::sceneInfo()
+shaderio::Material *
+SceneResourcesManager::getMaterialFromName(const std::string &name)
 /**********************************************************/
 {
-  return m_resources.sceneInfo;
+  auto it = m_materialMap.find(name);
+  return (it != m_materialMap.end()) ? &m_resources.materials[it->second]
+                                     : nullptr;
 }
 
 /**********************************************************/
-const shaderio::SceneInfo &SceneResourcesManager::sceneInfo() const
+const shaderio::MeshPrimitive &
+SceneResourcesManager::getMeshFromIdx(uint32_t index) const
 /**********************************************************/
 {
-  return m_resources.sceneInfo;
+  assert(index < m_resources.meshes.size());
+  return m_resources.meshes[index];
+}
+
+/**********************************************************/
+MeshID SceneResourcesManager::getMeshIDFromName(const std::string &name) const
+/**********************************************************/
+{
+  auto it = m_meshMap.find(name);
+  if (it != m_meshMap.end())
+    return it->second;
+
+  throw std::runtime_error(
+      fmt::format("[SceneResourcesManager] Mesh name '{}' not found.", name));
+}
+
+/**********************************************************/
+TextureID
+SceneResourcesManager::getTextureIDFromName(const std::string &name) const
+/**********************************************************/
+{
+  auto it = m_textureMap.find(name);
+  if (it != m_textureMap.end())
+    return it->second;
+
+  throw std::runtime_error(fmt::format(
+      "[SceneResourcesManager] Texture name '{}' not found.", name));
 }

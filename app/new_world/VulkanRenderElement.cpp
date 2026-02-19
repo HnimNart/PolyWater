@@ -526,9 +526,30 @@ void VulkanRendererElement::renderMaterialsUI()
         changed |= PE::SliderFloat3("Asymmetry", glm::value_ptr(mat.asymmetry),
                                     0.0f, 1.0f);
 
-        // Read-only info
-        PE::Text("Texture Index",
-                 fmt::format("{}", mat.baseColorTextureIndex).c_str());
+        const auto &textureMap = resources.textureMap();
+        std::string currentName = "None";
+        for (const auto &[name, id] : textureMap) {
+          if (id == mat.baseColorTextureIndex) {
+            currentName = name;
+            break;
+          }
+        }
+
+        if (ImGui::BeginCombo("Base Color Texture", currentName.c_str())) {
+          for (const auto &[name, id] : textureMap) {
+            const bool isSelected = (currentName == name);
+            if (ImGui::Selectable(name.c_str(), isSelected)) {
+              mat.baseColorTextureIndex = id;
+              m_hasChanged = true;
+              resources.onMaterialChange();
+            }
+
+            if (isSelected) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+          ImGui::EndCombo();
+        }
 
         PE::end();
         ImGui::TreePop();

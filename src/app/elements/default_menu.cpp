@@ -33,7 +33,7 @@
 void app::ElementDefaultMenu::onAttach(Application *app)
 /**********************************************************/
 {
-  LOGI("Adding Default Menu");
+  LOGI("Adding Default Menu\n");
   m_app = app;
 }
 

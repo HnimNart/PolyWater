@@ -47,6 +47,8 @@ core::Image loadRawImage(const std::filesystem::path &filename)
 
   if (!img.isValid()) {
     LOGE("STB failed to load image: %s", pathStr.c_str());
+  } else {
+    LOGD("Loaded %s", filename.string().c_str());
   }
 
   return img;

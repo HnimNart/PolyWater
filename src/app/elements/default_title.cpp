@@ -38,7 +38,7 @@ app::ElementDefaultWindowTitle::ElementDefaultWindowTitle(
 void app::ElementDefaultWindowTitle::onAttach(Application *app)
 /**********************************************************/
 {
-  LOGI("Adding DefaultWindowTitle");
+  LOGI("Adding DefaultWindowTitle\n");
   m_app = app;
 }
 

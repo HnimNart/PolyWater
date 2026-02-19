@@ -24,7 +24,7 @@ void app::GeometryPickerElement::onAttach(Application *app)
 /**********************************************************/
 {
   m_app = app;
-  LOGI("Adding Geometry Picker Element");
+  LOGI("Adding Geometry Picker Element\n");
 }
 
 /**********************************************************/
@@ -54,7 +54,7 @@ void app::GeometryPickerElement::onUIRender()
       // 2. Raycast to find object
       int32_t hitIndex = pickObject(mouseX, mouseY, winSize.x, winSize.y);
 
-      printf("Picked %d\n", hitIndex);
+      LOGI("Picked %d\n", hitIndex);
 
       if (m_onSelect) {
         m_onSelect(hitIndex);

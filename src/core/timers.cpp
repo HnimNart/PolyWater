@@ -97,7 +97,7 @@ void ScopedTimer::init_(const std::string &str) {
   // If nesting timers, break the newline of the previous one
   if (s_openNewline) {
     assert(s_nesting > 0);
-    printf("\n");
+    LOGI("\n");
   }
 
   m_manualIndent =
@@ -105,10 +105,10 @@ void ScopedTimer::init_(const std::string &str) {
 
   // Add indentation automatically if not already in str.
   if (s_nesting > 0 && !m_manualIndent) {
-    printf("%s", indent().c_str());
+    LOGI("%s", indent().c_str());
   }
 
-  printf("%s", str.c_str());
+  LOGI("%s", str.c_str());
   s_openNewline = str.empty() || str[str.size() - 1] != '\n';
   ++s_nesting;
 }
@@ -118,11 +118,11 @@ ScopedTimer::~ScopedTimer() {
   // If nesting timers and this is the second destructor in a row, indent and
   // print "Total" as it won't be on the same line.
   if (!s_openNewline && !m_manualIndent) {
-    printf("%s|", indent().c_str());
+    LOGI("%s|", indent().c_str());
   } else {
-    printf(" ");
+    LOGI(" ");
   }
-  printf("-> %.3f ms\n", m_timer.getMilliseconds());
+  LOGI("-> %.3f ms\n", m_timer.getMilliseconds());
   s_openNewline = false;
 }
 

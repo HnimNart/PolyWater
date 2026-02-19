@@ -65,23 +65,30 @@ int main(int argc, char **argv) {
   auto elemCamera = std::make_shared<app::ElementCamera>();
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
   auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
-  auto logger = std::make_shared<app::ElementLogger>();
+  auto logger = std::make_shared<app::ElementLogger>(true);
+
+  application.addElement(logger);
+  logger->setLevelFilter(app::ElementLogger::eBitAll);
+
+  core::Logger::getInstance().setLogCallback(
+      [ptr = logger.get()](core::Logger::LogLevel severity,
+                           const std::string &message) {
+        ptr->addLog(severity, message.c_str());
+      });
 
   // Adding all elements
   application.addElement(windowMenu);
   application.addElement(windowTitle);
-  application.addElement(renderElement);
   application.addElement(elemCamera);
-  application.addElement(logger);
 
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();
   auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
   application.addElement(profiler);
-
-  auto monitor = std::make_shared<app::ElementGpuMonitor>();
+  auto monitor = std::make_shared<app::ElementGpuMonitor>(true);
   application.addElement(monitor);
 #endif
+  application.addElement(renderElement);
 
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());

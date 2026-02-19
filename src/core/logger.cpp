@@ -316,7 +316,6 @@ void core::Logger::outputToConsoles(LogLevel level,
 void core::Logger::outputToFile(const std::string &message) noexcept {
   if (m_logToFile && m_logFile.is_open()) {
     m_logFile << message << std::endl;
-    printf("\n");
     if (m_fileFlush) {
       m_logFile.flush();
     }

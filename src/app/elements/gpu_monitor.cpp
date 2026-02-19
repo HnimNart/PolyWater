@@ -58,7 +58,7 @@ ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show) {
 }
 
 void ElementGpuMonitor::onAttach(Application *app) {
-  LOGI("Adding GPU Monitor (NVML)");
+  LOGI("Adding GPU Monitor (NVML)\n");
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor =
       std::make_unique<NvmlMonitor>(SAMPLING_INTERVAL, SAMPLING_NUM);
