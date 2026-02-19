@@ -25,7 +25,7 @@ std::string getUniqueName(const std::map<std::string, uint32_t> &nameMap,
   while (nameMap.find(candidate) != nameMap.end()) {
     candidate = baseName + "_" + std::to_string(counter++);
   }
-  return common::trim(candidate);
+  return core::trim(candidate);
 }
 
 } // namespace
@@ -44,8 +44,8 @@ SceneResourcesManager::loadModel(const std::string &name,
 /**********************************************************/
 {
   // 1. Extract Extension
-  std::string ext = common::getExtension(filename);
-  common::toLower(ext);
+  std::string ext = core::getExtension(filename);
+  core::toLower(ext);
 
   // 3. Dispatch
   if (ext == ".gltf" || ext == ".glb") {
@@ -129,8 +129,8 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
   for (auto &material : materials) {
     if (!material.diffuseTexturePath.empty()) {
       TextureID texId =
-          loadTexture(material.name, core::findFile(material.diffuseTexturePath,
-                                                    common::getTextureDir()));
+          addTexture(material.name, core::findFile(material.diffuseTexturePath,
+                                                   common::getTextureDir()));
       material.pbrData.baseColorTextureIndex = texId;
     }
     MaterialID materialId =
@@ -178,8 +178,8 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
 }
 
 /**********************************************************/
-TextureID SceneResourcesManager::loadTexture(const std::string &name,
-                                             const std::string &filename)
+TextureID SceneResourcesManager::addTexture(const std::string &name,
+                                            const std::string &filename)
 /**********************************************************/
 {
   IDeviceAssets::TextureID textureID = m_device_resources->reserveTextureSlot();
@@ -190,18 +190,23 @@ TextureID SceneResourcesManager::loadTexture(const std::string &name,
 }
 
 /**********************************************************/
+void SceneResourcesManager::addEnvmap(const std::filesystem::path &filename,
+                                      float scale, float rotation)
+/**********************************************************/
+{
+  m_pendingEnvmap.emplace(filename, scale, rotation);
+  std::string uniqueName =
+      getUniqueName(m_textureMap, core::getLowercasedStem(filename));
+}
+
+/**********************************************************/
 InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
                                               std::string name)
 /**********************************************************/
 {
-  // 1. Prepare the transform
   instance.transform = math::composeTransform(
       instance.translation, instance.rotation, instance.scale);
-
-  // 2. Clean the name
-  name = common::trim(name);
-
-  // 3. Check for existing instance
+  name = core::trim(name);
   auto it = m_instanceMap.find(name);
   if (it != m_instanceMap.end()) {
     InstanceID existingID = it->second;
@@ -211,7 +216,6 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
     return existingID;
   }
 
-  // 4. If new, push back as normal
   m_resources.instances.push_back(instance);
   InstanceID id = static_cast<InstanceID>(m_resources.instances.size() - 1);
 
@@ -230,7 +234,7 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
                                               std::string name)
 /**********************************************************/
 {
-  name = common::trim(name);
+  name = core::trim(name);
   auto it = m_materialMap.find(name);
   if (it != m_materialMap.end()) {
     MaterialID existingID = it->second;
@@ -354,11 +358,18 @@ void SceneResourcesManager::finalizeSceneResources()
 void SceneResourcesManager::uploadLights()
 /**********************************************************/
 {
+  if (m_pendingEnvmap) {
+    const EnvmapInfo envmapInfo =
+        m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
+                            m_pendingEnvmap->rotation);
+    m_resources.sceneInfo.envmapLight =
+        m_lights.uploadEnvmap(envmapInfo, m_device_resources);
+    m_pendingEnvmap.reset();
+  }
   m_resources.sceneInfo.areaLight =
       m_lights.uploadAreaLights(m_resources, m_device_resources);
-
-  m_resources.sceneInfo.envmapLight =
-      m_lights.uploadEnvmap(m_resources, m_device_resources);
+  m_resources.sceneInfo.totalAnalyticalPower =
+      m_lights.computeAnalyticalLightContribution(m_resources);
 }
 
 /**********************************************************/
@@ -440,13 +451,6 @@ void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 /**********************************************************/
 {
   m_resources.sceneInfo = sceneInfo;
-}
-
-/**********************************************************/
-void SceneResourcesManager::loadEnvmap(const DataEnvmap &envmap)
-/**********************************************************/
-{
-  m_resources.envmapInfo = m_lights.loadEnvmap(envmap);
 }
 
 /**********************************************************/

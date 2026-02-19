@@ -202,6 +202,7 @@ struct AreaLight {
   TriangleLight *triangles = nullptr;
   float *cdf = nullptr;
   uint nTriangles = 0;
+  float totalSum = 0; // Total sum of light
 };
 
 struct EnvmapLight {
@@ -210,6 +211,7 @@ struct EnvmapLight {
   float *cdfCols = nullptr; // Marginal CDF: (height + 1)
 
   // Transformation & Intensity
+  float rotationAzimuthDegree;
   float4x4 rotation; // Pre-computed rotation matrix (world to local)
   float scale;       // Intensity/Brightness multiplier
   float totalSum;    // The integral of the importance map (needed for PDF)
@@ -250,7 +252,8 @@ struct SceneInfo {
   int useSky; // Whether to use the sky rendering
   int useEnv;
   float3 backgroundColor; // Background color of the scene
-  int numLights;          // Number of punctual lights in the scene (up to 2)
+  float totalAnalyticalPower = 0.0;
+  int numLights; // Number of punctual lights in the scene (up to 2)
   PunctualLight
       punctualLights[MAX_LIGHTS];     // punctual lights in the scene (up to 2)
   SkySimpleParameters skySimpleParam; // Parameters for the sky rendering

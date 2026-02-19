@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shared/tonemapper_io.h.slang"
+
 // Helper: Binary search to find the lower bound index in a float array
 int findLowerBound(float *cdf, int size, float u) {
   int low = 0;
@@ -29,8 +31,8 @@ struct EnvmapSampler {
     float u = (float(uIdx) + 0.5f) / float(light.dims.x);
 
     // C. Convert UV to Spherical Coordinates (Y-up)
-    float phi = u * 2.0f * 3.14159265f;
-    float theta = v * 3.14159265f;
+    float phi = u * 2.0f * M_PI;
+    float theta = v * M_PI;
 
     float sinTheta = sin(theta);
     float cosTheta = cos(theta);
@@ -54,10 +56,10 @@ struct EnvmapSampler {
     float phi = atan2(localDir.x, localDir.z);
 
     if (phi < 0.0f)
-      phi += 2.0f * 3.14159265f;
+      phi += 2.0f * M_PI;
 
-    float u = phi / (2.0f * 3.14159265f);
-    float v = theta / 3.14159265f;
+    float u = phi / (2.0f * M_PI);
+    float v = theta / M_PI;
 
     // Using your Sampler2D interface
     float3 color =
@@ -68,6 +70,10 @@ struct EnvmapSampler {
 
   // 3. Evaluate PDF for MIS
   float evalPdf(EnvmapLight light, float3 wi, float3 radiance) {
+
+    uint width = light.dims.x;
+    uint height = light.dims.y;
+
     float3 localDir = normalize(mul((float3x3)transpose(light.rotation), wi));
 
     float theta = acos(clamp(localDir.y, -1.0f, 1.0f));
@@ -79,12 +85,13 @@ struct EnvmapSampler {
 
     // Importance is luminance (scale is cancelled out in the ratio)
     float luminance =
-        dot(radiance, float3(0.2126, 0.7152, 0.0722)) / light.scale;
+        bt709Luminance(radiance) / light.scale;
 
     // Standard PDF for Equirectangular Importance Sampling:
     // pdf = luminance / (totalIntegral * 2 * PI^2)
     // We don't divide by sinTheta here because the sampling logic
     // already accounts for the solid angle Jacobian.
-    return luminance / (light.totalSum * (2.0f * 3.14159265f * 3.14159265f));
+    return (luminance * width * height) / (light.totalSum * (2.0f * M_PI * M_PI));
   }
 };
+

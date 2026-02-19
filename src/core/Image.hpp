@@ -42,5 +42,6 @@ struct Image {
 };
 
 core::Image loadRawImage(const std::filesystem::path &filename);
+void releaseRawImage(core::Image &image);
 
 } // namespace core

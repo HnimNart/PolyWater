@@ -61,6 +61,13 @@ inline float clampedDot(float3 x, float3 y)
   return clamp(dot(x, y), 0.0F, 1.0F);
 }
 
+// Use IFloat to ensure this works for float, float2, float3, etc.
+T safe_div<T : IFloat>(T x, T y)
+{
+  T min_val = T(1e-6f);
+  return x / (y < min_val ? min_val : y);
+}
+
 //-----------------------------------------------------------------------------
 // Builds an orthonormal basis: given only a normal vector, returns a
 // tangent and bitangent.
@@ -138,20 +145,6 @@ inline float4 mixBary(float4 a, float4 b, float4 c, float3 bary)
   return a * bary.x + b * bary.y + c * bary.z;
 }
 
-//-----------------------------------------------------------------------
-// https://www.realtimerendering.com/raytracinggems/unofficial_RayTracingGems_v1.4.pdf
-// 16.6.1 COSINE-WEIGHTED HEMISPHERE ORIENTED TO THE Z-AXIS
-//-----------------------------------------------------------------------
-inline float3 cosineSampleHemisphere(float r1, float r2)
-{
-  float  r   = sqrt(r1);
-  float  phi = M_TWO_PI * r2;
-  float3 dir;
-  dir.x = r * cos(phi);
-  dir.y = r * sin(phi);
-  dir.z = sqrt(max(0.F, 1.F - dir.x * dir.x - dir.y * dir.y));
-  return dir;
-}
 
 // Converts an integer to a color.
 // This is roughly evenly distributed within [0,1]^3, and the first 10 colors

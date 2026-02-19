@@ -3,6 +3,7 @@
 
 #include "include/bsdf/ibsdf.h.slang"
 #include "include/core/math.h.slang"
+#include "envmap.h.slang"
 
 //-----------------------------------------------------------------------
 // STRUCTS
@@ -206,6 +207,142 @@ LightSample sampleAreaLight(SceneInfo* sceneInfo, float3 refPoint, inout int see
 #ifdef RAY_TRACE
 #include "include/raytrace/trace.h.slang"
 
+float3 sampleDirectLightingPowerCDF(
+    SceneInfo* sceneInfo,
+    float3 worldPos, 
+    float3 worldNormal, 
+    IBSDF bsdf, 
+    inout int seed)
+{
+    float3 directLighting = float3(0.0f);
+
+    EnvmapLight envLight = sceneInfo->envmapLight;
+    AreaLight areaLight = sceneInfo->areaLight;
+
+    // ------------------------------------------------------------------
+    // 1. Gather Weights (Total Unoccluded Power/Flux per category)
+    // ------------------------------------------------------------------
+    // Note: You must precalculate totalAnalyticalPower and totalAreaPower 
+    // on the CPU and pass them in via SceneInfo.
+    float wAnalytic = sceneInfo->totalAnalyticalPower; 
+    float wArea     = areaLight.totalSum;
+    float wEnv      = envLight.totalSum * sceneInfo->useEnv; 
+
+    float totalWeight = wAnalytic + wArea + wEnv;
+
+    // If the scene is completely pitch black, exit early.
+    if (totalWeight <= 0.0f) return directLighting;
+
+    // ------------------------------------------------------------------
+    // 2. Build the CDF and Probabilities
+    // ------------------------------------------------------------------
+    float pAnalytic = wAnalytic / totalWeight;
+    float pArea     = wArea     / totalWeight;
+    float pEnv      = wEnv      / totalWeight;
+
+    // Build cumulative thresholds
+    float cdf0 = pAnalytic;               // Threshold for Analytical
+    float cdf1 = cdf0 + pArea;            // Threshold for Area
+    // Env threshold implicitly goes from cdf1 to 1.0f
+
+    // ------------------------------------------------------------------
+    // 3. Select Strategy via Random Number
+    // ------------------------------------------------------------------
+    float xi = rnd(seed);
+    
+    int selectedStrategy = -1;
+    float strategyPdf = 0.0f;
+
+    if (xi < cdf0 && pAnalytic > 0.0f) {
+        selectedStrategy = 0;
+        strategyPdf = pAnalytic;
+    } 
+    else if (xi < cdf1 && pArea > 0.0f) {
+        selectedStrategy = 1;
+        strategyPdf = pArea;
+    } 
+    else if (pEnv > 0.0f) {
+        selectedStrategy = 2;
+        strategyPdf = pEnv;
+    }
+
+    if (selectedStrategy == -1) return directLighting; // Fallback for floating point errors
+
+    // ------------------------------------------------------------------
+    // 4. Sample the selected strategy
+    // ------------------------------------------------------------------
+    LightSample ls;
+    bool validSample = false;
+
+    if (selectedStrategy == 0) // Analytical Lights
+    {
+        // For a perfectly unbiased estimator, you should ideally sample 
+        // analytical lights using their individual power CDF too, rather than uniformly.
+        // Assuming uniform selection for now:
+        int lightIdx = clamp(int(rnd(seed) * sceneInfo->numLights), 0, sceneInfo->numLights - 1);
+        ls = sampleLight(sceneInfo, worldPos, lightIdx);
+        
+        ls.pdf *= (1.0f / float(sceneInfo->numLights)); 
+        if (ls.intensity > 0.0f) validSample = true;
+        ls.color = float3(1, 0, 0);
+    }
+    else if (selectedStrategy == 1) // Area Lights
+    {
+        ls = sampleAreaLight(sceneInfo, worldPos, seed);
+        if (ls.pdf > 0.0f) validSample = true;
+
+        ls.color = float3(0, 1, 0);
+    }
+    else if (selectedStrategy == 2) // Environment Map
+    {
+
+        EnvmapSampler envSampler;
+        float2 randomSample = float2(rnd(seed), rnd(seed));
+        
+        float3 wi;
+        float pdf;
+        float3 radiance;
+        
+        envSampler.sample(envLight, randomSample, wi, pdf, radiance, textures);
+
+        if (pdf > 0.0f) {
+            ls.direction = wi;
+            ls.color = radiance;
+            ls.intensity = 1.0f; 
+            ls.pdf = pdf;
+            ls.position = worldPos + wi * 1e7f; // Safe large distance
+            validSample = true;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 5. Evaluate and apply Monte Carlo Estimator
+    // ------------------------------------------------------------------
+    if (validSample)
+    {
+        float nDotL = dot(worldNormal, ls.direction);
+        
+        if (nDotL > 0.0f && ls.pdf > 0.0f)
+        {
+            float distToLight = length(ls.position - worldPos);
+            float visibility = testShadow(worldPos, ls.direction, distToLight - 0.001f);
+
+            if (visibility > 0.0f)
+            {
+                float3 brdf = bsdf.eval(ls.direction, worldNormal);
+                
+                // CRITICAL: We multiply the light's local PDF by the probability 
+                // of selecting its entire category.
+                float combinedPdf = ls.pdf * strategyPdf;
+
+                directLighting = (brdf * ls.color * ls.intensity * nDotL * visibility) / combinedPdf;
+            }
+        }
+    }
+
+    return directLighting;
+}
+
 float3 sampleDirectLighting(SceneInfo* sceneInfo, float3 worldPos,
                             float3 worldNormal, IBSDF bsdf)
 {
@@ -233,32 +370,9 @@ float3 sampleDirectLighting(SceneInfo* sceneInfo, float3 worldPos,
   return color;
 }
 
-float3 sampleDirectLighting(SceneInfo* sceneInfo, float3 worldPos, 
-                           float3 worldNormal, IBSDF bsdf, inout int seed)
-{
-    float3 directLighting = float3(0);
+float3 sampleAreaLight(SceneInfo* sceneInfo, float3 worldPos, float3 worldNormal, IBSDF bsdf, inout int seed) {
 
-    // --- 1. Analytical Lights (Point, Spot, Directional) ---
-    // We iterate through these as usual, or pick one at random.
-    // for (int i = 0; i < sceneInfo->numLights; i++)
-    // {
-    //     LightSample light = sampleLight(sceneInfo, worldPos, i);
-
-    //     float nDotL = dot(worldNormal, light.direction);
-    //     if (nDotL > 0.0 && light.pdf > 0.0)
-    //     {
-    //         float visibility = testShadow(worldPos, light.direction, length(light.position - worldPos));
-
-    //         if (visibility > 0.0)
-    //         {
-    //             float3 brdf = bsdf.eval(light.direction, worldNormal);
-    //             // For analytical lights, PDF is usually 1.0 or handled in intensity
-    //             directLighting += (brdf * light.color * light.intensity * nDotL * visibility);
-    //         }
-    //     }
-    // }
-
-    // --- 2. Area Lights (Importance Sampled) ---
+    float3 directLighting = float3(0.0f);
     if (sceneInfo->areaLight.nTriangles > 0)
     {
         // Use the random numbers (rnd) to pick and sample a point on an area light

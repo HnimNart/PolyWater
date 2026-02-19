@@ -88,7 +88,7 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
 /**********************************************************/
 {
   std::string ext = filename.extension().string();
-  common::toLower(ext);
+  core::toLower(ext);
   if (ext == ".json") {
     std::cout << "Scene File dropped: " << filename << std::endl;
     if (m_sceneFile == filename) {
@@ -365,9 +365,15 @@ void VulkanRendererElement::onUIRender()
           } else if (sceneInfo.useEnv) {
             auto &env = sceneInfo.envmapLight;
             if (PE::begin("EnvParamsTable")) {
-              // Example for intensity if needed:
-              // m_hasChanged |= PE::DragFloat("Intensity", &env.scale, 0.1f,
-              // 0.0f, 100.0f);
+              m_hasChanged |=
+                  PE::DragFloat("Intensity", &env.scale, 0.1f, 0.0f, 10.0f);
+              if ((m_hasChanged |= PE::DragFloat("Rotation (Azimuth)",
+                                                 &env.rotationAzimuthDegree,
+                                                 1.0f, 0.0f, 360.0f))) {
+                env.rotation = glm::rotate(
+                    glm::mat4(1.0f), glm::radians(env.rotationAzimuthDegree),
+                    glm::vec3(0, 1, 0));
+              }
 
               if (PE::treeNode("Technical Info")) {
                 PE::Text("Resolution", "%u x %u", env.dims.x, env.dims.y);

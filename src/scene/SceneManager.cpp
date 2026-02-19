@@ -60,7 +60,7 @@ void SceneManager::buildSceneFromData(
   // 2. Load Textures & Keep ID Mapping
   for (const auto &val : data.texturePaths) {
     std::string fullPath = core::findFile(val.path, searchDirs);
-    m_scene_resources.loadTexture(val.name, fullPath);
+    m_scene_resources.addTexture(val.name, fullPath);
   }
 
   // 3. Create Materials & Keep ID Mapping
@@ -124,9 +124,9 @@ void SceneManager::buildSceneFromData(
   }
 
   if (data.envmap.useEnvMap) {
-    DataEnvmap envmapInfo = data.envmap;
-    envmapInfo.path = core::findFile(data.envmap.path, searchDirs).string();
-    m_scene_resources.loadEnvmap(envmapInfo);
+    m_scene_resources.addEnvmap(
+        core::findFile(data.envmap.path, searchDirs).string(),
+        data.envmap.scale, data.envmap.rotation);
     sceneInfo.useEnv = true;
     sceneInfo.useSky = false;
   }

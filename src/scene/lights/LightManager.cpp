@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <numeric>
+#include <stb_image.h>
 
 #include "core/DiscretePdf.hpp"
 #include "core/logger.hpp"
 #include "core/timers.hpp"
-#include "stb_image.h"
+
+#include "shaders/shared/tonemapper_io.h.slang"
 
 namespace {
 /**
@@ -43,9 +45,14 @@ shaderio::AreaLight LightManager::uploadAreaLights(
   const auto [bufferAddrCDF, _2] =
       deviceResources->upload((void *)areaLightCDF.data(), cdfBytes);
 
-  return {static_cast<shaderio::TriangleLight *>(bufferAddrLight),
-          static_cast<float *>(bufferAddrCDF),
-          static_cast<uint32_t>(triangleLights.size())};
+  float totalSum = std::accumulate(weights.begin(), weights.end(), 0.0f);
+
+  return {
+      .triangles = static_cast<shaderio::TriangleLight *>(bufferAddrLight),
+      .cdf = static_cast<float *>(bufferAddrCDF),
+      .nTriangles = static_cast<uint32_t>(triangleLights.size()),
+      .totalSum = totalSum,
+  };
 }
 
 /**********************************************************/
@@ -108,25 +115,26 @@ LightManager::extractAreaLights(const Scene &scene)
 }
 
 /**********************************************************/
-EnvmapInfo LightManager::loadEnvmap(const DataEnvmap &dataEnvmap)
+EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
+                                    float scale, float rotation)
 /**********************************************************/
 {
   EnvmapInfo info;
-  if (dataEnvmap.path.empty()) {
+  if (filename.empty()) {
     return info;
   }
-  LOGI("Loading %s", dataEnvmap.path.c_str());
+  LOGI("Loading %s", filename.string().c_str());
 
   // 1. Load HDR Image into our agnostic CPU struct
-  info.image = core::loadRawImage(dataEnvmap.path);
+  info.image = core::loadRawImage(filename);
 
   if (!info.image.isValid()) {
-    LOGE("Failed to load environment map at: %s", dataEnvmap.path.c_str());
+    LOGE("Failed to load environment map at: %s", filename.string().c_str());
     return info;
   }
 
-  info.scale = dataEnvmap.scale;
-  info.rotation = dataEnvmap.rotation;
+  info.scale = scale;
+  info.rotation = rotation;
 
   uint32_t width = info.image.width;
   uint32_t height = info.image.height;
@@ -202,11 +210,11 @@ EnvmapInfo LightManager::loadEnvmap(const DataEnvmap &dataEnvmap)
 
 /**********************************************************/
 shaderio::EnvmapLight LightManager::uploadEnvmap(
-    const Scene &scene, const std::shared_ptr<IDeviceAssets> &deviceResources)
+    const EnvmapInfo &info,
+    const std::shared_ptr<IDeviceAssets> &deviceResources)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  const EnvmapInfo &info = scene.envmapInfo;
   shaderio::EnvmapLight gpuEnvLight{};
 
   // Check if we actually have image data to upload
@@ -239,6 +247,7 @@ shaderio::EnvmapLight LightManager::uploadEnvmap(
   // This is used in the shader to rotate the environment without re-uploading
   // pixels
   float rad = glm::radians(info.rotation);
+  gpuEnvLight.rotationAzimuthDegree = info.rotation;
   gpuEnvLight.rotation = glm::rotate(glm::mat4(1.0f), rad, glm::vec3(0, 1, 0));
 
   // totalIntegral is used for PDF normalization: pdf = luminance /
@@ -246,4 +255,35 @@ shaderio::EnvmapLight LightManager::uploadEnvmap(
   gpuEnvLight.totalSum = info.totalIntegral;
 
   return gpuEnvLight;
+}
+
+/**********************************************************/
+float LightManager::computeAnalyticalLightContribution(const Scene &scene)
+/**********************************************************/
+{
+  const shaderio::SceneInfo &sceneInfo = scene.sceneInfo;
+
+  float totalAnalyticalPower{0.0f};
+  for (const auto &l : sceneInfo.punctualLights) {
+
+    // 1. Calculate base Luminance
+    float luminance = getLuminance(l.color);
+    float basePower = luminance * l.intensity;
+
+    float lightPower{0.0f};
+
+    // 2. Calculate total flux based on the geometric spread of the light type
+    if (l.type == shaderio::LightType::ePoint) { // ePoint
+      lightPower = 4.0f * M_PI * basePower;
+    } else if (l.type == shaderio::LightType::eSpot) { // eSpot
+      float cosTheta = std::cos(l.coneAngle);
+      lightPower = 2.0f * M_PI * (1.0f - cosTheta) * basePower;
+    } else if (l.type == shaderio::LightType::eDirectional) { // eDirectional
+      lightPower = basePower * scene.crossSectionArea;
+    }
+
+    // 3. Accumulate into the total power for the category CDF
+    totalAnalyticalPower += lightPower;
+  }
+  return totalAnalyticalPower;
 }

@@ -45,7 +45,7 @@
           1.0,
           1.0
         ],
-        "intensity": 2.0
+        "intensity": 0.0
       }
     ]
   },
@@ -159,7 +159,7 @@
           3.0
         ]
       },
-      "hitGroup": "Mirror"
+      "hitGroup": "Gltf"
     }
   ]
 }

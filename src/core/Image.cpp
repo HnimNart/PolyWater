@@ -52,4 +52,14 @@ core::Image loadRawImage(const std::filesystem::path &filename)
   return img;
 }
 
+/**********************************************************/
+void releaseImageMemory(core::Image &img)
+/**********************************************************/
+{
+  img.pixels.clear();
+  img.pixels.shrink_to_fit();
+  img.width = 0;
+  img.height = 0;
+}
+
 } // namespace core

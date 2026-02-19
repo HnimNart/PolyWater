@@ -69,9 +69,8 @@ struct SceneData {
   std::vector<DataInstance> instances;
   std::vector<DataLight> lights;
 
-  DataEnvmap envmap;
-
   // Scene Globals
+  DataEnvmap envmap;
   DataCamera camera;
   glm::vec3 backgroundColor{0.0f};
   bool useSky = false;

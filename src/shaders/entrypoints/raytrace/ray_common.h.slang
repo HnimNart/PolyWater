@@ -1,7 +1,9 @@
 #ifndef RAY_COMMON_H_SLANG
 #define RAY_COMMON_H_SLANG 1
 
+#ifndef  RAY_TRACE
 #define RAY_TRACE 1
+#endif
 
 #include "include/constants.h.slang"
 

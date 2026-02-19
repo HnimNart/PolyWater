@@ -31,7 +31,7 @@ rchit_gltf(inout HitPayload payload,
   // --- (Direct Lighting) ---
   PbrEvaluator bsdf = PbrEvaluator(viewDir, albedo, roughness, metallic);
   const SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  payload.color += sampleDirectLighting(sceneInfo, worldPos, worldNormal, bsdf, payload.seed) *
+  payload.color += sampleDirectLightingPowerCDF(sceneInfo, worldPos, worldNormal, bsdf, payload.seed) *
                    payload.weight;
 
   // --- (Indirect Lighting) ---

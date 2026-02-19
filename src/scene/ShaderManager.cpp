@@ -45,7 +45,7 @@ void ShaderManager::registerMaterial(MaterialType type,
          "MaterialType already registered!");
 
   m_registry[type] = MaterialEntry{.type = type,
-                                   .prettyName = common::capitalize(baseName),
+                                   .prettyName = core::capitalize(baseName),
                                    .filename = baseName + ".slang",
                                    .entryPoint = "rchit_" + baseName,
                                    .sbtIndex = 0,

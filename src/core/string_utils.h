@@ -2,9 +2,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <string>
 
-namespace common {
+namespace core {
 
 inline std::string capitalize(std::string str) {
   if (!str.empty()) {
@@ -30,6 +31,20 @@ inline void toLower(std::string &str) {
                  [](unsigned char c) { return std::tolower(c); });
 }
 
+// -----------------------------------------------------------------------
+// Extracts the filename without extension and converts it to lowercase
+// -----------------------------------------------------------------------
+inline std::string getLowercasedStem(const std::string &filepath) {
+  // 1. Extract the stem
+  std::string stem = std::filesystem::path(filepath).stem().string();
+
+  // 2. Convert to lowercase in place
+  std::transform(stem.begin(), stem.end(), stem.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+
+  return stem;
+}
+
 /**
  * @brief Removes leading and trailing whitespace from a string.
  * Whitespace includes spaces ' ', tabs '\t', and newlines '\n' or '\r'.
@@ -50,4 +65,4 @@ inline std::string trim(const std::string &str) {
   return str.substr(first, (last - first + 1));
 }
 
-} // namespace common
+} // namespace core

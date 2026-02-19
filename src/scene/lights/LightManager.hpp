@@ -8,11 +8,30 @@
 #include "scene/Scene.h"
 #include "scene/SceneData.hpp"
 #include "shaders/shared/structs.h"
-#include "shaders/shared/tonemapper_io.h.slang"
+
+struct EnvmapInfo {
+  float scale = 1.0f;
+  float rotation = 0.0f;
+
+  // CPU Raw Data
+  core::Image image;
+
+  // MIS Data (Calculated on CPU)
+  std::vector<float> importanceMap;
+  std::vector<float> cdfRows;
+  std::vector<float> cdfCols;
+  float totalIntegral;
+};
 
 class LightManager {
 public:
   LightManager() = default;
+
+  /**
+   * Loads envmap buffer to CPU on disk
+   */
+  EnvmapInfo loadEnvmap(const std::filesystem::path &filename, float scale,
+                        float rotation);
 
   /**
    * Extracts emissive geometry from the scene and uploads to GPU.
@@ -21,20 +40,12 @@ public:
   uploadAreaLights(const Scene &scene,
                    const std::shared_ptr<IDeviceAssets> &deviceResources);
 
-  /**
-   * Extracts analytic lights (Point, Spot, etc.) from SceneData.
-   */
-  void uploadPointLights(const Scene &scene);
-
-  /**
-   * Loads envmap buffer to CPU on disk
-   */
-  EnvmapInfo loadEnvmap(const DataEnvmap &data);
-
   // Uploads to GPU
   shaderio::EnvmapLight
-  uploadEnvmap(const Scene &scene,
+  uploadEnvmap(const EnvmapInfo &info,
                const std::shared_ptr<IDeviceAssets> &deviceResources);
+
+  float computeAnalyticalLightContribution(const Scene &scene);
 
 private:
   /**

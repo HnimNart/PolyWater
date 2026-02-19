@@ -41,7 +41,7 @@ struct HenyeyGreensteinPhase : IPhaseFunc {
 
         // Transform from local space (where Z is -inDir) to world space
         float3 T, B;
-        createCoordinateSystem(-inDir, T, B);
+        orthonormalBasis(-inDir, T, B);
         return localDir.x * T + localDir.y * B + localDir.z * -inDir;
     }
 }

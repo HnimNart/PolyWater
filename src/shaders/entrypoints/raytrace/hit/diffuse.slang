@@ -27,9 +27,8 @@ rchit_diffuse(inout HitPayload payload,
   // --- Direct Lighting ---
   const SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
   DiffuseEvaluator bsdf = DiffuseEvaluator(albedo);
-  payload.color +=
-      sampleDirectLighting(sceneInfo, worldPos, worldNormal, bsdf) *
-      payload.weight;
+  payload.color += sampleDirectLightingPowerCDF(sceneInfo, worldPos, worldNormal, bsdf, payload.seed) *
+                   payload.weight;
 
   // --- INDIRECT BOUNCE ---
   float3 bounceDir;
@@ -39,5 +38,5 @@ rchit_diffuse(inout HitPayload payload,
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(bounceDir);
   payload.stop = false;
-  payload.emit = true;
+  payload.emit = false;
 }

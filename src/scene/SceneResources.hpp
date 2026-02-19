@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "core/Camera.hpp"
@@ -38,7 +39,9 @@ public:
   // ---------------------------------------------------------------------------
   std::vector<MeshID> loadModel(const std::string &name,
                                 const std::string &filename);
-  TextureID loadTexture(const std::string &name, const std::string &filename);
+  TextureID addTexture(const std::string &name, const std::string &filename);
+  void addEnvmap(const std::filesystem::path &filename, float scale = 1.0f,
+                 float rotation = 0.0f);
 
   // ---------------------------------------------------------------------------
   // Scene Composition
@@ -66,7 +69,6 @@ public:
 
   const shaderio::SceneInfo &sceneInfo() const;
   shaderio::SceneInfo &sceneInfo();
-  void loadEnvmap(const DataEnvmap &envmap);
   void setSceneInfo(shaderio::SceneInfo sceneInfo);
   const std::vector<shaderio::Instance> &getInstances() const {
     return m_resources.instances;
@@ -154,7 +156,12 @@ private:
     size_t index; // Index into m_pendingGltfModels or m_pendingPrimitives
   };
 
-  // Add this to your class header
+  struct PendingEnvMap {
+    std::filesystem::path filepath;
+    float scale = 1.0f;
+    float rotation = 0.0f;
+  };
+
   std::vector<PendingMeshTask> m_loadOrder;
   std::vector<core::PrimitiveMesh> m_pendingPrimitives{};
   std::vector<tinygltf::Model> m_pendingGltfModels{};
@@ -164,6 +171,7 @@ private:
     TextureID id;
   };
   std::vector<PendingTexture> m_pendingTextures{};
+  std::optional<PendingEnvMap> m_pendingEnvmap;
 
   std::map<std::string, MaterialID> m_materialMap{};
   std::map<std::string, InstanceID> m_instanceMap{};
