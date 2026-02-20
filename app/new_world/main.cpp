@@ -67,6 +67,11 @@ int main(int argc, char **argv) {
   auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
   auto logger = std::make_shared<app::ElementLogger>(true);
 
+  // Adding all elements
+  application.addElement(windowMenu);
+  application.addElement(windowTitle);
+  application.addElement(elemCamera);
+
   application.addElement(logger);
   logger->setLevelFilter(app::ElementLogger::eBitAll);
 
@@ -76,10 +81,7 @@ int main(int argc, char **argv) {
         ptr->addLog(severity, message.c_str());
       });
 
-  // Adding all elements
-  application.addElement(windowMenu);
-  application.addElement(windowTitle);
-  application.addElement(elemCamera);
+
 
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();

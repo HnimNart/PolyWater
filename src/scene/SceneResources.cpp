@@ -106,7 +106,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
 
   // Generate the optimized payload
   OptimizedPayload optimized = processAndOptimizeGltf(
-      core::getLowercasedStem(filename), model, core::getDirectory(filename));
+      core::getLowercasedStem(filename), model, common::getCacheDir());
 
   // Update Counters
   m_pendingMeshes += model.meshes.size();
@@ -135,10 +135,13 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
   matIdMap.reserve(materials.size());
   for (auto &material : materials) {
     if (!material.diffuseTexturePath.empty()) {
-      TextureID texId = addTexture(material.name, core::findFile(material.diffuseTexturePath, common::getTextureDir()));
+      TextureID texId =
+          addTexture(material.name, core::findFile(material.diffuseTexturePath,
+                                                   common::getTextureDir()));
       material.pbrData.baseColorTextureIndex = texId;
     }
-    MaterialID materialId = addMaterial(std::move(material.pbrData), material.name);
+    MaterialID materialId =
+        addMaterial(std::move(material.pbrData), material.name);
     matIdMap.emplace_back(materialId);
   }
 
@@ -152,20 +155,25 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
     auto &materialIdx = meshes[i].materialIndex;
 
     // Registration logic
-    std::string uniqueName = getUniqueName(m_meshMap, shapeName.empty() ? name + "_" + std::to_string(i) : shapeName);
+    std::string uniqueName = getUniqueName(
+        m_meshMap,
+        shapeName.empty() ? name + "_" + std::to_string(i) : shapeName);
     MeshID currentID = baseID + static_cast<MeshID>(i);
     m_meshMap[uniqueName] = currentID;
     meshIDs.push_back(currentID);
 
     // Prepare Instance
     shaderio::Instance inst;
-    inst.materialIndex = (materialIdx >= 0 && materialIdx < matIdMap.size()) ? matIdMap[materialIdx] : 0;
+    inst.materialIndex = (materialIdx >= 0 && materialIdx < matIdMap.size())
+                             ? matIdMap[materialIdx]
+                             : 0;
     inst.meshIndex = currentID;
     inst.hit_group = MaterialType::eDiffuse;
     addInstance(std::move(inst), uniqueName);
   }
 
-  OptimizedPayload optimized = processAndOptimizeObj(name, meshes, common::getCacheDir());
+  OptimizedPayload optimized =
+      processAndOptimizeObj(name, meshes, common::getCacheDir());
   m_pendingMeshes += meshes.size();
   m_pendingOptimizedMesh.push_back(std::move(optimized));
 

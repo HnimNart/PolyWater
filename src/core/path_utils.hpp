@@ -22,7 +22,7 @@
 #include <filesystem>
 #include <vector>
 
-#include <core/file_operations.hpp>
+#include "file_operations.hpp"
 
 // WARNING: These functions use CMake-defined macros
 // (TARGET_EXE_TO_ROOT_DIRECTORY, etc.) Only include this header from .cpp files
@@ -37,7 +37,7 @@ inline static std::filesystem::path getCacheDir()
 /**********************************************************/
 {
   std::filesystem::path rootDir = ROOT_DIR;
-  return {std::filesystem::absolute(rootDir / "assets" / "cache/")};
+  return std::filesystem::absolute(rootDir / ".cache" / "models");
 }
 
 /**********************************************************/

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "logger.hpp"
 #define FILE_OPERATIONS
 
 #include <filesystem>
@@ -59,5 +60,18 @@ inline std::filesystem::path pathFromUtf8(const std::string &utf8) noexcept {
 // case-insensitive. If the path has no extension, returns (extension == "").
 // For example, extensionMatches("foo.txt", ".txt") returns `true`.
 bool extensionMatches(const std::filesystem::path &path, const char *extension);
+
+// Creates a directory (and any missing parent directories).
+// Returns true if the directory exists or was successfully created.
+// Returns false if it failed (e.g., due to OS permission issues).
+inline bool createDirSafely(const std::filesystem::path& dirPath) {
+    std::error_code ec;
+    std::filesystem::create_directories(dirPath, ec);
+    if (ec) {
+        LOGE("Error creating directory %s: %s\n", dirPath.string().c_str(), ec.message().c_str());
+        return false;
+    }
+    return true;
+}
 
 } // namespace core

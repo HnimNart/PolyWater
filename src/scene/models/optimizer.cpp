@@ -8,7 +8,6 @@
 #include "core/logger.hpp"
 #include "core/timers.hpp"
 
-
 #include "core/shape/primitives.hpp"
 
 namespace {
@@ -20,7 +19,10 @@ struct TempMesh {
 
 // --- Helper Functions ---
 
-shaderio::BoundingBox calculateBBox(const std::vector<Vertex> &vertices) {
+/**********************************************************/
+shaderio::BoundingBox calculateBBox(const std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   shaderio::BoundingBox bbox;
   for (const auto &v : vertices) {
     bbox.min = glm::min(bbox.min, v.pos);
@@ -29,11 +31,14 @@ shaderio::BoundingBox calculateBBox(const std::vector<Vertex> &vertices) {
   return bbox;
 }
 
+/**********************************************************/
 template <typename T>
 bool getGltfAttribute(const tinygltf::Model &model,
                       const tinygltf::Primitive &primitive,
                       const std::string &attributeName, const uint8_t *&dataPtr,
-                      size_t &stride, size_t &count) {
+                      size_t &stride, size_t &count) 
+/**********************************************************/
+{
   auto it = primitive.attributes.find(attributeName);
   if (it == primitive.attributes.end())
     return false;
@@ -51,8 +56,11 @@ bool getGltfAttribute(const tinygltf::Model &model,
 
 // --- Shared Optimization Logic ---
 
+/**********************************************************/
 void optimizeVertexData(std::vector<uint32_t> &indices,
-                        std::vector<Vertex> &vertices) {
+                        std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   size_t indexCount = indices.size();
   size_t vertexCount = vertices.size();
 
@@ -84,9 +92,12 @@ void optimizeVertexData(std::vector<uint32_t> &indices,
 
 // --- Shared Packing Logic ---
 
+/**********************************************************/
 void packIntoPayload(OptimizedPayload &payload,
                      const std::vector<uint32_t> &indices,
-                     const std::vector<Vertex> &vertices) {
+                     const std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   shaderio::MeshPrimitive prim = {};
   prim.bbox = calculateBBox(vertices);
   prim.indexType = IndexType32;
@@ -124,10 +135,13 @@ void packIntoPayload(OptimizedPayload &payload,
   payload.primitives.push_back(prim);
 }
 
+/**********************************************************/
 void extractAndOptimizePrimitive(const tinygltf::Model &model,
                                  const tinygltf::Primitive &primitive,
                                  std::vector<uint32_t> &indices,
-                                 std::vector<Vertex> &vertices) {
+                                 std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   // 1. Extract Indices
   if (primitive.indices >= 0) {
     const tinygltf::Accessor &indexAccessor =
@@ -204,9 +218,12 @@ void extractAndOptimizePrimitive(const tinygltf::Model &model,
 
 // --- Caching ---
 
+/**********************************************************/
 bool loadMeshCache(const std::filesystem::path &filepath,
                    std::vector<uint32_t> &indices,
-                   std::vector<Vertex> &vertices) {
+                   std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   std::ifstream file(filepath, std::ios::binary);
   if (!file.is_open())
     return false;
@@ -220,14 +237,33 @@ bool loadMeshCache(const std::filesystem::path &filepath,
   return true;
 }
 
+/**********************************************************/
 void saveMeshCache(const std::filesystem::path &filepath,
                    const std::vector<uint32_t> &indices,
-                   const std::vector<Vertex> &vertices) {
+                   const std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
+  // 1. Ensure the directory exists before we try to open a file in it
+  if (filepath.has_parent_path()) {
+    std::error_code ec;
+    std::filesystem::create_directories(filepath.parent_path(), ec);
+    if (ec) {
+      LOGE("Failed to create cache directory: %s", ec.message().c_str());
+      return;
+    }
+  }
+
+  // 2. Open and write the file
   std::ofstream file(filepath, std::ios::binary);
-  if (!file.is_open())
+  if (!file.is_open()) {
+    LOGE("Failed to open cache file for writing: %s",
+         filepath.string().c_str());
     return;
+  }
+
   uint32_t vCount = (uint32_t)vertices.size();
   uint32_t iCount = (uint32_t)indices.size();
+
   file.write((char *)&vCount, sizeof(uint32_t));
   file.write((char *)&iCount, sizeof(uint32_t));
   file.write((char *)vertices.data(), vCount * sizeof(Vertex));
@@ -238,9 +274,12 @@ void saveMeshCache(const std::filesystem::path &filepath,
 
 // --- Public API ---
 
+/**********************************************************/
 void extractFromObjPrimitive(const core::PrimitiveMesh &objMesh,
                              std::vector<uint32_t> &indices,
-                             std::vector<Vertex> &vertices) {
+                             std::vector<Vertex> &vertices) 
+/**********************************************************/
+{
   // 1. Flatten the Triangle array into a raw index buffer
   indices.resize(objMesh.triangles.size() * 3);
   for (size_t i = 0; i < objMesh.triangles.size(); ++i) {
@@ -263,9 +302,12 @@ void extractFromObjPrimitive(const core::PrimitiveMesh &objMesh,
   }
 }
 
+/**********************************************************/
 OptimizedPayload
 processAndOptimizeGltf(const std::string &name, const tinygltf::Model &model,
-                       const std::filesystem::path &cachePath) {
+                       const std::filesystem::path &cachePath) 
+/**********************************************************/
+{
   SCOPED_TIMER_FUNC();
   OptimizedPayload payload;
   size_t origV = 0, optV = 0;
@@ -300,10 +342,13 @@ processAndOptimizeGltf(const std::string &name, const tinygltf::Model &model,
   return payload;
 }
 
+/**********************************************************/
 OptimizedPayload
 processAndOptimizeObj(const std::string &name,
                       const std::vector<obj::LoadedMesh> &loadedMeshes,
-                      const std::filesystem::path &cachePath) {
+                      const std::filesystem::path &cachePath) 
+/**********************************************************/
+{
   SCOPED_TIMER_FUNC();
   OptimizedPayload payload;
   size_t origV = 0, optV = 0;
@@ -337,13 +382,14 @@ processAndOptimizeObj(const std::string &name,
     double savedMB = savedBytes / (1024.0 * 1024.0);
     double percentSaved = (static_cast<double>(origV - optV) / origV) * 100.0;
 
-    LOGI("--- OBJ Optimizer Stats for %s ---", name.c_str());
-    LOGI("Original Vertices:  %zu", origV);
-    LOGI("Optimized Vertices: %zu", optV);
-    LOGI("Memory Saved:       %.2f MB (%.1f%% reduction)", savedMB,
+    LOGD("--- OBJ Optimizer Stats for %s ---", name.c_str());
+    LOGD("Original Vertices:  %zu", origV);
+    LOGD("Optimized Vertices: %zu", optV);
+    LOGD("Memory Saved:       %.2f MB (%.1f%% reduction)", savedMB,
          percentSaved);
-    LOGI("-----------------------------------");
+    LOGD("-----------------------------------");
   }
 
   return payload;
 }
+
