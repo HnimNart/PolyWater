@@ -4,8 +4,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <glm/gtx/string_cast.hpp>
 #include <tinyobjloader/tiny_obj_loader.h>
+#include <tiny_gltf.h>
 
 #include "models/optimizer.hpp"
+#include "models/gltf_utils.hpp"
+#include "models/obj_utils.hpp"
 
 #include <core/Image.hpp>
 #include <core/logger.hpp>

@@ -7,9 +7,7 @@
 #include <tiny_gltf.h>
 #include <vector>
 
-#include "shaders/shared/structs.h"
-
-#include "scene/models/obj_utils.hpp"
+#include "obj_utils.hpp"
 
 // --- Optimizer Specific Structs ---
 struct Vertex {

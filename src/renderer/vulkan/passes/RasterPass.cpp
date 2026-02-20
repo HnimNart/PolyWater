@@ -13,6 +13,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
+#include "core/Frustrum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 #include "renderer/vulkan/SceneAssetManager.hpp"
@@ -79,6 +80,11 @@ void RasterPass::execute(const IRenderContext &ctx)
   const shaderio::RasterParams &rasterParams = constants.rasterParams;
 
   NVVK_DBG_SCOPE(cmd);
+
+  // --- CULLING SETUP ---
+  const glm::mat4 &viewProj = scene_info.viewProjMatrix;
+  Frustum cameraFrustum = extractFrustumPlanes(viewProj);
+  uint32_t culledCount = 0;
 
   // Define push info
   const VkPushConstantsInfo pushInfo{
@@ -158,8 +164,14 @@ void RasterPass::execute(const IRenderContext &ctx)
     const shaderio::Instance &instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
     const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
-    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
 
+    if (!isAABBInsideFrustum(cameraFrustum, meshPrim.bbox.min,
+                             meshPrim.bbox.max, instance.transform)) {
+      culledCount++;
+      continue; // Skip drawing this instance!
+    }
+
+    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
     // Push constants
     constants.normalMatrix =
         glm::transpose(glm::inverse(glm::mat3(instance.transform)));
@@ -173,6 +185,10 @@ void RasterPass::execute(const IRenderContext &ctx)
 
     // Draw
     vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);
+  }
+
+  if (culledCount > 0) {
+    LOGD("Culled %d objects\n", culledCount);
   }
 
   // ** END RENDERING **

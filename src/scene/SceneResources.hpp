@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fmt/format.h>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -10,7 +9,6 @@
 
 #include "Scene.h"
 #include "core/Camera.hpp"
-#include "models/gltf_utils.hpp"
 #include "lights/LightManager.hpp"
 #include "models/optimizer.hpp"
 #include "renderer/interfaces/IDeviceAssets.hpp"

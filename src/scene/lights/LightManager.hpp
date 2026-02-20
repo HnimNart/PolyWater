@@ -6,7 +6,6 @@
 
 #include "renderer/interfaces/IDeviceAssets.hpp"
 #include "scene/Scene.h"
-#include "scene/SceneData.hpp"
 #include "shaders/shared/structs.h"
 
 struct EnvmapInfo {
