@@ -88,7 +88,7 @@ VulkanSceneAssetManager::TextureID VulkanSceneAssetManager::uploadTexture(
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
 
-  assert(textureId >= 0 && textureID < m_textures.size());
+  assert(textureID >= 0 && textureID < m_textures.size());
   m_textures[textureID - 1] = texture;
   return textureID;
 }

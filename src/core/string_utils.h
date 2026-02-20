@@ -45,6 +45,10 @@ inline std::string getLowercasedStem(const std::string &filepath) {
   return stem;
 }
 
+inline std::string getDirectory(const std::string& filepath) {
+    return std::filesystem::path(filepath).parent_path().string();
+}
+
 /**
  * @brief Removes leading and trailing whitespace from a string.
  * Whitespace includes spaces ' ', tabs '\t', and newlines '\n' or '\r'.

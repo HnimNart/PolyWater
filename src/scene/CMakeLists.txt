@@ -31,6 +31,7 @@ target_link_libraries(${LIB_NAME}
         tinyobjloader
         bvh
         nlohmann_json::nlohmann_json
+        meshoptimizer
 )
 
 

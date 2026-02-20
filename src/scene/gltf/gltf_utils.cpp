@@ -31,7 +31,6 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include "backend/interfaces/RHI_definitions.hpp"
-#include "core/shape/primitives.hpp"
 #include "core/timers.hpp"
 
 namespace {
@@ -302,3 +301,5 @@ shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model &model,
   }
   return bbox;
 }
+
+

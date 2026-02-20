@@ -5,11 +5,15 @@
 #include <glm/gtx/string_cast.hpp>
 #include <tinyobjloader/tiny_obj_loader.h>
 
+#include "meshoptimizer/optimizer.hpp"
+
 #include <core/Image.hpp>
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
 #include <core/string_utils.h>
 #include <shaders/shared/bindings.h>
+
+#include "core/path_utils.hpp"
 
 namespace {
 
@@ -83,7 +87,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
   MeshID baseID = getNextFreeMeshID();
 
   std::vector<MeshID> meshIDs;
-  meshIDs.resize(model.meshes.size());
+  meshIDs.reserve(model.meshes.size());
   for (size_t i = 0; i < model.meshes.size(); i++) {
     const auto &gltfMesh = model.meshes[i];
     std::string subMeshName = gltfMesh.name;
@@ -95,15 +99,18 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
     std::string uniqueName = getUniqueName(m_meshMap, fullName);
     MeshID currentID = baseID + static_cast<MeshID>(i);
     m_meshMap[uniqueName] = currentID;
+
     meshIDs.emplace_back(currentID);
     LOGD("Registered: %s -> ID %d", uniqueName.c_str(), currentID);
   }
 
-  // Update Counters and Storage
+  // Generate the optimized payload
+  OptimizedPayload optimized = processAndOptimizeGltf(
+      core::getLowercasedStem(filename), model, core::getDirectory(filename));
+
+  // Update Counters
   m_pendingMeshes += model.meshes.size();
-  m_loadOrder.push_back(
-      {PendingMeshTask::Type::GLTF, m_pendingGltfModels.size()});
-  m_pendingGltfModels.push_back(std::move(model));
+  m_pendingOptimizedMesh.push_back(std::move(optimized));
 
   return meshIDs;
 }
@@ -113,7 +120,6 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
                                                    const std::string &filename)
 /**********************************************************/
 {
-  // 1. Call Helper
   auto loadedShapes = obj::loadObjPrimitives(filename);
   if (loadedShapes.meshes.empty()) {
     return {};
@@ -124,56 +130,44 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
 
   MeshID baseID = getNextFreeMeshID();
 
-  // Process materials
+  // 1. Process materials (unchanged)
   std::vector<MaterialID> matIdMap;
   matIdMap.reserve(materials.size());
   for (auto &material : materials) {
     if (!material.diffuseTexturePath.empty()) {
-      TextureID texId =
-          addTexture(material.name, core::findFile(material.diffuseTexturePath,
-                                                   common::getTextureDir()));
+      TextureID texId = addTexture(material.name, core::findFile(material.diffuseTexturePath, common::getTextureDir()));
       material.pbrData.baseColorTextureIndex = texId;
     }
-    MaterialID materialId =
-        addMaterial(std::move(material.pbrData), material.name);
+    MaterialID materialId = addMaterial(std::move(material.pbrData), material.name);
     matIdMap.emplace_back(materialId);
   }
 
-  // Process the meshes now
   std::vector<MeshID> meshIDs;
   meshIDs.reserve(meshes.size());
+
+  // 2. Register geometry and instances
   for (size_t i = 0; i < meshes.size(); i++) {
-    auto &[shapeName, meshPrimitive, materialIdx] = meshes[i];
+    // Access directly from the LoadedMesh struct
+    auto &shapeName = meshes[i].name;
+    auto &materialIdx = meshes[i].materialIndex;
 
-    std::string subMeshName = shapeName;
-    if (subMeshName.empty()) {
-      subMeshName = name + "_" + std::to_string(i);
-    }
-
-    std::string uniqueName = getUniqueName(m_meshMap, subMeshName);
+    // Registration logic
+    std::string uniqueName = getUniqueName(m_meshMap, shapeName.empty() ? name + "_" + std::to_string(i) : shapeName);
     MeshID currentID = baseID + static_cast<MeshID>(i);
-
     m_meshMap[uniqueName] = currentID;
     meshIDs.push_back(currentID);
 
-    LOGD("Registered OBJ: %s -> ID %d", uniqueName.c_str(), currentID);
-    m_loadOrder.push_back(
-        {PendingMeshTask::Type::PRIMITIVE, m_pendingPrimitives.size()});
-    m_pendingPrimitives.push_back(std::move(meshPrimitive));
-
-    // Add instance
+    // Prepare Instance
     shaderio::Instance inst;
-    if (materialIdx >= 0 && materialIdx < matIdMap.size()) {
-      inst.materialIndex = matIdMap[materialIdx];
-    } else {
-      inst.materialIndex = 0; // Use a default material ID
-    }
-
+    inst.materialIndex = (materialIdx >= 0 && materialIdx < matIdMap.size()) ? matIdMap[materialIdx] : 0;
     inst.meshIndex = currentID;
     inst.hit_group = MaterialType::eDiffuse;
     addInstance(std::move(inst), uniqueName);
   }
+
+  OptimizedPayload optimized = processAndOptimizeObj(name, meshes, common::getCacheDir());
   m_pendingMeshes += meshes.size();
+  m_pendingOptimizedMesh.push_back(std::move(optimized));
 
   return meshIDs;
 }
@@ -273,24 +267,30 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
 }
 
 /**********************************************************/
-void SceneResourcesManager::uploadGltfMesh(const tinygltf::Model &model)
+void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 /**********************************************************/
 {
-  assert(model.buffers.size() == 1);
-  std::span<const uint8_t> data = model.buffers[0].data;
-  m_resources.meshData.emplace_back(model.buffers[0].data);
+  if (payload.rawBuffer.empty() || payload.primitives.empty()) {
+    LOGW("Warning: Attempting to upload an empty optimized mesh.");
+    return;
+  }
+
+  // 1. Upload the single unified binary blob
+  std::span<const uint8_t> data = payload.rawBuffer;
+  m_resources.meshData.emplace_back(payload.rawBuffer);
+
   const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
   const size_t startSize = m_resources.meshes.size();
-  m_resources.meshes.reserve(startSize + model.meshes.size());
-  for (size_t i = 0; i < model.meshes.size(); i++) {
-    auto mesh = gltf::extractGltfMesh(model, i);
+  m_resources.meshes.reserve(startSize + payload.primitives.size());
+
+  for (auto mesh : payload.primitives) {
     mesh.rawBufferIndex = m_resources.meshData.size() - 1;
-    mesh.bbox = gltf::getMeshBounds(model, i);
     mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
     m_resources.meshes.emplace_back(mesh);
   }
-  m_device_resources->addMeshes(model.meshes.size(), bufferIndex);
-  m_pendingMeshes -= model.meshes.size();
+
+  m_device_resources->addMeshes(payload.primitives.size(), bufferIndex);
+  m_pendingMeshes -= payload.primitives.size();
 }
 
 /**********************************************************/
@@ -335,27 +335,12 @@ void SceneResourcesManager::finalizeSceneResources()
   // Start the upload
   m_device_resources->beginUploading();
 
-  // Upload models
-  size_t gltfIdx = 0;
-  size_t primIdx = 0;
-  for (const auto &task : m_loadOrder) {
-    switch (task.type) {
-    case PendingMeshTask::Type::GLTF: {
-      uploadGltfMesh(m_pendingGltfModels[gltfIdx++]);
-      break;
-    }
-    case PendingMeshTask::Type::PRIMITIVE: {
-      uploadPrimitiveMesh(m_pendingPrimitives[primIdx++]);
-      break;
-    }
-    default:
-      assert(0 && "Recieved unknown task type");
-    }
+  // Upload meshes
+  for (const auto &mesh : m_pendingOptimizedMesh) {
+    uploadOptimizedMesh(mesh);
   }
 
-  m_loadOrder.clear();
-  m_pendingGltfModels.clear();
-  m_pendingPrimitives.clear();
+  m_pendingOptimizedMesh.clear();
   assert(m_pendingMeshes == 0);
 
   // Upload textures
@@ -403,9 +388,7 @@ void SceneResourcesManager::clear()
 
   // Reset pending task counters and queues
   m_pendingMeshes = 0;
-  m_loadOrder.clear();
-  m_pendingGltfModels.clear();
-  m_pendingPrimitives.clear();
+  m_pendingOptimizedMesh.clear();
   m_pendingTextures.clear();
 
   m_pendingEnvmap.reset();

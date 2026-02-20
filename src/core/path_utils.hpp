@@ -31,6 +31,15 @@
 
 namespace common {
 
+
+/**********************************************************/
+inline static std::filesystem::path getCacheDir()
+/**********************************************************/
+{
+  std::filesystem::path rootDir = ROOT_DIR;
+  return {std::filesystem::absolute(rootDir / "assets" / "cache/")};
+}
+
 /**********************************************************/
 inline static std::vector<std::filesystem::path> getSceneDir()
 /**********************************************************/

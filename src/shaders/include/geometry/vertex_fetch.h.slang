@@ -2,18 +2,17 @@
 #define VERTEX_FETCH_H_SLANG 1
 
 // Generic function to retrieve vertex attributes from GLTF buffer data
-// T: Type of attribute (float, float2, float3, etc.)
-// dataBufferAddress: Base address of the GLTF buffer
-// bufferView: Buffer view containing offset, stride, and count information
-// attributeIndex: Index of the vertex attribute to retrieve
 __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
                                      BufferView bufferView, uint attributeIndex)
 {
   if (bufferView.count > 0)
   {
-    // Calculate pointer to the specific attribute using offset and stride
-    T* ptr = (T*) (dataBufferAddress + bufferView.offset +
-                   attributeIndex * bufferView.byteStride);
+    // glTF spec: If byteStride is 0, the data is tightly packed.
+    // So the actual stride is the size of the data type (T).
+    uint actualStride = bufferView.byteStride == 0 ? sizeof(T) : bufferView.byteStride;
+
+    // Calculate pointer to the specific attribute using offset and actual stride
+    T* ptr = (T*) (dataBufferAddress + bufferView.offset + attributeIndex * actualStride);
     return ptr[0];
   }
 
@@ -21,19 +20,18 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
 }
 
 // Retrieve triangle vertex indices from the mesh index buffer
-// Supports both 16-bit and 32-bit index formats as per GLTF specification
 int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
-                        int primitiveID)
+                        int primitiveID, int indexType)
 {
-  if (mesh.indices.byteStride == sizeof(int16_t))
+  // 0 == VK_INDEX_TYPE_UINT16, 1 == VK_INDEX_TYPE_UINT32
+  if (indexType == 0)
   {
-    // 16-bit indices (uint16_t) - more memory efficient for smaller meshes
+    // 16-bit indices
     int16_t3* indices = (int16_t3*) (dataBufferAddress + mesh.indices.offset);
     return indices[primitiveID];
   }
-  else if (mesh.indices.byteStride == sizeof(int32_t))
+  else if (indexType == 1)
   {
-    // 32-bit indices (uint32_t) - supports larger meshes with more vertices
     int3* indices = (int3*) (dataBufferAddress + mesh.indices.offset);
     return indices[primitiveID];
   }
@@ -42,21 +40,15 @@ int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
 }
 
 // Interpolate vertex attributes across a triangle using barycentric coordinates
-// This performs smooth interpolation of attributes like position, normal, UV
-// coordinates T: Type of attribute to interpolate (float, float2, float3, etc.)
-// attributeIndex: Indices of the three triangle vertices
-// barycentrics: Barycentric coordinates (weights for each vertex)
 __generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress,
                                              BufferView bufferView,
                                              uint3 attributeIndex,
                                              float3 barycentrics)
 {
-  // Get the attribute value for each of the three triangle vertices
   T attr0 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.x);
   T attr1 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.y);
   T attr2 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.z);
 
-  // Interpolate using barycentric coordinates (weights sum to 1.0)
   return T(barycentrics.x) * attr0 + T(barycentrics.y) * attr1 +
          T(barycentrics.z) * attr2;
 }
@@ -68,9 +60,8 @@ struct HitState
   float2 uv;
   float3 worldPos;
   float3 worldNormal;
-  float3 viewDir;  // V
+  float3 viewDir;
 
-  // Material info usually goes hand-in-hand with geometry
   Material material;
 };
 
@@ -88,8 +79,6 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   uint triID = PrimitiveIndex();
 
   // 3. Fetch Resources
-  // Note: We access pushConst global directly since this is a helper included
-  // in the shader
   SceneResources sceneResources = pushConst.resourcesAddress[0];
   Instance instance = sceneResources.instances[instanceID];
   MeshPrimitive mesh = sceneResources.meshes[instance.meshIndex];
@@ -97,7 +86,8 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   s.material = sceneResources.materials[instance.materialIndex];
 
   // 4. Interpolate Attributes
-  int3 indices = getTriangleIndices(mesh.buffer, mesh.triMesh, triID);
+  // We pass mesh.indexType to safely handle 16-bit vs 32-bit indices
+  int3 indices = getTriangleIndices(mesh.buffer, mesh.triMesh, triID, mesh.indexType);
 
   s.pos = getTriangleAttribute<float3>(mesh.buffer, mesh.triMesh.positions,
                                        indices, barycentrics);
@@ -115,3 +105,4 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
 }
 
 #endif
+

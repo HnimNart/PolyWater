@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "shaders/shared/structs.h"
-#include "shape/primitives.hpp"
+#include "core/shape/primitives.hpp"
 
 namespace obj {
 

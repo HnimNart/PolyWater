@@ -12,6 +12,7 @@
 #include "core/Camera.hpp"
 #include "gltf/gltf_utils.hpp"
 #include "lights/LightManager.hpp"
+#include "meshoptimizer/optimizer.hpp"
 #include "renderer/interfaces/IDeviceAssets.hpp"
 
 using InstanceID = uint32_t;
@@ -104,7 +105,7 @@ private:
   std::vector<MeshID> loadObj(const std::string &name,
                               const std::string &filename);
 
-  void uploadGltfMesh(const tinygltf::Model &model);
+  void uploadOptimizedMesh(const OptimizedPayload &payload);
   void uploadPrimitiveMesh(const core::PrimitiveMesh &meshData);
   void uploadLights();
   void finalizePendingTextures();
@@ -134,9 +135,7 @@ private:
   bool m_dirty = false;
 
   // Queues
-  std::vector<PendingMeshTask> m_loadOrder;
-  std::vector<core::PrimitiveMesh> m_pendingPrimitives;
-  std::vector<tinygltf::Model> m_pendingGltfModels;
+  std::vector<OptimizedPayload> m_pendingOptimizedMesh;
   std::vector<PendingTexture> m_pendingTextures;
   std::optional<PendingEnvMap> m_pendingEnvmap;
 
