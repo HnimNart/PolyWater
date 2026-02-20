@@ -9,7 +9,7 @@
 
 #include "shaders/shared/structs.h"
 
-#include "scene/obj/obj_utils.hpp"
+#include "scene/models/obj_utils.hpp"
 
 // --- Optimizer Specific Structs ---
 struct Vertex {

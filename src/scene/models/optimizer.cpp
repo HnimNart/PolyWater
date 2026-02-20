@@ -11,8 +11,6 @@
 
 #include "core/shape/primitives.hpp"
 
-#include "scene/obj/obj_utils.hpp"
-
 namespace {
 
 struct TempMesh {

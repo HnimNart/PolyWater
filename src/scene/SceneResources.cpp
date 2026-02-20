@@ -5,7 +5,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <tinyobjloader/tiny_obj_loader.h>
 
-#include "meshoptimizer/optimizer.hpp"
+#include "models/optimizer.hpp"
 
 #include <core/Image.hpp>
 #include <core/logger.hpp>

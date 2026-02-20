@@ -10,9 +10,9 @@
 
 #include "Scene.h"
 #include "core/Camera.hpp"
-#include "gltf/gltf_utils.hpp"
+#include "models/gltf_utils.hpp"
 #include "lights/LightManager.hpp"
-#include "meshoptimizer/optimizer.hpp"
+#include "models/optimizer.hpp"
 #include "renderer/interfaces/IDeviceAssets.hpp"
 
 using InstanceID = uint32_t;
