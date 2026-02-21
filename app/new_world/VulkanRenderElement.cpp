@@ -92,7 +92,8 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
     LOGI("Model File dropped: %s\n", filename.c_str());
     m_modelFileToLoad = filename;
   } else {
-    LOGI("Error: Dropped file is not a JSON file ( %s )\n", filename.c_str());
+    LOGI("Error: Dropped file is not a recognised file ( %s )\n",
+         filename.c_str());
   }
 }
 
