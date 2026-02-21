@@ -134,7 +134,7 @@ struct MeshPrimitive {
   TriangleMesh triMesh;    // Mesh data
   uint32_t rawBufferIndex; // Index into raw data buffers
   int indexType;           // Index type (uint16_t or uint32_t)
-  BoundingBox bbox;
+  BoundingBox bbox;        // Local space bbox
   // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
   // the pointer), the GPU treats it as though it has a stride of 84.

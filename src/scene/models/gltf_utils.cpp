@@ -302,4 +302,42 @@ shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model &model,
   return bbox;
 }
 
+/**********************************************************/
+template <typename T>
+bool gltf::getGltfAttribute(const tinygltf::Model &model,
+                            const tinygltf::Primitive &primitive,
+                            const std::string &attributeName,
+                            const uint8_t *&dataPtr, size_t &stride,
+                            size_t &count)
+/**********************************************************/
+{
+  auto it = primitive.attributes.find(attributeName);
+  if (it == primitive.attributes.end())
+    return false;
 
+  const tinygltf::Accessor &accessor = model.accessors[it->second];
+  const tinygltf::BufferView &bufferView =
+      model.bufferViews[accessor.bufferView];
+  const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+
+  dataPtr = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
+  stride = accessor.ByteStride(bufferView);
+  count = accessor.count;
+  return true;
+}
+
+template bool gltf::getGltfAttribute<glm::vec2>(const tinygltf::Model &,
+                                                const tinygltf::Primitive &,
+                                                const std::string &,
+                                                const uint8_t *&, size_t &,
+                                                size_t &);
+template bool gltf::getGltfAttribute<glm::vec3>(const tinygltf::Model &,
+                                                const tinygltf::Primitive &,
+                                                const std::string &,
+                                                const uint8_t *&, size_t &,
+                                                size_t &);
+template bool gltf::getGltfAttribute<glm::vec4>(const tinygltf::Model &,
+                                                const tinygltf::Primitive &,
+                                                const std::string &,
+                                                const uint8_t *&, size_t &,
+                                                size_t &);

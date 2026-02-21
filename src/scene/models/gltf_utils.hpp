@@ -38,4 +38,10 @@ computeModelBounds(const tinygltf::Model &model);
 
 shaderio::BoundingBox getMeshBounds(const tinygltf::Model &model, uint meshIdx);
 
+template <typename T>
+bool getGltfAttribute(const tinygltf::Model &model,
+                      const tinygltf::Primitive &primitive,
+                      const std::string &attributeName, const uint8_t *&dataPtr,
+                      size_t &stride, size_t &count);
+
 } // namespace gltf

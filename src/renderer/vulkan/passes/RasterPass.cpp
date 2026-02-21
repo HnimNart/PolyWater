@@ -188,7 +188,8 @@ void RasterPass::execute(const IRenderContext &ctx)
   }
 
   if (culledCount > 0) {
-    LOGD("Culled %d objects\n", culledCount);
+    LOGD("Rasterizer: Culled %u / %zu instances", culledCount,
+         sceneResources->instances.size());
   }
 
   // ** END RENDERING **

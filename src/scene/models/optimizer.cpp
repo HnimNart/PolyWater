@@ -6,143 +6,187 @@
 #include <meshoptimizer.h>
 
 #include "core/logger.hpp"
+#include "core/shape/primitives.hpp"
 #include "core/timers.hpp"
 
-#include "core/shape/primitives.hpp"
+#include "gltf_utils.hpp"
 
 namespace {
 
 struct TempMesh {
   std::vector<uint32_t> indices;
-  std::vector<Vertex> vertices;
+  std::vector<uint8_t> vertexData; // raw interleaved bytes!
+
+  size_t vertexStride = 0;   // Dynamic size of a single vertex
+  size_t positionOffset = 0; // Where the position starts (usually 0)
+
+  bool hasNormals = false;
+  bool hasUVs = false;
+  bool hasTangents = false;
+  bool hasColors = false;
 };
 
 // --- Helper Functions ---
 
 /**********************************************************/
-shaderio::BoundingBox calculateBBox(const std::vector<Vertex> &vertices) 
+shaderio::BoundingBox calculateBBox(const TempMesh &tm)
 /**********************************************************/
 {
   shaderio::BoundingBox bbox;
-  for (const auto &v : vertices) {
-    bbox.min = glm::min(bbox.min, v.pos);
-    bbox.max = glm::max(bbox.max, v.pos);
+  size_t vCount = tm.vertexData.size() / tm.vertexStride;
+
+  for (size_t i = 0; i < vCount; ++i) {
+    glm::vec3 pos;
+    std::memcpy(&pos, &tm.vertexData[i * tm.vertexStride + tm.positionOffset],
+                sizeof(glm::vec3));
+    bbox.add(pos);
   }
   return bbox;
-}
-
-/**********************************************************/
-template <typename T>
-bool getGltfAttribute(const tinygltf::Model &model,
-                      const tinygltf::Primitive &primitive,
-                      const std::string &attributeName, const uint8_t *&dataPtr,
-                      size_t &stride, size_t &count) 
-/**********************************************************/
-{
-  auto it = primitive.attributes.find(attributeName);
-  if (it == primitive.attributes.end())
-    return false;
-
-  const tinygltf::Accessor &accessor = model.accessors[it->second];
-  const tinygltf::BufferView &bufferView =
-      model.bufferViews[accessor.bufferView];
-  const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
-
-  dataPtr = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
-  stride = accessor.ByteStride(bufferView);
-  count = accessor.count;
-  return true;
 }
 
 // --- Shared Optimization Logic ---
 
 /**********************************************************/
-void optimizeVertexData(std::vector<uint32_t> &indices,
-                        std::vector<Vertex> &vertices) 
+void optimizeVertexData(TempMesh &tm)
 /**********************************************************/
 {
-  size_t indexCount = indices.size();
-  size_t vertexCount = vertices.size();
+  size_t indexCount = tm.indices.size();
+  size_t vertexCount = tm.vertexData.size() / tm.vertexStride;
 
   std::vector<uint32_t> remap(indexCount);
-  size_t totalVertices =
-      meshopt_generateVertexRemap(remap.data(), indices.data(), indexCount,
-                                  vertices.data(), vertexCount, sizeof(Vertex));
+  size_t totalVertices = meshopt_generateVertexRemap(
+      remap.data(), tm.indices.data(), indexCount, tm.vertexData.data(),
+      vertexCount, tm.vertexStride);
 
-  std::vector<Vertex> optimizedVertices(totalVertices);
+  std::vector<uint8_t> optimizedVertices(totalVertices * tm.vertexStride);
   std::vector<uint32_t> optimizedIndices(indexCount);
 
-  meshopt_remapIndexBuffer(optimizedIndices.data(), indices.data(), indexCount,
-                           remap.data());
-  meshopt_remapVertexBuffer(optimizedVertices.data(), vertices.data(),
-                            vertexCount, sizeof(Vertex), remap.data());
+  meshopt_remapIndexBuffer(optimizedIndices.data(), tm.indices.data(),
+                           indexCount, remap.data());
+  meshopt_remapVertexBuffer(optimizedVertices.data(), tm.vertexData.data(),
+                            vertexCount, tm.vertexStride, remap.data());
 
   meshopt_optimizeVertexCache(optimizedIndices.data(), optimizedIndices.data(),
                               indexCount, totalVertices);
+
+  float *positionPtr =
+      reinterpret_cast<float *>(&optimizedVertices[tm.positionOffset]);
+
   meshopt_optimizeOverdraw(optimizedIndices.data(), optimizedIndices.data(),
-                           indexCount, &optimizedVertices[0].pos.x,
-                           totalVertices, sizeof(Vertex), 1.05f);
+                           indexCount, positionPtr, totalVertices,
+                           tm.vertexStride, 1.05f);
+
   meshopt_optimizeVertexFetch(optimizedVertices.data(), optimizedIndices.data(),
                               indexCount, optimizedVertices.data(),
-                              totalVertices, sizeof(Vertex));
+                              totalVertices, tm.vertexStride);
 
-  indices = std::move(optimizedIndices);
-  vertices = std::move(optimizedVertices);
+  tm.indices = std::move(optimizedIndices);
+  tm.vertexData = std::move(optimizedVertices);
 }
 
 // --- Shared Packing Logic ---
 
 /**********************************************************/
-void packIntoPayload(OptimizedPayload &payload,
-                     const std::vector<uint32_t> &indices,
-                     const std::vector<Vertex> &vertices) 
+void packIntoPayload(OptimizedPayload &payload, const TempMesh &tm)
 /**********************************************************/
 {
   shaderio::MeshPrimitive prim = {};
-  prim.bbox = calculateBBox(vertices);
+  prim.bbox = calculateBBox(tm);
   prim.indexType = IndexType32;
 
   uint32_t currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
+  uint32_t vCount =
+      static_cast<uint32_t>(tm.vertexData.size() / tm.vertexStride);
+  uint32_t stride = static_cast<uint32_t>(tm.vertexStride);
 
-  // Pack Vertices
-  size_t vBytes = vertices.size() * sizeof(Vertex);
-  const uint8_t *vData = reinterpret_cast<const uint8_t *>(vertices.data());
-  payload.rawBuffer.insert(payload.rawBuffer.end(), vData, vData + vBytes);
+  // Copy the interleaved raw bytes directly into the buffer!
+  payload.rawBuffer.insert(payload.rawBuffer.end(), tm.vertexData.begin(),
+                           tm.vertexData.end());
 
-  uint32_t vCount = static_cast<uint32_t>(vertices.size());
-  uint32_t stride = sizeof(Vertex);
+  // Setup accessors dynamically based on what we packed
+  uint32_t offset = 0;
 
-  prim.triMesh.positions = {currentOffset + (uint32_t)offsetof(Vertex, pos),
-                            vCount, stride};
-  prim.triMesh.normals = {currentOffset + (uint32_t)offsetof(Vertex, normal),
-                          vCount, stride};
-  prim.triMesh.texCoords = {currentOffset + (uint32_t)offsetof(Vertex, uv),
-                            vCount, stride};
-  prim.triMesh.tangents = {currentOffset + (uint32_t)offsetof(Vertex, tangent),
-                           vCount, stride};
-  prim.triMesh.colorVert = {currentOffset + (uint32_t)offsetof(Vertex, color),
-                            vCount, stride};
+  prim.triMesh.positions = {currentOffset + offset, vCount, stride};
+  offset += sizeof(glm::vec3);
 
-  currentOffset += (uint32_t)vBytes;
+  if (tm.hasNormals) {
+    prim.triMesh.normals = {currentOffset + offset, vCount, stride};
+    offset += sizeof(glm::vec3);
+  } else
+    prim.triMesh.normals = {0, 0, 0};
 
-  // Pack Indices
-  size_t iBytes = indices.size() * sizeof(uint32_t);
-  const uint8_t *iData = reinterpret_cast<const uint8_t *>(indices.data());
+  if (tm.hasUVs) {
+    prim.triMesh.texCoords = {currentOffset + offset, vCount, stride};
+    offset += sizeof(glm::vec2);
+  } else
+    prim.triMesh.texCoords = {0, 0, 0};
+
+  if (tm.hasTangents) {
+    prim.triMesh.tangents = {currentOffset + offset, vCount, stride};
+    offset += sizeof(glm::vec4);
+  } else
+    prim.triMesh.tangents = {0, 0, 0};
+
+  if (tm.hasColors) {
+    prim.triMesh.colorVert = {currentOffset + offset, vCount, stride};
+  } else
+    prim.triMesh.colorVert = {0, 0, 0};
+
+  currentOffset += static_cast<uint32_t>(tm.vertexData.size());
+
+  // 3. Pack Indices
+  size_t iBytes = tm.indices.size() * sizeof(uint32_t);
+  const uint8_t *iData = reinterpret_cast<const uint8_t *>(tm.indices.data());
   payload.rawBuffer.insert(payload.rawBuffer.end(), iData, iData + iBytes);
 
-  prim.triMesh.indices = {currentOffset, (uint32_t)indices.size(), 0};
+  prim.triMesh.indices = {currentOffset,
+                          static_cast<uint32_t>(tm.indices.size()),
+                          0}; // 0 stride for tightly packed indices
 
   payload.primitives.push_back(prim);
 }
 
 /**********************************************************/
-void extractAndOptimizePrimitive(const tinygltf::Model &model,
-                                 const tinygltf::Primitive &primitive,
-                                 std::vector<uint32_t> &indices,
-                                 std::vector<Vertex> &vertices) 
+void extractFromObjPrimitive(const core::PrimitiveMesh &objMesh, TempMesh &tm)
 /**********************************************************/
 {
-  // 1. Extract Indices
+  tm.indices.resize(objMesh.triangles.size() * 3);
+  for (size_t i = 0; i < objMesh.triangles.size(); ++i) {
+    tm.indices[i * 3 + 0] = objMesh.triangles[i].indices.x;
+    tm.indices[i * 3 + 1] = objMesh.triangles[i].indices.y;
+    tm.indices[i * 3 + 2] = objMesh.triangles[i].indices.z;
+  }
+
+  tm.hasNormals = true;
+  tm.hasUVs = true;
+  tm.hasTangents = false;
+  tm.hasColors = false;
+
+  tm.positionOffset = 0;
+  tm.vertexStride = sizeof(glm::vec3) + sizeof(glm::vec3) +
+                    sizeof(glm::vec2); // Pos + Norm + UV = 32 bytes
+
+  size_t vertexCount = objMesh.vertices.size();
+  tm.vertexData.resize(vertexCount * tm.vertexStride);
+
+  uint8_t *vOut = tm.vertexData.data();
+  for (size_t i = 0; i < vertexCount; ++i) {
+    const auto &v = objMesh.vertices[i];
+    std::memcpy(vOut, &v.pos, sizeof(glm::vec3));
+    vOut += sizeof(glm::vec3);
+    std::memcpy(vOut, &v.nrm, sizeof(glm::vec3));
+    vOut += sizeof(glm::vec3);
+    std::memcpy(vOut, &v.tex, sizeof(glm::vec2));
+    vOut += sizeof(glm::vec2);
+  }
+}
+
+/**********************************************************/
+void extractAndOptimizePrimitive(const tinygltf::Model &model,
+                                 const tinygltf::Primitive &primitive,
+                                 TempMesh &tm)
+/**********************************************************/
+{
   if (primitive.indices >= 0) {
     const tinygltf::Accessor &indexAccessor =
         model.accessors[primitive.indices];
@@ -152,98 +196,125 @@ void extractAndOptimizePrimitive(const tinygltf::Model &model,
                              bufferView.byteOffset + indexAccessor.byteOffset;
     size_t count = indexAccessor.count;
 
-    std::vector<uint32_t> rawIndices(count);
+    tm.indices.resize(count);
     if (indexAccessor.componentType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT) {
       for (size_t i = 0; i < count; ++i)
-        rawIndices[i] = reinterpret_cast<const uint16_t *>(dataPtr)[i];
+        tm.indices[i] = reinterpret_cast<const uint16_t *>(dataPtr)[i];
     } else if (indexAccessor.componentType ==
                TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT) {
       for (size_t i = 0; i < count; ++i)
-        rawIndices[i] = reinterpret_cast<const uint32_t *>(dataPtr)[i];
+        tm.indices[i] = reinterpret_cast<const uint32_t *>(dataPtr)[i];
     } else {
       for (size_t i = 0; i < count; ++i)
-        rawIndices[i] = reinterpret_cast<const uint8_t *>(dataPtr)[i];
+        tm.indices[i] = reinterpret_cast<const uint8_t *>(dataPtr)[i];
     }
-    indices = std::move(rawIndices);
   }
 
-  // 2. Extract Vertices
-  const uint8_t *posPtr = nullptr, *normPtr = nullptr, *uvPtr = nullptr;
-  size_t posStride = 0, normStride = 0, uvStride = 0, vertexCount = 0;
+  const uint8_t *posPtr = nullptr, *normPtr = nullptr, *uvPtr = nullptr,
+                *tanPtr = nullptr, *colPtr = nullptr;
+  size_t posStride = 0, normStride = 0, uvStride = 0, tanStride = 0,
+         colStride = 0, vertexCount = 0;
 
-  if (!getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
-                                   posStride, vertexCount))
+  if (!gltf::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
+                                         posStride, vertexCount)) {
     return;
-  bool hasNorm = getGltfAttribute<glm::vec3>(model, primitive, "NORMAL",
-                                             normPtr, normStride, vertexCount);
-  bool hasUV = getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
-                                           uvPtr, uvStride, vertexCount);
-
-  std::vector<Vertex> rawVertices(vertexCount);
-  for (size_t i = 0; i < vertexCount; ++i) {
-    rawVertices[i].pos =
-        *reinterpret_cast<const glm::vec3 *>(posPtr + (i * posStride));
-    rawVertices[i].normal =
-        hasNorm
-            ? *reinterpret_cast<const glm::vec3 *>(normPtr + (i * normStride))
-            : glm::vec3(0, 1, 0);
-    rawVertices[i].uv =
-        hasUV ? *reinterpret_cast<const glm::vec2 *>(uvPtr + (i * uvStride))
-              : glm::vec2(0, 0);
-    rawVertices[i].tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Fallback
-    rawVertices[i].color = glm::vec4(1.0f);                     // Fallback
   }
 
-  // 3. MeshOptimizer Pipeline
-  size_t indexCount = indices.size();
-  std::vector<uint32_t> remap(indexCount);
-  size_t totalVertices = meshopt_generateVertexRemap(
-      remap.data(), indices.data(), indexCount, rawVertices.data(), vertexCount,
-      sizeof(Vertex));
+  tm.hasNormals = gltf::getGltfAttribute<glm::vec3>(
+      model, primitive, "NORMAL", normPtr, normStride, vertexCount);
+  tm.hasUVs = gltf::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
+                                                uvPtr, uvStride, vertexCount);
+  tm.hasTangents = gltf::getGltfAttribute<glm::vec4>(
+      model, primitive, "TANGENT", tanPtr, tanStride, vertexCount);
+  tm.hasColors = gltf::getGltfAttribute<glm::vec4>(
+      model, primitive, "COLOR_0", colPtr, colStride, vertexCount);
 
-  vertices.resize(totalVertices);
-  meshopt_remapIndexBuffer(indices.data(), indices.data(), indexCount,
-                           remap.data());
-  meshopt_remapVertexBuffer(vertices.data(), rawVertices.data(), vertexCount,
-                            sizeof(Vertex), remap.data());
+  // Dynamically calculate stride based on what attributes exist
+  tm.positionOffset = 0;
+  tm.vertexStride = sizeof(glm::vec3);
+  if (tm.hasNormals)
+    tm.vertexStride += sizeof(glm::vec3);
+  if (tm.hasUVs)
+    tm.vertexStride += sizeof(glm::vec2);
+  if (tm.hasTangents)
+    tm.vertexStride += sizeof(glm::vec4);
+  if (tm.hasColors)
+    tm.vertexStride += sizeof(glm::vec4);
 
-  meshopt_optimizeVertexCache(indices.data(), indices.data(), indexCount,
-                              totalVertices);
-  meshopt_optimizeOverdraw(indices.data(), indices.data(), indexCount,
-                           &vertices[0].pos.x, totalVertices, sizeof(Vertex),
-                           1.05f);
-  meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indexCount,
-                              vertices.data(), totalVertices, sizeof(Vertex));
+  tm.vertexData.resize(vertexCount * tm.vertexStride);
+  uint8_t *vOut = tm.vertexData.data();
+
+  for (size_t i = 0; i < vertexCount; ++i) {
+    glm::vec3 pos =
+        *reinterpret_cast<const glm::vec3 *>(posPtr + (i * posStride));
+    std::memcpy(vOut, &pos, sizeof(glm::vec3));
+    vOut += sizeof(glm::vec3);
+
+    if (tm.hasNormals) {
+      glm::vec3 norm =
+          *reinterpret_cast<const glm::vec3 *>(normPtr + (i * normStride));
+      std::memcpy(vOut, &norm, sizeof(glm::vec3));
+      vOut += sizeof(glm::vec3);
+    }
+    if (tm.hasUVs) {
+      glm::vec2 uv =
+          *reinterpret_cast<const glm::vec2 *>(uvPtr + (i * uvStride));
+      std::memcpy(vOut, &uv, sizeof(glm::vec2));
+      vOut += sizeof(glm::vec2);
+    }
+    if (tm.hasTangents) {
+      glm::vec4 tan =
+          *reinterpret_cast<const glm::vec4 *>(tanPtr + (i * tanStride));
+      std::memcpy(vOut, &tan, sizeof(glm::vec4));
+      vOut += sizeof(glm::vec4);
+    }
+    if (tm.hasColors) {
+      glm::vec4 col =
+          *reinterpret_cast<const glm::vec4 *>(colPtr + (i * colStride));
+      std::memcpy(vOut, &col, sizeof(glm::vec4));
+      vOut += sizeof(glm::vec4);
+    }
+  }
 }
 
 // --- Caching ---
 
 /**********************************************************/
-bool loadMeshCache(const std::filesystem::path &filepath,
-                   std::vector<uint32_t> &indices,
-                   std::vector<Vertex> &vertices) 
+bool loadMeshCache(const std::filesystem::path &filepath, TempMesh &tm)
 /**********************************************************/
 {
   std::ifstream file(filepath, std::ios::binary);
   if (!file.is_open())
     return false;
-  uint32_t vCount = 0, iCount = 0;
+
+  uint32_t flags = 0, vCount = 0, iCount = 0;
+  uint32_t stride = 0, posOffset = 0;
+
+  file.read((char *)&flags, sizeof(uint32_t));
+  file.read((char *)&stride, sizeof(uint32_t));
+  file.read((char *)&posOffset, sizeof(uint32_t));
   file.read((char *)&vCount, sizeof(uint32_t));
   file.read((char *)&iCount, sizeof(uint32_t));
-  vertices.resize(vCount);
-  indices.resize(iCount);
-  file.read((char *)vertices.data(), vCount * sizeof(Vertex));
-  file.read((char *)indices.data(), iCount * sizeof(uint32_t));
+
+  tm.hasNormals = (flags & 1) != 0;
+  tm.hasUVs = (flags & 2) != 0;
+  tm.hasTangents = (flags & 4) != 0;
+  tm.hasColors = (flags & 8) != 0;
+
+  tm.vertexStride = stride;
+  tm.positionOffset = posOffset;
+
+  tm.vertexData.resize(vCount * stride);
+  tm.indices.resize(iCount);
+  file.read((char *)tm.vertexData.data(), vCount * stride);
+  file.read((char *)tm.indices.data(), iCount * sizeof(uint32_t));
   return true;
 }
 
 /**********************************************************/
-void saveMeshCache(const std::filesystem::path &filepath,
-                   const std::vector<uint32_t> &indices,
-                   const std::vector<Vertex> &vertices) 
+void saveMeshCache(const std::filesystem::path &filepath, const TempMesh &tm)
 /**********************************************************/
 {
-  // 1. Ensure the directory exists before we try to open a file in it
   if (filepath.has_parent_path()) {
     std::error_code ec;
     std::filesystem::create_directories(filepath.parent_path(), ec);
@@ -253,7 +324,6 @@ void saveMeshCache(const std::filesystem::path &filepath,
     }
   }
 
-  // 2. Open and write the file
   std::ofstream file(filepath, std::ios::binary);
   if (!file.is_open()) {
     LOGE("Failed to open cache file for writing: %s",
@@ -261,13 +331,23 @@ void saveMeshCache(const std::filesystem::path &filepath,
     return;
   }
 
-  uint32_t vCount = (uint32_t)vertices.size();
-  uint32_t iCount = (uint32_t)indices.size();
+  uint32_t flags = (tm.hasNormals ? 1 : 0) | (tm.hasUVs ? 2 : 0) |
+                   (tm.hasTangents ? 4 : 0) | (tm.hasColors ? 8 : 0);
 
+  uint32_t stride = static_cast<uint32_t>(tm.vertexStride);
+  uint32_t posOffset = static_cast<uint32_t>(tm.positionOffset);
+
+  uint32_t vCount = (uint32_t)(tm.vertexData.size() / tm.vertexStride);
+  uint32_t iCount = (uint32_t)tm.indices.size();
+
+  file.write((char *)&flags, sizeof(uint32_t));
+  file.write((char *)&stride, sizeof(uint32_t));
+  file.write((char *)&posOffset, sizeof(uint32_t));
   file.write((char *)&vCount, sizeof(uint32_t));
   file.write((char *)&iCount, sizeof(uint32_t));
-  file.write((char *)vertices.data(), vCount * sizeof(Vertex));
-  file.write((char *)indices.data(), iCount * sizeof(uint32_t));
+
+  file.write((char *)tm.vertexData.data(), vCount * stride);
+  file.write((char *)tm.indices.data(), iCount * sizeof(uint32_t));
 }
 
 } // namespace
@@ -275,67 +355,47 @@ void saveMeshCache(const std::filesystem::path &filepath,
 // --- Public API ---
 
 /**********************************************************/
-void extractFromObjPrimitive(const core::PrimitiveMesh &objMesh,
-                             std::vector<uint32_t> &indices,
-                             std::vector<Vertex> &vertices) 
-/**********************************************************/
-{
-  // 1. Flatten the Triangle array into a raw index buffer
-  indices.resize(objMesh.triangles.size() * 3);
-  for (size_t i = 0; i < objMesh.triangles.size(); ++i) {
-    // Assuming PrimitiveTriangle has v1, v2, v3 or v[3]. Adjust if your struct
-    // differs.
-    indices[i * 3 + 0] = objMesh.triangles[i].indices.x;
-    indices[i * 3 + 1] = objMesh.triangles[i].indices.y;
-    indices[i * 3 + 2] = objMesh.triangles[i].indices.z;
-  }
-
-  // 2. Convert PrimitiveVertex to your unified Vertex struct
-  vertices.resize(objMesh.vertices.size());
-  for (size_t i = 0; i < objMesh.vertices.size(); ++i) {
-    const auto &v = objMesh.vertices[i];
-    vertices[i].pos = v.pos;
-    vertices[i].normal = v.nrm;
-    vertices[i].uv = v.tex;
-    vertices[i].tangent = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Fallback
-    vertices[i].color = glm::vec4(1.0f);                     // Fallback
-  }
-}
-
-/**********************************************************/
-OptimizedPayload
-processAndOptimizeGltf(const std::string &name, const tinygltf::Model &model,
-                       const std::filesystem::path &cachePath) 
+OptimizedPayload processAndOptimizeGltf(const std::string &name,
+                                        const tinygltf::Model &model,
+                                        const std::filesystem::path &cachePath)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
   OptimizedPayload payload;
   size_t origV = 0, optV = 0;
+  size_t totalBytesSaved = 0;
 
   int primitiveId = 0;
   for (const auto &mesh : model.meshes) {
     for (const auto &primitive : mesh.primitives) {
       std::filesystem::path cacheFile =
           cachePath / (name + std::to_string(primitiveId++) + ".meshcache");
-      std::vector<uint32_t> indices;
-      std::vector<Vertex> vertices;
 
-      if (!loadMeshCache(cacheFile, indices, vertices)) {
-        extractAndOptimizePrimitive(model, primitive, indices, vertices);
-        saveMeshCache(cacheFile, indices, vertices);
+      TempMesh tm;
+      if (!loadMeshCache(cacheFile, tm)) {
+        extractAndOptimizePrimitive(model, primitive, tm);
+        optimizeVertexData(tm);
+        saveMeshCache(cacheFile, tm);
       }
 
       auto posIt = primitive.attributes.find("POSITION");
-      if (posIt != primitive.attributes.end())
-        origV += model.accessors[posIt->second].count;
-      optV += vertices.size();
+      if (posIt != primitive.attributes.end()) {
+        size_t rawCount = model.accessors[posIt->second].count;
+        origV += rawCount;
 
-      packIntoPayload(payload, indices, vertices);
+        size_t newCount = tm.vertexData.size() / tm.vertexStride;
+        optV += newCount;
+
+        // Calculate bytes saved using our new tightly packed stride!
+        totalBytesSaved += (rawCount - newCount) * tm.vertexStride;
+      }
+
+      packIntoPayload(payload, tm);
     }
   }
 
   if (origV > 0) {
-    float savedMB = (float)(origV - optV) * sizeof(Vertex) / (1024.f * 1024.f);
+    double savedMB = static_cast<double>(totalBytesSaved) / (1024.0 * 1024.0);
     LOGD("--- %s Optimized: %.2f MB saved (%.1f%% reduction) ---\n",
          name.c_str(), savedMB, (1.0f - (float)optV / origV) * 100.f);
   }
@@ -346,40 +406,39 @@ processAndOptimizeGltf(const std::string &name, const tinygltf::Model &model,
 OptimizedPayload
 processAndOptimizeObj(const std::string &name,
                       const std::vector<obj::LoadedMesh> &loadedMeshes,
-                      const std::filesystem::path &cachePath) 
+                      const std::filesystem::path &cachePath)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
   OptimizedPayload payload;
   size_t origV = 0, optV = 0;
+  size_t totalBytesSaved = 0;
 
   for (size_t i = 0; i < loadedMeshes.size(); ++i) {
     std::filesystem::path cacheFile =
         cachePath / (name + "_obj_p" + std::to_string(i) + ".meshcache");
 
-    std::vector<uint32_t> indices;
-    std::vector<Vertex> vertices;
-
-    // Grab the raw CPU mesh data from your OBJ loader
+    TempMesh tm;
     const core::PrimitiveMesh &rawMesh = loadedMeshes[i].mesh;
 
-    // We can confidently add to the original count here because we
-    // always have the parsed OBJ data in memory before the GPU upload phase.
-    origV += rawMesh.vertices.size();
+    size_t rawCount = rawMesh.vertices.size();
+    origV += rawCount;
 
-    if (!loadMeshCache(cacheFile, indices, vertices)) {
-      extractFromObjPrimitive(rawMesh, indices, vertices);
-      optimizeVertexData(indices, vertices);
-      saveMeshCache(cacheFile, indices, vertices);
+    if (!loadMeshCache(cacheFile, tm)) {
+      extractFromObjPrimitive(rawMesh, tm);
+      optimizeVertexData(tm);
+      saveMeshCache(cacheFile, tm);
     }
 
-    optV += vertices.size();
-    packIntoPayload(payload, indices, vertices);
+    size_t newCount = tm.vertexData.size() / tm.vertexStride;
+    optV += newCount;
+    totalBytesSaved += (rawCount - newCount) * tm.vertexStride;
+
+    packIntoPayload(payload, tm);
   }
 
   if (origV > 0) {
-    double savedBytes = static_cast<double>(origV - optV) * sizeof(Vertex);
-    double savedMB = savedBytes / (1024.0 * 1024.0);
+    double savedMB = static_cast<double>(totalBytesSaved) / (1024.0 * 1024.0);
     double percentSaved = (static_cast<double>(origV - optV) / origV) * 100.0;
 
     LOGD("--- OBJ Optimizer Stats for %s ---", name.c_str());
@@ -392,4 +451,3 @@ processAndOptimizeObj(const std::string &name,
 
   return payload;
 }
-
