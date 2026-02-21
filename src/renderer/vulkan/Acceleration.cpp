@@ -92,7 +92,7 @@ void AccelerationStructures::buildBLAS(const SceneResourcesManager &scene)
 /**********************************************************/
 std::vector<VkAccelerationStructureInstanceKHR>
 AccelerationStructures::buildTLAS(const SceneResourcesManager &scene,
-                                  const ShaderManager &materialManager)
+                                  const ShaderManager &shaderManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -111,7 +111,7 @@ AccelerationStructures::buildTLAS(const SceneResourcesManager &scene,
     ray_inst.accelerationStructureReference =
         m_asBuilder.blasSet[instance.meshIndex].address;
     ray_inst.instanceShaderBindingTableRecordOffset =
-        materialManager.getSbtOffset(instance.hit_group);
+        shaderManager.getSbtOffset(instance.hit_group);
     ray_inst.flags = flags;
     ray_inst.mask = 0xFF;
     tlasInstances.emplace_back(ray_inst);
