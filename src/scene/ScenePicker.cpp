@@ -17,16 +17,20 @@ using Vec3 = InstanceAccelerator::Vec3;
 using BBox = bvh::v2::BBox<Scalar, 3>;
 using Ray = bvh::v2::Ray<Scalar, 3>;
 
-bool InstanceAccelerator::build(const Scene &scene) {
+/**********************************************************/
+bool InstanceAccelerator::build(const Scene &scene)
+/**********************************************************/
+{
   SCOPED_TIMER("Build BVH");
 
-  if (scene.instances.empty())
+  if (scene.instances.empty()) {
     return false;
+  }
 
   m_scene = &scene;
 
   // ------------------------------------------------------------
-  // PHASE 1: Build BLAS (Bottom-Level BVH) for every Mesh
+  // Build BLAS (Bottom-Level BVH) for every Mesh
   // ------------------------------------------------------------
   m_meshBvhs.clear();
   m_meshBvhs.resize(scene.meshes.size());
@@ -68,7 +72,7 @@ bool InstanceAccelerator::build(const Scene &scene) {
   }
 
   // ------------------------------------------------------------
-  // PHASE 2: Build TLAS (Top-Level BVH) for Instances
+  // Build TLAS (Top-Level BVH) for Instances
   // ------------------------------------------------------------
   std::vector<BBox> instBboxes(scene.instances.size());
   std::vector<Vec3> instCenters(scene.instances.size());
@@ -107,17 +111,20 @@ bool InstanceAccelerator::build(const Scene &scene) {
 // Intersect
 // --------------------------------------------------------------------------
 
+/**********************************************************/
 std::optional<RayHit>
-InstanceAccelerator::intersect(const glm::vec3 &origin,
-                               const glm::vec3 &dir) const {
+InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
+                               float tmin, float tmax) const
+/**********************************************************/
+{
   SCOPED_TIMER_FUNC();
 
   if (!m_scene || m_tlas.nodes.empty()) {
     return std::nullopt;
   }
 
-  Ray ray(Vec3(origin.x, origin.y, origin.z), Vec3(dir.x, dir.y, dir.z), 0.001f,
-          10000.0f);
+  Ray ray(Vec3(origin.x, origin.y, origin.z), Vec3(dir.x, dir.y, dir.z), tmin,
+          tmax);
 
   bool hitAny = false;
   RayHit bestHit{};
@@ -150,7 +157,7 @@ InstanceAccelerator::intersect(const glm::vec3 &origin,
                                                         ray.dir[2], 0.0f);
 
           Ray localRay(Vec3(localOrg.x, localOrg.y, localOrg.z),
-                       Vec3(localDir.x, localDir.y, localDir.z), 0.0f, 1e20f);
+                       Vec3(localDir.x, localDir.y, localDir.z), tmin, tmax);
 
           // 2. Traverse BLAS (Triangles)
           blas.intersect<false, true>(

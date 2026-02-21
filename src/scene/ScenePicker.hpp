@@ -4,12 +4,10 @@
 #include <optional>
 #include <vector>
 
-// Include necessary BVH types for member variables
 #include <bvh/v2/bvh.h>
 #include <bvh/v2/node.h>
 #include <bvh/v2/vec.h>
 
-// Forward declarations to keep header clean
 struct Scene;
 namespace shaderio {
 struct MeshPrimitive;
@@ -18,7 +16,7 @@ struct MeshPrimitive;
 struct RayHit {
   uint32_t instanceID;
   uint32_t primitiveIndex; // Triangle index in the mesh
-  float t;
+  float t;                 // Distance to hit
   float u, v;
 };
 
@@ -39,12 +37,11 @@ public:
   /**
    * @brief Raycasts against the scene structure.
    */
-  std::optional<RayHit> intersect(const glm::vec3 &origin,
-                                  const glm::vec3 &dir) const;
+  std::optional<RayHit> intersect(const glm::vec3 &origin, const glm::vec3 &dir,
+                                  float tmin = 1e-4f, float tmax = 1e20F) const;
 
 private:
-  Bvh m_tlas; // Top-Level Acceleration Structure
-  std::vector<Bvh>
-      m_meshBvhs; // Bottom-Level Acceleration Structures (one per mesh)
+  Bvh m_tlas;                  // TLAS
+  std::vector<Bvh> m_meshBvhs; // BLAS(one per mesh)
   const Scene *m_scene = nullptr;
 };
