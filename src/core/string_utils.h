@@ -7,7 +7,19 @@
 
 namespace core {
 
-inline std::string capitalize(std::string str) {
+// ========================================================================
+// String Manipulation Utilities
+// ========================================================================
+
+/**
+ * @brief Capitalizes the first character of the given string.
+ * @param str The input string.
+ * @return A new string with the first character converted to uppercase.
+ */
+/**********************************************************/
+inline std::string capitalize(std::string str)
+/**********************************************************/
+{
   if (!str.empty()) {
     // Use unsigned char cast for safety with std::toupper
     str[0] =
@@ -16,57 +28,97 @@ inline std::string capitalize(std::string str) {
   return str;
 }
 
-inline std::string getExtension(const std::string &filename) {
-  // 1. Extract Extension
-  std::string ext = "";
-  size_t dotPos = filename.find_last_of(".");
-  if (dotPos != std::string::npos) {
-    ext = filename.substr(dotPos); // Keep the dot (e.g., ".obj")
-  }
-  return ext;
-}
-
-inline void toLower(std::string &str) {
+/**
+ * @brief Converts all characters in the given string to lowercase in-place.
+ * @param str The string to modify.
+ */
+/**********************************************************/
+inline void toLower(std::string &str)
+/**********************************************************/
+{
   std::transform(str.begin(), str.end(), str.begin(),
                  [](unsigned char c) { return std::tolower(c); });
 }
 
-// -----------------------------------------------------------------------
-// Extracts the filename without extension and converts it to lowercase
-// -----------------------------------------------------------------------
-inline std::string getLowercasedStem(const std::string &filepath) {
-  // 1. Extract the stem
-  std::string stem = std::filesystem::path(filepath).stem().string();
-
-  // 2. Convert to lowercase in place
-  std::transform(stem.begin(), stem.end(), stem.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
-
-  return stem;
-}
-
-inline std::string getDirectory(const std::string& filepath) {
-    return std::filesystem::path(filepath).parent_path().string();
-}
-
 /**
  * @brief Removes leading and trailing whitespace from a string.
- * Whitespace includes spaces ' ', tabs '\t', and newlines '\n' or '\r'.
+ * @param str The input string.
+ * @return A new string with whitespace (' ', '\t', '\n', '\r') removed from
+ * both ends.
  */
-inline std::string trim(const std::string &str) {
-  // 1. Find the first character that isn't whitespace
+/**********************************************************/
+inline std::string trim(const std::string &str)
+/**********************************************************/
+{
   const auto first = str.find_first_not_of(" \t\n\r");
-
-  // 2. If no non-whitespace characters were found, return an empty string
   if (first == std::string::npos) {
     return "";
   }
-
-  // 3. Find the last character that isn't whitespace
   const auto last = str.find_last_not_of(" \t\n\r");
-
-  // 4. Calculate the length and return the substring
   return str.substr(first, (last - first + 1));
+}
+
+// ========================================================================
+// File & Path Utilities
+// ========================================================================
+
+/**
+ * @brief Extracts the directory path from a full filepath.
+ * @param filepath The full path to a file.
+ * @return The parent directory path (e.g., "assets/models").
+ */
+/**********************************************************/
+inline std::string getDirectory(const std::string &filepath)
+/**********************************************************/
+{
+  return std::filesystem::path(filepath).parent_path().string();
+}
+
+/**
+ * @brief Extracts the filename (including extension) from a path.
+ * @param path The full path.
+ * @return The filename with its extension (e.g., "helmet.gltf").
+ */
+/**********************************************************/
+inline std::string getFilename(const std::string &path)
+/**********************************************************/
+{
+  return std::filesystem::path(path).filename().string();
+}
+
+/**
+ * @brief Extracts the file extension, including the dot.
+ * @param filename The filename or path.
+ * @return The extension string (e.g., ".obj"), or an empty string if none
+ * exists.
+ */
+/**********************************************************/
+inline std::string getExtension(const std::string &filename)
+/**********************************************************/
+{
+  std::string ext = "";
+  size_t dotPos = filename.find_last_of(".");
+  if (dotPos != std::string::npos) {
+    ext = filename.substr(dotPos);
+  }
+  return ext;
+}
+
+/**
+ * @brief Extracts the filename without its extension and converts it to
+ * lowercase.
+ * @param filepath The full path to the file.
+ * @return The lowercased stem of the filename (e.g., "Helmet.gltf" ->
+ * "helmet").
+ */
+/**********************************************************/
+inline std::string getLowercasedStem(const std::string &filepath)
+/**********************************************************/
+{
+  std::string stem = std::filesystem::path(filepath).stem().string();
+  std::transform(stem.begin(), stem.end(), stem.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return stem;
 }
 
 } // namespace core

@@ -3,12 +3,12 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <glm/gtx/string_cast.hpp>
-#include <tinyobjloader/tiny_obj_loader.h>
 #include <tiny_gltf.h>
+#include <tinyobjloader/tiny_obj_loader.h>
 
-#include "models/optimizer.hpp"
 #include "models/gltf_utils.hpp"
 #include "models/obj_utils.hpp"
+#include "models/optimizer.hpp"
 
 #include <core/Image.hpp>
 #include <core/logger.hpp>
@@ -305,27 +305,7 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 }
 
 /**********************************************************/
-void SceneResourcesManager::uploadPrimitiveMesh(
-    const core::PrimitiveMesh &meshData)
-/**********************************************************/
-{
-  std::vector<uint8_t> stagingBuffer = obj::packMeshToBuffer(meshData);
-  const auto [bufferAddr, bufferIndex] =
-      m_device_resources->upload(std::span(stagingBuffer));
-  shaderio::MeshPrimitive gpuMesh = obj::createGpuMeshFromPrimitive(meshData);
-  gpuMesh.buffer = bufferAddr;
-  gpuMesh.bbox = obj::computeMeshBounds(meshData);
-  gpuMesh.rawBufferIndex = m_resources.meshData.size();
-  m_resources.meshData.emplace_back(stagingBuffer);
-  m_resources.meshes.emplace_back(gpuMesh);
-
-  // 5. Update Device Resources (1 mesh added)
-  m_device_resources->addMeshes(1, bufferIndex);
-  m_pendingMeshes -= 1;
-}
-
-/**********************************************************/
-void SceneResourcesManager::finalizePendingTextures()
+void SceneResourcesManager::uploadTextures()
 /**********************************************************/
 {
   for (const auto &[filename, id] : m_pendingTextures) {
@@ -350,17 +330,15 @@ void SceneResourcesManager::finalizeSceneResources()
   for (const auto &mesh : m_pendingOptimizedMesh) {
     uploadOptimizedMesh(mesh);
   }
-
+  assert(m_pendingOptimizedMesh.size() == 0 && m_pendingMeshes == 0);
   m_pendingOptimizedMesh.clear();
-  assert(m_pendingMeshes == 0);
 
   // Upload textures
-  finalizePendingTextures();
+  uploadTextures();
 
   // Extract light
   uploadLights();
 
-  // Upload to GPU
   m_device_resources->finalizeSceneResources(m_resources);
   m_device_resources->endUploading();
 }

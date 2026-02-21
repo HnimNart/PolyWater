@@ -276,51 +276,65 @@ void VulkanRendererElement::onUIRender()
 
       // --- TAB 1: RENDERING ---
       if (ImGui::BeginTabItem("Render")) {
-        if (PE::begin("RenderModeTable")) {
-          const char *preview = renderModeToString(m_renderMode);
-          if (PE::entry("Render Mode", [&]() {
-                bool changed = false;
-                if (ImGui::BeginCombo("##mode", preview)) {
-                  for (int n = 0; n < static_cast<int>(RenderMode::COUNT);
-                       n++) {
-                    auto mode = static_cast<RenderMode>(n);
-                    if (ImGui::Selectable(renderModeToString(mode),
-                                          m_renderMode == mode)) {
-                      m_renderMode = mode;
-                      m_renderer->setRenderMode(m_renderMode);
-                      m_sceneManager.sceneResourceManager().setDirty(true);
-                      changed = true;
-                    }
-                  }
-                  ImGui::EndCombo();
-                }
-                return changed;
-              })) {
-            m_hasChanged = true;
-          }
-          PE::end();
-        }
 
         if (ImGui::CollapsingHeader("Tonemapper",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           core::tonemapperWidget(m_renderer->postProcessor().data());
         }
 
-        if (m_renderMode == RenderMode::RAYTRACE) {
-          if (ImGui::CollapsingHeader("Integrator Params",
-                                      ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (PE::begin("IntegratorTable")) {
-              auto &params = m_renderer->renderParams();
-              m_hasChanged |=
-                  PE::DragInt("Samples", &params.nSamples, 1.0f, 1, 1024);
-              m_hasChanged |=
-                  PE::DragInt("Max Bounces", &params.maxBounces, 1.0f, 0, 32);
-              if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f)))
-                m_hasChanged = true;
-              PE::end();
+        if (ImGui::CollapsingHeader("Render", ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (PE::begin("RenderModeTable")) {
+            const char *preview = renderModeToString(m_renderMode);
+            if (PE::entry("Mode", [&]() {
+                  bool changed = false;
+                  if (ImGui::BeginCombo("##mode", preview)) {
+                    for (int n = 0; n < static_cast<int>(RenderMode::COUNT);
+                         n++) {
+                      auto mode = static_cast<RenderMode>(n);
+                      if (ImGui::Selectable(renderModeToString(mode),
+                                            m_renderMode == mode)) {
+                        m_renderMode = mode;
+                        m_renderer->setRenderMode(m_renderMode);
+                        m_sceneManager.sceneResourceManager().setDirty(true);
+                        changed = true;
+                      }
+                    }
+                    ImGui::EndCombo();
+                  }
+                  return changed;
+                })) {
+              m_hasChanged = true;
             }
+
+            if (m_renderMode == RenderMode::RAYTRACE) {
+              shaderio::RenderParams &params = m_renderer->renderParams();
+              m_hasChanged |=
+                  PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
+              m_hasChanged |=
+                  PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+              if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f))) {
+                m_hasChanged = true;
+              }
+            } else {
+              shaderio::RasterParams &params = m_renderer->rasterParams();
+              if (PE::Checkbox("Wireframe Mode", (bool *)&params.wireframe)) {
+                m_hasChanged = true;
+              }
+              if (params.wireframe) {
+                if (PE::SliderFloat("Line Width", &params.wireframeLineWidth,
+                                    0.1f, 10.0f)) {
+                  m_hasChanged = true;
+                }
+                ImGui::TextColored(
+                    ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                    "Note: Wide lines require hardware support.");
+              }
+            }
+
+            PE::end();
           }
         }
+
         ImGui::EndTabItem();
       }
 

@@ -1,10 +1,14 @@
 #include "SceneLoader.hpp"
-#include <core/logger.hpp>
+
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include <unordered_map>
 
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+
 #include "SceneData.hpp"
+#include "core/logger.hpp"
+#include "core/string_utils.h"
 #include "core/timers.hpp"
 
 // Helper macro for cleaner JSON lookups with default values
@@ -21,7 +25,8 @@ using IDMap = std::unordered_map<std::string, int>;
 bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
 /**********************************************************/
 {
-  SCOPED_TIMER_FUNC();
+  SCOPED_TIMER(
+      fmt::format("Loaded scene file: {}", core::getFilename(filepath)));
   std::ifstream file(filepath);
   if (!file.is_open()) {
     LOGE("[SceneLoader] Error: Could not open file %s\n", filepath.c_str());

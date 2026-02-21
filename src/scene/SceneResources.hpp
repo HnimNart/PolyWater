@@ -104,9 +104,8 @@ private:
                               const std::string &filename);
 
   void uploadOptimizedMesh(const OptimizedPayload &payload);
-  void uploadPrimitiveMesh(const core::PrimitiveMesh &meshData);
   void uploadLights();
-  void finalizePendingTextures();
+  void uploadTextures();
   MeshID getNextFreeMeshID();
 
   // CPU Side Storage for Pending GPU Uploads

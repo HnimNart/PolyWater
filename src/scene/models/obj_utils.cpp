@@ -1,8 +1,14 @@
 #include "obj_utils.hpp"
-#include "RHI_definitions.hpp"
-#include "core/logger.hpp"
+
 #include <cstring>
 #include <unordered_map>
+
+#include "backend/interfaces/RHI_definitions.hpp"
+#include "fmt/format.h"
+
+#include "core/logger.hpp"
+#include "core/string_utils.h"
+#include "timers.hpp"
 
 namespace obj {
 
@@ -61,6 +67,8 @@ core::PrimitiveMesh flattenObjData(const tinyobj::attrib_t &attrib,
 ObjLoaderResult loadObjPrimitives(const std::string &filename)
 /**********************************************************/
 {
+
+  SCOPED_TIMER(fmt::format("Loaded obj file: {}", core::getFilename(filename)));
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
