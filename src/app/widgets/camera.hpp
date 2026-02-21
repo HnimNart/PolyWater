@@ -44,7 +44,7 @@ enum CameraWidgetSections : uint32_t {
 // If `embed` is true, it will have text before it and appear in
 // ImGui::BeginChild. `openSections` controls which sections are open by
 // default. Returns whether camera parameters changed.
-bool cameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
+bool cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
                   bool embed = false,
                   CameraWidgetSections openSections = CameraSection_Default);
 

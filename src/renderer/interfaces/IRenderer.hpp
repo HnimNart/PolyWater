@@ -64,6 +64,7 @@ public:
   virtual IToneMapper &postProcessor() noexcept = 0;
   shaderio::RenderParams &renderParams() { return m_renderParams; }
   shaderio::RasterParams &rasterParams() { return m_rasterParams; }
+  RenderMode getRenderMode() const { return m_render_mode; }
   const ShaderManager &getShaderManager() const { return m_shaderManager; }
   uint32_t getFrameCount() const { return m_frameIndex; }
 

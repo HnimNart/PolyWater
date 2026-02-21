@@ -9,22 +9,23 @@
 #include <random>
 
 // Third Party
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <imgui/imgui.h>
 #include <shaders/shared/structs.h>
 #include <vulkan/vulkan.h>
 
-#include <app/widgets/camera.hpp>
-#include <app/widgets/property_editor.hpp>
-#include <app/widgets/sky.hpp>
-#include <app/widgets/tonemapper.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/string_cast.hpp>
-
 #include "app/Application.hpp"
 #include "app/widgets/axis.hpp"
+#include "app/widgets/camera.hpp"
+#include "app/widgets/instance_editor.hpp"
+#include "app/widgets/light_editor.hpp"
+#include "app/widgets/material_editor.hpp"
+#include "app/widgets/meshes_editor.hpp"
+#include "app/widgets/render_editor.hpp"
+#include "app/widgets/tonemapper.hpp"
 #include "backend/vulkan/core/Backend.hpp"
-#include "core/Math.hpp"
 #include "core/path_utils.hpp"
 #include "core/string_utils.h"
 #include "core/timers.hpp"
@@ -166,29 +167,6 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
   m_sceneFile.clear();
 }
 
-/**********************************************************/
-void VulkanRendererElement::updateMaterialList()
-/**********************************************************/
-{
-  auto &resources = m_sceneManager.sceneResourceManager();
-  const auto &materialMap = resources.materialMap();
-
-  if (materialMap.size() == m_matIDs.size())
-    return;
-
-  m_matIDs.clear();
-  m_matNamesList.clear();
-  m_matIDToIndex.clear();
-
-  int counter = 0;
-  for (auto const &[matName, mId] : materialMap) {
-    m_matNamesList += matName + '\0';
-    m_matIDs.push_back(mId);
-    m_matIDToIndex[mId] = counter++;
-  }
-  m_matNamesList += '\0';
-}
-
 // ============================================================================
 // 3. Frame Loop Callbacks
 // ============================================================================
@@ -259,209 +237,84 @@ void VulkanRendererElement::onUIRender()
   namespace PE = app::PropertyEditor;
   m_hasChanged = false;
 
+  // --- Shared Variable Extractions ---
+  auto &resourceManager = m_sceneManager.sceneResourceManager();
+  std::shared_ptr<core::CameraManipulator> camera = m_sceneManager.camera();
+  auto *renderer = m_renderer.get();
+
   // --- VIEWPORT WINDOW ---
   if (ImGui::Begin("Viewport") && !m_app->isPaused()) {
     ImTextureID toneMappedId =
-        ImTextureID(m_renderer->getImageDescriptor(RenderOutput::ToneMapped));
+        ImTextureID(renderer->getImageDescriptor(RenderOutput::ToneMapped));
     ImGui::Image(toneMappedId, ImGui::GetContentRegionAvail());
-    app::drawAxis(m_sceneManager.camera()->getViewProjection());
+    app::drawAxis(camera->getViewProjection());
   }
   ImGui::End();
 
   // --- SETTINGS WINDOW ---
   if (ImGui::Begin("Settings")) {
-    if (ImGui::BeginTabBar("MainTabs")) {
+    if (ImGui::BeginTabBar("SettingTabs")) {
 
-      // --- TAB 1: RENDERING ---
+      // --- RENDERING ---
       if (ImGui::BeginTabItem("Render")) {
-
         if (ImGui::CollapsingHeader("Tonemapper",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          core::tonemapperWidget(m_renderer->postProcessor().data());
+          core::tonemapperWidget(renderer->postProcessor().data());
         }
 
         if (ImGui::CollapsingHeader("Render", ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (PE::begin("RenderModeTable")) {
-            const char *preview = renderModeToString(m_renderMode);
-            if (PE::entry("Mode", [&]() {
-                  bool changed = false;
-                  if (ImGui::BeginCombo("##mode", preview)) {
-                    for (int n = 0; n < static_cast<int>(RenderMode::COUNT);
-                         n++) {
-                      auto mode = static_cast<RenderMode>(n);
-                      if (ImGui::Selectable(renderModeToString(mode),
-                                            m_renderMode == mode)) {
-                        m_renderMode = mode;
-                        m_renderer->setRenderMode(m_renderMode);
-                        m_sceneManager.sceneResourceManager().setDirty(true);
-                        changed = true;
-                      }
-                    }
-                    ImGui::EndCombo();
-                  }
-                  return changed;
-                })) {
-              m_hasChanged = true;
-            }
-
-            if (m_renderMode == RenderMode::RAYTRACE) {
-              shaderio::RenderParams &params = m_renderer->renderParams();
-              m_hasChanged |=
-                  PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
-              m_hasChanged |=
-                  PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-              if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f))) {
-                m_hasChanged = true;
-              }
-            } else {
-              shaderio::RasterParams &params = m_renderer->rasterParams();
-              if (PE::Checkbox("Wireframe Mode", (bool *)&params.wireframe)) {
-                m_hasChanged = true;
-              }
-              if (params.wireframe) {
-                if (PE::SliderFloat("Line Width", &params.wireframeLineWidth,
-                                    0.1f, 10.0f)) {
-                  m_hasChanged = true;
-                }
-                ImGui::TextColored(
-                    ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                    "Note: Wide lines require hardware support.");
-              }
-            }
-
-            PE::end();
-          }
+          m_hasChanged |= app::renderEditor(resourceManager, renderer);
         }
-
         ImGui::EndTabItem();
       }
+      ImGui::EndTabBar();
+    }
+  }
+  ImGui::End();
 
-      // --- TAB 2: ENVIRONMENT & LIGHTING ---
-      if (ImGui::BeginTabItem("SceneInfo")) {
+  // --- SCENE WINDOW ---
+  if (ImGui::Begin("Scene")) {
+    if (ImGui::BeginTabBar("SceneTabBar")) {
+
+      // --- GLOBAL (Camera & Lighting) ---
+      if (ImGui::BeginTabItem("Global")) {
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-          m_hasChanged |= app::cameraWidget(m_sceneManager.camera());
+          m_hasChanged |= app::cameraWidget(camera);
         }
-
-        auto &sceneInfo = m_sceneManager.sceneInfo();
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-
-          // Environment Type Selection (Radio Buttons)
-          if (PE::begin("EnvTypeTable")) {
-            if (PE::RadioButton("Physical Sky", sceneInfo.useSky)) {
-              sceneInfo.useSky = true;
-              sceneInfo.useEnv = false;
-              m_hasChanged = true;
-            }
-            if (sceneInfo.envmapLight.totalSum > 0 &&
-                PE::RadioButton("HDR Environment", sceneInfo.useEnv)) {
-              sceneInfo.useEnv = true;
-              sceneInfo.useSky = false;
-              m_hasChanged = true;
-            }
-            bool useSolid = !sceneInfo.useSky && !sceneInfo.useEnv;
-            if (PE::RadioButton("Solid Color", useSolid)) {
-              sceneInfo.useSky = false;
-              sceneInfo.useEnv = false;
-              m_hasChanged = true;
-            }
-            PE::end();
-          }
-
-          ImGui::Separator();
-
-          // Specific Settings based on selection
-          if (sceneInfo.useSky) {
-            m_hasChanged |=
-                app::skySimpleParametersUI(sceneInfo.skySimpleParam);
-          } else if (sceneInfo.useEnv) {
-            auto &env = sceneInfo.envmapLight;
-            if (PE::begin("EnvParamsTable")) {
-              m_hasChanged |=
-                  PE::DragFloat("Intensity", &env.scale, 0.1f, 0.0f, 10.0f);
-              if ((m_hasChanged |= PE::DragFloat("Rotation (Azimuth)",
-                                                 &env.rotationAzimuthDegree,
-                                                 1.0f, 0.0f, 360.0f))) {
-                env.rotation = glm::rotate(
-                    glm::mat4(1.0f), glm::radians(env.rotationAzimuthDegree),
-                    glm::vec3(0, 1, 0));
-              }
-
-              if (PE::treeNode("Technical Info")) {
-                PE::Text("Resolution", "%u x %u", env.dims.x, env.dims.y);
-                PE::Text("Tex Index", "%d", env.envTextureIdx);
-                PE::Text("Integral", "%.4f", env.totalSum);
-                PE::treePop();
-              }
-
-              if (PE::Button(
-                      "Reload Map",
-                      ImVec2(-1, 0))) { /* m_sceneManager.reloadEnvmap(); */
-              }
-              PE::end();
-            }
-          } else {
-            if (PE::begin("SolidColorTable")) {
-              m_hasChanged |= PE::ColorEdit3(
-                  "Background Color", (float *)&sceneInfo.backgroundColor);
-              PE::end();
-            }
-          }
-
-          // Punctual Light Section
-          if (ImGui::TreeNodeEx("Punctual Light",
-                                ImGuiTreeNodeFlags_DefaultOpen)) {
-            auto &light = sceneInfo.punctualLights[0];
-            if (PE::begin("LightTable")) {
-              int typeInt = static_cast<int>(light.type);
-              if (PE::Combo("Type", &typeInt, "Point\0Spot\0Directional\0")) {
-                light.type = (shaderio::LightType)typeInt;
-                m_hasChanged = true;
-              }
-
-              if (light.type != shaderio::LightType::eDirectional)
-                m_hasChanged |= PE::DragFloat3(
-                    "Position", glm::value_ptr(light.position), 0.1f);
-              if (light.type != shaderio::LightType::ePoint)
-                m_hasChanged |= PE::SliderFloat3(
-                    "Direction", glm::value_ptr(light.direction), -1.0f, 1.0f);
-
-              m_hasChanged |=
-                  PE::DragFloat("Intensity", &light.intensity, 1.0f, 0.0f,
-                                10000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
-              m_hasChanged |=
-                  PE::ColorEdit3("Color", glm::value_ptr(light.color));
-
-              if (light.type == shaderio::LightType::eSpot)
-                m_hasChanged |= PE::SliderAngle("Cone Angle", &light.coneAngle,
-                                                0.0f, 90.0f);
-
-              PE::end();
-            }
-            ImGui::TreePop();
-          }
+          m_hasChanged |= app::lightEditor(resourceManager);
         }
         ImGui::EndTabItem();
       }
 
-      // --- OTHER TABS ---
+      // --- MATERIALS ---
       if (ImGui::BeginTabItem("Materials")) {
-        renderMaterialsUI();
+        if (app::materialEditor(resourceManager)) {
+          resourceManager.onMaterialChange();
+        }
         ImGui::EndTabItem();
       }
+
+      // --- INSTANCES ---
       if (ImGui::BeginTabItem("Instances")) {
-        renderInstancesUI();
+        if (app::instanceEditor(resourceManager,
+                                renderer->getShaderManager().getRegistry())) {
+          resourceManager.onInstanceChange();
+        }
         ImGui::EndTabItem();
       }
+
+      // --- MESHES ---
       if (ImGui::BeginTabItem("Meshes")) {
-        renderMeshesUI();
+        app::meshEditor(resourceManager);
         ImGui::EndTabItem();
       }
 
       ImGui::EndTabBar();
     }
-    ImGui::End();
   }
+  ImGui::End();
 }
 
 /**********************************************************/
@@ -479,330 +332,6 @@ void VulkanRendererElement::onUIMenu()
     m_renderer->reload();
 }
 
-/**********************************************************/
-void VulkanRendererElement::renderMaterialsUI()
-/**********************************************************/
-{
-  namespace PE = app::PropertyEditor;
-  auto &resources = m_sceneManager.sceneResourceManager();
-  auto &materials = resources.getMaterials();
-  const auto &materialMap = resources.materialMap();
-  bool changed = false;
-
-  // Static buffer to persist search text between frames
-  static char materialSearch[128] = "";
-
-  if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
-    // 1. Search Bar
-    ImGui::InputTextWithHint("##MatSearch", "Filter by name...", materialSearch,
-                             IM_ARRAYSIZE(materialSearch));
-    ImGui::SameLine();
-
-    if (ImGui::Button("+ Add")) {
-
-      shaderio::Material newMat{};
-      newMat.baseColorFactor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f); // Light grey
-      newMat.metallicFactor = 0.0f;
-      newMat.roughnessFactor = 0.5f;
-      newMat.emission = glm::vec3(0.0f);
-      newMat.ior = glm::vec3(1.5f); // Standard glass/plastic IOR
-      newMat.sigma_t = glm::vec3(0.0f);
-      newMat.asymmetry = glm::vec3(0.0f);
-      newMat.baseColorTextureIndex = -1; // Assuming -1 or 0 means "no texture"
-
-      resources.addMaterial(std::move(newMat));
-      changed = true;
-    }
-    ImGui::Separator();
-
-    // Prepare search string for case-insensitive comparison
-    std::string searchStr = materialSearch;
-    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
-                   ::tolower);
-
-    // 2. Iterate through the map (already alphabetical)
-    for (const auto &[name, id] : materialMap) {
-      if (id >= materials.size())
-        continue;
-
-      // Apply Search Filter
-      std::string nameLower = name;
-      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-                     ::tolower);
-      if (!searchStr.empty() &&
-          nameLower.find(searchStr) == std::string::npos) {
-        continue;
-      }
-
-      // Use name and ID for a unique ImGui ID
-      std::string label = fmt::format("{} (ID: {})", name, id);
-
-      if (ImGui::TreeNode(label.c_str())) {
-        auto &mat = materials[id];
-        PE::begin();
-
-        changed |=
-            PE::ColorEdit4("Base Color", glm::value_ptr(mat.baseColorFactor));
-        changed |=
-            PE::SliderFloat("Metallic", &mat.metallicFactor, 1e-4f, 1.0f);
-        changed |=
-            PE::SliderFloat("Roughness", &mat.roughnessFactor, 1e-3f, 1.0f);
-        changed |= PE::SliderFloat3("Emission", glm::value_ptr(mat.emission),
-                                    0.0F, 100.F);
-        changed |= PE::SliderFloat3("IOR (Spectral)", glm::value_ptr(mat.ior),
-                                    1.0f, 2.5f);
-        changed |= PE::SliderFloat3("Extinction", glm::value_ptr(mat.sigma_t),
-                                    0.0f, 100.0f);
-        changed |= PE::SliderFloat3("Asymmetry", glm::value_ptr(mat.asymmetry),
-                                    0.0f, 1.0f);
-
-        const auto &textureMap = resources.textureMap();
-        std::string currentName = "None";
-        for (const auto &[name, id] : textureMap) {
-          if (id == mat.baseColorTextureIndex) {
-            currentName = name;
-            break;
-          }
-        }
-
-        if (ImGui::BeginCombo("Base Color Texture", currentName.c_str())) {
-          for (const auto &[name, id] : textureMap) {
-            const bool isSelected = (currentName == name);
-            if (ImGui::Selectable(name.c_str(), isSelected)) {
-              mat.baseColorTextureIndex = id;
-              m_hasChanged = true;
-              resources.onMaterialChange();
-            }
-
-            if (isSelected) {
-              ImGui::SetItemDefaultFocus();
-            }
-          }
-          ImGui::EndCombo();
-        }
-
-        PE::end();
-        ImGui::TreePop();
-      }
-    }
-  }
-
-  if (changed) {
-    resources.onMaterialChange();
-  }
-}
-
-/**********************************************************/
-void VulkanRendererElement::renderInstancesUI()
-/**********************************************************/
-{
-  namespace PE = app::PropertyEditor;
-  auto &resources = m_sceneManager.sceneResourceManager();
-  auto &instances = resources.getInstances();
-  const auto &materials = resources.getMaterials();
-  const auto &instanceMap = resources.instanceMap();
-  const auto &shaderRegistry = m_renderer->getShaderManager().getRegistry();
-  const auto &meshes = resources.getMeshes();
-  const auto &meshMap = resources.meshMap();
-
-  updateMaterialList();
-
-  bool changed = false;
-  static char instanceSearch[128] = "";
-
-  if (ImGui::CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::InputTextWithHint("##InstSearch", "Search instances...",
-                             instanceSearch, IM_ARRAYSIZE(instanceSearch));
-
-    ImGui::SameLine();
-    // --- ADD NEW INSTANCE LOGIC ---
-    if (ImGui::Button("+ Add")) {
-      // 1. Create the instance (uses the default values defined in your struct)
-      // Note: Change `Instance` to your actual namespace if needed (e.g.,
-      // `shaderio::Instance`)
-      shaderio::Instance newInst;
-
-      // 2. Initialize the cached transform matrix to Identity based on the
-      // default TRS
-      newInst.transform = math::composeTransform(
-          newInst.translation, newInst.rotation, newInst.scale);
-
-      // 3. Set safe fallback values for indices
-      newInst.materialIndex = 0;
-      newInst.meshIndex = 0;
-      newInst.hit_group = MaterialType::eDiffuse;
-
-      // 4. Add to the array and map
-      auto newId = resources.addInstance(std::move(newInst));
-      changed = true;
-    }
-    ImGui::Separator();
-
-    std::string searchStr = instanceSearch;
-    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
-                   ::tolower);
-
-    // Iterate through the map
-    for (const auto &[name, id] : instanceMap) {
-      if (id >= instances.size())
-        continue;
-
-      // Filter
-      std::string nameLower = name;
-      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-                     ::tolower);
-      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
-        continue;
-
-      std::string label = fmt::format("{}[{}]##{}", name, id, id);
-      if (ImGui::TreeNode(label.c_str())) {
-        auto &inst = instances[id];
-        int matIdx = static_cast<int>(inst.materialIndex);
-        PE::begin();
-
-        // Find current id of the selected material
-        int currentComboItem = -1;
-        if (auto it = m_matIDToIndex.find(inst.materialIndex);
-            it != m_matIDToIndex.end()) {
-          currentComboItem = it->second;
-        }
-
-        // Draw the Dropdown
-        if (PE::Combo("Material Select", &currentComboItem,
-                      m_matNamesList.c_str(), (int)m_matIDs.size())) {
-          inst.materialIndex = m_matIDs[currentComboItem];
-          matIdx = (int)inst.materialIndex; // Sync slider
-          changed = true;
-        }
-        // Draw the Slider
-        if (PE::SliderInt("Material ID", &matIdx, 0,
-                          (int)materials.size() - 1)) {
-          inst.materialIndex = (uint32_t)matIdx;
-          changed = true;
-        }
-
-        // 2. Hit Group (Shader) Assignment
-        std::vector<MaterialType> types;
-        std::string shaderNames;
-        int currentTypeIdx = -1;
-        int count = 0;
-        for (auto const &[type, entry] : shaderRegistry) {
-          if (type == inst.hit_group)
-            currentTypeIdx = count;
-          shaderNames += entry.prettyName + '\0';
-          types.push_back(type);
-          count++;
-        }
-        shaderNames += '\0';
-
-        if (PE::Combo("Shader Type", &currentTypeIdx, shaderNames.c_str(),
-                      (int)types.size())) {
-          inst.hit_group = types[currentTypeIdx];
-          changed = true;
-        }
-
-        // Mesh index
-        std::string currentMeshName = "Unknown";
-        // Reverse lookup: Find the string key that matches our current ID
-        for (const auto &[name, id] : meshMap) {
-          if (id == inst.meshIndex) {
-            currentMeshName = name;
-            break;
-          }
-        }
-        PE::Text("Mesh Name", currentMeshName.c_str());
-        int currentMeshIdx = static_cast<int>(inst.meshIndex);
-        if (PE::SliderInt("Mesh ID", &currentMeshIdx, 0,
-                          std::max(0, (int)meshes.size() - 1))) {
-          inst.meshIndex = static_cast<uint32_t>(currentMeshIdx);
-          changed = true;
-        }
-
-        glm::quat rotation = math::toQuat(glm::vec4(inst.rotation));
-        glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
-
-        bool tChanged =
-            PE::DragFloat3("Position", glm::value_ptr(inst.translation), 0.1f);
-        bool rChanged =
-            PE::DragFloat3("Rotation", glm::value_ptr(rotationEuler), 0.5f);
-        bool sChanged =
-            PE::DragFloat3("Scale", glm::value_ptr(inst.scale), 0.05f);
-
-        if (tChanged || rChanged || sChanged) {
-          glm::quat quat = glm::quat(glm::radians(rotationEuler));
-          inst.rotation = math::fromQuat(quat);
-          inst.transform = math::composeTransform(inst.translation,
-                                                  inst.rotation, inst.scale);
-          changed = true;
-        }
-
-        PE::end();
-        ImGui::TreePop();
-      }
-    }
-  }
-
-  if (changed) {
-    resources.onInstanceChange();
-  }
-}
-
-/**********************************************************/
-void VulkanRendererElement::renderMeshesUI()
-/**********************************************************/
-{
-  namespace PE = app::PropertyEditor;
-  auto &resources = m_sceneManager.sceneResourceManager();
-  auto &meshes = resources.getMeshes();
-  const auto &meshMap = resources.meshMap();
-
-  static char meshSearch[128] = "";
-
-  if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::InputTextWithHint("##MeshSearch", "Search meshes...", meshSearch,
-                             IM_ARRAYSIZE(meshSearch));
-    ImGui::Separator();
-
-    std::string searchStr = meshSearch;
-    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
-                   ::tolower);
-
-    for (const auto &[name, id] : meshMap) {
-      if (id >= meshes.size())
-        continue;
-
-      // Filter logic
-      std::string nameLower = name;
-      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-                     ::tolower);
-      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
-        continue;
-
-      std::string label = fmt::format("{}##mesh_{}", name, id);
-
-      // 1. Root Mesh Node
-      if (ImGui::TreeNode(label.c_str())) {
-        const auto &mesh = meshes[id];
-        PE::begin();
-        PE::Text("Mesh ID", fmt::format("{}", id).c_str());
-        PE::Text("Vertices",
-                 fmt::format("{}", mesh.triMesh.positions.count).c_str());
-        PE::Text("Indices",
-                 fmt::format("{}", mesh.triMesh.indices.count).c_str());
-        const shaderio::BoundingBox &bbox = mesh.bbox;
-        PE::Text("BBox Min", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.min.x,
-                                         bbox.min.y, bbox.min.z)
-                                 .c_str());
-        PE::Text("BBox Max", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.max.x,
-                                         bbox.max.y, bbox.max.z)
-                                 .c_str());
-        PE::end();
-
-        ImGui::TreePop();
-      }
-    }
-  }
-}
 // ============================================================================
 // 5. Accessors & Interaction
 // ============================================================================

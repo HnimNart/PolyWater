@@ -567,7 +567,7 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
       });
 
       auto duration = static_cast<float>(cameraM->getAnimationDuration());
-      changed |= PE::SliderFloat("Transition", &duration, 0.0F, 2.0F, "%.2fs",
+      changed |= PE::SliderFloat("Transition", &duration, 0.0F, 10.0F, "%.2fs",
                                  ImGuiSliderFlags_None,
                                  "Transition duration of camera movement");
       cameraM->setAnimationDuration(duration);
@@ -583,7 +583,7 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
-bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> cameraManip,
+bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
                        bool embed, CameraWidgetSections openSections) {
   assert(cameraManip && "CameraManipulator is not set");
 
