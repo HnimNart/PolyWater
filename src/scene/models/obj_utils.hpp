@@ -5,26 +5,26 @@
 #include <tinyobjloader/tiny_obj_loader.h>
 #include <vector>
 
-#include "shaders/shared/structs.h"
 #include "core/shape/primitives.hpp"
+#include "shaders/shared/structs.h"
 
 namespace obj {
 
-struct TempMaterial {
+struct ObjMaterial {
+  std::string name;               // Material name for debugging
   shaderio::Material pbrData;     // The actual struct for the GPU
   std::string diffuseTexturePath; // Filename for loading later
-  std::string name;               // Material name for debugging
 };
 
-struct LoadedMesh {
+struct ObjMesh {
   std::string name;
   core::PrimitiveMesh mesh;
   int materialIndex;
 };
 
 struct ObjLoaderResult {
-  std::vector<LoadedMesh> meshes;
-  std::vector<TempMaterial> materials;
+  std::vector<ObjMesh> meshes;
+  std::vector<ObjMaterial> materials;
 };
 
 // --- Function Declarations ---

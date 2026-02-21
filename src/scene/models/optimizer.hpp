@@ -30,5 +30,5 @@ OptimizedPayload processAndOptimizeGltf(const std::string &name,
 
 OptimizedPayload
 processAndOptimizeObj(const std::string &name,
-                      const std::vector<obj::LoadedMesh> &loadedMeshes,
+                      const std::vector<obj::ObjMesh> &loadedMeshes,
                       const std::filesystem::path &cachePath);

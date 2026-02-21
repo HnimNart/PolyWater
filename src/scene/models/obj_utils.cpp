@@ -4,11 +4,11 @@
 #include <unordered_map>
 
 #include "backend/interfaces/RHI_definitions.hpp"
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include "core/logger.hpp"
 #include "core/string_utils.h"
-#include "timers.hpp"
+#include "core/timers.hpp"
 
 namespace obj {
 
@@ -89,7 +89,7 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename)
 
   ObjLoaderResult result;
   for (const auto &tm : materials) {
-    TempMaterial temp;
+    ObjMaterial temp;
     temp.name = tm.name;
     temp.diffuseTexturePath = tm.diffuse_texname;
 

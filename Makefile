@@ -17,6 +17,7 @@ CONFIG_TYPE := $(or $(MAP_$(preset)),Release)
 
 # Derived paths
 BIN_DIR := $(BUILD_DIR)/bin/$(CONFIG_TYPE)
+CACHE_DIR := .cache/models
 
 # ------------------------------------------------------------------------------
 # Targets
@@ -39,6 +40,10 @@ install:
 clean:
 	rm -rf $(BUILD_DIR)
 	ccache --clear && ccache -z
+	$(MAKE) clear_cache
+
+clear_cache:
+	rm -rf ${CACHE_DIR}
 
 # ------------------------------------------------------------------------------
 # Run helpers
