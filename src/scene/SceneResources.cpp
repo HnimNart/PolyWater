@@ -250,7 +250,7 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
 
   std::string uniqueName = getUniqueName(m_instanceMap, name);
   m_instanceMap[uniqueName] = id;
-
+  m_rebuild = true;
   return id;
 }
 
@@ -278,6 +278,7 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
 
   std::string uniqueName = getUniqueName(m_materialMap, name);
   m_materialMap[uniqueName] = id;
+  m_rebuild = true;
   return id;
 }
 

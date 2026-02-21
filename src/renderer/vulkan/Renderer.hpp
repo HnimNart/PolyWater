@@ -23,10 +23,6 @@ class SwapchainRenderManager;
 class ToneMapPass;
 class VulkanBackend;
 
-namespace shaderio {
-struct PushConstant;
-}
-
 class VulkanRenderer final : public IRenderer {
 public:
   explicit VulkanRenderer(

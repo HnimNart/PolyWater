@@ -66,8 +66,8 @@ void SceneManager::buildSceneFromData(
   for (const auto &matData : data.materials) {
     shaderio::Material info{};
     info.baseColorFactor = matData.baseColor;
-    info.metallicFactor = matData.metallic;
-    info.roughnessFactor = matData.roughness;
+    info.metallicFactor = fmaxf(1e-4f, matData.metallic);
+    info.roughnessFactor = fmaxf(1e-3f, matData.roughness);
     info.emission = matData.emission;
     info.ior = matData.ior;
 

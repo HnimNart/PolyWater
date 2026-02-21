@@ -99,9 +99,10 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename)
     temp.pbrData.ior = {tm.ior, tm.ior, tm.ior};
 
     float shininess = glm::clamp(tm.shininess, 0.0f, 1000.0f);
-    temp.pbrData.roughnessFactor = 1.0f - (shininess / 1000.0f);
+    temp.pbrData.roughnessFactor =
+        glm::clamp(1.0f - (shininess / 1000.0f), 1e-3f, 1.0f);
     float spec = (tm.specular[0] + tm.specular[1] + tm.specular[2]) / 3.0f;
-    temp.pbrData.metallicFactor = glm::clamp(spec, 0.0f, 1.0f);
+    temp.pbrData.metallicFactor = glm::clamp(spec, 1e-4f, 1.0f);
     temp.pbrData.baseColorTextureIndex = -1;
 
     result.materials.push_back(std::move(temp));

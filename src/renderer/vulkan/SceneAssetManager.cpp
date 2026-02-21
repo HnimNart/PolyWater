@@ -49,23 +49,47 @@ void VulkanSceneAssetManager::endUploading()
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::clearSceneBuffers()
+void VulkanSceneAssetManager::destroyBuffer(nvvk::Buffer &buffer)
 /**********************************************************/
 {
   auto &allocator = m_context_manager->getAllocator();
-  // Helper to safely destroy and reset a buffer
-  auto safeDestroy = [&](auto &b) {
-    if (b.isAllocated()) {
-      allocator.destroyBuffer(b);
-      b.buffer = VK_NULL_HANDLE;
-    }
-  };
+  if (buffer.isAllocated()) {
+    allocator.destroyBuffer(buffer);
+    buffer.buffer = VK_NULL_HANDLE;
+  }
+}
 
-  safeDestroy(m_data.bSceneInfo);
-  safeDestroy(m_data.bSceneResources);
-  safeDestroy(m_data.bMeshes);
-  safeDestroy(m_data.bMaterials);
-  safeDestroy(m_data.bInstances);
+/**********************************************************/
+void VulkanSceneAssetManager::allocBuffer(nvvk::Buffer &buffer, size_t bytes,
+                                          VkBufferUsageFlags2KHR usage)
+/**********************************************************/
+{
+  auto &allocator = m_context_manager->getAllocator();
+  allocator.createBuffer(buffer, bytes, usage);
+}
+
+/**********************************************************/
+template <typename T>
+void VulkanSceneAssetManager::createBuffer(nvvk::Buffer &buffer,
+                                           const std::span<T> &dataSpan,
+                                           VkBufferUsageFlags2KHR usage)
+/**********************************************************/
+{
+  auto &stagingUploader = m_context_manager->getStagingUploader();
+  allocBuffer(buffer, dataSpan.size_bytes(), usage);
+  NVVK_DBG_NAME(buffer.buffer);
+  NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::clearSceneBuffers()
+/**********************************************************/
+{
+  destroyBuffer(m_data.bSceneInfo);
+  destroyBuffer(m_data.bSceneResources);
+  destroyBuffer(m_data.bMeshes);
+  destroyBuffer(m_data.bMaterials);
+  destroyBuffer(m_data.bInstances);
 }
 
 /**********************************************************/
@@ -80,9 +104,7 @@ void VulkanSceneAssetManager::clear()
   }
 
   for (auto &data : m_data.bDatas) {
-    if (data.buffer != VK_NULL_HANDLE) {
-      m_context_manager->getAllocator().destroyBuffer(data);
-    }
+    destroyBuffer(data);
   }
   m_textures.clear();
   m_data = {};
@@ -194,19 +216,7 @@ VulkanSceneAssetManager::upload(const std::span<const unsigned char> &data)
 /**********************************************************/
 {
   nvvk::Buffer bData;
-  nvvk::ResourceAllocator *allocator =
-      m_context_manager->getStagingUploader().getResourceAllocator();
-
-  NVVK_CHECK(allocator->createBuffer(
-      bData, data.size_bytes(),
-      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT |
-          VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
-          VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR));
-
-  NVVK_CHECK(
-      m_context_manager->getStagingUploader().appendBuffer(bData, 0, data));
-  NVVK_DBG_NAME(bData.buffer);
-
+  createBuffer(bData, data, meshBufferUsage);
   uint32_t bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
   m_data.bDatas.push_back(bData);
   return {(uint8_t *)bData.address, bufferIndex};
@@ -237,37 +247,12 @@ void VulkanSceneAssetManager::createSceneBuffers(const Scene &sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-
-  auto &stagingUploader = m_context_manager->getStagingUploader();
-  nvvk::ResourceAllocator *allocator = stagingUploader.getResourceAllocator();
-
-  // 1. Define common usage flags to avoid clutter
-  const VkBufferUsageFlags2KHR storageUsage =
-      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
-      VK_BUFFER_USAGE_2_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT;
-
-  const VkBufferUsageFlags2KHR uniformUsage =
-      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT;
-
-  // 2. Helper lambda to handle the generic Create -> Name -> Upload pattern
-  auto createBuffer = [&](nvvk::Buffer &buffer, auto &&dataSpan,
-                          VkBufferUsageFlags2KHR usage) {
-    if (dataSpan.empty()) {
-      return;
-    }
-    allocator->createBuffer(buffer, dataSpan.size_bytes(), usage);
-    NVVK_DBG_NAME(buffer.buffer);
-    NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
-  };
-
-  // 3. Process the buffers cleanly
   createBuffer(m_data.bMeshes, std::span(sceneResource.meshes), storageUsage);
   createBuffer(m_data.bInstances, std::span(sceneResource.instances),
                storageUsage);
   createBuffer(m_data.bMaterials, std::span(sceneResource.materials),
                storageUsage);
 
-  // SceneInfo needs a span of size 1 created manually
   createBuffer(
       m_data.bSceneInfo,
       std::span<const shaderio::SceneInfo>(&sceneResource.sceneInfo, 1),
@@ -341,11 +326,12 @@ void VulkanSceneAssetManager::updateBuffer(nvvk::Buffer &buffer,
                                            std::span<T> &&dataSpan)
 /**********************************************************/
 {
-  auto &stagingUploader = m_context_manager->getStagingUploader();
-  if (dataSpan.empty() || buffer.buffer == VK_NULL_HANDLE) {
-    return;
+  if (buffer.bufferSize != dataSpan.size_bytes()) {
+    destroyBuffer(buffer);
+    allocBuffer(buffer, dataSpan.size_bytes(), storageUsage);
   }
-  assert(dataSpan.size_bytes() == buffer.bufferSize);
+  assert(!(dataSpan.empty() || buffer.buffer == VK_NULL_HANDLE));
+  auto &stagingUploader = m_context_manager->getStagingUploader();
   NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
 };
 template void VulkanSceneAssetManager::updateBuffer<shaderio::MeshPrimitive>(

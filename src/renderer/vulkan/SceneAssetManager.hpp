@@ -112,6 +112,9 @@ private:
   // -------------------------------------------------------------------------
   // Internal Helpers
   // -------------------------------------------------------------------------
+  void destroyBuffer(nvvk::Buffer &buffer);
+  void allocBuffer(nvvk::Buffer &buffer, size_t bytes,
+                   VkBufferUsageFlags2KHR usage);
   void createSceneBuffers(const Scene &sceneResources);
   void clearSceneBuffers();
   // Generic buffer update helper
@@ -119,9 +122,23 @@ private:
   void updateBuffer(nvvk::Buffer &buffer, std::span<T> &&dataSpan);
   void updateSceneResources(VkCommandBuffer cmd) const;
 
+  template <typename T>
+  void createBuffer(nvvk::Buffer &buffer, const std::span<T> &dataSpan,
+                    VkBufferUsageFlags2KHR usage);
+
   nvvk::Image createImageFromRaw(const core::Image &raw,
                                  nvvk::StagingUploader &staging,
                                  bool sRgb = true);
+
+  static constexpr VkBufferUsageFlags2KHR storageUsage =
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
+      VK_BUFFER_USAGE_2_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT;
+  static constexpr VkBufferUsageFlags2KHR uniformUsage =
+      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT;
+  static constexpr VkBufferUsageFlags2KHR meshBufferUsage =
+      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT |
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT |
+      VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 
   // -------------------------------------------------------------------------
   // Members

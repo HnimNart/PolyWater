@@ -25,7 +25,7 @@ struct ApplicationCreateInfo {
 
   // Headless
   bool headless = false;
-  uint32_t headlessFrameCount = 10;
+  uint32_t headlessFrameCount = 100;
 
   // UI
   bool useMenu{true};                     // Include a menubar

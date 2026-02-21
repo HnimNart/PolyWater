@@ -146,7 +146,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
       MaterialID matId = scene_resources.addMaterial(
           {.baseColorFactor = glm::vec4(color, 1.0f),
            .ior = glm::vec3(1.3f),
-           .metallicFactor = (i % 2 == 0) ? 1.0f : 0.0f,
+           .metallicFactor = (i % 2 == 0) ? 1.0f : 1e-4f,
            .roughnessFactor = 0.1f + (r / 30.0f),
            .sigma_t = glm::vec3((r / 20.0f) * 10.0f)},
           name);
@@ -526,9 +526,10 @@ void VulkanRendererElement::renderMaterialsUI()
 
         changed |=
             PE::ColorEdit4("Base Color", glm::value_ptr(mat.baseColorFactor));
-        changed |= PE::SliderFloat("Metallic", &mat.metallicFactor, 0.0f, 1.0f);
         changed |=
-            PE::SliderFloat("Roughness", &mat.roughnessFactor, 0.0f, 1.0f);
+            PE::SliderFloat("Metallic", &mat.metallicFactor, 1e-4f, 1.0f);
+        changed |=
+            PE::SliderFloat("Roughness", &mat.roughnessFactor, 1e-3f, 1.0f);
         changed |= PE::SliderFloat3("Emission", glm::value_ptr(mat.emission),
                                     0.0F, 100.F);
         changed |= PE::SliderFloat3("IOR (Spectral)", glm::value_ptr(mat.ior),
@@ -584,6 +585,8 @@ void VulkanRendererElement::renderInstancesUI()
   const auto &materials = resources.getMaterials();
   const auto &instanceMap = resources.instanceMap();
   const auto &shaderRegistry = m_renderer->getShaderManager().getRegistry();
+  const auto &meshes = resources.getMeshes();
+  const auto &meshMap = resources.meshMap();
 
   updateMaterialList();
 
@@ -593,6 +596,28 @@ void VulkanRendererElement::renderInstancesUI()
   if (ImGui::CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::InputTextWithHint("##InstSearch", "Search instances...",
                              instanceSearch, IM_ARRAYSIZE(instanceSearch));
+
+    // --- ADD NEW INSTANCE LOGIC ---
+    if (ImGui::Button("+ Add")) {
+      // 1. Create the instance (uses the default values defined in your struct)
+      // Note: Change `Instance` to your actual namespace if needed (e.g.,
+      // `shaderio::Instance`)
+      shaderio::Instance newInst;
+
+      // 2. Initialize the cached transform matrix to Identity based on the
+      // default TRS
+      newInst.transform = math::composeTransform(
+          newInst.translation, newInst.rotation, newInst.scale);
+
+      // 3. Set safe fallback values for indices
+      newInst.materialIndex = 0;
+      newInst.meshIndex = 0;
+      newInst.hit_group = MaterialType::eDiffuse;
+
+      // 4. Add to the array and map
+      auto newId = resources.addInstance(std::move(newInst));
+      changed = true;
+    }
     ImGui::Separator();
 
     std::string searchStr = instanceSearch;
@@ -631,7 +656,6 @@ void VulkanRendererElement::renderInstancesUI()
           matIdx = (int)inst.materialIndex; // Sync slider
           changed = true;
         }
-
         // Draw the Slider
         if (PE::SliderInt("Material ID", &matIdx, 0,
                           (int)materials.size() - 1)) {
@@ -659,8 +683,22 @@ void VulkanRendererElement::renderInstancesUI()
           changed = true;
         }
 
-        // 3. Transformation
-        PE::Text("Mesh ID", fmt::format("{}", inst.meshIndex).c_str());
+        // Mesh index
+        std::string currentMeshName = "Unknown";
+        // Reverse lookup: Find the string key that matches our current ID
+        for (const auto &[name, id] : meshMap) {
+          if (id == inst.meshIndex) {
+            currentMeshName = name;
+            break;
+          }
+        }
+        PE::Text("Mesh Name", currentMeshName.c_str());
+        int currentMeshIdx = static_cast<int>(inst.meshIndex);
+        if (PE::SliderInt("Mesh ID", &currentMeshIdx, 0,
+                          std::max(0, (int)meshes.size() - 1))) {
+          inst.meshIndex = static_cast<uint32_t>(currentMeshIdx);
+          changed = true;
+        }
 
         glm::quat rotation = math::toQuat(glm::vec4(inst.rotation));
         glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
