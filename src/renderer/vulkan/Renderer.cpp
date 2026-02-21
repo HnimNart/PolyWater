@@ -28,8 +28,11 @@ VulkanRenderer::VulkanRenderer(VulkanBackend *backend,
   m_context = backend->getContextManager();
   m_swapchain_manager = backend->getSwapchainManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_context);
-  m_gBuffers = std::make_unique<nvvk::GBuffer>();
   m_accel = AccelerationStructures::create(m_context);
+  m_gBuffers = std::make_unique<nvvk::GBuffer>();
+
+  initGBuffers();
+  registerShaders();
 }
 
 // ---------------------------------------------------------------------------
@@ -41,12 +44,18 @@ void VulkanRenderer::init(const SceneResourcesManager &scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  initGBuffers();
   createDescriptorSetLayout(m_context->getDevice());
-  registerShaders();
   buildGraph();
-  m_accel->build(scene, m_shaderManager);
-  m_resources->updateSceneResources();
+}
+
+/**********************************************************/
+void VulkanRenderer::clear()
+/**********************************************************/
+{
+  m_context->waitForDeviceIdle();
+  m_resources->clear();
+  m_descPack.deinit();
+  m_graph.deinit(m_context);
 }
 
 /**********************************************************/
@@ -56,19 +65,10 @@ void VulkanRenderer::deinit()
   m_context->waitForDeviceIdle();
   m_post = nullptr;
   m_graph.deinit(m_context);
-  m_accel.reset();
-
-  m_descPack.deinit();
   m_gBuffers->deinit();
+  m_accel.reset();
+  m_descPack.deinit();
   m_resources->deinit();
-}
-
-/**********************************************************/
-void VulkanRenderer::clear()
-/**********************************************************/
-{
-  m_context->waitForDeviceIdle();
-  m_resources->clear();
 }
 
 /**********************************************************/
@@ -93,13 +93,26 @@ void VulkanRenderer::reload()
 }
 
 /**********************************************************/
-void VulkanRenderer::update(const SceneResourcesManager &scene)
+bool VulkanRenderer::update(const SceneResourcesManager &scene)
 /**********************************************************/
 {
-  if (scene.dirty() && m_render_mode == RenderMode::RAYTRACE) {
-    m_accel->rebuild(scene, m_shaderManager);
-    reset();
+  if (m_render_mode != RenderMode::RAYTRACE) {
+    return false;
   }
+
+  // 2. Handle Acceleration Structure updates
+  if (scene.requireRebuild()) {
+    m_accel->clear();
+    m_accel->build(scene, m_shaderManager);
+  } else if (scene.dirty()) {
+    m_accel->rebuild(scene, m_shaderManager);
+  } else {
+    return false;
+  }
+
+  // Sync resources and signal that an update occurred
+  m_resources->updateSceneResources();
+  return true;
 }
 
 /**********************************************************/

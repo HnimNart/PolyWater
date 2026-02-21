@@ -60,16 +60,11 @@ void VulkanRendererElement::onDetach()
 }
 
 /**********************************************************/
-void VulkanRendererElement::reset()
+void VulkanRendererElement::clear()
 /**********************************************************/
 {
-  m_renderer->deinit();
-  auto *backend = dynamic_cast<VulkanBackend *>(m_app->getBackend());
-  m_renderer =
-      std::make_unique<VulkanRenderer>(backend, common::getShaderDirs());
-
+  m_renderer->clear();
   m_sceneManager.clear();
-  m_sceneManager.sceneResourceManager().init(m_renderer->deviceResources());
 }
 
 /**********************************************************/
@@ -90,17 +85,13 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
   std::string ext = filename.extension().string();
   core::toLower(ext);
   if (ext == ".json") {
-    std::cout << "Scene File dropped: " << filename << std::endl;
-    if (m_sceneFile == filename) {
-      return;
-    }
+    LOGI("Scene File dropped: %s\n", filename.c_str());
     m_sceneFile = filename;
-    reset();
-    loadScene(m_sceneFile);
-    onResize(m_app->getViewportSize());
+  } else if (ext == ".obj" || ext == ".gltf" || ext == ".glb") {
+    LOGI("Model File dropped: %s\n", filename.c_str());
+    m_modelFileToLoad = filename;
   } else {
-    std::cerr << "Error: Dropped file is not a JSON file (" << ext << ")"
-              << std::endl;
+    LOGI("Error: Dropped file is not a JSON file ( %s )\n", filename.c_str());
   }
 }
 
@@ -115,7 +106,6 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
   SceneLoader loader;
   SceneData sceneData;
   auto filepath = core::findFile(filePath, common::getSceneDir());
-
   if (!loader.load(filepath, sceneData)) {
     return;
   }
@@ -173,6 +163,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
 
   m_sceneManager.sceneResourceManager().finalizeSceneResources();
   m_renderer->init(m_sceneManager.sceneResourceManager());
+  m_sceneFile.clear();
 }
 
 /**********************************************************/
@@ -206,19 +197,26 @@ void VulkanRendererElement::updateMaterialList()
 void VulkanRendererElement::onPreRender()
 /**********************************************************/
 {
-  m_hasChanged |= m_sceneManager.camera()->isDirty();
+  if (!m_sceneFile.empty()) {
+    clear();
+    loadScene(m_sceneFile);
+  }
 
+  if (!m_modelFileToLoad.empty()) {
+    m_sceneManager.sceneResourceManager().loadModel(m_modelFileToLoad);
+    m_sceneManager.sceneResourceManager().finalizeSceneResources();
+    m_modelFileToLoad.clear();
+  }
+
+  m_hasChanged |= m_sceneManager.camera()->isDirty();
   if (m_hasChanged) {
-    m_renderer->reset(); // Resets accumulation
     m_sceneManager.camera()->setClean();
   }
-
-  m_sceneManager.update();
-
-  if (m_sceneManager.sceneResourceManager().dirty()) {
-    m_renderer->update(m_sceneManager.sceneResourceManager());
-    m_sceneManager.sceneResourceManager().setDirty(false);
+  m_hasChanged |= m_renderer->update(m_sceneManager.sceneResourceManager());
+  if (m_hasChanged) {
+    m_renderer->reset();
   }
+  m_sceneManager.onPreRender();
 }
 
 /**********************************************************/

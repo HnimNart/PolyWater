@@ -47,7 +47,7 @@ public:
   virtual void deinit() = 0;
   virtual void onResize(const WindowSize &size) = 0;
   virtual void reload() = 0;
-  virtual void update(const SceneResourcesManager &scene) = 0;
+  virtual bool update(const SceneResourcesManager &scene) = 0;
   virtual void reset() { m_frameIndex = 0; };
 
   // -------------------------------------------------------------------------

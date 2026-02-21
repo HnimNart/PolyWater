@@ -15,6 +15,7 @@ class AccelerationStructures {
 public:
   static std::unique_ptr<AccelerationStructures>
   create(VulkanContextManager *core);
+  void clear();
 
   ~AccelerationStructures();
   void build(const SceneResourcesManager &scene,

@@ -19,6 +19,13 @@ AccelerationStructures::create(VulkanContextManager *core)
 }
 
 /**********************************************************/
+void AccelerationStructures::clear()
+/**********************************************************/
+{
+  m_asBuilder.deinitAccelerationStructures();
+}
+
+/**********************************************************/
 AccelerationStructures::~AccelerationStructures()
 /**********************************************************/
 {

@@ -83,7 +83,7 @@ public:
 
   std::pair<void *, BufferID> upload(const void *data, size_t bytes) override;
   void addMeshes(size_t count, BufferID bufferIndex) override;
-  void finalizeSceneResources(const Scene &resources) override;
+  void uploadSceneResoures(const Scene &resources) override;
 
   // Accessors
   const VulkanSceneGpuData &deviceResources() const { return m_data; }
@@ -112,7 +112,8 @@ private:
   // -------------------------------------------------------------------------
   // Internal Helpers
   // -------------------------------------------------------------------------
-  void createBuffers(const Scene &sceneResources);
+  void createSceneBuffers(const Scene &sceneResources);
+  void clearSceneBuffers();
   // Generic buffer update helper
   template <typename T>
   void updateBuffer(nvvk::Buffer &buffer, std::span<T> &&dataSpan);

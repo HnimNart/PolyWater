@@ -152,12 +152,6 @@ void VulkanBackend::renderFrame(
       m_gpuTimer.cmdFrameSection(vkCtx.cmdBuffer, "renderFrame");
 #endif
 
-  {
-    for (const std::shared_ptr<app::IAppElement> &e : elements) {
-      e->onPreRender();
-    }
-  }
-
   for (const std::shared_ptr<app::IAppElement> &e : elements) {
     e->onRender(frame);
   }

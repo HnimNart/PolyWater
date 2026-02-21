@@ -47,7 +47,7 @@ public:
   void deinit() override;
   void clear();
   void reload() override;
-  void update(const SceneResourcesManager &scene) override;
+  bool update(const SceneResourcesManager &scene) override;
 
   // ---------------------------------------------------------------------------
   // Rendering

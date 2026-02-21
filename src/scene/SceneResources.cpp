@@ -47,13 +47,16 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 
 /**********************************************************/
 std::vector<MeshID>
-SceneResourcesManager::loadModel(const std::string &name,
-                                 const std::string &filename)
+SceneResourcesManager::loadModel(const std::string &filename, std::string name)
 /**********************************************************/
 {
   // 1. Extract Extension
   std::string ext = core::getExtension(filename);
   core::toLower(ext);
+
+  if (name.empty()) {
+    name = core::getLowercasedStem(filename);
+  }
 
   // 3. Dispatch
   if (ext == ".gltf" || ext == ".glb") {
@@ -73,7 +76,7 @@ SceneResourcesManager::loadModel(const std::string &name,
 MeshID SceneResourcesManager::getNextFreeMeshID()
 /**********************************************************/
 {
-  return static_cast<MeshID>(m_resources.meshes.size() + m_pendingMeshes);
+  return static_cast<MeshID>(m_scene_resources.meshes.size() + m_pendingMeshes);
 }
 
 /**********************************************************/
@@ -233,12 +236,13 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
     InstanceID existingID = it->second;
     LOGD("[SceneResourcesManager] Replacing Instance: '%s' (ID: %d)",
          name.c_str(), existingID);
-    m_resources.instances[existingID] = instance;
+    m_scene_resources.instances[existingID] = instance;
     return existingID;
   }
 
-  m_resources.instances.push_back(instance);
-  InstanceID id = static_cast<InstanceID>(m_resources.instances.size() - 1);
+  m_scene_resources.instances.push_back(instance);
+  InstanceID id =
+      static_cast<InstanceID>(m_scene_resources.instances.size() - 1);
 
   if (name.empty()) {
     name = "Instance_" + std::to_string(id);
@@ -261,13 +265,13 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
     MaterialID existingID = it->second;
     LOGD("[SceneResourcesManager] Overwriting existing material: '%s' (ID: %d)",
          name.c_str(), existingID);
-    m_resources.materials[existingID] = material;
-    setDirty(true);
+    m_scene_resources.materials[existingID] = material;
     return existingID;
   }
 
-  m_resources.materials.push_back(std::move(material));
-  MaterialID id = static_cast<MaterialID>(m_resources.materials.size() - 1);
+  m_scene_resources.materials.push_back(std::move(material));
+  MaterialID id =
+      static_cast<MaterialID>(m_scene_resources.materials.size() - 1);
   if (name.empty()) {
     name = "Material_" + std::to_string(id);
   }
@@ -288,16 +292,16 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 
   // 1. Upload the single unified binary blob
   std::span<const uint8_t> data = payload.rawBuffer;
-  m_resources.meshData.emplace_back(payload.rawBuffer);
+  m_scene_resources.meshData.emplace_back(payload.rawBuffer);
 
   const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
-  const size_t startSize = m_resources.meshes.size();
-  m_resources.meshes.reserve(startSize + payload.primitives.size());
+  const size_t startSize = m_scene_resources.meshes.size();
+  m_scene_resources.meshes.reserve(startSize + payload.primitives.size());
 
   for (auto mesh : payload.primitives) {
-    mesh.rawBufferIndex = m_resources.meshData.size() - 1;
+    mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
     mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
-    m_resources.meshes.emplace_back(mesh);
+    m_scene_resources.meshes.emplace_back(mesh);
   }
 
   m_device_resources->addMeshes(payload.primitives.size(), bufferIndex);
@@ -339,8 +343,9 @@ void SceneResourcesManager::finalizeSceneResources()
   // Extract light
   uploadLights();
 
-  m_device_resources->finalizeSceneResources(m_resources);
+  m_device_resources->uploadSceneResoures(m_scene_resources);
   m_device_resources->endUploading();
+  m_rebuild = true;
 }
 
 /**********************************************************/
@@ -351,14 +356,14 @@ void SceneResourcesManager::uploadLights()
     const EnvmapInfo envmapInfo =
         m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
                             m_pendingEnvmap->rotation);
-    m_resources.sceneInfo.envmapLight =
+    m_scene_resources.sceneInfo.envmapLight =
         m_lights.uploadEnvmap(envmapInfo, m_device_resources);
     m_pendingEnvmap.reset();
   }
-  m_resources.sceneInfo.areaLight =
-      m_lights.uploadAreaLights(m_resources, m_device_resources);
-  m_resources.sceneInfo.totalAnalyticalPower =
-      m_lights.computeAnalyticalLightContribution(m_resources);
+  m_scene_resources.sceneInfo.areaLight =
+      m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
+  m_scene_resources.sceneInfo.totalAnalyticalPower =
+      m_lights.computeAnalyticalLightContribution(m_scene_resources);
 }
 
 /**********************************************************/
@@ -366,7 +371,7 @@ void SceneResourcesManager::clear()
 /**********************************************************/
 {
   // Reset the core data structures
-  m_resources = Scene{}; // This handles instances, materials, etc.
+  m_scene_resources = Scene{}; // This handles instances, materials, etc.
 
   // Clear all naming and deduplication maps
   m_materialMap.clear();
@@ -388,6 +393,8 @@ void SceneResourcesManager::update(const CameraPtr &camera)
 /**********************************************************/
 {
   updateSceneInfo(camera);
+  m_rebuild = false;
+  m_dirty = false;
 }
 
 /**********************************************************/
@@ -397,12 +404,12 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
   const glm::mat4 &viewMatrix = camera->getViewMatrix();
   const glm::mat4 &projMatrix = camera->getPerspectiveMatrix();
 
-  m_resources.sceneInfo.viewMatrix = viewMatrix;
-  m_resources.sceneInfo.projMatrix = projMatrix;
-  m_resources.sceneInfo.viewProjMatrix = projMatrix * viewMatrix;
-  m_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
-  m_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
-  m_resources.sceneInfo.cameraPosition = camera->getEye();
+  m_scene_resources.sceneInfo.viewMatrix = viewMatrix;
+  m_scene_resources.sceneInfo.projMatrix = projMatrix;
+  m_scene_resources.sceneInfo.viewProjMatrix = projMatrix * viewMatrix;
+  m_scene_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
+  m_scene_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
+  m_scene_resources.sceneInfo.cameraPosition = camera->getEye();
 }
 
 /**********************************************************/
@@ -410,7 +417,7 @@ void SceneResourcesManager::onMaterialChange()
 /**********************************************************/
 {
   m_device_resources->beginUploading();
-  m_device_resources->update(m_resources.materials);
+  m_device_resources->update(m_scene_resources.materials);
   m_device_resources->endUploading();
   setDirty(true);
 }
@@ -420,7 +427,7 @@ void SceneResourcesManager::onInstanceChange()
 /**********************************************************/
 {
   m_device_resources->beginUploading();
-  m_device_resources->update(m_resources.instances);
+  m_device_resources->update(m_scene_resources.instances);
   m_device_resources->endUploading();
   setDirty(true);
 }
@@ -429,7 +436,7 @@ void SceneResourcesManager::onInstanceChange()
 void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 /**********************************************************/
 {
-  m_resources.sceneInfo = sceneInfo;
+  m_scene_resources.sceneInfo = sceneInfo;
 }
 
 /**********************************************************/
@@ -438,7 +445,7 @@ SceneResourcesManager::getMaterialFromName(const std::string &name)
 /**********************************************************/
 {
   auto it = m_materialMap.find(name);
-  return (it != m_materialMap.end()) ? &m_resources.materials[it->second]
+  return (it != m_materialMap.end()) ? &m_scene_resources.materials[it->second]
                                      : nullptr;
 }
 
@@ -447,8 +454,8 @@ const shaderio::MeshPrimitive &
 SceneResourcesManager::getMeshFromIdx(uint32_t index) const
 /**********************************************************/
 {
-  assert(index < m_resources.meshes.size());
-  return m_resources.meshes[index];
+  assert(index < m_scene_resources.meshes.size());
+  return m_scene_resources.meshes[index];
 }
 
 /**********************************************************/

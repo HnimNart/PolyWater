@@ -19,7 +19,6 @@ class SceneManager {
 public:
   SceneManager() = default;
   explicit SceneManager(std::shared_ptr<IDeviceAssets> deviceResources);
-
   void clear();
 
   void buildSceneFromData(const SceneData &data,
@@ -27,15 +26,14 @@ public:
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
-  void update();
+  void onPreRender();
   Scene *getScenePtr();
   Scene &gltfResources();
   const Scene &gltfResources() const;
   SceneResourcesManager &sceneResourceManager();
   const SceneResourcesManager &sceneResourceManager() const;
 
-  bool isDirty() const { return has_changed || m_scene_resources.dirty(); }
-  void setDirty(bool dirty) { has_changed = dirty; }
+  void onEndFrame();
 
   // --------------------------------------------------
   // Rendering parameters

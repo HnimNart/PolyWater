@@ -85,6 +85,7 @@ void Application::setupDefaultSettings()
 void Application::shutdown()
 /**********************************************************/
 {
+  LOGI("Shutting down application\n");
   m_running = false;
 
   if (!m_headless) {
@@ -203,6 +204,10 @@ void Application::headlessRun()
     m_gui->endFrame();
   }
 
+  for (const std::shared_ptr<app::IAppElement> &e : m_elements) {
+    e->onPreRender();
+  }
+
   // Rendering n-times the scene
   ProgressBar progress("Rendering");
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose;
@@ -289,6 +294,10 @@ void Application::runFrame()
 
   for (auto &e : m_elements) {
     e->onUIRender();
+  }
+
+  for (const std::shared_ptr<app::IAppElement> &e : m_elements) {
+    e->onPreRender();
   }
 
   m_gui->render();

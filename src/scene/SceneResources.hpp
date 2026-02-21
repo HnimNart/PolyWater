@@ -26,8 +26,8 @@ public:
   void clear();
 
   // --- Asset Loading & Deduplication ---
-  std::vector<MeshID> loadModel(const std::string &name,
-                                const std::string &filename);
+  std::vector<MeshID> loadModel(const std::string &filename,
+                                std::string name = "");
   TextureID addTexture(const std::string &name, const std::string &filename);
   void addEnvmap(const std::filesystem::path &filename, float scale = 1.0f,
                  float rotation = 0.0f);
@@ -48,32 +48,35 @@ public:
   void onInstanceChange();
 
   // --- State Management ---
-  bool dirty() const { return m_dirty; }
+  bool requireRebuild() const { return m_rebuild; }
+  bool dirty() const { return m_dirty || m_rebuild; }
   void setDirty(bool val) { m_dirty = val; }
 
   // --- Data Accessors (Mutable) ---
-  Scene &data() { return m_resources; }
-  shaderio::SceneInfo &sceneInfo() { return m_resources.sceneInfo; }
+  Scene &data() { return m_scene_resources; }
+  shaderio::SceneInfo &sceneInfo() { return m_scene_resources.sceneInfo; }
 
   std::vector<shaderio::Instance> &getInstances() {
-    return m_resources.instances;
+    return m_scene_resources.instances;
   }
   std::vector<shaderio::Material> &getMaterials() {
-    return m_resources.materials;
+    return m_scene_resources.materials;
   }
 
   // --- Data Accessors (Const) ---
-  const Scene &data() const { return m_resources; }
-  const shaderio::SceneInfo &sceneInfo() const { return m_resources.sceneInfo; }
+  const Scene &data() const { return m_scene_resources; }
+  const shaderio::SceneInfo &sceneInfo() const {
+    return m_scene_resources.sceneInfo;
+  }
 
   const std::vector<shaderio::Instance> &getInstances() const {
-    return m_resources.instances;
+    return m_scene_resources.instances;
   }
   const std::vector<shaderio::Material> &getMaterials() const {
-    return m_resources.materials;
+    return m_scene_resources.materials;
   }
   const std::vector<shaderio::MeshPrimitive> &getMeshes() const {
-    return m_resources.meshes;
+    return m_scene_resources.meshes;
   }
 
   // --- Map Accessors (Name Lookups) ---
@@ -126,10 +129,11 @@ private:
   };
 
   // Scene State
-  Scene m_resources{};
+  Scene m_scene_resources{};
   std::shared_ptr<IDeviceAssets> m_device_resources = nullptr;
   LightManager m_lights;
   bool m_dirty = false;
+  bool m_rebuild = false;
 
   // Queues
   std::vector<OptimizedPayload> m_pendingOptimizedMesh;

@@ -48,7 +48,7 @@ public:
   // Scene Registration
   // ---------------------------------------------------------------------------
   virtual void addMeshes(size_t count, BufferID) = 0;
-  virtual void finalizeSceneResources(const Scene &resources) = 0;
+  virtual void uploadSceneResoures(const Scene &resources) = 0;
 
   // ---------------------------------------------------------------------------
   // Update Scene buffers

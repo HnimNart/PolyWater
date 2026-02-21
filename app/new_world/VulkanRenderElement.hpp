@@ -58,7 +58,7 @@ private:
   // -------------------------------------------------------------------------
 
   void init();
-  void reset();
+  void clear();
   void loadScene(const std::filesystem::path &filename);
   void renderMaterialsUI();
   void renderInstancesUI();
@@ -82,4 +82,5 @@ private:
   bool m_hasChanged = false;
 
   std::string m_sceneFile{};
+  std::string m_modelFileToLoad{};
 };

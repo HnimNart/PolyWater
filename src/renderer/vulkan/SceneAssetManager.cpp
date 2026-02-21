@@ -49,19 +49,40 @@ void VulkanSceneAssetManager::endUploading()
 }
 
 /**********************************************************/
+void VulkanSceneAssetManager::clearSceneBuffers()
+/**********************************************************/
+{
+  auto &allocator = m_context_manager->getAllocator();
+  // Helper to safely destroy and reset a buffer
+  auto safeDestroy = [&](auto &b) {
+    if (b.isAllocated()) {
+      allocator.destroyBuffer(b);
+      b.buffer = VK_NULL_HANDLE;
+    }
+  };
+
+  safeDestroy(m_data.bSceneInfo);
+  safeDestroy(m_data.bSceneResources);
+  safeDestroy(m_data.bMeshes);
+  safeDestroy(m_data.bMaterials);
+  safeDestroy(m_data.bInstances);
+}
+
+/**********************************************************/
 void VulkanSceneAssetManager::clear()
 /**********************************************************/
 {
+  clearSceneBuffers();
   for (auto &texture : m_textures) {
-    m_context_manager->getAllocator().destroyImage(texture);
+    if (texture.image != VK_NULL_HANDLE) {
+      m_context_manager->getAllocator().destroyImage(texture);
+    }
   }
-  m_context_manager->getAllocator().destroyBuffer(m_data.bSceneInfo);
-  m_context_manager->getAllocator().destroyBuffer(m_data.bSceneResources);
-  m_context_manager->getAllocator().destroyBuffer(m_data.bMeshes);
-  m_context_manager->getAllocator().destroyBuffer(m_data.bMaterials);
-  m_context_manager->getAllocator().destroyBuffer(m_data.bInstances);
-  for (auto &gltfData : m_data.bDatas) {
-    m_context_manager->getAllocator().destroyBuffer(gltfData);
+
+  for (auto &data : m_data.bDatas) {
+    if (data.buffer != VK_NULL_HANDLE) {
+      m_context_manager->getAllocator().destroyBuffer(data);
+    }
   }
   m_textures.clear();
   m_data = {};
@@ -132,11 +153,12 @@ VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::finalizeSceneResources(const Scene &resources)
+void VulkanSceneAssetManager::uploadSceneResoures(const Scene &resources)
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
-  createBuffers(resources);
+  clearSceneBuffers();
+  createSceneBuffers(resources);
 }
 
 /**********************************************************/
@@ -211,7 +233,7 @@ void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::createBuffers(const Scene &sceneResource)
+void VulkanSceneAssetManager::createSceneBuffers(const Scene &sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

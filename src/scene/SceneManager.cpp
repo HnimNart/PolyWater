@@ -24,7 +24,7 @@ void SceneManager::clear()
 }
 
 /**********************************************************/
-void SceneManager::update()
+void SceneManager::onPreRender()
 /**********************************************************/
 {
   m_scene_resources.update(m_camera);
@@ -48,12 +48,11 @@ void SceneManager::buildSceneFromData(
 {
   SCOPED_TIMER_FUNC();
   // 1. Load Meshes & Keep ID Mapping
-  // Map: Index in SceneData -> Actual MeshID in Manager
   std::vector<MeshID> meshIdMap;
   for (const auto &val : data.meshPaths) {
     std::string fullPath = core::findFile(val.path, searchDirs);
     std::vector<MeshID> newMeshIds =
-        m_scene_resources.loadModel(val.name, fullPath);
+        m_scene_resources.loadModel(fullPath, val.name);
     meshIdMap.insert(meshIdMap.end(), newMeshIds.begin(), newMeshIds.end());
   }
 

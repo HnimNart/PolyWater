@@ -39,28 +39,31 @@
 
 #include <fstream>
 
+/**********************************************************/
 std::filesystem::path
 core::findFile(const std::filesystem::path &filename,
                const std::vector<std::filesystem::path> &searchPaths,
-               bool reportError) {
+               bool reportError)
+/**********************************************************/
+{
   for (const auto &path : searchPaths) {
     const std::filesystem::path filePath = path / filename;
     if (std::filesystem::exists(filePath)) {
       return filePath;
     }
   }
-  core::Logger::getInstance().log(
-      reportError ? core::Logger::LogLevel::eERROR
-                  : core::Logger::LogLevel::eWARNING,
-      "File not found: %s\n", utf8FromPath(filename).c_str());
-  LOGI("Searched under: \n");
+  LOGE("File not found: %s\n", utf8FromPath(filename).c_str());
+  LOGE("Searched under: \n");
   for (const auto &path : searchPaths) {
-    LOGI("  %s\n", utf8FromPath(path).c_str());
+    LOGE("  %s\n", utf8FromPath(path).c_str());
   }
   return std::filesystem::path();
 }
 
-std::string core::loadFile(const std::filesystem::path &filePath) {
+/**********************************************************/
+std::string core::loadFile(const std::filesystem::path &filePath)
+/**********************************************************/
+{
   std::ifstream file(filePath, std::ios::binary | std::ios::ate);
   if (!file) {
     LOGW("Could not open file: %s\n", utf8FromPath(filePath).c_str());
@@ -79,7 +82,10 @@ std::string core::loadFile(const std::filesystem::path &filePath) {
   return std::string(buffer.begin(), buffer.end());
 }
 
-std::filesystem::path core::getExecutablePath() {
+/**********************************************************/
+std::filesystem::path core::getExecutablePath()
+/**********************************************************/
+{
 #ifdef _WIN32
   wchar_t buffer[MAX_PATH + 1]{};
   const DWORD count =
@@ -94,7 +100,10 @@ std::filesystem::path core::getExecutablePath() {
 #endif
 }
 
-std::string core::utf8FromPath(const std::filesystem::path &path) noexcept {
+/**********************************************************/
+std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
+/**********************************************************/
+{
   try {
 #ifdef _WIN32
     // On Windows, paths are UTF-16, possibly with unpaired surrogates.
@@ -153,7 +162,10 @@ std::string core::utf8FromPath(const std::filesystem::path &path) noexcept {
   }
 }
 
-std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept {
+/**********************************************************/
+std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept
+/**********************************************************/
+{
   // Since this is the inverse of pathToUtf8, see pathToUtf8 for implementation
   // notes.
   try {
@@ -195,8 +207,11 @@ std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept {
   }
 }
 
+/**********************************************************/
 bool core::extensionMatches(const std::filesystem::path &path,
-                            const char *extension) {
+                            const char *extension)
+/**********************************************************/
+{
   // The standard implementation of this, tolower(path.extension()) ==
   // extension, would use 3 allocations: path.extension(), a copy for tolower,
   // and one for fs::path(extension) (since == is only implemented for path ==
