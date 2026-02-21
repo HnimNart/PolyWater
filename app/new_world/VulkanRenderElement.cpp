@@ -496,6 +496,23 @@ void VulkanRendererElement::renderMaterialsUI()
     // 1. Search Bar
     ImGui::InputTextWithHint("##MatSearch", "Filter by name...", materialSearch,
                              IM_ARRAYSIZE(materialSearch));
+    ImGui::SameLine();
+
+    if (ImGui::Button("+ Add")) {
+
+      shaderio::Material newMat{};
+      newMat.baseColorFactor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f); // Light grey
+      newMat.metallicFactor = 0.0f;
+      newMat.roughnessFactor = 0.5f;
+      newMat.emission = glm::vec3(0.0f);
+      newMat.ior = glm::vec3(1.5f); // Standard glass/plastic IOR
+      newMat.sigma_t = glm::vec3(0.0f);
+      newMat.asymmetry = glm::vec3(0.0f);
+      newMat.baseColorTextureIndex = -1; // Assuming -1 or 0 means "no texture"
+
+      resources.addMaterial(std::move(newMat));
+      changed = true;
+    }
     ImGui::Separator();
 
     // Prepare search string for case-insensitive comparison
@@ -597,6 +614,7 @@ void VulkanRendererElement::renderInstancesUI()
     ImGui::InputTextWithHint("##InstSearch", "Search instances...",
                              instanceSearch, IM_ARRAYSIZE(instanceSearch));
 
+    ImGui::SameLine();
     // --- ADD NEW INSTANCE LOGIC ---
     if (ImGui::Button("+ Add")) {
       // 1. Create the instance (uses the default values defined in your struct)
