@@ -92,6 +92,9 @@ public:
   const std::unordered_map<std::string, TextureID> &textureMap() const {
     return m_textureMap;
   }
+  const std::unordered_map<std::string, core::Image> &textureImageMap() const {
+    return m_textureImageMap;
+  }
 
   // --- Safe Resource Fetching ---
   shaderio::Material *getMaterialFromName(const std::string &name);
@@ -124,6 +127,7 @@ private:
   };
 
   struct PendingTexture {
+    std::string name;
     std::string filename;
     TextureID id;
   };
@@ -145,6 +149,8 @@ private:
   std::unordered_map<std::string, InstanceID> m_instanceMap;
   std::unordered_map<std::string, MeshID> m_meshMap;
   std::unordered_map<std::string, TextureID> m_textureMap;
+  std::unordered_map<std::string, core::Image> m_textureImageMap;
+
   std::unordered_map<std::filesystem::path, TextureID> m_fileToTextureMap;
   uint m_pendingMeshes{0};
 };

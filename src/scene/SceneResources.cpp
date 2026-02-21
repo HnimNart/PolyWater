@@ -208,7 +208,7 @@ TextureID SceneResourcesManager::addTexture(const std::string &name,
   }
 
   TextureID textureID = m_device_resources->reserveTextureSlot();
-  m_pendingTextures.push_back({filename, textureID});
+  m_pendingTextures.push_back({finalName, filename, textureID});
   m_fileToTextureMap[filename] = textureID;
   m_textureMap[finalName] = textureID;
 
@@ -313,13 +313,15 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 void SceneResourcesManager::uploadTextures()
 /**********************************************************/
 {
-  for (const auto &[filename, id] : m_pendingTextures) {
+  for (const auto &[name, filename, id] : m_pendingTextures) {
     core::Image raw = core::loadRawImage(filename);
     if (!raw.isValid()) {
       assert(false && "Failed to load texture image!");
       continue;
     }
     m_device_resources->uploadTexture(raw, id);
+    raw.textureId = id;
+    m_textureImageMap.insert_or_assign(name, raw);
   }
   m_pendingTextures.clear();
 }
@@ -353,17 +355,24 @@ void SceneResourcesManager::finalizeSceneResources()
 void SceneResourcesManager::uploadLights()
 /**********************************************************/
 {
+  shaderio::SceneInfo &sceneInfo = m_scene_resources.sceneInfo;
   if (m_pendingEnvmap) {
     const EnvmapInfo envmapInfo =
         m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
                             m_pendingEnvmap->rotation);
-    m_scene_resources.sceneInfo.envmapLight =
+    sceneInfo.envmapLight =
         m_lights.uploadEnvmap(envmapInfo, m_device_resources);
+
+    // Add envmap to texture image map so GUI can view it
+    core::Image envImage = envmapInfo.image;
+    envImage.textureId = sceneInfo.envmapLight.envTextureIdx;
+    std::string name = core::getLowercasedStem(envImage.filename);
+    m_textureImageMap.insert_or_assign(name, envImage);
     m_pendingEnvmap.reset();
   }
-  m_scene_resources.sceneInfo.areaLight =
+  sceneInfo.areaLight =
       m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
-  m_scene_resources.sceneInfo.totalAnalyticalPower =
+  sceneInfo.totalAnalyticalPower =
       m_lights.computeAnalyticalLightContribution(m_scene_resources);
 }
 
@@ -380,6 +389,7 @@ void SceneResourcesManager::clear()
   m_textureMap.clear();
   m_instanceMap.clear();
   m_fileToTextureMap.clear();
+  m_textureImageMap.clear();
 
   // Reset pending task counters and queues
   m_pendingMeshes = 0;

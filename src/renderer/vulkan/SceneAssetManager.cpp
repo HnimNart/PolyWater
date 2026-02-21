@@ -1,5 +1,7 @@
 #include "SceneAssetManager.hpp"
 
+#include <backends/imgui_impl_vulkan.h>
+#include <tinygltf/tiny_gltf.h>
 #include <volk.h>
 
 #include <core/file_operations.hpp>
@@ -15,8 +17,6 @@
 #include "Image.hpp"
 #include "core/timers.hpp"
 #include "shaders/shared/structs.h"
-
-#include <tinygltf/tiny_gltf.h>
 
 /**********************************************************/
 VulkanSceneAssetManager::VulkanSceneAssetManager(
@@ -98,7 +98,7 @@ void VulkanSceneAssetManager::clear()
 /**********************************************************/
 {
   clearSceneBuffers();
-  for (auto &texture : m_textures) {
+  for (auto &[id, texture] : m_textures) {
     if (texture.image != VK_NULL_HANDLE) {
       m_context_manager->getAllocator().destroyImage(texture);
     }
@@ -133,7 +133,7 @@ VulkanSceneAssetManager::TextureID VulkanSceneAssetManager::uploadTexture(
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
 
   assert(textureID >= 0 && textureID < m_textures.size());
-  m_textures[textureID - 1] = texture;
+  m_textures[textureID] = texture;
   return textureID;
 }
 
@@ -141,8 +141,11 @@ VulkanSceneAssetManager::TextureID VulkanSceneAssetManager::uploadTexture(
 IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
 /**********************************************************/
 {
-  m_textures.emplace_back();
-  TextureID textureId = static_cast<TextureID>(m_textures.size());
+  TextureID textureId = static_cast<TextureID>(m_textures.size()) + 1;
+  auto [it, inserted] = m_textures.try_emplace(textureId, nvvk::Image{});
+  if (!inserted) {
+    LOGE("Failed to add texture: ID %u already exists!", textureId);
+  }
   assert(textureId < MAX_SCENE_TEXTURES);
   return static_cast<TextureID>(textureId);
 }
@@ -156,11 +159,16 @@ void VulkanSceneAssetManager::updateDescriptors(
     return;
   }
 
+  std::vector<nvvk::Image> textures;
+  textures.reserve(m_textures.size());
+  for (const auto &[name, image] : m_textures) {
+    textures.push_back(image);
+  }
   nvvk::WriteSetContainer write{};
   auto write_set =
       descriptorPack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
                                static_cast<uint32_t>(m_textures.size()));
-  write.append(write_set, m_textures.data());
+  write.append(write_set, textures.data());
   vkUpdateDescriptorSets(m_context_manager->getDevice(), write.size(),
                          write.data(), 0, nullptr);
 }
@@ -389,4 +397,42 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
   NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
 
   return texture;
+}
+
+/**********************************************************/
+uint64_t VulkanSceneAssetManager::getTextureHandle(TextureID id)
+/**********************************************************/
+{
+  // 1. Out-of-bounds check
+  if (id > m_textures.size()) {
+    LOGE("getTextureHandle: Invalid TextureID %u", id);
+    return 0;
+  }
+
+  auto &tex = m_textures.at(id);
+  if (tex.cachedDesriptor == VK_NULL_HANDLE) {
+    if (tex.descriptor.imageView == VK_NULL_HANDLE ||
+        tex.descriptor.sampler == VK_NULL_HANDLE) {
+      LOGW("getTextureHandle: Texture %u has null imageView or sampler. "
+           "Skipping.\n",
+           id);
+      return 0;
+    }
+
+    // if (tex.descriptor.imageLayout !=
+    //         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+    //     tex.descriptor.imageLayout != VK_IMAGE_LAYOUT_GENERAL) {
+    //   LOGW("getTextureHandle: Texture %u is in an unsupported layout for "
+    //        "display.",
+    //        id);
+    //   return 0;
+    // }
+
+    // Allocation from the ImGui Descriptor Pool
+    tex.cachedDesriptor = ImGui_ImplVulkan_AddTexture(
+        tex.descriptor.sampler, tex.descriptor.imageView,
+        tex.descriptor.imageLayout);
+  }
+
+  return reinterpret_cast<uint64_t>(tex.cachedDesriptor);
 }

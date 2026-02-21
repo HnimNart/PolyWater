@@ -105,6 +105,7 @@ struct Image {
   // `nvvk::ResourceAllocator` descriptor.sampler may exist, not managed by
   // `nvvk::ResourceAllocator`
   VkDescriptorImageInfo descriptor{};
+  VkDescriptorSet cachedDesriptor{};
 };
 
 //-----------------------------------------------------------------

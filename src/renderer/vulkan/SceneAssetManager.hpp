@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <span>
 #include <string>
 #include <vector>
@@ -69,9 +70,12 @@ public:
                           VulkanSceneAssetManager::TextureID id = -1) override;
   TextureID reserveTextureSlot() override;
   uint32_t getMaximumNumberOfTextures() const { return MAX_SCENE_TEXTURES; }
+  uint64_t getTextureHandle(TextureID id) override;
 
   // Accessors
-  const std::vector<nvvk::Image> &textures() const { return m_textures; }
+  const std::map<TextureID, nvvk::Image> &textures() const {
+    return m_textures;
+  }
   nvvk::SamplerPool &samplerPool() { return m_samplerPool; }
 
   // -------------------------------------------------------------------------
@@ -145,7 +149,7 @@ private:
   // -------------------------------------------------------------------------
   VulkanContextManager *m_context_manager = nullptr;
   VulkanSceneGpuData m_data{};
-  std::vector<nvvk::Image> m_textures{};
+  std::map<TextureID, nvvk::Image> m_textures{};
   nvvk::SamplerPool m_samplerPool{};
 
   // Upload State

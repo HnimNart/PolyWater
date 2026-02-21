@@ -121,4 +121,11 @@ inline std::string getLowercasedStem(const std::string &filepath)
   return stem;
 }
 
+/**********************************************************/
+inline std::string getFileName(const std::string &path)
+/**********************************************************/
+{
+  return std::filesystem::path(path).filename().string();
+}
+
 } // namespace core

@@ -49,5 +49,6 @@ target_link_libraries(${LIB_NAME}
         core_lib
         scene_lib
         vk_backend
+        imgui
 )
 

@@ -31,6 +31,8 @@ struct Image {
   uint32_t height = 0;
   uint32_t components = 4;
   ImageFormat format = ImageFormat::UNKNOWN;
+  int64_t textureId;
+  std::string filename;
 
   // CPU Pixel storage
   std::vector<uint8_t> pixels;
@@ -43,5 +45,18 @@ struct Image {
 
 core::Image loadRawImage(const std::filesystem::path &filename);
 void releaseRawImage(core::Image &image);
+
+inline const char *formatToString(ImageFormat f) {
+  switch (f) {
+  case ImageFormat::RGBA8_UNORM:
+    return "RGBA8 (LDR)";
+  case ImageFormat::RGBA32_SFLOAT:
+    return "RGBA32 (HDR)";
+  case ImageFormat::DEPTH32_SFLOAT:
+    return "Depth (32-bit)";
+  default:
+    return "Unknown";
+  }
+}
 
 } // namespace core

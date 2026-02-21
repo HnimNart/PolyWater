@@ -10,6 +10,8 @@ core::Image loadRawImage(const std::filesystem::path &filename)
 /**********************************************************/
 {
   core::Image img;
+  img.filename = filename;
+
   int w, h, comp;
   const int req_comp = 4;
   std::string pathStr = core::utf8FromPath(filename);
