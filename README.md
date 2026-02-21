@@ -1,15 +1,13 @@
-# VulkanRenderer
-
-# VulkanRenderer
+# Renderer
 
 ## TODOS
-[x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
-[x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
-[x] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
-[ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
-[ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
-[ ] Concurrent Rendering: Explore multi-queue submission or async compute.
-[ ] Add a geometry picker and widget
+- [x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
+- [x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
+- [x] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
+- [ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
+- [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
+- [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
+- [ ] Add a geometry picker and widget
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
@@ -19,6 +17,7 @@ It can be used for both **rasterization** and **ray tracing**, with a focus on m
 ## Project Structure
 
 ### Source (`src/`)
+```
 src/
 ├─ app/                     # Application layer
 │  ├─ cli/                  # CLI parameter parsing and registry
@@ -58,7 +57,7 @@ src/
    │  ├─ core/              # Math, Random, Sampling utilities
    │  └─ light/             # Lighting and Sky functions
    └─ shared/               # C++/Slang shared structs and bindings
-
+```
 
 ### INSTALLATION
 
