@@ -45,6 +45,7 @@ void VulkanSceneAssetManager::endUploading()
   assert(m_cmd != VK_NULL_HANDLE);
   m_context_manager->getStagingUploader().cmdUploadAppended(m_cmd);
   m_context_manager->endSingleTimeCmd(m_cmd);
+  updateSceneResources();
   m_cmd = VK_NULL_HANDLE;
 }
 

@@ -96,22 +96,18 @@ void VulkanRenderer::reload()
 bool VulkanRenderer::update(const SceneResourcesManager &scene)
 /**********************************************************/
 {
-  if (m_render_mode != RenderMode::RAYTRACE) {
+  if (!scene.requireRebuild() && !scene.dirty()) {
     return false;
   }
 
-  // 2. Handle Acceleration Structure updates
-  if (scene.requireRebuild()) {
-    m_accel->clear();
-    m_accel->build(scene, m_shaderManager);
-  } else if (scene.dirty()) {
-    m_accel->rebuild(scene, m_shaderManager);
-  } else {
-    return false;
+  if (m_render_mode == RenderMode::RAYTRACE) {
+    if (scene.requireRebuild()) {
+      m_accel->clear();
+      m_accel->build(scene, m_shaderManager);
+    } else {
+      m_accel->rebuild(scene, m_shaderManager);
+    }
   }
-
-  // Sync resources and signal that an update occurred
-  m_resources->updateSceneResources();
   return true;
 }
 
