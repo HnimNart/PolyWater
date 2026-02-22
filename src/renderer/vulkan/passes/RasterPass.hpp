@@ -20,7 +20,7 @@ struct PushConstant;
 
 class RasterPass : public IRenderPass {
 public:
-  RasterPass(nvvk::DescriptorPack *descPack);
+  RasterPass(const nvvk::DescriptorPack &descPack);
   ~RasterPass() = default;
 
   void init(VulkanContextManager *coreManager) override;
@@ -42,7 +42,7 @@ private:
   void compileShaders();
 
   VulkanContextManager *m_context_manager = nullptr;
-  nvvk::DescriptorPack *m_descPack = nullptr;
+  const nvvk::DescriptorPack &m_descPack;
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};

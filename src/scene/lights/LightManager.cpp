@@ -222,7 +222,8 @@ shaderio::EnvmapLight LightManager::uploadEnvmap(
   }
 
   // 1. Upload the HDR Texture (The visual data)
-  gpuEnvLight.envTextureIdx = deviceResources->uploadTexture(info.image);
+  gpuEnvLight.envTextureIdx = -1;
+  deviceResources->addTexture(info.image, gpuEnvLight.envTextureIdx);
 
   // 2. Upload CDF Row Data (Conditional CDF)
   // This buffer allows the shader to pick a specific horizontal pixel (U)

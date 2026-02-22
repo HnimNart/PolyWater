@@ -15,14 +15,13 @@
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
-#include "scene/SceneResources.hpp"
 
 /**********************************************************/
-RayTracePass::RayTracePass(nvvk::DescriptorPack *descPack,
+RayTracePass::RayTracePass(const nvvk::DescriptorPack &descPack,
                            ShaderManager *shaderManager)
+    : m_sharedDescPack(descPack)
 /**********************************************************/
 {
-  m_sharedDescPack = descPack;
   m_shaderManager = shaderManager;
 }
 
@@ -213,7 +212,7 @@ void RayTracePass::createPipelineSBT()
   const VkPushConstantRange push_constant{VK_SHADER_STAGE_ALL, 0,
                                           sizeof(shaderio::PushConstant)};
   std::array<VkDescriptorSetLayout, 2> layouts = {
-      m_sharedDescPack->getLayout(), m_RayTraceDescPack.getLayout()};
+      m_sharedDescPack.getLayout(), m_RayTraceDescPack.getLayout()};
 
   VkPipelineLayoutCreateInfo pipeline_layout_create_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -292,7 +291,7 @@ void RayTracePass::execute(const IRenderContext &ctx)
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
-      .pDescriptorSets = m_sharedDescPack->getSetPtr()};
+      .pDescriptorSets = m_sharedDescPack.getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // Push descriptor sets for ray tracing

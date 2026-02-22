@@ -22,11 +22,10 @@
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
-RasterPass::RasterPass(nvvk::DescriptorPack *descPack)
+RasterPass::RasterPass(const nvvk::DescriptorPack &descPack)
+    : m_descPack(descPack)
 /**********************************************************/
-{
-  m_descPack = descPack;
-}
+{}
 
 /**********************************************************/
 void RasterPass::init(VulkanContextManager *contextManager)
@@ -124,7 +123,7 @@ void RasterPass::execute(const IRenderContext &ctx)
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
-      .pDescriptorSets = m_descPack->getSetPtr()};
+      .pDescriptorSets = m_descPack.getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // ** BEGIN RENDERING **
@@ -216,7 +215,7 @@ void RasterPass::createPipelineLayout(VkDevice device)
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = 1,
-      .pSetLayouts = m_descPack->getLayoutPtr(),
+      .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
@@ -253,7 +252,7 @@ void RasterPass::compileShaders()
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
       .pName = "main",
       .setLayoutCount = 1,
-      .pSetLayouts = m_descPack->getLayoutPtr(),
+      .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };

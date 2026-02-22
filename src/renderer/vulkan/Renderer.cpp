@@ -40,11 +40,10 @@ VulkanRenderer::VulkanRenderer(VulkanBackend *backend,
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void VulkanRenderer::init(const SceneResourcesManager &scene)
+void VulkanRenderer::init(const SceneResourcesManager & /*scene*/)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  createDescriptorSetLayout(m_context->getDevice());
   buildGraph();
 }
 
@@ -54,7 +53,6 @@ void VulkanRenderer::clear()
 {
   m_context->waitForDeviceIdle();
   m_resources->clear();
-  m_descPack.deinit();
   m_graph.deinit(m_context);
 }
 
@@ -67,7 +65,6 @@ void VulkanRenderer::deinit()
   m_graph.deinit(m_context);
   m_gBuffers->deinit();
   m_accel.reset();
-  m_descPack.deinit();
   m_resources->deinit();
 }
 
@@ -136,10 +133,11 @@ void VulkanRenderer::buildGraph()
   if (m_render_mode == RenderMode::RASTER) {
     // Raster Configuration: Sky -> Geometry -> ToneMap
     m_graph.addPass(std::make_unique<SkyPass>());
-    m_graph.addPass(std::make_unique<RasterPass>(&m_descPack));
-  } else {
     m_graph.addPass(
-        std::make_unique<RayTracePass>(&m_descPack, &m_shaderManager));
+        std::make_unique<RasterPass>(m_resources->getDesriptorPack()));
+  } else {
+    m_graph.addPass(std::make_unique<RayTracePass>(
+        m_resources->getDesriptorPack(), &m_shaderManager));
   }
 
   // Common: Post Processing
@@ -225,32 +223,6 @@ void VulkanRenderer::initGBuffers()
       .descriptorPool = m_context->getDescriptorPool()};
 
   m_gBuffers->init(info);
-}
-
-/**********************************************************/
-void VulkanRenderer::createDescriptorSetLayout(VkDevice device)
-/**********************************************************/
-{
-  nvvk::DescriptorBindings bindings;
-  bindings.addBinding(
-      {.binding = shaderio::BindingPoints::eTextures,
-       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-       .descriptorCount =
-           static_cast<uint32_t>(m_resources->getMaximumNumberOfTextures()),
-       .stageFlags = VK_SHADER_STAGE_ALL},
-      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-
-  m_descPack.init(bindings, device, 1,
-                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
-                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
-                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-
-  NVVK_DBG_NAME(m_descPack.getLayout());
-  NVVK_DBG_NAME(m_descPack.getPool());
-  NVVK_DBG_NAME(m_descPack.getSet(0));
-  m_resources->updateDescriptors(m_descPack);
 }
 
 // ---------------------------------------------------------------------------

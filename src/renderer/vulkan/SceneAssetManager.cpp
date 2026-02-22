@@ -25,6 +25,7 @@ VulkanSceneAssetManager::VulkanSceneAssetManager(
 {
   m_context_manager = contextManager;
   m_samplerPool.init(m_context_manager->getDevice());
+  createDesctriptorLayout();
 }
 
 /**********************************************************/
@@ -117,24 +118,127 @@ void VulkanSceneAssetManager::deinit()
 {
   clear();
   m_samplerPool.deinit();
+  m_descPack.deinit();
 }
 
 /**********************************************************/
-VulkanSceneAssetManager::TextureID VulkanSceneAssetManager::uploadTexture(
-    const core::Image &image, VulkanSceneAssetManager::TextureID textureID)
+void VulkanSceneAssetManager::createDesctriptorLayout()
 /**********************************************************/
 {
-  if (textureID == -1) {
-    textureID = reserveTextureSlot();
+  VkDevice device = m_context_manager->getDevice();
+  uint32_t maxTextures = getMaximumNumberOfTextures();
+
+  // 1. Define bindings using the nvvk helper
+  nvvk::DescriptorBindings bindings;
+  bindings.addBinding(
+      {.binding = shaderio::BindingPoints::eTextures,
+       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+       .descriptorCount = maxTextures,
+       .stageFlags = VK_SHADER_STAGE_ALL},
+      // Bindless Flags
+      VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+          VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+
+  // 2. Initialize the Pack
+  m_descPack.init(bindings, device,
+                  1, // numSets
+                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, //
+                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |           //
+                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                  maxTextures, // totalVariableCount
+                  &maxTextures // descriptorVariableCounts
+  );
+
+  NVVK_DBG_NAME(m_descPack.getLayout());
+  NVVK_DBG_NAME(m_descPack.getSet(0));
+  NVVK_DBG_NAME(m_descPack.getPool());
+}
+
+/**********************************************************/
+bool VulkanSceneAssetManager::addAndUploadTexture(const core::Image &image,
+                                                  TextureID textureId)
+/**********************************************************/
+{
+  addTexture(image, textureId);
+  if (textureId != -1) {
+    updateTextureDescriptorSets({static_cast<uint32_t>(textureId)});
   }
+  return true;
+}
+
+/**********************************************************/
+bool VulkanSceneAssetManager::addTexture(
+    const core::Image &image, VulkanSceneAssetManager::TextureID &textureId)
+/**********************************************************/
+{
+  if (textureId == -1) {
+    textureId = reserveTextureSlot();
+  }
+
+  if (textureId >= getMaximumNumberOfTextures()) {
+    LOGE("Texture index %u exceeds maximum capacity of %u\n", textureId,
+         getMaximumNumberOfTextures());
+    textureId = -1;
+    return false;
+  }
+
+  // Handle cleanup of old texture at this slot
+  auto it = m_textures.find(textureId);
+  if (it != m_textures.end()) {
+    m_context_manager->getAllocator().destroyImage(it->second);
+  }
+
+  // Create and setup new texture
   nvvk::Image texture =
       createImageFromRaw(image, m_context_manager->getStagingUploader());
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
+  m_textures[textureId] = texture;
+  return true;
+}
 
-  assert(textureID >= 0 && textureID < m_textures.size());
-  m_textures[textureID] = texture;
-  return textureID;
+/**********************************************************/
+void VulkanSceneAssetManager::updateTextureDescriptorSets(
+    const std::vector<uint32_t> &indices)
+/**********************************************************/
+{
+  if (indices.empty()) {
+    return;
+  }
+
+  nvvk::WriteSetContainer write{};
+  for (uint32_t index : indices) {
+    // Check if the texture exists in our map before trying to write it
+    auto it = m_textures.find(index);
+    if (it != m_textures.end()) {
+      auto write_set =
+          m_descPack.makeWrite(shaderio::BindingPoints::eTextures, 0, index, 1);
+      write.append(write_set, it->second);
+    }
+  }
+
+  if (write.size() > 0) {
+    vkUpdateDescriptorSets(m_context_manager->getDevice(), write.size(),
+                           write.data(), 0, nullptr);
+  }
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::uploadTextures()
+/**********************************************************/
+{
+  if (m_textures.empty()) {
+    return;
+  }
+
+  std::vector<uint32_t> allIndices;
+  allIndices.reserve(m_textures.size());
+  for (const auto &[id, _] : m_textures) {
+    allIndices.push_back(id);
+  }
+
+  updateTextureDescriptorSets(allIndices);
 }
 
 /**********************************************************/
@@ -148,29 +252,6 @@ IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
   }
   assert(textureId < MAX_SCENE_TEXTURES);
   return static_cast<TextureID>(textureId);
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::updateDescriptors(
-    nvvk::DescriptorPack &descriptorPack)
-/**********************************************************/
-{
-  if (m_textures.empty()) {
-    return;
-  }
-
-  std::vector<nvvk::Image> textures;
-  textures.reserve(m_textures.size());
-  for (const auto &[name, image] : m_textures) {
-    textures.push_back(image);
-  }
-  nvvk::WriteSetContainer write{};
-  auto write_set =
-      descriptorPack.makeWrite(shaderio::BindingPoints::eTextures, 0, 1,
-                               static_cast<uint32_t>(m_textures.size()));
-  write.append(write_set, textures.data());
-  vkUpdateDescriptorSets(m_context_manager->getDevice(), write.size(),
-                         write.data(), 0, nullptr);
 }
 
 /**********************************************************/
@@ -190,6 +271,7 @@ void VulkanSceneAssetManager::uploadSceneResoures(const Scene &resources)
   assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
   clearSceneBuffers();
   createSceneBuffers(resources);
+  uploadTextures();
 }
 
 /**********************************************************/
@@ -261,7 +343,6 @@ void VulkanSceneAssetManager::createSceneBuffers(const Scene &sceneResource)
                storageUsage);
   createBuffer(m_data.bMaterials, std::span(sceneResource.materials),
                storageUsage);
-
   createBuffer(
       m_data.bSceneInfo,
       std::span<const shaderio::SceneInfo>(&sceneResource.sceneInfo, 1),

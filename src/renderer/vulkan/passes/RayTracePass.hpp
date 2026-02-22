@@ -24,7 +24,8 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(nvvk::DescriptorPack *descPack, ShaderManager *materialManager);
+  RayTracePass(const nvvk::DescriptorPack &descPack,
+               ShaderManager *materialManager);
   ~RayTracePass() = default;
 
   void init(VulkanContextManager *coreManager) override;
@@ -58,8 +59,7 @@ private:
   // Member Variables
   // -------------------------------------------------------------------------
   VulkanContextManager *m_context_manager = nullptr;
-  nvvk::DescriptorPack *m_sharedDescPack =
-      nullptr; // Pointer to external Scene descriptor
+  const nvvk::DescriptorPack &m_sharedDescPack;
 
   // Pipeline State
   nvvk::DescriptorPack m_RayTraceDescPack{};

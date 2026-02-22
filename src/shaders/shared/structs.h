@@ -217,7 +217,7 @@ struct EnvmapLight {
   float totalSum;    // The integral of the importance map (needed for PDF)
 
   // Texture Information
-  int envTextureIdx; // Index for bindless texture lookup
+  uint32_t envTextureIdx; // Index for bindless texture lookup
   uint2 dims;        // Width and Height of the texture
 };
 CHECK_STRUCT_ALIGNMENT(EnvmapLight)

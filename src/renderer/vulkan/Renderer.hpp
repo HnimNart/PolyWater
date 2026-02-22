@@ -65,21 +65,15 @@ private:
   void initGBuffers();
   void buildGraph();
   void registerShaders();
-  shaderio::SceneInfo *
-  updateSceneBuffer(VkCommandBuffer cmd,
-                    const SceneResourcesManager &scene) const;
-  void createDescriptorSetLayout(VkDevice device);
 
   // Data
-  nvvk::DescriptorPack m_descPack{};
-  VulkanContextManager *m_context = nullptr;
-  SwapchainRenderManager *m_swapchain_manager = nullptr;
+  VulkanContextManager *m_context{};
+  SwapchainRenderManager *m_swapchain_manager{};
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<AccelerationStructures> m_accel{};
+  RenderGraph m_graph;
 
   // Reference to post for UI
   ToneMapPass *m_post = nullptr;
-  // Render stuff
-  RenderGraph m_graph;
 };

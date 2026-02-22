@@ -313,13 +313,13 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 void SceneResourcesManager::uploadTextures()
 /**********************************************************/
 {
-  for (const auto &[name, filename, id] : m_pendingTextures) {
+  for (auto &[name, filename, id] : m_pendingTextures) {
     core::Image raw = core::loadRawImage(filename);
     if (!raw.isValid()) {
-      assert(false && "Failed to load texture image!");
+      assert(0 && "Failed to load texture image!");
       continue;
     }
-    m_device_resources->uploadTexture(raw, id);
+    m_device_resources->addTexture(raw, id);
     raw.textureId = id;
     m_textureImageMap.insert_or_assign(name, raw);
   }

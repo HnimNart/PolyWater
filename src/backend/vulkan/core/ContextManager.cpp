@@ -11,6 +11,18 @@
 bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo) {
   // 1. Define Feature Structs
 
+  // --- Descriptor Indexing (Bindless) Features ---
+  static VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
+  indexingFeatures.shaderSampledImageArrayNonUniformIndexing =
+      VK_TRUE; // For nonuniformEXT()
+  indexingFeatures.descriptorBindingPartiallyBound =
+      VK_TRUE; // For "holes" in the array
+  indexingFeatures.descriptorBindingVariableDescriptorCount =
+      VK_TRUE;                                       // For dynamic array sizes
+  indexingFeatures.runtimeDescriptorArray = VK_TRUE; // Allows runtime sizing
+  indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
   // New: Extended Dynamic State 3 for Wireframe support
   VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamicState3Features{
       .sType =
@@ -19,7 +31,10 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo) {
 
   VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
-      .pNext = &dynamicState3Features}; // Chain dynamicState3 to shaderObject
+      .pNext = &dynamicState3Features};
+
+  // Chain indexingFeatures to the start of your existing chain
+  indexingFeatures.pNext = &shaderObjectFeatures;
 
   VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
       .sType =
@@ -41,8 +56,10 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo) {
 
   vkSetup.deviceExtensions = {
       {VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME},
-      {VK_EXT_SHADER_OBJECT_EXTENSION_NAME, &shaderObjectFeatures},
-      // New: Add the actual extension name for dynamic state 3
+      // Pass the head of our feature chain here
+      {VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, &indexingFeatures},
+      {VK_EXT_SHADER_OBJECT_EXTENSION_NAME}, // pNext is already handled by the
+                                             // chain above
       {VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME},
       {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, &accelFeature},
       {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, &rtPipelineFeature},
