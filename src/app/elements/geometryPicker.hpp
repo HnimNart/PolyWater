@@ -36,6 +36,8 @@ public:
     m_onSelect = std::move(callback);
   }
 
+  std::optional<InstanceID> pickObject(glm::vec2 mousePos);
+
 private:
   math::Ray getRayFromMouse(float mouseX, float mouseY, float width,
                             float height);

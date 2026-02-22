@@ -31,69 +31,26 @@ void app::GeometryPickerElement::onAttach(Application *app)
 void app::GeometryPickerElement::onUIRender()
 /**********************************************************/
 {
-  ImGuiWindow *viewportWindow = ImGui::FindWindowByName("Viewport");
-  if (!viewportWindow || !core::isWindowHovered(viewportWindow))
+  if (!ImGui::GetIO().KeyCtrl)
     return;
 
-  // We only care about picking if Ctrl is held
-  if (ImGui::GetIO().KeyCtrl) {
-    bool clickedLeft = ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
-                       !ImGui::IsMouseDragging(ImGuiMouseButton_Left);
-    bool clickedRight = ImGui::IsMouseClicked(ImGuiMouseButton_Right) &&
-                        !ImGui::IsMouseDragging(ImGuiMouseButton_Right);
+  // Check for clicks first to avoid unnecessary window lookups
+  bool left = ImGui::IsMouseClicked(0) && !ImGui::IsMouseDragging(0);
+  bool right = ImGui::IsMouseClicked(1) && !ImGui::IsMouseDragging(1);
 
-    if (clickedLeft) {
-      // 1. Calculate relative coordinates
-      ImVec2 winPos = viewportWindow->Pos;
-      ImVec2 winSize = viewportWindow->Size;
-      ImVec2 mouseAbs = ImGui::GetMousePos();
+  if (left || right) {
+    auto hitIndex =
+        pickObject(glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y));
 
-      float mouseX = mouseAbs.x - winPos.x;
-      float mouseY = mouseAbs.y - winPos.y;
+    if (m_onSelect) {
+      // If right click, or left click missed (-1), pass -1
+      m_onSelect(right ? -1 : hitIndex.value_or(-1));
+    }
 
-      // 2. Raycast to find object
-      int32_t hitIndex = pickObject(mouseX, mouseY, winSize.x, winSize.y);
-
-      LOGI("Picked %d\n", hitIndex);
-
-      if (m_onSelect) {
-        m_onSelect(hitIndex);
-      }
-    } else if (clickedRight) {
-      if (m_onSelect) {
-        m_onSelect(-1);
-      }
+    if (left && hitIndex.has_value()) {
+      LOGI("Picked %d\n", hitIndex.value());
     }
   }
-}
-
-/**********************************************************/
-math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
-                                                      float mouseY, float width,
-                                                      float height)
-/**********************************************************/
-{
-  // Get Matrices from Camera
-  const glm::mat4 &view = m_camera->getViewMatrix();
-
-  // We need the projection matrix. Assuming a standard perspective setup
-  // here. Note: If you store FOV in the camera manipulator, reconstruct it.
-  glm::mat4 proj = m_camera->getPerspectiveMatrix();
-
-  // 1. Normalized Device Coordinates (NDC) [-1, 1]
-  float x = (2.0f * mouseX) / width - 1.0f;
-  float y = (2.0f * mouseY) / height -
-            1.0f; // Note: Vulkan/ImGui Y direction matters here
-
-  // 2. Inverse Transform
-  glm::vec4 rayClip = glm::vec4(x, y, 1.0f, 1.0f);
-  glm::vec4 rayEye = glm::inverse(proj) * rayClip;
-  rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
-
-  glm::vec3 rayWor = glm::vec3(glm::inverse(view) * rayEye);
-  rayWor = glm::normalize(rayWor);
-
-  return math::Ray{m_camera->getEye(), rayWor};
 }
 
 /**********************************************************/
@@ -102,12 +59,53 @@ InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
 /**********************************************************/
 {
   math::Ray ray = getRayFromMouse(mouseX, mouseY, width, height);
-  std::optional<RayHit> hit = m_accel.intersect(ray.origin, ray.direction);
-  if (hit) {
-    return hit.value().instanceID;
-  } else {
-    return -1;
-  }
+  auto hit = m_accel.intersect(ray.origin, ray.direction);
+  return hit ? hit->instanceID : -1;
+}
+
+/**********************************************************/
+std::optional<InstanceID>
+app::GeometryPickerElement::pickObject(glm::vec2 mouseAbs)
+/**********************************************************/
+{
+  ImGuiWindow *viewport = ImGui::FindWindowByName("Viewport");
+  if (!viewport || !core::isWindowHovered(viewport))
+    return std::nullopt; // Using nullopt instead of -1 for optional
+
+  float relX = mouseAbs.x - viewport->Pos.x;
+  float relY = mouseAbs.y - viewport->Pos.y;
+
+  return pickObject(relX, relY, viewport->Size.x, viewport->Size.y);
+}
+
+/**********************************************************/
+// 4. Ray Generation (Math fix included)
+/**********************************************************/
+math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
+                                                      float mouseY, float width,
+                                                      float height)
+/**********************************************************/
+{
+  // 1. NDC [-1, 1].
+  float x = (2.0f * mouseX) / width - 1.0f;
+  float y = (2.0f * mouseY) / height - 1.0f;
+
+  glm::mat4 invProjView = glm::inverse(m_camera->getPerspectiveMatrix() *
+                                       m_camera->getViewMatrix());
+
+  // Near plane point
+  glm::vec4 rayStartNDC(x, y, -1.0f, 1.0f);
+  // Far plane point (or just a point in front)
+  glm::vec4 rayEndNDC(x, y, 0.0f, 1.0f);
+
+  glm::vec4 worldStart = invProjView * rayStartNDC;
+  worldStart /= worldStart.w;
+  glm::vec4 worldEnd = invProjView * rayEndNDC;
+  worldEnd /= worldEnd.w;
+
+  glm::vec3 dir = glm::normalize(glm::vec3(worldEnd - worldStart));
+
+  return math::Ray{m_camera->getEye(), dir};
 }
 
 /**********************************************************/

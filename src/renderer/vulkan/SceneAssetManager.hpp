@@ -88,9 +88,9 @@ public:
   // 4. Texture & Bindless Descriptor Management
   //    Handling image creation, GPU upload, and descriptor set manipulation.
   // -------------------------------------------------------------------------
-  bool addTexture(const core::Image &image, TextureID &id) override;
   bool destroyTexture(TextureID id) override;
-  bool addAndUploadTexture(const core::Image &image, TextureID &id) override;
+  bool addAndUploadTexture(const core::Image &image, TextureID &id,
+                           bool immediate = false) override;
   TextureID reserveTextureSlot() override;
   uint64_t getTextureHandle(TextureID id) override;
 
@@ -117,6 +117,7 @@ private:
   // -------------------------------------------------------------------------
   // 6. Internal Buffer Lifecycle Helpers
   // -------------------------------------------------------------------------
+  bool registerTexture(const core::Image &image, TextureID &id);
   void createSceneBuffers(const Scene &sceneResources);
   void clearSceneBuffers();
   void updateSceneResources(VkCommandBuffer cmd) const;

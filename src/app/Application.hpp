@@ -70,7 +70,7 @@ public:
   // Event Handlers & Input
   // ---------------------------------------------------------------------------
   void onResize(const WindowSize &size);
-  void onFileDrop(const std::filesystem::path &filename);
+  void onFileDrop(const std::filesystem::path &filename, glm::vec2 mousePos);
 
   // ---------------------------------------------------------------------------
   // Accessors
@@ -138,7 +138,7 @@ private:
 
   // Profile
   std::unique_ptr<core::ProfilerManager> m_profilerManager;
-  core::ProfilerTimeline* m_profileTimeline = nullptr;
+  core::ProfilerTimeline *m_profileTimeline = nullptr;
 };
 
 } // namespace app

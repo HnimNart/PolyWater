@@ -240,10 +240,10 @@ TextureID SceneResourcesManager::addTexture(const std::string &name,
 
   std::string finalName = name;
   if (m_textureMap.find(name) != m_textureMap.end()) {
-    LOGW("Texture name collision: '%s' already exists for a different file. "
-         "Renaming...",
-         name.c_str());
     finalName = getUniqueName(m_textureMap, name);
+    LOGW("Texture name collision: '%s' already exists for a different file. "
+         "Renaming... to %s\n",
+         name.c_str(), finalName.c_str());
   }
 
   TextureID textureID = m_device_resources->reserveTextureSlot();
@@ -349,7 +349,7 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 }
 
 /**********************************************************/
-void SceneResourcesManager::uploadTextures()
+void SceneResourcesManager::uploadPendingTextures(bool immediate)
 /**********************************************************/
 {
   for (auto &[name, filename, id] : m_pendingTextures) {
@@ -358,7 +358,7 @@ void SceneResourcesManager::uploadTextures()
       assert(0 && "Failed to load texture image!");
       continue;
     }
-    m_device_resources->addTexture(raw, id);
+    m_device_resources->addAndUploadTexture(raw, id, immediate);
     raw.textureId = id;
     m_textureImageMap.insert_or_assign(name, raw);
   }
@@ -380,7 +380,7 @@ void SceneResourcesManager::finalizeSceneResources()
   m_pendingOptimizedMesh.clear();
 
   // Upload textures
-  uploadTextures();
+  uploadPendingTextures(false);
 
   // Extract light
   uploadLights(LightChangedBitMask::All);
@@ -476,6 +476,16 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
   m_scene_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_scene_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
   m_scene_resources.sceneInfo.cameraPosition = camera->getEye();
+}
+
+/**********************************************************/
+void SceneResourcesManager::onTextureChange()
+/**********************************************************/
+{
+  m_device_resources->beginUploading();
+  uploadPendingTextures(true);
+  m_device_resources->endUploading();
+  setDirty(true);
 }
 
 /**********************************************************/

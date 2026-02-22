@@ -338,11 +338,12 @@ void Application::onResize(const WindowSize &size)
 }
 
 /**********************************************************/
-void Application::onFileDrop(const std::filesystem::path &filename)
+void Application::onFileDrop(const std::filesystem::path &filename,
+                             glm::vec2 mousePos)
 /**********************************************************/
 {
   for (std::shared_ptr<IAppElement> &e : m_elements) {
-    e->onFileDrop(filename);
+    e->onFileDrop(filename, mousePos);
   }
 }
 
@@ -365,8 +366,11 @@ void Application::initGlfw(const ApplicationCreateInfo &info)
   glfwSetDropCallback(m_windowHandle, [](GLFWwindow *window, int count,
                                          const char **paths) {
     auto *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-    for (int i = 0; i < count; i++)
-      app->onFileDrop(paths[i]);
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    for (int i = 0; i < count; i++) {
+      app->onFileDrop(paths[i], {xpos, ypos});
+    }
   });
 }
 

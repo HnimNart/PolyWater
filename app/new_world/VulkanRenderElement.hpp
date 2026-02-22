@@ -3,9 +3,11 @@
 #include <memory>
 
 #include "app/IAppElement.hpp"
+#include "app/elements/geometryPicker.hpp"
 #include "core/Camera.hpp"
 #include "scene/SceneManager.hpp"
 #include <renderer/vulkan/Renderer.hpp>
+#include <utility>
 
 // Forward declarations to reduce compile time
 namespace core {
@@ -26,7 +28,9 @@ public:
   void onAttach(app::Application *app) override;
   void onDetach() override;
   void onResize(WindowSize size) override;
-  void onFileDrop(const std::filesystem::path &filename) override;
+  void onFileDrop(const std::filesystem::path &filename,
+                  glm::vec2 mousePos) override;
+  void onFileSelected(const std::filesystem::path &filename);
 
   // -------------------------------------------------------------------------
   // 2. Main Render Loop Steps
@@ -52,6 +56,12 @@ public:
   const IRenderer *getRenderer() const;
   const SceneManager &getSceneManager() const;
 
+  //
+
+  void setGeometryPicker(std::shared_ptr<app::GeometryPickerElement> picker) {
+    m_geometryPicker = std::move(picker);
+  }
+
 private:
   // -------------------------------------------------------------------------
   // Internal UI & Logic Helpers
@@ -69,6 +79,8 @@ private:
   std::unique_ptr<VulkanRenderer> m_renderer = nullptr;
   SceneManager m_sceneManager{};
 
+  std::shared_ptr<app::GeometryPickerElement> m_geometryPicker = nullptr;
+
   // Editor/Render state
   RenderMode m_renderMode = RenderMode::RAYTRACE;
   bool m_hasChanged = false;
@@ -76,4 +88,10 @@ private:
   std::string m_sceneFile{};
   std::string m_modelFileToLoad{};
   std::string m_envFileToLoad{};
+
+  struct PendingTexture {
+    std::string filename;
+    InstanceID id;
+  };
+  std::optional<PendingTexture> m_pendingTexture{};
 };

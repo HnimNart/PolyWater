@@ -83,7 +83,8 @@ void VulkanRendererElement::onResize(WindowSize size)
 // ============================================================================
 
 /**********************************************************/
-void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
+void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename,
+                                       glm::vec2 mousePos)
 /**********************************************************/
 {
   std::string ext = filename.extension().string();
@@ -97,10 +98,28 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
   } else if (ext == ".hdr") {
     LOGI("Env File dropped: %s\n", filename.c_str());
     m_envFileToLoad = filename;
+  } else if (ext == ".png" || ext == ".jpg") {
+    if (m_geometryPicker) {
+      std::optional<InstanceID> id = m_geometryPicker->pickObject(mousePos);
+      if (id) {
+        printf("Got id %d\n", *id);
+        m_pendingTexture.emplace(
+            PendingTexture{.filename = filename, .id = *id});
+      }
+    }
+
   } else {
     LOGI("Error: Dropped file is not a recognised file ( %s )\n",
          filename.c_str());
   }
+}
+
+/**********************************************************/
+void VulkanRendererElement::onFileSelected(
+    const std::filesystem::path &filename)
+/**********************************************************/
+{
+  onFileDrop(filename, {0, 0});
 }
 
 /**********************************************************/
@@ -198,6 +217,21 @@ void VulkanRendererElement::onPreRender()
     m_sceneManager.sceneResourceManager().onLightChange(
         LightChangedBitMask::EnvmapChanged);
     m_envFileToLoad.clear();
+  }
+
+  if (m_pendingTexture) {
+    std::string name = core::getLowercasedStem(m_pendingTexture->filename);
+    TextureID id = m_sceneManager.sceneResourceManager().addTexture(
+        name, m_pendingTexture->filename);
+    m_sceneManager.sceneResourceManager().onTextureChange();
+    MaterialID materialId = m_sceneManager.sceneResourceManager()
+                                .getInstances()[m_pendingTexture->id]
+                                .materialIndex;
+    m_sceneManager.sceneResourceManager()
+        .getMaterials()[materialId]
+        .baseColorTextureIndex = id;
+    m_sceneManager.sceneResourceManager().onMaterialChange();
+    m_pendingTexture.reset();
   }
 
   m_hasChanged |= m_sceneManager.camera()->isDirty();

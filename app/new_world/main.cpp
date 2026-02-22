@@ -81,8 +81,6 @@ int main(int argc, char **argv) {
         ptr->addLog(severity, message.c_str());
       });
 
-
-
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();
   auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
@@ -102,9 +100,10 @@ int main(int argc, char **argv) {
       std::bind(&VulkanRendererElement::onGeometryPicked, renderElement.get(),
                 std::placeholders::_1));
   application.addElement(geometryPicker);
+  renderElement->setGeometryPicker(geometryPicker);
 
   windowMenu->addFileSelectedCallback(
-      std::bind(&VulkanRendererElement::onFileDrop, renderElement.get(),
+      std::bind(&VulkanRendererElement::onFileSelected, renderElement.get(),
                 std::placeholders::_1));
 
   application.run(); // Start the application, loop until the window is closed

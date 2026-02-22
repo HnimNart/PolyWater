@@ -44,8 +44,8 @@ public:
   // Texture Management
   // ---------------------------------------------------------------------------
   virtual unsigned int reserveTextureSlot() = 0;
-  virtual bool addTexture(const core::Image &image, TextureID &id) = 0;
-  virtual bool addAndUploadTexture(const core::Image &image, TextureID &id) = 0;
+  virtual bool addAndUploadTexture(const core::Image &image, TextureID &id,
+                                   bool immediate = false) = 0;
   virtual uint64_t getTextureHandle(TextureID id) = 0;
   virtual bool destroyTexture(TextureID id) = 0;
 

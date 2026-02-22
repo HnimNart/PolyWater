@@ -32,7 +32,8 @@ public:
 
   /** @brief Called when a file is dragged and dropped onto the application
    * window. */
-  virtual void onFileDrop(const std::filesystem::path & /*filename*/) {}
+  virtual void onFileDrop(const std::filesystem::path & /*filename*/,
+                          glm::vec2 mousePos) {}
 
   // --- UI Callbacks (ImGui) ---
   /** @brief Called within the ImGui frame to define custom menus (e.g., File,

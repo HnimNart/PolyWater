@@ -55,6 +55,7 @@ public:
 
   void onMaterialChange();
   void onLightChange(LightChangedBitMask mask);
+  void onTextureChange();
   void onInstanceChange();
 
   // --- State Management ---
@@ -121,7 +122,7 @@ private:
 
   void uploadOptimizedMesh(const OptimizedPayload &payload);
   void uploadLights(LightChangedBitMask mask);
-  void uploadTextures();
+  void uploadPendingTextures(bool immediate);
   MeshID getNextFreeMeshID();
 
   // CPU Side Storage for Pending GPU Uploads

@@ -124,8 +124,8 @@ bool VulkanSceneAssetManager::destroyTexture(TextureID id)
 }
 
 /**********************************************************/
-bool VulkanSceneAssetManager::addTexture(const core::Image &image,
-                                         TextureID &textureId)
+bool VulkanSceneAssetManager::registerTexture(const core::Image &image,
+                                              TextureID &textureId)
 /**********************************************************/
 {
   if (textureId == -1 || m_textures.find(textureId) == m_textures.end()) {
@@ -142,7 +142,7 @@ bool VulkanSceneAssetManager::addTexture(const core::Image &image,
   // Cleanup existing image at this slot (standard overwrite logic)
   nvvk::Image &slot = m_textures[textureId];
   if (slot.image != VK_NULL_HANDLE) {
-    LOGI("Found existing texture(Id:%d). Destroying it to make room "
+    LOGD("Found existing texture(Id:%d). Destroying it to make room "
          "for new "
          "texture\n",
          textureId);
@@ -160,11 +160,14 @@ bool VulkanSceneAssetManager::addTexture(const core::Image &image,
 
 /**********************************************************/
 bool VulkanSceneAssetManager::addAndUploadTexture(const core::Image &image,
-                                                  TextureID &textureId)
+                                                  TextureID &textureId,
+                                                  bool immediate)
 /**********************************************************/
 {
-  if (addTexture(image, textureId)) {
-    updateTextureDescriptorSets({static_cast<uint32_t>(textureId)});
+  if (registerTexture(image, textureId)) {
+    if (immediate) {
+      updateTextureDescriptorSets({static_cast<uint32_t>(textureId)});
+    }
     return true;
   }
   return false;

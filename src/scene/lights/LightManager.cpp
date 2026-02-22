@@ -245,7 +245,8 @@ void LightManager::uploadEnvmap(
     }
 
     // 1. Upload the HDR Texture (The visual data)
-    deviceResources->addAndUploadTexture(info.image, envmapLight.envTextureIdx);
+    deviceResources->addAndUploadTexture(info.image, envmapLight.envTextureIdx,
+                                         true);
 
     // 2. Upload CDF Row Data (Conditional CDF)
     size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);
