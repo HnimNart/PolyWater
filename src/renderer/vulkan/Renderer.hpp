@@ -12,7 +12,6 @@
 #include "renderer/interfaces/IRenderGraph.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 #include "scene/SceneManager.hpp"
-#include "shaders/shared/structs.h"
 
 class PostProcessor;
 class IRenderBackend;

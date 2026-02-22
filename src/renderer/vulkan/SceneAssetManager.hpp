@@ -40,7 +40,7 @@ struct VulkanSceneGpuData {
   std::vector<nvvk::Buffer>
       bDatas; // Binary data per scene (Vertex/Index buffers)
   // Mapping: meshToBufferIndex[meshIndex] -> bufferIndex in bGltfDatas
-  std::vector<uint32_t> meshToBufferIndex;
+  std::unordered_map<IDeviceAssets::MeshID, uint32_t> meshToBufferIndex;
 };
 
 // Concrete implementation of resource uploading/management for Vulkan.
@@ -64,11 +64,11 @@ public:
   IDeviceAssets::BufferHandle
   upload(const std::span<const uint8_t> &data) override;
 
-  void addMeshes(size_t count, BufferID bufferIndex) override;
+  void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
   void uploadSceneResoures(const Scene &resources) override;
 
   const VulkanSceneGpuData &deviceResources() const { return m_data; }
-  const nvvk::Buffer &getBufferFromIndex(uint32_t meshIndex) const;
+  const nvvk::Buffer &getBufferFromIndex(MeshID meshIndex) const;
 
   // -------------------------------------------------------------------------
   // 3. Scene Data Updates (Per-Frame / Dynamic)

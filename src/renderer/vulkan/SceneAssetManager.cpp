@@ -215,13 +215,31 @@ VulkanSceneAssetManager::upload(const std::span<const uint8_t> &data)
   m_data.bDatas.push_back(bData);
   return {(uint8_t *)bData.address, bufferIndex};
 }
-
 /**********************************************************/
-void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
+void VulkanSceneAssetManager::linkMeshToBuffer(MeshID meshId,
+                                               BufferID bufferIndex)
 /**********************************************************/
 {
-  m_data.meshToBufferIndex.insert(m_data.meshToBufferIndex.end(), count,
-                                  bufferIndex);
+  // Validate the BufferID exists
+  if (bufferIndex >= m_data.bDatas.size()) {
+    LOGE("linkMeshToBuffer: Attempting to link Mesh %u to non-existent Buffer "
+         "%u. (Total buffers: %zu)",
+         meshId, bufferIndex, m_data.bDatas.size());
+    return;
+  }
+
+  // Handle Conflicts & Placement
+  auto [it, inserted] =
+      m_data.meshToBufferIndex.try_emplace(meshId, bufferIndex);
+
+  if (!inserted) {
+    if (it->second != bufferIndex) {
+      LOGW("linkMeshToBuffer: Mesh %u is already linked to Buffer %u. "
+           "Re-mapping to Buffer %u.",
+           meshId, it->second, bufferIndex);
+      it->second = bufferIndex; // Explicitly overwrite if intended
+    }
+  }
 }
 
 /**********************************************************/
@@ -236,11 +254,11 @@ void VulkanSceneAssetManager::uploadSceneResoures(const Scene &resources)
 
 /**********************************************************/
 const nvvk::Buffer &
-VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
+VulkanSceneAssetManager::getBufferFromIndex(MeshID meshIndex) const
 /**********************************************************/
 {
   assert(meshIndex < m_data.meshToBufferIndex.size());
-  uint32_t bufferIndex = m_data.meshToBufferIndex[meshIndex];
+  uint32_t bufferIndex = m_data.meshToBufferIndex.at(meshIndex);
   return m_data.bDatas[bufferIndex];
 }
 
@@ -424,7 +442,10 @@ void VulkanSceneAssetManager::updateBuffer(nvvk::Buffer &buffer,
                                            std::span<T> &&dataSpan)
 /**********************************************************/
 {
-  assert(m_cmd != VK_NULL_HANDLE);
+  if (dataSpan.empty()) {
+    return;
+  }
+  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
   if (buffer.bufferSize != dataSpan.size_bytes()) {
     destroyBuffer(buffer);
     allocBuffer(buffer, dataSpan.size_bytes(), storageUsage);

@@ -303,9 +303,8 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
     mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
     mesh.buffer = bufferHandle.as<uint8_t>();
     m_scene_resources.meshes.emplace_back(mesh);
+    m_device_resources->linkMeshToBuffer(mesh.rawBufferIndex, bufferHandle.id);
   }
-
-  m_device_resources->addMeshes(payload.primitives.size(), bufferHandle.id);
   m_pendingMeshes -= payload.primitives.size();
 }
 
