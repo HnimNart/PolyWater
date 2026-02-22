@@ -1,6 +1,6 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
-#include "include/bsdf/pbr.h.slang"
 #include "include/bsdf/diffuse.h.slang"
+#include "include/bsdf/pbr.h.slang"
 
 //-----------------------------------------------------------------------
 // CLOSEST HIT SHADER - PBR Path Tracer + NEE
@@ -31,8 +31,9 @@ rchit_gltf(inout HitPayload payload,
   // --- (Direct Lighting) ---
   PbrEvaluator bsdf = PbrEvaluator(viewDir, albedo, roughness, metallic);
   const SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  payload.color += sampleDirectLightingPowerCDF(sceneInfo, worldPos, worldNormal, bsdf, payload.seed) *
-                   payload.weight;
+  LightRaySample sample = sampleDirectLightingPowerCDF(
+      sceneInfo, worldPos, worldNormal, bsdf, payload.seed);
+  payload.color += sample.light * payload.weight;
 
   // --- (Indirect Lighting) ---
   float3 bounceDir;
@@ -41,5 +42,5 @@ rchit_gltf(inout HitPayload payload,
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = bounceDir;
   payload.stop = false;
-  payload.emit = false;
+  payload.emit = !sample.valid;
 }

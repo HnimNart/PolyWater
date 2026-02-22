@@ -99,14 +99,10 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename,
     LOGI("Env File dropped: %s\n", filename.c_str());
     m_envFileToLoad = filename;
   } else if (ext == ".png" || ext == ".jpg") {
-    if (m_geometryPicker) {
-      std::optional<InstanceID> id = m_geometryPicker->pickObject(mousePos);
-      if (id) {
-        printf("Got id %d\n", *id);
-        m_pendingTexture.emplace(
-            PendingTexture{.filename = filename, .id = *id});
-      }
-    }
+    assert(m_geometryPicker);
+    std::optional<InstanceID> id = m_geometryPicker->pickObject(mousePos);
+    m_pendingTexture.emplace(
+        PendingTexture{.filename = filename, .id = id.value_or(-1)});
 
   } else {
     LOGI("Error: Dropped file is not a recognised file ( %s )\n",
@@ -133,8 +129,11 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
   SceneLoader loader;
   SceneData sceneData;
   auto filepath = core::findFile(filePath, common::getSceneDir());
-  if (!loader.load(filepath, sceneData)) {
-    return;
+  try {
+    loader.load(filepath, sceneData);
+    LOGI("Successfully loaded: %s\n", filepath.c_str());
+  } catch (const std::exception &e) {
+    LOGE("Failed to load scene from %s: %s\n", filepath.c_str(), e.what());
   }
 
   m_sceneManager.buildSceneFromData(sceneData, common::getAssetDirs());
@@ -201,38 +200,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
 void VulkanRendererElement::onPreRender()
 /**********************************************************/
 {
-  if (!m_sceneFile.empty()) {
-    clear();
-    loadScene(m_sceneFile);
-  }
-
-  if (!m_modelFileToLoad.empty()) {
-    m_sceneManager.sceneResourceManager().loadModel(m_modelFileToLoad);
-    m_sceneManager.sceneResourceManager().finalizeSceneResources();
-    m_modelFileToLoad.clear();
-  }
-
-  if (!m_envFileToLoad.empty()) {
-    m_sceneManager.sceneResourceManager().addEnvmap(m_envFileToLoad);
-    m_sceneManager.sceneResourceManager().onLightChange(
-        LightChangedBitMask::EnvmapChanged);
-    m_envFileToLoad.clear();
-  }
-
-  if (m_pendingTexture) {
-    std::string name = core::getLowercasedStem(m_pendingTexture->filename);
-    TextureID id = m_sceneManager.sceneResourceManager().addTexture(
-        name, m_pendingTexture->filename);
-    m_sceneManager.sceneResourceManager().onTextureChange();
-    MaterialID materialId = m_sceneManager.sceneResourceManager()
-                                .getInstances()[m_pendingTexture->id]
-                                .materialIndex;
-    m_sceneManager.sceneResourceManager()
-        .getMaterials()[materialId]
-        .baseColorTextureIndex = id;
-    m_sceneManager.sceneResourceManager().onMaterialChange();
-    m_pendingTexture.reset();
-  }
+  processPendingResources();
 
   m_hasChanged |= m_sceneManager.camera()->isDirty();
   if (m_hasChanged) {
@@ -331,7 +299,8 @@ void VulkanRendererElement::onUIRender()
         }
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (auto mask = app::lightEditor(resourceManager)) {
+          if (auto mask = app::lightEditor(resourceManager,
+                                           m_renderer->deviceResources())) {
             resourceManager.onLightChange(mask);
           }
         }
@@ -415,3 +384,73 @@ CameraPtr VulkanRendererElement::getCameraManipulator() const
 void VulkanRendererElement::onGeometryPicked(InstanceID)
 /**********************************************************/
 { /* Selection logic here */ }
+
+/**********************************************************/
+void VulkanRendererElement::processPendingResources()
+/**********************************************************/
+{
+  auto &resourceMgr = m_sceneManager.sceneResourceManager();
+
+  // 1. Scene Loading
+  if (!m_sceneFile.empty()) {
+    clear();
+    loadScene(m_sceneFile);
+    m_sceneFile.clear();
+  }
+
+  // 2. Model Loading
+  if (!m_modelFileToLoad.empty()) {
+    resourceMgr.loadModel(m_modelFileToLoad);
+    resourceMgr.finalizeSceneResources();
+    m_modelFileToLoad.clear();
+  }
+
+  // 3. Environment/Lighting Map
+  if (!m_envFileToLoad.empty()) {
+    resourceMgr.addEnvmap(m_envFileToLoad);
+    resourceMgr.onLightChange(LightChangedBitMask::EnvmapChanged);
+    m_envFileToLoad.clear();
+  }
+
+  // 4. Material Texture Assignment
+  if (m_pendingTexture) {
+    processPendingTexture(resourceMgr);
+  }
+}
+
+/**********************************************************/
+void VulkanRendererElement::processPendingTexture(
+    SceneResourcesManager &resourceMgr)
+/**********************************************************/
+{
+  const auto &filename = m_pendingTexture->filename;
+  const auto instanceId = m_pendingTexture->id;
+
+  // Validate filename and instance ID
+  if (filename.empty() || instanceId >= resourceMgr.getInstances().size()) {
+    LOGE("Invalid texture metadata or instance ID for %s", filename.c_str());
+    m_pendingTexture.reset();
+    return;
+  }
+
+  std::string name = core::getLowercasedStem(filename);
+  TextureID textureId = resourceMgr.addTexture(name, filename);
+
+  if (textureId != -1) {
+    resourceMgr.onTextureChange();
+
+    // Safe Material Assignment
+    MaterialID materialId =
+        resourceMgr.getInstances()[instanceId].materialIndex;
+    if (materialId < resourceMgr.getMaterials().size()) {
+      resourceMgr.getMaterials()[materialId].baseColorTextureIndex = textureId;
+      resourceMgr.onMaterialChange();
+    } else {
+      LOGE("Invalid material ID %d for instance %d", materialId, instanceId);
+    }
+  } else {
+    LOGE("Failed to load texture: %s", filename.c_str());
+  }
+
+  m_pendingTexture.reset();
+}

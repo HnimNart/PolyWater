@@ -79,6 +79,7 @@ public:
   const shaderio::SceneInfo &sceneInfo() const {
     return m_scene_resources.sceneInfo;
   }
+  const core::Image &getEnvmap() { return m_envmapImage; }
 
   const std::vector<shaderio::Instance> &getInstances() const {
     return m_scene_resources.instances;
@@ -163,4 +164,5 @@ private:
   std::unordered_map<std::string, core::Image> m_textureImageMap;
   std::unordered_map<std::filesystem::path, TextureID> m_fileToTextureMap;
   uint m_pendingMeshes{0};
+  core::Image m_envmapImage{};
 };

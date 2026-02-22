@@ -115,6 +115,7 @@ bool VulkanSceneAssetManager::destroyTexture(TextureID id)
   if (it == m_textures.end()) {
     return false;
   }
+  m_context_manager->waitForDeviceIdle();
   if (it->second.image != VK_NULL_HANDLE) {
     m_context_manager->getAllocator().destroyImage(it->second);
   }
@@ -217,8 +218,9 @@ void VulkanSceneAssetManager::uploadTextures()
 uint64_t VulkanSceneAssetManager::getTextureHandle(TextureID id)
 /**********************************************************/
 {
-  if (id > m_textures.size() || m_textures.find(id) == m_textures.end())
+  if (m_textures.find(id) == m_textures.end()) {
     return 0;
+  }
 
   auto &tex = m_textures.at(id);
   if (tex.cachedDesriptor == VK_NULL_HANDLE) {

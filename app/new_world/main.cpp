@@ -69,11 +69,10 @@ int main(int argc, char **argv) {
 
   // Adding all elements
   application.addElement(windowMenu);
-  application.addElement(windowTitle);
-  application.addElement(elemCamera);
-
   application.addElement(logger);
   logger->setLevelFilter(app::ElementLogger::eBitAll);
+  application.addElement(windowTitle);
+  application.addElement(elemCamera);
 
   core::Logger::getInstance().setLogCallback(
       [ptr = logger.get()](core::Logger::LogLevel severity,

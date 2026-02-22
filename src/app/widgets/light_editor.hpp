@@ -13,7 +13,9 @@
 namespace app {
 
 /**********************************************************/
-inline LightChangedBitMask lightEditor(SceneResourcesManager &resources)
+inline LightChangedBitMask
+lightEditor(SceneResourcesManager &resources,
+            const std::shared_ptr<IDeviceAssets> &deviceResources)
 /**********************************************************/
 {
   shaderio::SceneInfo &sceneInfo = resources.sceneInfo();
@@ -51,11 +53,35 @@ inline LightChangedBitMask lightEditor(SceneResourcesManager &resources)
     if (app::skySimpleParametersUI(sceneInfo.skySimpleParam)) {
       mask |= LightChangedBitMask::EnvmapChanged;
     }
-  } else if (sceneInfo.useEnv) {
+  }
+
+  else if (sceneInfo.useEnv) {
     auto &env = sceneInfo.envmapLight;
     if (PE::begin("EnvParamsTable")) {
-      if (PE::DragFloat("Intensity", &env.scale, 0.1f, 0.0f, 10.0f))
+      const core::Image &envmapImage = resources.getEnvmap();
+      TextureID textureToDelete = -1;
+
+      // --- PREVIEW SECTION ---
+      PE::entry("Preview", [&]() {
+        ImTextureID gpuHandle =
+            deviceResources->getTextureHandle(env.envTextureIdx);
+        if (gpuHandle) {
+          float ratio =
+              (env.dims.x > 0) ? (float)env.dims.y / (float)env.dims.x : 0.5f;
+          // Scale width to fit the column, but cap it for better aesthetics
+          float width = std::min(ImGui::GetContentRegionAvail().x, 300.0f);
+          ImGui::Image(gpuHandle, ImVec2(width, width * ratio), {0, 0}, {1, 1},
+                       {1, 1, 1, 1}, {0, 0, 0, 0.3f});
+        } else {
+          ImGui::TextColored({1, 0.3f, 0.3f, 1}, "No GPU Texture");
+        }
+        return false;
+      });
+
+      // --- PARAMETERS ---
+      if (PE::DragFloat("Intensity", &env.scale, 0.1f, 0.0f, 10.0f)) {
         mask |= LightChangedBitMask::EnvmapChanged;
+      }
 
       if (PE::DragFloat("Rotation (Azimuth)", &env.rotationAzimuthDegree, 1.0f,
                         0.0f, 360.0f)) {
@@ -65,18 +91,44 @@ inline LightChangedBitMask lightEditor(SceneResourcesManager &resources)
         mask |= LightChangedBitMask::EnvmapChanged;
       }
 
+      // --- TECHNICAL INFO ---
       if (PE::treeNode("Technical Info")) {
         PE::Text("Resolution", "%u x %u", env.dims.x, env.dims.y);
         PE::Text("Tex Index", "%d", env.envTextureIdx);
         PE::Text("Integral", "%.4f", env.totalSum);
+        PE::Text("Format", "%s", core::formatToString(envmapImage.format));
         PE::treePop();
       }
 
+      // --- ACTIONS ---
       if (PE::Button("Reload Map", ImVec2(-1, 0))) {
         mask |= LightChangedBitMask::EnvmapChanged;
       }
 
+      PE::entry("Management", [&]() {
+        ImGui::PushStyleColor(ImGuiCol_Button, {0.5f, 0.1f, 0.1f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.7f, 0.1f, 0.1f, 1.0f});
+        if (ImGui::Button("Delete Environment Map", ImVec2(-FLT_MIN, 0))) {
+          textureToDelete = env.envTextureIdx;
+        }
+        ImGui::PopStyleColor(2);
+        return false;
+      });
+
       PE::end();
+
+      // Handle deletion after PE::end to avoid modifying resources mid-layout
+      if (textureToDelete != -1) {
+        if (!resources.destroyTexture(textureToDelete)) {
+          printf("Failed to destroy environment map texture: %d\n",
+                 textureToDelete);
+        } else {
+          env.totalSum = 0;
+          sceneInfo.useEnv = false;
+          sceneInfo.useSky = true;
+        }
+        mask |= LightChangedBitMask::EnvmapChanged;
+      }
     }
   } else {
     if (PE::begin("SolidColorTable")) {

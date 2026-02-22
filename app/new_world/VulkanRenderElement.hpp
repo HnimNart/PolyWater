@@ -70,6 +70,8 @@ private:
   void init();
   void clear();
   void loadScene(const std::filesystem::path &filename);
+  void processPendingResources();
+  void processPendingTexture(SceneResourcesManager &resourceMgr);
 
   // -------------------------------------------------------------------------
   // Members

@@ -51,6 +51,21 @@ findKeyByTextureId(int targetTextureId,
   return std::nullopt; // Not found
 }
 
+/**********************************************************/
+std::optional<std::string> findKeyByTextureId(
+    int targetTextureId,
+    const std::unordered_map<std::filesystem::path, TextureID> &map)
+/**********************************************************/
+{
+  for (const auto &[name, id] : map) {
+    if (id == targetTextureId) {
+      return name; // Found the matching key!
+    }
+  }
+
+  return std::nullopt; // Not found
+}
+
 } // namespace
 
 /**********************************************************/
@@ -205,24 +220,40 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
 bool SceneResourcesManager::destroyTexture(TextureID id)
 /**********************************************************/
 {
-  // Have to queue
-  if (m_device_resources->destroyTexture(id)) {
-    if (id != -1) { // Clean up old texture id
-      std::optional<std::string> old_name =
-          findKeyByTextureId(id, m_textureImageMap);
-      if (old_name) {
-        m_textureImageMap.erase(old_name.value());
-      }
-    }
-    for (auto &material : m_scene_resources.materials) {
-      if (material.baseColorTextureIndex == id) {
-        material.baseColorTextureIndex = 0;
-      }
-    }
-    onMaterialChange();
-    return true;
+  // 1. Validation & Hardware destruction
+  if (id == -1 || !m_device_resources->destroyTexture(id)) {
+    return false;
   }
-  return false;
+
+  // 2. Clean up the Name -> ID mapping
+  std::optional<std::string> old_name =
+      findKeyByTextureId(id, m_textureImageMap);
+  if (old_name) {
+    m_textureImageMap.erase(old_name.value());
+    m_textureMap.erase(old_name.value());
+  }
+
+  std::optional<std::string> filename =
+      findKeyByTextureId(id, m_fileToTextureMap);
+  if (old_name) {
+    m_fileToTextureMap.erase(filename.value());
+  }
+
+  // 3. Update Materials
+  bool modified = false;
+  for (auto &material : m_scene_resources.materials) {
+    if (material.baseColorTextureIndex == id) {
+      material.baseColorTextureIndex = -1;
+      modified = true;
+    }
+  }
+
+  // 4. Notify System
+  if (modified) {
+    onMaterialChange();
+  }
+
+  return true;
 }
 
 /**********************************************************/
@@ -406,15 +437,8 @@ void SceneResourcesManager::uploadLights(LightChangedBitMask mask)
     m_lights.uploadEnvmap(envmapInfo, m_device_resources,
                           sceneInfo.envmapLight);
 
-    // Update GUI texture map
-    if (auto old_name = findKeyByTextureId(oldId, m_textureImageMap)) {
-      m_textureImageMap.erase(*old_name);
-    }
-
-    core::Image envImage = envmapInfo.image;
-    envImage.textureId = sceneInfo.envmapLight.envTextureIdx;
-    std::string name = core::getLowercasedStem(envImage.filename);
-    m_textureImageMap.insert_or_assign(name, envImage);
+    m_envmapImage = envmapInfo.image;
+    m_envmapImage.textureId = sceneInfo.envmapLight.envTextureIdx;
     m_pendingEnvmap.reset();
   }
 

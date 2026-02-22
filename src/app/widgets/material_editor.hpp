@@ -94,33 +94,34 @@ inline bool materialEditor(SceneResourcesManager &resources)
           }
         }
 
-        if (ImGui::BeginCombo("Base Color Texture", currentName.c_str())) {
-          for (const auto &[name, id] : textureMap) {
-            const bool isSelected = (currentName == name);
-            if (ImGui::Selectable(name.c_str(), isSelected)) {
-              mat.baseColorTextureIndex = id;
-              changed = true;
-              resources.onMaterialChange();
-            }
+        PE::entry("Base Color Texture", [&]() {
+          bool itemChanged = false;
+          if (ImGui::BeginCombo("##BaseColorTex", currentName.c_str())) {
+            for (const auto &[name, id] : textureMap) {
+              const bool isSelected = (currentName == name);
 
-            if (isSelected) {
-              ImGui::SetItemDefaultFocus();
+              if (ImGui::Selectable(name.c_str(), isSelected)) {
+                mat.baseColorTextureIndex = id;
+                itemChanged = true;
+                changed = true;
+                resources.onMaterialChange();
+              }
+
+              if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+              }
             }
+            ImGui::EndCombo();
           }
-          ImGui::EndCombo();
-        }
+          return itemChanged;
+        });
 
         PE::end();
         ImGui::TreePop();
       }
     }
   }
-
   return changed;
-
-  if (changed) {
-    resources.onMaterialChange();
-  }
 }
 
 } // namespace app
