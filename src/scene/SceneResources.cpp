@@ -36,6 +36,21 @@ getUniqueName(const std::unordered_map<std::string, uint32_t> &nameMap,
   return core::trim(candidate);
 }
 
+/**********************************************************/
+std::optional<std::string>
+findKeyByTextureId(int targetTextureId,
+                   const std::unordered_map<std::string, core::Image> &map)
+/**********************************************************/
+{
+  for (const auto &[name, imageInfo] : map) {
+    if (imageInfo.textureId == targetTextureId) {
+      return name; // Found the matching key!
+    }
+  }
+
+  return std::nullopt; // Not found
+}
+
 } // namespace
 
 /**********************************************************/
@@ -184,6 +199,30 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
   m_pendingOptimizedMesh.push_back(std::move(optimized));
 
   return meshIDs;
+}
+
+/**********************************************************/
+bool SceneResourcesManager::destroyTexture(TextureID id)
+/**********************************************************/
+{
+  // Have to queue
+  if (m_device_resources->destroyTexture(id)) {
+    if (id != -1) { // Clean up old texture id
+      std::optional<std::string> old_name =
+          findKeyByTextureId(id, m_textureImageMap);
+      if (old_name) {
+        m_textureImageMap.erase(old_name.value());
+      }
+    }
+    for (auto &material : m_scene_resources.materials) {
+      if (material.baseColorTextureIndex == id) {
+        material.baseColorTextureIndex = 0;
+      }
+    }
+    onMaterialChange();
+    return true;
+  }
+  return false;
 }
 
 /**********************************************************/
@@ -352,6 +391,41 @@ void SceneResourcesManager::finalizeSceneResources()
 }
 
 /**********************************************************/
+void SceneResourcesManager::updateLights()
+/**********************************************************/
+{
+  shaderio::SceneInfo &sceneInfo = m_scene_resources.sceneInfo;
+  if (m_pendingEnvmap) {
+    TextureID oldId = sceneInfo.envmapLight.envTextureIdx;
+    const EnvmapInfo &envmapInfo =
+        m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
+                            m_pendingEnvmap->rotation);
+    m_lights.uploadEnvmap(envmapInfo, m_device_resources,
+                          sceneInfo.envmapLight);
+
+    // Add envmap to texture image map so GUI can view it
+    if (oldId != -1) { // Clean up old texture id
+      std::optional<std::string> old_name =
+          findKeyByTextureId(oldId, m_textureImageMap);
+      assert(old_name.has_value());
+      m_textureImageMap.erase(old_name.value());
+    }
+    core::Image envImage = envmapInfo.image;
+    envImage.textureId = sceneInfo.envmapLight.envTextureIdx;
+    std::string name = core::getLowercasedStem(envImage.filename);
+    m_textureImageMap.insert_or_assign(name, envImage);
+    m_pendingEnvmap.reset();
+  }
+  sceneInfo.areaLight =
+      m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
+  sceneInfo.totalAnalyticalPower =
+      m_lights.computeAnalyticalLightContribution(m_scene_resources);
+
+  printf("%f %f %f\n", sceneInfo.totalAnalyticalPower,
+         sceneInfo.areaLight.totalSum, sceneInfo.envmapLight.totalSum);
+}
+
+/**********************************************************/
 void SceneResourcesManager::uploadLights()
 /**********************************************************/
 {
@@ -360,8 +434,8 @@ void SceneResourcesManager::uploadLights()
     const EnvmapInfo envmapInfo =
         m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
                             m_pendingEnvmap->rotation);
-    sceneInfo.envmapLight =
-        m_lights.uploadEnvmap(envmapInfo, m_device_resources);
+    m_lights.uploadEnvmap(envmapInfo, m_device_resources,
+                          sceneInfo.envmapLight);
 
     // Add envmap to texture image map so GUI can view it
     core::Image envImage = envmapInfo.image;
@@ -424,6 +498,16 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
   m_scene_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_scene_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
   m_scene_resources.sceneInfo.cameraPosition = camera->getEye();
+}
+
+/**********************************************************/
+void SceneResourcesManager::onLightChange()
+/**********************************************************/
+{
+  m_device_resources->beginUploading();
+  updateLights();
+  m_device_resources->endUploading();
+  setDirty(true);
 }
 
 /**********************************************************/

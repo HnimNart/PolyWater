@@ -94,6 +94,9 @@ void VulkanRendererElement::onFileDrop(const std::filesystem::path &filename)
   } else if (ext == ".obj" || ext == ".gltf" || ext == ".glb") {
     LOGI("Model File dropped: %s\n", filename.c_str());
     m_modelFileToLoad = filename;
+  } else if (ext == ".hdr") {
+    LOGI("Env File dropped: %s\n", filename.c_str());
+    m_envFileToLoad = filename;
   } else {
     LOGI("Error: Dropped file is not a recognised file ( %s )\n",
          filename.c_str());
@@ -188,6 +191,12 @@ void VulkanRendererElement::onPreRender()
     m_sceneManager.sceneResourceManager().loadModel(m_modelFileToLoad);
     m_sceneManager.sceneResourceManager().finalizeSceneResources();
     m_modelFileToLoad.clear();
+  }
+
+  if (!m_envFileToLoad.empty()) {
+    m_sceneManager.sceneResourceManager().addEnvmap(m_envFileToLoad);
+    m_sceneManager.sceneResourceManager().onLightChange();
+    m_envFileToLoad.clear();
   }
 
   m_hasChanged |= m_sceneManager.camera()->isDirty();
@@ -287,7 +296,9 @@ void VulkanRendererElement::onUIRender()
         }
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          m_hasChanged |= app::lightEditor(resourceManager);
+          if (app::lightEditor(resourceManager)) {
+            resourceManager.onLightChange();
+          }
         }
         ImGui::EndTabItem();
       }

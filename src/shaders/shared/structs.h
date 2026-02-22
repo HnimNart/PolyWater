@@ -208,7 +208,9 @@ struct AreaLight {
 struct EnvmapLight {
   // GPU Buffer Addresses for MIS
   float *cdfRows = nullptr; // Conditional CDF: (width + 1) * height
+  int cdfRowsBufferIndex  = -1;
   float *cdfCols = nullptr; // Marginal CDF: (height + 1)
+  int cdfColsBufferIndex  = -1;
 
   // Transformation & Intensity
   float rotationAzimuthDegree;
@@ -217,8 +219,8 @@ struct EnvmapLight {
   float totalSum;    // The integral of the importance map (needed for PDF)
 
   // Texture Information
-  uint32_t envTextureIdx; // Index for bindless texture lookup
-  uint2 dims;        // Width and Height of the texture
+  uint32_t envTextureIdx = -1; // Index for bindless texture lookup
+  uint2 dims;                  // Width and Height of the texture
 };
 CHECK_STRUCT_ALIGNMENT(EnvmapLight)
 

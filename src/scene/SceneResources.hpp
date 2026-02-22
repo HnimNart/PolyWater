@@ -29,6 +29,7 @@ public:
   std::vector<MeshID> loadModel(const std::string &filename,
                                 std::string name = "");
   TextureID addTexture(const std::string &name, const std::string &filename);
+  bool destroyTexture(TextureID id);
   void addEnvmap(const std::filesystem::path &filename, float scale = 1.0f,
                  float rotation = 0.0f);
 
@@ -45,6 +46,7 @@ public:
   void updateSceneInfo(const CameraPtr &camera);
 
   void onMaterialChange();
+  void onLightChange();
   void onInstanceChange();
 
   // --- State Management ---
@@ -111,6 +113,7 @@ private:
 
   void uploadOptimizedMesh(const OptimizedPayload &payload);
   void uploadLights();
+  void updateLights();
   void uploadTextures();
   MeshID getNextFreeMeshID();
 
@@ -150,7 +153,6 @@ private:
   std::unordered_map<std::string, MeshID> m_meshMap;
   std::unordered_map<std::string, TextureID> m_textureMap;
   std::unordered_map<std::string, core::Image> m_textureImageMap;
-
   std::unordered_map<std::filesystem::path, TextureID> m_fileToTextureMap;
   uint m_pendingMeshes{0};
 };

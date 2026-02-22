@@ -53,6 +53,10 @@ void VulkanSceneAssetManager::clear()
   }
   m_textures.clear();
   m_data = {};
+
+  m_freeBufferIndices.clear();
+  m_freeTextureIndices.clear();
+  m_nextTextureId = 1;
 }
 
 // -------------------------------------------------------------------------
@@ -89,13 +93,34 @@ void VulkanSceneAssetManager::endUploading()
 IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
 /**********************************************************/
 {
-  TextureID textureId = static_cast<TextureID>(m_textures.size()) + 1;
-  auto [it, inserted] = m_textures.try_emplace(textureId, nvvk::Image{});
-  if (!inserted) {
-    LOGE("Failed to add texture: ID %u already exists!", textureId);
+  TextureID textureId;
+  // Check the free list first
+  if (!m_freeTextureIndices.empty()) {
+    textureId = m_freeTextureIndices.back();
+    m_freeTextureIndices.pop_back();
+  } else {
+    textureId = m_nextTextureId++;
   }
+  // Ensure the slot exists in the map so addTexture can find it
+  m_textures[textureId] = nvvk::Image{};
   assert(textureId < MAX_SCENE_TEXTURES);
   return textureId;
+}
+
+/**********************************************************/
+bool VulkanSceneAssetManager::destroyTexture(TextureID id)
+/**********************************************************/
+{
+  auto it = m_textures.find(id);
+  if (it == m_textures.end()) {
+    return false;
+  }
+  if (it->second.image != VK_NULL_HANDLE) {
+    m_context_manager->getAllocator().destroyImage(it->second);
+  }
+  m_textures.erase(it);
+  m_freeTextureIndices.push_back(id);
+  return true;
 }
 
 /**********************************************************/
@@ -103,7 +128,7 @@ bool VulkanSceneAssetManager::addTexture(const core::Image &image,
                                          TextureID &textureId)
 /**********************************************************/
 {
-  if (textureId == -1) {
+  if (textureId == -1 || m_textures.find(textureId) == m_textures.end()) {
     textureId = reserveTextureSlot();
   }
 
@@ -114,10 +139,14 @@ bool VulkanSceneAssetManager::addTexture(const core::Image &image,
     return false;
   }
 
-  // Cleanup existing image at this slot
-  auto it = m_textures.find(textureId);
-  if (it != m_textures.end() && it->second.image != VK_NULL_HANDLE) {
-    m_context_manager->getAllocator().destroyImage(it->second);
+  // Cleanup existing image at this slot (standard overwrite logic)
+  nvvk::Image &slot = m_textures[textureId];
+  if (slot.image != VK_NULL_HANDLE) {
+    LOGI("Found existing texture(Id:%d). Destroying it to make room "
+         "for new "
+         "texture\n",
+         textureId);
+    m_context_manager->getAllocator().destroyImage(slot);
   }
 
   nvvk::Image texture =
@@ -131,7 +160,7 @@ bool VulkanSceneAssetManager::addTexture(const core::Image &image,
 
 /**********************************************************/
 bool VulkanSceneAssetManager::addAndUploadTexture(const core::Image &image,
-                                                  TextureID textureId)
+                                                  TextureID &textureId)
 /**********************************************************/
 {
   if (addTexture(image, textureId)) {
@@ -146,8 +175,9 @@ void VulkanSceneAssetManager::updateTextureDescriptorSets(
     const std::vector<uint32_t> &indices)
 /**********************************************************/
 {
-  if (indices.empty())
+  if (indices.empty()) {
     return;
+  }
 
   nvvk::WriteSetContainer write{};
   for (uint32_t index : indices) {
@@ -211,9 +241,36 @@ VulkanSceneAssetManager::upload(const std::span<const uint8_t> &data)
 {
   nvvk::Buffer bData;
   createBuffer(bData, data, meshBufferUsage);
-  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
-  m_data.bDatas.push_back(bData);
+
+  uint32_t bufferIndex;
+
+  // Check if we can recycle a previously destroyed slot
+  if (!m_freeBufferIndices.empty()) {
+    bufferIndex = m_freeBufferIndices.back();
+    m_freeBufferIndices.pop_back();
+    m_data.bDatas[bufferIndex] = bData;
+  } else {
+    // No free slots, grow the vector
+    bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
+    m_data.bDatas.push_back(bData);
+  }
+
   return {(uint8_t *)bData.address, bufferIndex};
+}
+
+/**********************************************************/
+void VulkanSceneAssetManager::destroyBuffer(BufferID id)
+/**********************************************************/
+{
+  // Safety check to prevent out-of-bounds or double-free
+  if (id >= m_data.bDatas.size() ||
+      m_data.bDatas[id].buffer == VK_NULL_HANDLE) {
+    return;
+  }
+  nvvk::Buffer &buffer = m_data.bDatas[id];
+  destroyBuffer(buffer);
+  buffer = {};
+  m_freeBufferIndices.push_back(id);
 }
 /**********************************************************/
 void VulkanSceneAssetManager::linkMeshToBuffer(MeshID meshId,

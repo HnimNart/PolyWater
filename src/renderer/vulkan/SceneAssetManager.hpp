@@ -63,6 +63,7 @@ public:
   // -------------------------------------------------------------------------
   IDeviceAssets::BufferHandle
   upload(const std::span<const uint8_t> &data) override;
+  void destroyBuffer(BufferID id) override;
 
   void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
   void uploadSceneResoures(const Scene &resources) override;
@@ -88,7 +89,8 @@ public:
   //    Handling image creation, GPU upload, and descriptor set manipulation.
   // -------------------------------------------------------------------------
   bool addTexture(const core::Image &image, TextureID &id) override;
-  bool addAndUploadTexture(const core::Image &image, TextureID id = -1);
+  bool destroyTexture(TextureID id) override;
+  bool addAndUploadTexture(const core::Image &image, TextureID &id) override;
   TextureID reserveTextureSlot() override;
   uint64_t getTextureHandle(TextureID id) override;
 
@@ -162,4 +164,7 @@ private:
   // Upload State
   VkCommandBuffer m_cmd = VK_NULL_HANDLE;
   uint32_t m_meshIdCounter = 0;
+  std::vector<BufferID> m_freeBufferIndices;
+  std::vector<TextureID> m_freeTextureIndices;
+  uint m_nextTextureId{1}; // 0 is reserved for system
 };

@@ -25,6 +25,8 @@ bool textureEditor(SceneResourcesManager &resourceManager,
   std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
                  ::tolower);
 
+  TextureID textureToDelete = -1;
+
   for (const auto &[name, image] : textureMap) {
     if (!image.isValid())
       continue;
@@ -97,6 +99,18 @@ bool textureEditor(SceneResourcesManager &resourceManager,
           ImGui::TextDisabled("ID:");
           ImGui::TableNextColumn();
           ImGui::Text("%ld", image.textureId);
+          ImGui::PushStyleColor(ImGuiCol_Button,
+                                ImVec4(0.5f, 0.1f, 0.1f, 1.0f));
+          ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                                ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+          ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                                ImVec4(0.9f, 0.1f, 0.1f, 1.0f));
+          if (ImGui::Button(("Delete Texture##" + name).c_str(),
+                            ImVec2(-FLT_MIN, 0))) {
+
+            textureToDelete = image.textureId;
+          }
+          ImGui::PopStyleColor(3);
 
           ImGui::EndTable();
         }
@@ -106,6 +120,10 @@ bool textureEditor(SceneResourcesManager &resourceManager,
 
       ImGui::TreePop();
     }
+  }
+
+  if (textureToDelete != -1) {
+    resourceManager.destroyTexture(textureToDelete);
   }
   return false;
 }

@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include "core/Image.hpp"
-
 #include "shaders/shared/structs.h"
 #include <backend/interfaces/RHI_definitions.hpp>
 

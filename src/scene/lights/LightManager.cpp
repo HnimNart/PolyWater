@@ -117,35 +117,41 @@ LightManager::extractAreaLights(const Scene &scene)
 }
 
 /**********************************************************/
-EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
-                                    float scale, float rotation)
+const EnvmapInfo &
+LightManager::loadEnvmap(const std::filesystem::path &filename, float scale,
+                         float rotation)
 /**********************************************************/
 {
-  EnvmapInfo info;
+  if (filename == m_envmapInfo.filename && scale == m_envmapInfo.scale &&
+      rotation == m_envmapInfo.rotation) {
+    return m_envmapInfo;
+  }
+
   if (filename.empty()) {
-    return info;
+    return m_envmapInfo;
   }
 
   // 1. Load HDR Image into our agnostic CPU struct
-  info.image = core::loadRawImage(filename);
+  m_envmapInfo.image = core::loadRawImage(filename);
 
-  if (!info.image.isValid()) {
+  if (!m_envmapInfo.image.isValid()) {
     LOGE("Failed to load environment map at: %s", filename.string().c_str());
-    return info;
+    return m_envmapInfo;
   }
 
-  info.scale = scale;
-  info.rotation = rotation;
+  m_envmapInfo.filename = filename;
+  m_envmapInfo.scale = scale;
+  m_envmapInfo.rotation = rotation;
 
-  uint32_t width = info.image.width;
-  uint32_t height = info.image.height;
-  float *data = reinterpret_cast<float *>(info.image.pixels.data());
+  uint32_t width = m_envmapInfo.image.width;
+  uint32_t height = m_envmapInfo.image.height;
+  float *data = reinterpret_cast<float *>(m_envmapInfo.image.pixels.data());
 
   // 2. Build Importance Map
   // We multiply luminance by sin(theta) to handle the area distortion
   // of equirectangular maps at the poles.
   size_t numPixels = (size_t)width * height;
-  info.importanceMap.resize(numPixels);
+  m_envmapInfo.importanceMap.resize(numPixels);
   std::vector<float> rowWeights(height, 0.0f);
 
   for (uint32_t y = 0; y < height; ++y) {
@@ -161,7 +167,7 @@ EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
       glm::vec3 rgb(data[idx * 4 + 0], data[idx * 4 + 1], data[idx * 4 + 2]);
 
       float importance = getLuminance(rgb) * sinTheta;
-      info.importanceMap[idx] = importance;
+      m_envmapInfo.importanceMap[idx] = importance;
       rowSum += importance;
     }
     rowWeights[y] = rowSum;
@@ -169,94 +175,99 @@ EnvmapInfo LightManager::loadEnvmap(const std::filesystem::path &filename,
 
   // 3. Generate 2D CDF (Importance Sampling)
   // Marginal CDF (Columns/Rows selection)
-  info.cdfCols.resize(height + 1);
-  info.cdfCols[0] = 0.0f;
+  m_envmapInfo.cdfCols.resize(height + 1);
+  m_envmapInfo.cdfCols[0] = 0.0f;
   for (uint32_t y = 0; y < height; ++y) {
-    info.cdfCols[y + 1] = info.cdfCols[y] + rowWeights[y];
+    m_envmapInfo.cdfCols[y + 1] = m_envmapInfo.cdfCols[y] + rowWeights[y];
   }
 
   // Store the total integral before normalizing!
   // You need this for the PDF calculation: pdf = importance / totalIntegral
-  info.totalIntegral = info.cdfCols[height];
+  m_envmapInfo.totalIntegral = m_envmapInfo.cdfCols[height];
 
-  if (info.totalIntegral > 0) {
-    for (auto &val : info.cdfCols)
-      val /= info.totalIntegral;
+  if (m_envmapInfo.totalIntegral > 0) {
+    for (auto &val : m_envmapInfo.cdfCols)
+      val /= m_envmapInfo.totalIntegral;
   }
 
   // Conditional CDF (Rows/Pixel selection)
-  info.cdfRows.resize((width + 1) * height);
+  m_envmapInfo.cdfRows.resize((width + 1) * height);
   for (uint32_t y = 0; y < height; ++y) {
     int rowOffset = y * (width + 1);
-    info.cdfRows[rowOffset] = 0.0f;
+    m_envmapInfo.cdfRows[rowOffset] = 0.0f;
 
     for (uint32_t x = 0; x < width; ++x) {
-      float importance = info.importanceMap[y * width + x];
-      info.cdfRows[rowOffset + x + 1] =
-          info.cdfRows[rowOffset + x] + importance;
+      float importance = m_envmapInfo.importanceMap[y * width + x];
+      m_envmapInfo.cdfRows[rowOffset + x + 1] =
+          m_envmapInfo.cdfRows[rowOffset + x] + importance;
     }
 
-    float rowTotal = info.cdfRows[rowOffset + width];
+    float rowTotal = m_envmapInfo.cdfRows[rowOffset + width];
     if (rowTotal > 0) {
       for (uint32_t x = 0; x <= width; ++x) {
-        info.cdfRows[rowOffset + x] /= rowTotal;
+        m_envmapInfo.cdfRows[rowOffset + x] /= rowTotal;
       }
     }
   }
 
   LOGD("Environment map processed: %dx%d", width, height);
 
-  return info;
+  return m_envmapInfo;
 }
 
 /**********************************************************/
-shaderio::EnvmapLight LightManager::uploadEnvmap(
+void LightManager::uploadEnvmap(
     const EnvmapInfo &info,
-    const std::shared_ptr<IDeviceAssets> &deviceResources)
+    const std::shared_ptr<IDeviceAssets> &deviceResources,
+    shaderio::EnvmapLight &envmapLight)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  shaderio::EnvmapLight gpuEnvLight{};
 
   // Check if we actually have image data to upload
   if (!info.image.isValid()) {
-    return gpuEnvLight;
+    return;
   }
 
-  // 1. Upload the HDR Texture (The visual data)
-  gpuEnvLight.envTextureIdx = -1;
-  deviceResources->addTexture(info.image, gpuEnvLight.envTextureIdx);
+  // Only re-upload heavy resources if it's the first time OR the file changed.
+  bool first = (envmapLight.envTextureIdx == -1);
+  bool needsUpload = first || (info.filename != m_currentEnvFilename);
+  if (needsUpload) {
+    if (!first) {
+      deviceResources->destroyBuffer(envmapLight.cdfRowsBufferIndex);
+      deviceResources->destroyBuffer(envmapLight.cdfColsBufferIndex);
+    }
 
-  // 2. Upload CDF Row Data (Conditional CDF)
-  size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);
-  std::span<const uint8_t> cdfRowView(
-      reinterpret_cast<const uint8_t *>(info.cdfRows.data()), cdfRowBytes);
-  const auto rowHandle = deviceResources->upload(cdfRowView);
-  gpuEnvLight.cdfRows = rowHandle.as<float>();
+    // 1. Upload the HDR Texture (The visual data)
+    deviceResources->addAndUploadTexture(info.image, envmapLight.envTextureIdx);
 
-  // 3. Upload CDF Column Data (Marginal CDF)
-  size_t cdfColBytes = info.cdfCols.size() * sizeof(float);
-  std::span<const uint8_t> cdfColView(
-      reinterpret_cast<const uint8_t *>(info.cdfCols.data()), cdfColBytes);
-  const auto colCdf = deviceResources->upload(cdfColView);
-  gpuEnvLight.cdfCols = colCdf.as<float>();
+    // 2. Upload CDF Row Data (Conditional CDF)
+    size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);
+    std::span<const uint8_t> cdfRowView(
+        reinterpret_cast<const uint8_t *>(info.cdfRows.data()), cdfRowBytes);
+    const auto rowHandle = deviceResources->upload(cdfRowView);
+    envmapLight.cdfRows = rowHandle.as<float>();
+    envmapLight.cdfRowsBufferIndex = rowHandle.id;
 
-  // 4. Set Metadata
-  gpuEnvLight.scale = info.scale;
-  gpuEnvLight.dims = glm::uvec2(info.image.width, info.image.height);
+    // 3. Upload CDF Column Data (Marginal CDF)
+    size_t cdfColBytes = info.cdfCols.size() * sizeof(float);
+    std::span<const uint8_t> cdfColView(
+        reinterpret_cast<const uint8_t *>(info.cdfCols.data()), cdfColBytes);
+    const auto colCdf = deviceResources->upload(cdfColView);
+    envmapLight.cdfCols = colCdf.as<float>();
+    envmapLight.cdfColsBufferIndex = colCdf.id;
 
-  // Pre-compute the rotation matrix on CPU
-  // This is used in the shader to rotate the environment without re-uploading
-  // pixels
-  float rad = glm::radians(info.rotation);
-  gpuEnvLight.rotationAzimuthDegree = info.rotation;
-  gpuEnvLight.rotation = glm::rotate(glm::mat4(1.0f), rad, glm::vec3(0, 1, 0));
+    envmapLight.scale = info.scale;
+    envmapLight.dims = glm::uvec2(info.image.width, info.image.height);
+    float rad = glm::radians(info.rotation);
+    envmapLight.rotationAzimuthDegree = info.rotation;
+    envmapLight.rotation =
+        glm::rotate(glm::mat4(1.0f), rad, glm::vec3(0, 1, 0));
+    envmapLight.totalSum = info.totalIntegral;
 
-  // totalIntegral is used for PDF normalization: pdf = luminance /
-  // totalIntegral
-  gpuEnvLight.totalSum = info.totalIntegral;
-
-  return gpuEnvLight;
+    // Update our tracker
+    m_currentEnvFilename = info.filename;
+  }
 }
 
 /**********************************************************/

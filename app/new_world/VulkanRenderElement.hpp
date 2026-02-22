@@ -75,4 +75,5 @@ private:
 
   std::string m_sceneFile{};
   std::string m_modelFileToLoad{};
+  std::string m_envFileToLoad{};
 };

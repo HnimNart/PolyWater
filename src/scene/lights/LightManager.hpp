@@ -9,6 +9,7 @@
 #include "shaders/shared/structs.h"
 
 struct EnvmapInfo {
+  std::string filename;
   float scale = 1.0f;
   float rotation = 0.0f;
 
@@ -29,8 +30,8 @@ public:
   /**
    * Loads envmap buffer to CPU on disk
    */
-  EnvmapInfo loadEnvmap(const std::filesystem::path &filename, float scale,
-                        float rotation);
+  const EnvmapInfo &loadEnvmap(const std::filesystem::path &filename,
+                               float scale, float rotation);
 
   /**
    * Extracts emissive geometry from the scene and uploads to GPU.
@@ -40,9 +41,9 @@ public:
                    const std::shared_ptr<IDeviceAssets> &deviceResources);
 
   // Uploads to GPU
-  shaderio::EnvmapLight
-  uploadEnvmap(const EnvmapInfo &info,
-               const std::shared_ptr<IDeviceAssets> &deviceResources);
+  void uploadEnvmap(const EnvmapInfo &info,
+                    const std::shared_ptr<IDeviceAssets> &deviceResources,
+                    shaderio::EnvmapLight &envmapLight);
 
   float computeAnalyticalLightContribution(const Scene &scene);
 
@@ -53,4 +54,8 @@ private:
    */
   std::pair<std::vector<float>, std::vector<shaderio::TriangleLight>>
   extractAreaLights(const Scene &scene);
+
+  // cached members
+  EnvmapInfo m_envmapInfo;
+  std::string m_currentEnvFilename{};
 };
