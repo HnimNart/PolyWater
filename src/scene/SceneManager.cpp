@@ -121,6 +121,7 @@ void SceneManager::buildSceneFromData(
 
     sceneInfo.numLights++;
   }
+  sceneInfo.numLights = std::max(1, sceneInfo.numLights);
 
   if (data.envmap.useEnvMap) {
     m_scene_resources.addEnvmap(

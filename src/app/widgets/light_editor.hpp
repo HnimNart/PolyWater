@@ -95,10 +95,7 @@ inline LightChangedBitMask lightEditor(SceneResourcesManager &resources)
       int typeInt = static_cast<int>(light.type);
       if (PE::Combo("Type", &typeInt, "Point\0Spot\0Directional\0")) {
         light.type = (shaderio::LightType)typeInt;
-        mask |=
-            LightChangedBitMask::PunctualLightChanged; // Assuming punctual
-                                                       // lights fall under the
-                                                       // AreaLight update path
+        mask |= LightChangedBitMask::PunctualLightChanged;
       }
 
       if (light.type != shaderio::LightType::eDirectional)
@@ -111,8 +108,9 @@ inline LightChangedBitMask lightEditor(SceneResourcesManager &resources)
           mask |= LightChangedBitMask::PunctualLightChanged;
 
       if (PE::DragFloat("Intensity", &light.intensity, 1.0f, 0.0f, 10000.0f,
-                        "%.2f", ImGuiSliderFlags_Logarithmic))
+                        "%.2f")) {
         mask |= PunctualLightChanged;
+      }
       if (PE::ColorEdit3("Color", glm::value_ptr(light.color)))
         mask |= LightChangedBitMask::PunctualLightChanged;
 
