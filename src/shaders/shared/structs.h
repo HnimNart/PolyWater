@@ -200,7 +200,9 @@ CHECK_STRUCT_ALIGNMENT(TriangleLight)
 
 struct AreaLight {
   TriangleLight *triangles = nullptr;
+  uint TriangleLightBufferIndex = -1;
   float *cdf = nullptr;
+  uint cdfBufferIndex = -1;
   uint nTriangles = 0;
   float totalSum = 0; // Total sum of light
 };

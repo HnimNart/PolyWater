@@ -18,6 +18,14 @@ using MaterialID = uint32_t;
 using MeshID = IDeviceAssets::MeshID;
 using TextureID = IDeviceAssets::TextureID;
 
+enum LightChangedBitMask {
+  NoneChanged = 0,
+  EnvmapChanged = (1 << 0),
+  AreaLightChanged = (1 << 1),
+  PunctualLightChanged = (1 << 2),
+  All = (EnvmapChanged | AreaLightChanged | PunctualLightChanged)
+};
+
 class SceneResourcesManager {
 public:
   // --- Lifecycle ---
@@ -46,7 +54,7 @@ public:
   void updateSceneInfo(const CameraPtr &camera);
 
   void onMaterialChange();
-  void onLightChange();
+  void onLightChange(LightChangedBitMask mask);
   void onInstanceChange();
 
   // --- State Management ---
@@ -112,8 +120,7 @@ private:
                               const std::string &filename);
 
   void uploadOptimizedMesh(const OptimizedPayload &payload);
-  void uploadLights();
-  void updateLights();
+  void uploadLights(LightChangedBitMask mask);
   void uploadTextures();
   MeshID getNextFreeMeshID();
 

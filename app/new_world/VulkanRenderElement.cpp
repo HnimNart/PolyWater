@@ -195,7 +195,8 @@ void VulkanRendererElement::onPreRender()
 
   if (!m_envFileToLoad.empty()) {
     m_sceneManager.sceneResourceManager().addEnvmap(m_envFileToLoad);
-    m_sceneManager.sceneResourceManager().onLightChange();
+    m_sceneManager.sceneResourceManager().onLightChange(
+        LightChangedBitMask::EnvmapChanged);
     m_envFileToLoad.clear();
   }
 
@@ -296,8 +297,8 @@ void VulkanRendererElement::onUIRender()
         }
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (app::lightEditor(resourceManager)) {
-            resourceManager.onLightChange();
+          if (auto mask = app::lightEditor(resourceManager)) {
+            resourceManager.onLightChange(mask);
           }
         }
         ImGui::EndTabItem();

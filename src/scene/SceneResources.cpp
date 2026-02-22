@@ -383,7 +383,7 @@ void SceneResourcesManager::finalizeSceneResources()
   uploadTextures();
 
   // Extract light
-  uploadLights();
+  uploadLights(LightChangedBitMask::All);
 
   m_device_resources->uploadSceneResoures(m_scene_resources);
   m_device_resources->endUploading();
@@ -391,66 +391,44 @@ void SceneResourcesManager::finalizeSceneResources()
 }
 
 /**********************************************************/
-void SceneResourcesManager::updateLights()
+void SceneResourcesManager::uploadLights(LightChangedBitMask mask)
 /**********************************************************/
 {
   shaderio::SceneInfo &sceneInfo = m_scene_resources.sceneInfo;
-  if (m_pendingEnvmap) {
+
+  // 1. Handle Environment Map Changes
+  if ((mask & LightChangedBitMask::EnvmapChanged) && m_pendingEnvmap) {
     TextureID oldId = sceneInfo.envmapLight.envTextureIdx;
     const EnvmapInfo &envmapInfo =
         m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
                             m_pendingEnvmap->rotation);
+
     m_lights.uploadEnvmap(envmapInfo, m_device_resources,
                           sceneInfo.envmapLight);
 
-    // Add envmap to texture image map so GUI can view it
-    if (oldId != -1) { // Clean up old texture id
-      std::optional<std::string> old_name =
-          findKeyByTextureId(oldId, m_textureImageMap);
-      assert(old_name.has_value());
-      m_textureImageMap.erase(old_name.value());
+    // Update GUI texture map
+    if (auto old_name = findKeyByTextureId(oldId, m_textureImageMap)) {
+      m_textureImageMap.erase(*old_name);
     }
+
     core::Image envImage = envmapInfo.image;
     envImage.textureId = sceneInfo.envmapLight.envTextureIdx;
     std::string name = core::getLowercasedStem(envImage.filename);
     m_textureImageMap.insert_or_assign(name, envImage);
     m_pendingEnvmap.reset();
   }
-  sceneInfo.areaLight =
-      m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
-  sceneInfo.totalAnalyticalPower =
-      m_lights.computeAnalyticalLightContribution(m_scene_resources);
 
-  printf("%f %f %f\n", sceneInfo.totalAnalyticalPower,
-         sceneInfo.areaLight.totalSum, sceneInfo.envmapLight.totalSum);
-}
-
-/**********************************************************/
-void SceneResourcesManager::uploadLights()
-/**********************************************************/
-{
-  shaderio::SceneInfo &sceneInfo = m_scene_resources.sceneInfo;
-  if (m_pendingEnvmap) {
-    const EnvmapInfo envmapInfo =
-        m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
-                            m_pendingEnvmap->rotation);
-    m_lights.uploadEnvmap(envmapInfo, m_device_resources,
-                          sceneInfo.envmapLight);
-
-    // Add envmap to texture image map so GUI can view it
-    core::Image envImage = envmapInfo.image;
-    envImage.textureId = sceneInfo.envmapLight.envTextureIdx;
-    std::string name = core::getLowercasedStem(envImage.filename);
-    m_textureImageMap.insert_or_assign(name, envImage);
-    m_pendingEnvmap.reset();
+  // 2. Handle Area Light Changes
+  if (mask & LightChangedBitMask::AreaLightChanged) {
+    m_lights.uploadAreaLights(m_scene_resources, m_device_resources,
+                              sceneInfo.areaLight);
   }
-  sceneInfo.areaLight =
-      m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
-  sceneInfo.totalAnalyticalPower =
-      m_lights.computeAnalyticalLightContribution(m_scene_resources);
 
-  printf("%f %f %f\n", sceneInfo.totalAnalyticalPower,
-         sceneInfo.areaLight.totalSum, sceneInfo.envmapLight.totalSum);
+  // 3. Recalculate Analytical Power
+  if (mask != LightChangedBitMask::NoneChanged) {
+    sceneInfo.totalAnalyticalPower =
+        m_lights.computeAnalyticalLightContribution(m_scene_resources);
+  }
 }
 
 /**********************************************************/
@@ -501,11 +479,11 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
 }
 
 /**********************************************************/
-void SceneResourcesManager::onLightChange()
+void SceneResourcesManager::onLightChange(LightChangedBitMask mask)
 /**********************************************************/
 {
   m_device_resources->beginUploading();
-  updateLights();
+  uploadLights(mask);
   m_device_resources->endUploading();
   setDirty(true);
 }

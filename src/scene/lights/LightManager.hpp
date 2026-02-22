@@ -36,9 +36,9 @@ public:
   /**
    * Extracts emissive geometry from the scene and uploads to GPU.
    */
-  shaderio::AreaLight
-  uploadAreaLights(const Scene &scene,
-                   const std::shared_ptr<IDeviceAssets> &deviceResources);
+  void uploadAreaLights(const Scene &scene,
+                        const std::shared_ptr<IDeviceAssets> &deviceResources,
+                        shaderio::AreaLight &areaLight);
 
   // Uploads to GPU
   void uploadEnvmap(const EnvmapInfo &info,

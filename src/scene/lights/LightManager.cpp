@@ -20,8 +20,9 @@ inline float getLuminance(const glm::vec3 &color) {
 } // namespace
 
 /**********************************************************/
-shaderio::AreaLight LightManager::uploadAreaLights(
-    const Scene &scene, const std::shared_ptr<IDeviceAssets> &deviceResources)
+void LightManager::uploadAreaLights(
+    const Scene &scene, const std::shared_ptr<IDeviceAssets> &deviceResources,
+    shaderio::AreaLight &areaLight)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -30,7 +31,12 @@ shaderio::AreaLight LightManager::uploadAreaLights(
 
   if (triangleLights.empty()) {
     LOGD("No area lights found\n");
-    return {nullptr, nullptr, 0, 0};
+    return;
+  }
+
+  if (areaLight.TriangleLightBufferIndex != -1) {
+    deviceResources->destroyBuffer(areaLight.TriangleLightBufferIndex);
+    deviceResources->destroyBuffer(areaLight.cdfBufferIndex);
   }
 
   // 1. Upload Area Lights Geometry
@@ -49,12 +55,12 @@ shaderio::AreaLight LightManager::uploadAreaLights(
   const auto cdfHandle = deviceResources->upload(cdfDataView);
   float totalSum = std::accumulate(weights.begin(), weights.end(), 0.0f);
 
-  return {
-      .triangles = lightHandle.as<shaderio::TriangleLight>(),
-      .cdf = cdfHandle.as<float>(),
-      .nTriangles = static_cast<uint32_t>(triangleLights.size()),
-      .totalSum = totalSum,
-  };
+  areaLight = {.triangles = lightHandle.as<shaderio::TriangleLight>(),
+               .TriangleLightBufferIndex = lightHandle.id,
+               .cdf = cdfHandle.as<float>(),
+               .cdfBufferIndex = cdfHandle.id,
+               .nTriangles = static_cast<uint32_t>(triangleLights.size()),
+               .totalSum = totalSum};
 }
 
 /**********************************************************/
