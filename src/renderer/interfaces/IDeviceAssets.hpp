@@ -20,6 +20,17 @@ public:
   using BufferAddr = uint8_t *;
   using BufferID = uint32_t;
 
+  struct BufferHandle {
+    BufferAddr address = 0; // GPU pointer for shaders (BDA)
+    BufferID id = 0;        // Index for the Asset Manager's vector
+
+    // Optional: helper to check if valid
+    bool isValid() const { return address != nullptr; }
+    template <typename T> T *as() const {
+      return reinterpret_cast<T *>(address);
+    }
+  };
+
   virtual ~IDeviceAssets() = default;
 
   // ---------------------------------------------------------------------------
@@ -39,10 +50,7 @@ public:
   // ---------------------------------------------------------------------------
   // Geometry Upload (Buffers)
   // ---------------------------------------------------------------------------
-  virtual std::pair<BufferAddr, BufferID>
-  upload(const std::span<const unsigned char> &data) = 0;
-  virtual std::pair<void *, BufferID> upload(const void *data,
-                                             size_t bytes) = 0;
+  virtual BufferHandle upload(const std::span<const uint8_t> &data) = 0;
 
   // ---------------------------------------------------------------------------
   // Scene Registration

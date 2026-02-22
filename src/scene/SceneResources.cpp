@@ -295,17 +295,17 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
   std::span<const uint8_t> data = payload.rawBuffer;
   m_scene_resources.meshData.emplace_back(payload.rawBuffer);
 
-  const auto [bufferAddr, bufferIndex] = m_device_resources->upload(data);
+  const auto bufferHandle = m_device_resources->upload(data);
   const size_t startSize = m_scene_resources.meshes.size();
   m_scene_resources.meshes.reserve(startSize + payload.primitives.size());
 
   for (auto mesh : payload.primitives) {
     mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
-    mesh.buffer = reinterpret_cast<uint8_t *>(bufferAddr);
+    mesh.buffer = bufferHandle.as<uint8_t>();
     m_scene_resources.meshes.emplace_back(mesh);
   }
 
-  m_device_resources->addMeshes(payload.primitives.size(), bufferIndex);
+  m_device_resources->addMeshes(payload.primitives.size(), bufferHandle.id);
   m_pendingMeshes -= payload.primitives.size();
 }
 

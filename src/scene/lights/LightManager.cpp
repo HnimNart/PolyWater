@@ -30,26 +30,28 @@ shaderio::AreaLight LightManager::uploadAreaLights(
 
   if (triangleLights.empty()) {
     LOGD("No area lights found\n");
-    return {nullptr, nullptr, 0};
+    return {nullptr, nullptr, 0, 0};
   }
 
   // 1. Upload Area Lights Geometry
   size_t lightBytes = triangleLights.size() * sizeof(shaderio::TriangleLight);
-  const auto [bufferAddrLight, _1] =
-      deviceResources->upload((void *)triangleLights.data(), lightBytes);
+  std::span<const uint8_t> lightDataView(
+      reinterpret_cast<const uint8_t *>(triangleLights.data()), lightBytes);
+  const auto lightHandle = deviceResources->upload(lightDataView);
 
   // 2. Build and Upload CDF for Importance Sampling
   DiscretePDF cdfBuilder(weights);
   const std::vector<float> &areaLightCDF = cdfBuilder.getCdf();
-  size_t cdfBytes = areaLightCDF.size() * sizeof(float);
-  const auto [bufferAddrCDF, _2] =
-      deviceResources->upload((void *)areaLightCDF.data(), cdfBytes);
 
+  size_t cdfBytes = areaLightCDF.size() * sizeof(float);
+  std::span<const uint8_t> cdfDataView(
+      reinterpret_cast<const uint8_t *>(areaLightCDF.data()), cdfBytes);
+  const auto cdfHandle = deviceResources->upload(cdfDataView);
   float totalSum = std::accumulate(weights.begin(), weights.end(), 0.0f);
 
   return {
-      .triangles = static_cast<shaderio::TriangleLight *>(bufferAddrLight),
-      .cdf = static_cast<float *>(bufferAddrCDF),
+      .triangles = lightHandle.as<shaderio::TriangleLight>(),
+      .cdf = cdfHandle.as<float>(),
       .nTriangles = static_cast<uint32_t>(triangleLights.size()),
       .totalSum = totalSum,
   };
@@ -226,18 +228,18 @@ shaderio::EnvmapLight LightManager::uploadEnvmap(
   deviceResources->addTexture(info.image, gpuEnvLight.envTextureIdx);
 
   // 2. Upload CDF Row Data (Conditional CDF)
-  // This buffer allows the shader to pick a specific horizontal pixel (U)
   size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);
-  const auto [rowAddr, _1] =
-      deviceResources->upload((void *)info.cdfRows.data(), cdfRowBytes);
-  gpuEnvLight.cdfRows = static_cast<float *>(rowAddr);
+  std::span<const uint8_t> cdfRowView(
+      reinterpret_cast<const uint8_t *>(info.cdfRows.data()), cdfRowBytes);
+  const auto rowHandle = deviceResources->upload(cdfRowView);
+  gpuEnvLight.cdfRows = rowHandle.as<float>();
 
   // 3. Upload CDF Column Data (Marginal CDF)
-  // This buffer allows the shader to pick a vertical row (V)
   size_t cdfColBytes = info.cdfCols.size() * sizeof(float);
-  const auto [colAddr, _2] =
-      deviceResources->upload((void *)info.cdfCols.data(), cdfColBytes);
-  gpuEnvLight.cdfCols = static_cast<float *>(colAddr);
+  std::span<const uint8_t> cdfColView(
+      reinterpret_cast<const uint8_t *>(info.cdfCols.data()), cdfColBytes);
+  const auto colCdf = deviceResources->upload(cdfColView);
+  gpuEnvLight.cdfCols = colCdf.as<float>();
 
   // 4. Set Metadata
   gpuEnvLight.scale = info.scale;

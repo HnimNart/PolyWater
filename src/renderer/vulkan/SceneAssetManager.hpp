@@ -61,9 +61,8 @@ public:
   // 2. Geometry & Model Management (Initialization)
   //    Uploading static model data (GLTF buffers) and initial mesh setup.
   // -------------------------------------------------------------------------
-  std::pair<BufferAddr, BufferID>
-  upload(const std::span<const unsigned char> &data) override;
-  std::pair<void *, BufferID> upload(const void *data, size_t bytes) override;
+  IDeviceAssets::BufferHandle
+  upload(const std::span<const uint8_t> &data) override;
 
   void addMeshes(size_t count, BufferID bufferIndex) override;
   void uploadSceneResoures(const Scene &resources) override;

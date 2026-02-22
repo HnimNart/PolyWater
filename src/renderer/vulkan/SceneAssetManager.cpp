@@ -1,9 +1,8 @@
 #include "SceneAssetManager.hpp"
-
+#include "Image.hpp"
+#include "core/timers.hpp"
+#include "shaders/shared/structs.h"
 #include <backends/imgui_impl_vulkan.h>
-#include <tinygltf/tiny_gltf.h>
-#include <volk.h>
-
 #include <core/file_operations.hpp>
 #include <core/shape/primitives.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -13,10 +12,12 @@
 #include <nvvk/default_structs.hpp>
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
+#include <tinygltf/tiny_gltf.h>
+#include <volk.h>
 
-#include "Image.hpp"
-#include "core/timers.hpp"
-#include "shaders/shared/structs.h"
+// -------------------------------------------------------------------------
+// Lifecycle & Initialization
+// -------------------------------------------------------------------------
 
 /**********************************************************/
 VulkanSceneAssetManager::VulkanSceneAssetManager(
@@ -29,69 +30,12 @@ VulkanSceneAssetManager::VulkanSceneAssetManager(
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::beginUploading()
+void VulkanSceneAssetManager::deinit()
 /**********************************************************/
 {
-  if (m_cmd != VK_NULL_HANDLE) {
-    throw std::runtime_error(
-        "BeginUploading() called while another upload is already in progress.");
-  }
-  m_cmd = m_context_manager->startSingleTimeCmd();
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::endUploading()
-/**********************************************************/
-{
-  assert(m_cmd != VK_NULL_HANDLE);
-  m_context_manager->getStagingUploader().cmdUploadAppended(m_cmd);
-  m_context_manager->endSingleTimeCmd(m_cmd);
-  updateSceneResources();
-  m_cmd = VK_NULL_HANDLE;
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::destroyBuffer(nvvk::Buffer &buffer)
-/**********************************************************/
-{
-  auto &allocator = m_context_manager->getAllocator();
-  if (buffer.isAllocated()) {
-    allocator.destroyBuffer(buffer);
-    buffer.buffer = VK_NULL_HANDLE;
-  }
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::allocBuffer(nvvk::Buffer &buffer, size_t bytes,
-                                          VkBufferUsageFlags2KHR usage)
-/**********************************************************/
-{
-  auto &allocator = m_context_manager->getAllocator();
-  allocator.createBuffer(buffer, bytes, usage);
-}
-
-/**********************************************************/
-template <typename T>
-void VulkanSceneAssetManager::createBuffer(nvvk::Buffer &buffer,
-                                           const std::span<T> &dataSpan,
-                                           VkBufferUsageFlags2KHR usage)
-/**********************************************************/
-{
-  auto &stagingUploader = m_context_manager->getStagingUploader();
-  allocBuffer(buffer, dataSpan.size_bytes(), usage);
-  NVVK_DBG_NAME(buffer.buffer);
-  NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::clearSceneBuffers()
-/**********************************************************/
-{
-  destroyBuffer(m_data.bSceneInfo);
-  destroyBuffer(m_data.bSceneResources);
-  destroyBuffer(m_data.bMeshes);
-  destroyBuffer(m_data.bMaterials);
-  destroyBuffer(m_data.bInstances);
+  clear();
+  m_samplerPool.deinit();
+  m_descPack.deinit();
 }
 
 /**********************************************************/
@@ -104,7 +48,6 @@ void VulkanSceneAssetManager::clear()
       m_context_manager->getAllocator().destroyImage(texture);
     }
   }
-
   for (auto &data : m_data.bDatas) {
     destroyBuffer(data);
   }
@@ -112,64 +55,52 @@ void VulkanSceneAssetManager::clear()
   m_data = {};
 }
 
+// -------------------------------------------------------------------------
+// Upload Flow Control
+// -------------------------------------------------------------------------
+
 /**********************************************************/
-void VulkanSceneAssetManager::deinit()
+void VulkanSceneAssetManager::beginUploading()
 /**********************************************************/
 {
-  clear();
-  m_samplerPool.deinit();
-  m_descPack.deinit();
-}
-
-/**********************************************************/
-void VulkanSceneAssetManager::createDesctriptorLayout()
-/**********************************************************/
-{
-  VkDevice device = m_context_manager->getDevice();
-  uint32_t maxTextures = getMaximumNumberOfTextures();
-
-  // 1. Define bindings using the nvvk helper
-  nvvk::DescriptorBindings bindings;
-  bindings.addBinding(
-      {.binding = shaderio::BindingPoints::eTextures,
-       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-       .descriptorCount = maxTextures,
-       .stageFlags = VK_SHADER_STAGE_ALL},
-      // Bindless Flags
-      VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-          VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
-
-  // 2. Initialize the Pack
-  m_descPack.init(bindings, device,
-                  1, // numSets
-                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, //
-                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |           //
-                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-                  maxTextures, // totalVariableCount
-                  &maxTextures // descriptorVariableCounts
-  );
-
-  NVVK_DBG_NAME(m_descPack.getLayout());
-  NVVK_DBG_NAME(m_descPack.getSet(0));
-  NVVK_DBG_NAME(m_descPack.getPool());
-}
-
-/**********************************************************/
-bool VulkanSceneAssetManager::addAndUploadTexture(const core::Image &image,
-                                                  TextureID textureId)
-/**********************************************************/
-{
-  addTexture(image, textureId);
-  if (textureId != -1) {
-    updateTextureDescriptorSets({static_cast<uint32_t>(textureId)});
+  if (m_cmd != VK_NULL_HANDLE) {
+    throw std::runtime_error(
+        "BeginUploading() called while another upload is in progress.");
   }
-  return true;
+  m_cmd = m_context_manager->startSingleTimeCmd();
 }
 
 /**********************************************************/
-bool VulkanSceneAssetManager::addTexture(
-    const core::Image &image, VulkanSceneAssetManager::TextureID &textureId)
+void VulkanSceneAssetManager::endUploading()
+/**********************************************************/
+{
+  assert(m_cmd != VK_NULL_HANDLE);
+  m_context_manager->getStagingUploader().cmdUploadAppended(m_cmd);
+  m_context_manager->endSingleTimeCmd(m_cmd);
+  updateSceneResources(); // Finalize pointers in SceneResources UBO
+  m_cmd = VK_NULL_HANDLE;
+}
+
+// -------------------------------------------------------------------------
+// Texture & Bindless Management
+// -------------------------------------------------------------------------
+
+/**********************************************************/
+IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
+/**********************************************************/
+{
+  TextureID textureId = static_cast<TextureID>(m_textures.size()) + 1;
+  auto [it, inserted] = m_textures.try_emplace(textureId, nvvk::Image{});
+  if (!inserted) {
+    LOGE("Failed to add texture: ID %u already exists!", textureId);
+  }
+  assert(textureId < MAX_SCENE_TEXTURES);
+  return textureId;
+}
+
+/**********************************************************/
+bool VulkanSceneAssetManager::addTexture(const core::Image &image,
+                                         TextureID &textureId)
 /**********************************************************/
 {
   if (textureId == -1) {
@@ -183,19 +114,31 @@ bool VulkanSceneAssetManager::addTexture(
     return false;
   }
 
-  // Handle cleanup of old texture at this slot
+  // Cleanup existing image at this slot
   auto it = m_textures.find(textureId);
-  if (it != m_textures.end()) {
+  if (it != m_textures.end() && it->second.image != VK_NULL_HANDLE) {
     m_context_manager->getAllocator().destroyImage(it->second);
   }
 
-  // Create and setup new texture
   nvvk::Image texture =
       createImageFromRaw(image, m_context_manager->getStagingUploader());
   NVVK_DBG_NAME(texture.image);
   m_samplerPool.acquireSampler(texture.descriptor.sampler);
+
   m_textures[textureId] = texture;
   return true;
+}
+
+/**********************************************************/
+bool VulkanSceneAssetManager::addAndUploadTexture(const core::Image &image,
+                                                  TextureID textureId)
+/**********************************************************/
+{
+  if (addTexture(image, textureId)) {
+    updateTextureDescriptorSets({static_cast<uint32_t>(textureId)});
+    return true;
+  }
+  return false;
 }
 
 /**********************************************************/
@@ -203,13 +146,11 @@ void VulkanSceneAssetManager::updateTextureDescriptorSets(
     const std::vector<uint32_t> &indices)
 /**********************************************************/
 {
-  if (indices.empty()) {
+  if (indices.empty())
     return;
-  }
 
   nvvk::WriteSetContainer write{};
   for (uint32_t index : indices) {
-    // Check if the texture exists in our map before trying to write it
     auto it = m_textures.find(index);
     if (it != m_textures.end()) {
       auto write_set =
@@ -228,40 +169,59 @@ void VulkanSceneAssetManager::updateTextureDescriptorSets(
 void VulkanSceneAssetManager::uploadTextures()
 /**********************************************************/
 {
-  if (m_textures.empty()) {
+  if (m_textures.empty())
     return;
-  }
 
   std::vector<uint32_t> allIndices;
   allIndices.reserve(m_textures.size());
   for (const auto &[id, _] : m_textures) {
     allIndices.push_back(id);
   }
-
   updateTextureDescriptorSets(allIndices);
 }
 
 /**********************************************************/
-IDeviceAssets::TextureID VulkanSceneAssetManager::reserveTextureSlot()
+uint64_t VulkanSceneAssetManager::getTextureHandle(TextureID id)
 /**********************************************************/
 {
-  TextureID textureId = static_cast<TextureID>(m_textures.size()) + 1;
-  auto [it, inserted] = m_textures.try_emplace(textureId, nvvk::Image{});
-  if (!inserted) {
-    LOGE("Failed to add texture: ID %u already exists!", textureId);
+  if (id > m_textures.size() || m_textures.find(id) == m_textures.end())
+    return 0;
+
+  auto &tex = m_textures.at(id);
+  if (tex.cachedDesriptor == VK_NULL_HANDLE) {
+    if (tex.descriptor.imageView == VK_NULL_HANDLE ||
+        tex.descriptor.sampler == VK_NULL_HANDLE)
+      return 0;
+
+    tex.cachedDesriptor = ImGui_ImplVulkan_AddTexture(
+        tex.descriptor.sampler, tex.descriptor.imageView,
+        tex.descriptor.imageLayout);
   }
-  assert(textureId < MAX_SCENE_TEXTURES);
-  return static_cast<TextureID>(textureId);
+  return reinterpret_cast<uint64_t>(tex.cachedDesriptor);
+}
+
+// -------------------------------------------------------------------------
+// Geometry & Buffer Management
+// -------------------------------------------------------------------------
+
+/**********************************************************/
+IDeviceAssets::BufferHandle
+VulkanSceneAssetManager::upload(const std::span<const uint8_t> &data)
+/**********************************************************/
+{
+  nvvk::Buffer bData;
+  createBuffer(bData, data, meshBufferUsage);
+  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
+  m_data.bDatas.push_back(bData);
+  return {(uint8_t *)bData.address, bufferIndex};
 }
 
 /**********************************************************/
-const nvvk::Buffer &
-VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
+void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
 /**********************************************************/
 {
-  assert(meshIndex < m_data.meshToBufferIndex.size());
-  uint32_t bufferIndex = m_data.meshToBufferIndex[meshIndex];
-  return m_data.bDatas[bufferIndex];
+  m_data.meshToBufferIndex.insert(m_data.meshToBufferIndex.end(), count,
+                                  bufferIndex);
 }
 
 /**********************************************************/
@@ -275,11 +235,24 @@ void VulkanSceneAssetManager::uploadSceneResoures(const Scene &resources)
 }
 
 /**********************************************************/
+const nvvk::Buffer &
+VulkanSceneAssetManager::getBufferFromIndex(uint32_t meshIndex) const
+/**********************************************************/
+{
+  assert(meshIndex < m_data.meshToBufferIndex.size());
+  uint32_t bufferIndex = m_data.meshToBufferIndex[meshIndex];
+  return m_data.bDatas[bufferIndex];
+}
+
+// -------------------------------------------------------------------------
+// 5. Scene Updates (Dynamic)
+// -------------------------------------------------------------------------
+
+/**********************************************************/
 void VulkanSceneAssetManager::update(
     const std::vector<shaderio::MeshPrimitive> &meshes)
 /**********************************************************/
 {
-  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
   updateBuffer(m_data.bMeshes, std::span(meshes));
 }
 
@@ -288,7 +261,6 @@ void VulkanSceneAssetManager::update(
     const std::vector<shaderio::Instance> &instances)
 /**********************************************************/
 {
-  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
   updateBuffer(m_data.bInstances, std::span(instances));
 }
 
@@ -297,40 +269,91 @@ void VulkanSceneAssetManager::update(
     const std::vector<shaderio::Material> &materials)
 /**********************************************************/
 {
-  assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
   updateBuffer(m_data.bMaterials, std::span(materials));
 }
 
 /**********************************************************/
-std::pair<uint8_t *, uint32_t>
-VulkanSceneAssetManager::upload(const std::span<const unsigned char> &data)
+shaderio::SceneInfo *
+VulkanSceneAssetManager::update(VkCommandBuffer cmd,
+                                const shaderio::SceneInfo &sceneInfo) const
 /**********************************************************/
 {
-  nvvk::Buffer bData;
-  createBuffer(bData, data, meshBufferUsage);
-  uint32_t bufferIndex = static_cast<uint32_t>(m_data.bDatas.size());
-  m_data.bDatas.push_back(bData);
-  return {(uint8_t *)bData.address, bufferIndex};
+  NVVK_DBG_SCOPE(cmd);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, m_data.bSceneInfo.buffer, 0,
+                    sizeof(shaderio::SceneInfo), &sceneInfo);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  return reinterpret_cast<shaderio::SceneInfo *>(m_data.bSceneInfo.address);
 }
 
 /**********************************************************/
-std::pair<void *, IDeviceAssets::BufferID>
-VulkanSceneAssetManager::upload(const void *data, size_t bytes)
+void VulkanSceneAssetManager::updateSceneResources() const
 /**********************************************************/
 {
-  std::span<const unsigned char> dataSpan(
-      static_cast<const unsigned char *>(data), bytes);
-  auto [deviceAddress, bufferIndex] = upload(dataSpan);
-  return {static_cast<void *>(deviceAddress),
-          static_cast<BufferID>(bufferIndex)};
+  VkCommandBuffer cmd = m_context_manager->startSingleTimeCmd();
+  updateSceneResources(cmd);
+  m_context_manager->getStagingUploader().cmdUploadAppended(cmd);
+  m_context_manager->endSingleTimeCmd(cmd);
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::addMeshes(size_t count, BufferID bufferIndex)
+void VulkanSceneAssetManager::updateSceneResources(VkCommandBuffer cmd) const
 /**********************************************************/
 {
-  m_data.meshToBufferIndex.insert(m_data.meshToBufferIndex.end(), count,
-                                  bufferIndex);
+  NVVK_DBG_SCOPE(cmd);
+  shaderio::SceneResources resources = {
+      .instances = (shaderio::Instance *)m_data.bInstances.address,
+      .meshes = (shaderio::MeshPrimitive *)m_data.bMeshes.address,
+      .materials = (shaderio::Material *)m_data.bMaterials.address,
+  };
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+  vkCmdUpdateBuffer(cmd, m_data.bSceneResources.buffer, 0,
+                    sizeof(shaderio::SceneResources), &resources);
+  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
+                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+}
+
+/**********************************************************/
+shaderio::SceneResources *VulkanSceneAssetManager::getSceneResources() const
+/**********************************************************/
+{
+  return reinterpret_cast<shaderio::SceneResources *>(
+      m_data.bSceneResources.address);
+}
+
+// -------------------------------------------------------------------------
+// Internal Helpers (Resource Creation)
+// -------------------------------------------------------------------------
+
+/**********************************************************/
+void VulkanSceneAssetManager::createDesctriptorLayout()
+/**********************************************************/
+{
+  VkDevice device = m_context_manager->getDevice();
+  uint32_t maxTextures = getMaximumNumberOfTextures();
+
+  nvvk::DescriptorBindings bindings;
+  bindings.addBinding(
+      {.binding = shaderio::BindingPoints::eTextures,
+       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+       .descriptorCount = maxTextures,
+       .stageFlags = VK_SHADER_STAGE_ALL},
+      VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+          VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+
+  m_descPack.init(bindings, device, 1,
+                  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+                  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
+                      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                  maxTextures, &maxTextures);
 }
 
 /**********************************************************/
@@ -354,60 +377,45 @@ void VulkanSceneAssetManager::createSceneBuffers(const Scene &sceneResource)
 }
 
 /**********************************************************/
-shaderio::SceneInfo *
-VulkanSceneAssetManager::update(VkCommandBuffer cmd,
-                                const shaderio::SceneInfo &sceneInfo) const
+void VulkanSceneAssetManager::clearSceneBuffers()
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd);
-  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
-                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-  vkCmdUpdateBuffer(cmd, m_data.bSceneInfo.buffer, 0,
-                    sizeof(shaderio::SceneInfo), &sceneInfo);
-  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
-                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
-  return reinterpret_cast<shaderio::SceneInfo *>(m_data.bSceneInfo.address);
+  destroyBuffer(m_data.bSceneInfo);
+  destroyBuffer(m_data.bSceneResources);
+  destroyBuffer(m_data.bMeshes);
+  destroyBuffer(m_data.bMaterials);
+  destroyBuffer(m_data.bInstances);
 }
 
 /**********************************************************/
-shaderio::SceneResources *VulkanSceneAssetManager::getSceneResources() const
+void VulkanSceneAssetManager::allocBuffer(nvvk::Buffer &buffer, size_t bytes,
+                                          VkBufferUsageFlags2KHR usage)
 /**********************************************************/
 {
-  return reinterpret_cast<shaderio::SceneResources *>(
-      m_data.bSceneResources.address);
+  m_context_manager->getAllocator().createBuffer(buffer, bytes, usage);
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::updateSceneResources() const
+void VulkanSceneAssetManager::destroyBuffer(nvvk::Buffer &buffer)
 /**********************************************************/
 {
-  VkCommandBuffer cmd = m_context_manager->startSingleTimeCmd();
-  updateSceneResources(cmd);
-  m_context_manager->getStagingUploader().cmdUploadAppended(cmd);
-  m_context_manager->endSingleTimeCmd(cmd);
+  if (buffer.isAllocated()) {
+    m_context_manager->getAllocator().destroyBuffer(buffer);
+    buffer.buffer = VK_NULL_HANDLE;
+  }
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::updateSceneResources(VkCommandBuffer cmd) const
+template <typename T>
+void VulkanSceneAssetManager::createBuffer(nvvk::Buffer &buffer,
+                                           const std::span<T> &dataSpan,
+                                           VkBufferUsageFlags2KHR usage)
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd);
-  shaderio::SceneResources resources = {
-      .instances = (shaderio::Instance *)m_data.bInstances.address,
-      .meshes = (shaderio::MeshPrimitive *)m_data.bMeshes.address,
-      .materials = (shaderio::Material *)m_data.bMaterials.address,
-  };
-
-  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
-                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT});
-  vkCmdUpdateBuffer(cmd, m_data.bSceneResources.buffer, 0,
-                    sizeof(shaderio::SceneResources), &resources);
-  nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
-                                     VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
+  allocBuffer(buffer, dataSpan.size_bytes(), usage);
+  NVVK_DBG_NAME(buffer.buffer);
+  NVVK_CHECK(m_context_manager->getStagingUploader().appendBuffer(buffer, 0,
+                                                                  dataSpan));
 }
 
 /**********************************************************/
@@ -416,34 +424,27 @@ void VulkanSceneAssetManager::updateBuffer(nvvk::Buffer &buffer,
                                            std::span<T> &&dataSpan)
 /**********************************************************/
 {
+  assert(m_cmd != VK_NULL_HANDLE);
   if (buffer.bufferSize != dataSpan.size_bytes()) {
     destroyBuffer(buffer);
     allocBuffer(buffer, dataSpan.size_bytes(), storageUsage);
   }
   assert(!(dataSpan.empty() || buffer.buffer == VK_NULL_HANDLE));
-  auto &stagingUploader = m_context_manager->getStagingUploader();
-  NVVK_CHECK(stagingUploader.appendBuffer(buffer, 0, dataSpan));
+  NVVK_CHECK(m_context_manager->getStagingUploader().appendBuffer(buffer, 0,
+                                                                  dataSpan));
 };
-template void VulkanSceneAssetManager::updateBuffer<shaderio::MeshPrimitive>(
-    nvvk::Buffer &, std::span<shaderio::MeshPrimitive> &&);
-template void VulkanSceneAssetManager::updateBuffer<shaderio::Instance>(
-    nvvk::Buffer &, std::span<shaderio::Instance> &&);
-template void VulkanSceneAssetManager::updateBuffer<shaderio::Material>(
-    nvvk::Buffer &, std::span<shaderio::Material> &&);
 
 /**********************************************************/
 nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
     const core::Image &raw, nvvk::StagingUploader &staging, bool sRgb)
 /**********************************************************/
 {
-  assert(raw.isValid() && "Attempting to upload invalid image data!");
-
+  assert(raw.isValid());
   VkImageCreateInfo imageInfo = DEFAULT_VkImageCreateInfo;
   imageInfo.extent = {uint32_t(raw.width), uint32_t(raw.height), 1};
   imageInfo.usage =
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-  // Determine Vulkan Format based on core::ImageFormat
   switch (raw.format) {
   case core::ImageFormat::RGBA8_UNORM:
     imageInfo.format =
@@ -454,21 +455,17 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
     break;
   case core::ImageFormat::DEPTH32_SFLOAT:
     imageInfo.format = VK_FORMAT_D32_SFLOAT;
-    // Depth images often need different usage flags
     imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     break;
   default:
-    assert(false && "Unsupported image format!");
+    assert(false);
     return {};
   }
 
-  nvvk::ResourceAllocator *allocator = staging.getResourceAllocator();
   nvvk::Image texture;
-  // Create the image resource
-  NVVK_CHECK(allocator->createImage(texture, imageInfo,
-                                    DEFAULT_VkImageViewCreateInfo));
+  NVVK_CHECK(staging.getResourceAllocator()->createImage(
+      texture, imageInfo, DEFAULT_VkImageViewCreateInfo));
 
-  // 3. Upload via staging buffer
   const std::span<const uint8_t> dataSpan(raw.pixels.data(), raw.pixels.size());
   VkImageLayout finalLayout =
       (raw.format == core::ImageFormat::DEPTH32_SFLOAT)
@@ -476,44 +473,5 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
           : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
   NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
-
   return texture;
-}
-
-/**********************************************************/
-uint64_t VulkanSceneAssetManager::getTextureHandle(TextureID id)
-/**********************************************************/
-{
-  // 1. Out-of-bounds check
-  if (id > m_textures.size()) {
-    LOGE("getTextureHandle: Invalid TextureID %u", id);
-    return 0;
-  }
-
-  auto &tex = m_textures.at(id);
-  if (tex.cachedDesriptor == VK_NULL_HANDLE) {
-    if (tex.descriptor.imageView == VK_NULL_HANDLE ||
-        tex.descriptor.sampler == VK_NULL_HANDLE) {
-      LOGW("getTextureHandle: Texture %u has null imageView or sampler. "
-           "Skipping.\n",
-           id);
-      return 0;
-    }
-
-    // if (tex.descriptor.imageLayout !=
-    //         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
-    //     tex.descriptor.imageLayout != VK_IMAGE_LAYOUT_GENERAL) {
-    //   LOGW("getTextureHandle: Texture %u is in an unsupported layout for "
-    //        "display.",
-    //        id);
-    //   return 0;
-    // }
-
-    // Allocation from the ImGui Descriptor Pool
-    tex.cachedDesriptor = ImGui_ImplVulkan_AddTexture(
-        tex.descriptor.sampler, tex.descriptor.imageView,
-        tex.descriptor.imageLayout);
-  }
-
-  return reinterpret_cast<uint64_t>(tex.cachedDesriptor);
 }
