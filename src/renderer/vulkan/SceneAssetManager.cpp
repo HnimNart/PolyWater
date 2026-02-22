@@ -237,7 +237,7 @@ void VulkanSceneAssetManager::linkMeshToBuffer(MeshID meshId,
       LOGW("linkMeshToBuffer: Mesh %u is already linked to Buffer %u. "
            "Re-mapping to Buffer %u.",
            meshId, it->second, bufferIndex);
-      it->second = bufferIndex; // Explicitly overwrite if intended
+      it->second = bufferIndex;
     }
   }
 }

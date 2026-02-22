@@ -302,8 +302,9 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
   for (auto mesh : payload.primitives) {
     mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
     mesh.buffer = bufferHandle.as<uint8_t>();
+    m_device_resources->linkMeshToBuffer(m_scene_resources.meshes.size(),
+                                         bufferHandle.id);
     m_scene_resources.meshes.emplace_back(mesh);
-    m_device_resources->linkMeshToBuffer(mesh.rawBufferIndex, bufferHandle.id);
   }
   m_pendingMeshes -= payload.primitives.size();
 }
@@ -373,6 +374,9 @@ void SceneResourcesManager::uploadLights()
       m_lights.uploadAreaLights(m_scene_resources, m_device_resources);
   sceneInfo.totalAnalyticalPower =
       m_lights.computeAnalyticalLightContribution(m_scene_resources);
+
+  printf("%f %f %f\n", sceneInfo.totalAnalyticalPower,
+         sceneInfo.areaLight.totalSum, sceneInfo.envmapLight.totalSum);
 }
 
 /**********************************************************/

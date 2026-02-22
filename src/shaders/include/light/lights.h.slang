@@ -284,14 +284,11 @@ float3 sampleDirectLightingPowerCDF(
         
         ls.pdf *= (1.0f / float(sceneInfo->numLights)); 
         if (ls.intensity > 0.0f) validSample = true;
-        ls.color = float3(1, 0, 0);
     }
     else if (selectedStrategy == 1) // Area Lights
     {
         ls = sampleAreaLight(sceneInfo, worldPos, seed);
         if (ls.pdf > 0.0f) validSample = true;
-
-        ls.color = float3(0, 1, 0);
     }
     else if (selectedStrategy == 2) // Environment Map
     {
