@@ -1,0 +1,264 @@
+{
+  "sceneInfo": {
+    "backgroundColor": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "useSky": false,
+    "camera": {
+      "eye": [
+        0.0,
+        0,
+        14.0
+      ],
+      "center": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "up": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "clip": [
+        0.01,
+        100.0
+      ]
+    },
+    "lights": [
+      {
+        "type": "Point",
+        "position": [
+          1.0,
+          4.0,
+          1.0
+        ],
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "intensity": 0.0
+      }
+    ]
+  },
+  "assets": {
+    "meshes": {
+      "cornellbox": "models/cornellBox.gltf",
+      "wuson": "models/wuson.obj"
+    }
+  },
+  "materials": [
+    {
+      "id": "mat_white",
+      "baseColor": [
+        0.725,
+        0.71,
+        0.68,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.5
+    },
+    {
+      "id": "mat_red",
+      "baseColor": [
+        0.63,
+        0.065,
+        0.05,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.5
+    },
+    {
+      "id": "mat_green",
+      "baseColor": [
+        0.14,
+        0.45,
+        0.091,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.5
+    },
+    {
+      "id": "mat_glass",
+      "baseColor": [
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.01,
+      "ior": 1.5
+    },
+    {
+      "id": "light",
+      "emission": [
+        30.0,
+        30.0,
+        30.0
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "name": "cube_backwall",
+      "meshId": "cube",
+      "materialId": "mat_white",
+      "transform": {
+        "translate": [
+          0.0,
+          0.0,
+          -5.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    },
+    {
+      "name": "cube_floor",
+      "meshId": "cube_1",
+      "materialId": "mat_white",
+      "transform": {
+        "translate": [
+          0.0,
+          -5.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    },
+    {
+      "name": "cube_left",
+      "meshId": "cube_4",
+      "materialId": "mat_red",
+      "transform": {
+        "translate": [
+          5.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    },
+    {
+      "name": "cube_right",
+      "meshId": "cube_4_1",
+      "materialId": "mat_green",
+      "transform": {
+        "translate": [
+          -5.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    },
+    {
+      "name": "cube_ceiling",
+      "meshId": "cube_1",
+      "materialId": "mat_white",
+      "transform": {
+        "translate": [
+          0.0,
+          5.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "rotation": [
+          180,
+          0,
+          0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    },
+    {
+      "name": "cube_light",
+      "meshId": "cube_7",
+      "materialId": "light",
+      "transform": {
+        "translate": [
+          0.0,
+          4.9,
+          0.0
+        ],
+        "scale": [
+          2.0,
+          1.0,
+          2.0
+        ]
+      },
+      "hitGroup": "Emissive"
+    },
+    {
+      "name": "main_sphere",
+      "meshId": "sphere",
+      "materialId": "mat_glass",
+      "transform": {
+        "translate": [
+          2.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Dielectrics"
+    },
+    {
+      "name": "wuson",
+      "meshId": "wuson",
+      "materialId": "wuson_default",
+      "transform": {
+        "translate": [
+          -1.0,
+          -5.0,
+          0.0
+        ],
+        "scale": [
+          2.0,
+          2.0,
+          2.0
+        ],
+        "rotate": [
+          0.0,
+          90.0,
+          0.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    }
+  ]
+}

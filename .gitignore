@@ -1,0 +1,17 @@
+.cache/
+build/
+compile_commands.json
+
+    
+ext/vulkansdk
+ext/oidn
+ext/zstd
+ext/zlib-ng/
+
+**/_*/
+.DS_Store
+
+
+
+*.meshcache
+

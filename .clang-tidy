@@ -1,0 +1,49 @@
+---
+Checks: >
+  clang-analyzer-core.*,
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-security.insecureAPI.*,
+  clang-analyzer-unix.*,
+  clang-diagnostic-unused-variable,
+  misc-unused-parameters,
+  modernize-avoid-auto,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  modernize-loop-convert,
+  modernize-raw-string-literal,
+  modernize-pass-by-value,
+  modernize-deprecated-headers,
+  modernize-redundant-void-arg,
+  modernize-concat-nested-namespaces,
+  performance-for-range-copy,
+  performance-move-const-arg,
+  performance-move-constructor-init,
+  performance-no-automatic-move,
+  performance-unnecessary-copy-initialization,
+  performance-inefficient-vector-operation,
+  performance-unnecessary-value-param,
+  bugprone-argument-comment,
+  bugprone-assert-side-effect,
+  bugprone-branch-clone,
+  bugprone-copy-constructor-init,
+  bugprone-dangling-handle,
+  bugprone-exception-escape,
+  bugprone-macro-parentheses,
+  bugprone-misplaced-widening-cast,
+  bugprone-suspicious-include,
+  bugprone-use-after-move,
+  readability-identifier-naming
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/.*'
+FormatStyle: none
+
+CheckOptions:
+  - key:             readability-identifier-naming.FunctionCase
+    value:           camelBack
+  - key:             readability-identifier-naming.MethodCase
+    value:           camelBack
+  - key:             readability-identifier-naming.ParameterCase
+    value:           camelBack
+
