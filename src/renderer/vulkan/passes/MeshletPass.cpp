@@ -1,14 +1,13 @@
-#include "RasterPass.hpp"
+#include "MeshletPass.hpp"
 
 // Implementation Includes
-#include <shaders/shared/structs.h>
-
 #include <core/Camera.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
+#include <shaders/shared/structs.h>
 
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
@@ -18,17 +17,17 @@
 #include "renderer/interfaces/IRenderer.hpp"
 #include "renderer/vulkan/SceneAssetManager.hpp"
 
-// Generated Shaders
-#include "_autogen/gltf_raster.slang.h"
+// Generated Shaders (You will need to create gltf_meshlet.slang)
+#include "_autogen/gltf_meshlet.slang.h"
 
 /**********************************************************/
-RasterPass::RasterPass(const nvvk::DescriptorPack &descPack)
+MeshletPass::MeshletPass(const nvvk::DescriptorPack &descPack)
     : m_descPack(descPack)
 /**********************************************************/
 {}
 
 /**********************************************************/
-void RasterPass::init(VulkanContextManager *contextManager)
+void MeshletPass::init(VulkanContextManager *contextManager)
 /**********************************************************/
 {
   m_context_manager = contextManager;
@@ -37,7 +36,7 @@ void RasterPass::init(VulkanContextManager *contextManager)
 }
 
 /**********************************************************/
-void RasterPass::deinit(VulkanContextManager *coreManager)
+void MeshletPass::deinit(VulkanContextManager *coreManager)
 /**********************************************************/
 {
   vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
@@ -45,25 +44,22 @@ void RasterPass::deinit(VulkanContextManager *coreManager)
 }
 
 /**********************************************************/
-void RasterPass::setup(PassBuilder &builder)
+void MeshletPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
-  // Declare intention to write to the Linear color buffer as a render target
   builder.write(RenderOutput::Linear, PipelineStage::RenderTarget,
                 ResourceState::RenderTarget);
-
-  // Declare intention to write to the Depth buffer
   builder.write(RenderOutput::DepthBuffer, PipelineStage::RenderTarget,
                 ResourceState::DepthWrite);
 }
 
 /**********************************************************/
-void RasterPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
+void MeshletPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
 {}
 
 /**********************************************************/
-void RasterPass::execute(const IRenderContext &ctx)
+void MeshletPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
   const auto &vkCtx = VulkanRenderContext::get(ctx);
@@ -85,7 +81,6 @@ void RasterPass::execute(const IRenderContext &ctx)
   core::Frustum cameraFrustum = core::extractFrustumPlanes(viewProj);
   uint32_t culledCount = 0;
 
-  // Define push info
   const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
       .layout = m_pipelineLayout,
@@ -139,7 +134,6 @@ void RasterPass::execute(const IRenderContext &ctx)
   vkCmdSetDepthWriteEnable(cmd, VK_TRUE);
   vkCmdSetDepthCompareOp(cmd, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-  // Wireframe Toggle Logic
   VkPolygonMode polyMode =
       rasterParams.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
   vkCmdSetPolygonModeEXT(cmd, polyMode);
@@ -148,13 +142,13 @@ void RasterPass::execute(const IRenderContext &ctx)
     vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
   }
 
-  // Bind Shaders
-  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_VERTEX_BIT,
+  // --- BIND MESH & FRAGMENT SHADERS ---
+  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_MESH_BIT_EXT,
                                           VK_SHADER_STAGE_FRAGMENT_BIT};
-  const VkShaderEXT shaders[] = {m_vertexShader, m_fragmentShader};
+  const VkShaderEXT shaders[] = {m_meshShader, m_fragmentShader};
   vkCmdBindShadersEXT(cmd, 2, stages, shaders);
 
-  // Vertex Input (Empty, pulled in shader)
+  // Vertex Input is explicitly NOT needed for Mesh Shaders
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
@@ -164,30 +158,32 @@ void RasterPass::execute(const IRenderContext &ctx)
     uint32_t meshIndex = instance.meshIndex;
     const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
 
+    // CPU Frustum Culling (Instance Level)
     if (!core::isAABBInsideFrustum(cameraFrustum, meshPrim.bbox.min,
                                    meshPrim.bbox.max, instance.transform)) {
       culledCount++;
-      continue; // Skip drawing this instance!
+      continue;
     }
 
-    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
     // Push constants
     constants.normalMatrix =
         glm::transpose(glm::inverse(glm::mat3(instance.transform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
-    // Index Buffer
-    const nvvk::Buffer &v = assetManager->getBufferFromIndex(meshIndex);
-    vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
-                         VkIndexType(meshPrim.indexType));
+    // Get the number of meshlets to draw
+    uint32_t meshletCount = meshPrim.meshlet.meshlets.count;
 
-    // Draw
-    vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);
+    // --- DRAW MESH TASKS ---
+    if (meshletCount > 0) {
+      // Dispatch 1 workgroup per meshlet
+      // Note: Requires VK_EXT_mesh_shader enabled on your Vulkan Device!
+      vkCmdDrawMeshTasksEXT(cmd, meshletCount, 1, 1);
+    }
   }
 
   if (culledCount > 0) {
-    LOGD("Rasterizer: Culled %u / %zu instances", culledCount,
+    LOGD("MeshletPass: Culled %u / %zu instances", culledCount,
          sceneResources->instances.size());
   }
 
@@ -196,7 +192,7 @@ void RasterPass::execute(const IRenderContext &ctx)
 }
 
 /**********************************************************/
-void RasterPass::reload()
+void MeshletPass::reload()
 /**********************************************************/
 {
   clearShaders();
@@ -204,7 +200,7 @@ void RasterPass::reload()
 }
 
 /**********************************************************/
-void RasterPass::createPipelineLayout(VkDevice device)
+void MeshletPass::createPipelineLayout(VkDevice device)
 /**********************************************************/
 {
   const VkPushConstantRange pushConstantRange{
@@ -225,21 +221,22 @@ void RasterPass::createPipelineLayout(VkDevice device)
 }
 
 /**********************************************************/
-void RasterPass::clearShaders()
+void MeshletPass::clearShaders()
 /**********************************************************/
 {
-  vkDestroyShaderEXT(m_context_manager->getDevice(), m_vertexShader, nullptr);
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_meshShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
 }
 
 /**********************************************************/
-void RasterPass::compileShaders()
+void MeshletPass::compileShaders()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
-  VkShaderModuleCreateInfo shaderCode =
-      SlangCompiler::instance().compile("gltf_raster.slang", gltf_raster_slang);
+  // Make sure you create this slang file!
+  VkShaderModuleCreateInfo shaderCode = SlangCompiler::instance().compile(
+      "gltf_meshlet.slang", gltf_meshlet_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
@@ -250,27 +247,27 @@ void RasterPass::compileShaders()
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-      .pName = "main",
+      .pName = "main", // Default fallback
       .setLayoutCount = 1,
       .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
 
-  // Vertex Shader
-  shaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  // --- MESH SHADER ---
+  shaderInfo.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
   shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  shaderInfo.pName = "vertexMain";
+  shaderInfo.pName = "meshMain"; // Entry point in Slang
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
   vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
-                     &m_vertexShader);
-  NVVK_DBG_NAME(m_vertexShader);
+                     &m_meshShader);
+  NVVK_DBG_NAME(m_meshShader);
 
-  // Fragment Shader
+  // --- FRAGMENT SHADER ---
   shaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.nextStage = 0;
-  shaderInfo.pName = "fragmentMain";
+  shaderInfo.pName = "fragmentMain"; // Entry point in Slang
   shaderInfo.codeSize = shaderCode.codeSize;
   shaderInfo.pCode = shaderCode.pCode;
   vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,

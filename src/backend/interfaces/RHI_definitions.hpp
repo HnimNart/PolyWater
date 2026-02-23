@@ -52,4 +52,5 @@ struct BarrierInfo {
 enum IndexType {
   IndexType16 = 0,
   IndexType32 = 1,
+  IndexType8 = 1000265000,
 };
