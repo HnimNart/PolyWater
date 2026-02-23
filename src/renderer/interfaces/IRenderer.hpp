@@ -4,8 +4,8 @@
 #include <memory>
 
 #include "backend/interfaces/IRenderContext.hpp"
+#include "renderer/ShaderManager.hpp"
 #include "scene/SceneManager.hpp"
-#include "scene/ShaderManager.hpp"
 
 // Forward Declarations
 class SceneResourcesManager;

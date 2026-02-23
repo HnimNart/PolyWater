@@ -4,8 +4,8 @@
 
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "core/timers.hpp"
+#include "renderer/ShaderManager.hpp"
 #include "scene/SceneResources.hpp"
-#include "scene/ShaderManager.hpp"
 
 /**********************************************************/
 std::unique_ptr<AccelerationStructures>
