@@ -423,6 +423,10 @@ void VulkanRendererElement::processPendingTexture(
     SceneResourcesManager &resourceMgr)
 /**********************************************************/
 {
+  if (!m_pendingTexture) {
+    LOGW("Texture Process Skip: No pending texture request found.");
+    return;
+  }
   const auto &filename = m_pendingTexture->filename;
   const auto instanceId = m_pendingTexture->id;
 
