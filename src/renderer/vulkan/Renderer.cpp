@@ -11,6 +11,7 @@
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
+#include "passes/MeshletPass.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/SkyPass.hpp"
 #include "passes/ToneMapPass.hpp"
@@ -131,11 +132,17 @@ void VulkanRenderer::buildGraph()
 
   // 2. Add passes based on mode
   if (m_render_mode == RenderMode::RASTER) {
-    // Raster Configuration: Sky -> Geometry -> ToneMap
+    // Traditional Vertex/Index pipeline
     m_graph.addPass(std::make_unique<SkyPass>());
     m_graph.addPass(
         std::make_unique<RasterPass>(m_resources->getDesriptorPack()));
-  } else {
+  } else if (m_render_mode == RenderMode::MESHLET) {
+    // Mesh Shader pipeline
+    m_graph.addPass(std::make_unique<SkyPass>());
+    m_graph.addPass(
+        std::make_unique<MeshletPass>(m_resources->getDesriptorPack()));
+  } else if (m_render_mode == RenderMode::RAYTRACE) {
+    // Ray Tracing pipeline
     m_graph.addPass(std::make_unique<RayTracePass>(
         m_resources->getDesriptorPack(), &m_shaderManager));
   }
@@ -230,10 +237,10 @@ void VulkanRenderer::initGBuffers()
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void *VulkanRenderer::getImageDescriptor(RenderOutput output) const
+int64_t VulkanRenderer::getImageDescriptor(RenderOutput output) const
 /**********************************************************/
 {
-  return static_cast<void *>(m_gBuffers->getDescriptorSet(output));
+  return reinterpret_cast<int64_t>(m_gBuffers->getDescriptorSet(output));
 }
 
 /**********************************************************/

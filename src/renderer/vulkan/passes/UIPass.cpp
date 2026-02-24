@@ -15,15 +15,14 @@ UIPass::UIPass(RenderCallback callback)
 void UIPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
-  // 1. Read the final HDR/SDR result from the previous pass
+  // 1. Read the ToneMapped image during the pass
   builder.read(RenderOutput::ToneMapped, PipelineStage::Fragment,
-               ResourceState::ShaderResource);
-
-  // 2. Write to the Swapchain image
-  // Note: Use ResourceState::RenderTarget so the graph transitions it to
-  // COLOR_ATTACHMENT_OPTIMAL
+               ResourceState::General);
+  // 2. Write to the Swapchain DURING the pass
   builder.write(RenderOutput::Swapchain, PipelineStage::RenderTarget,
                 ResourceState::RenderTarget);
+  // 3. Declare the EXPORT state AFTER the pass is over
+  builder.setFinalState(RenderOutput::Swapchain, ResourceState::Present);
 }
 
 /**********************************************************/
@@ -31,11 +30,6 @@ void UIPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
   const auto &vkCtx = VulkanRenderContext::get(ctx);
-
-  // The graph has already transitioned the Swapchain image to
-  // COLOR_ATTACHMENT_OPTIMAL and the ToneMapped image to
-  // SHADER_READ_ONLY_OPTIMAL.
-
   VkRenderingAttachmentInfo colorAttachment{
       .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
       .imageView =
@@ -58,14 +52,8 @@ void UIPass::execute(const IRenderContext &ctx)
 
   // Begin Rendering
   vkCmdBeginRendering(vkCtx.cmdBuffer, &renderingInfo);
-
   if (m_callback) {
     m_callback(ctx);
   }
-
   vkCmdEndRendering(vkCtx.cmdBuffer);
-
-  // IMPORTANT: The graph usually handles the "Next" state.
-  // Since this is the final pass, we need the graph to know the final state is
-  // 'Present'.
 }

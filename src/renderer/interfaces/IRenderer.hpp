@@ -22,7 +22,8 @@ class IToneMapper;
 enum class RenderMode {
   RAYTRACE = 0,
   RASTER = 1,
-  COUNT = 2,
+  MESHLET = 2,
+  COUNT = 3,
 };
 
 static inline const char *renderModeToString(RenderMode mode) {
@@ -31,6 +32,8 @@ static inline const char *renderModeToString(RenderMode mode) {
     return "Raytracing";
   case RenderMode::RASTER:
     return "Rasterization";
+  case RenderMode::MESHLET:
+    return "Meshlet";
   default:
     return "Unknown";
   }
@@ -71,7 +74,7 @@ public:
   // -------------------------------------------------------------------------
   // Output / IO
   // -------------------------------------------------------------------------
-  virtual void *getImageDescriptor(RenderOutput output) const = 0;
+  virtual int64_t getImageDescriptor(RenderOutput output) const = 0;
   virtual void saveImage(const std::filesystem::path &filename,
                          int quality = 100) const = 0;
 

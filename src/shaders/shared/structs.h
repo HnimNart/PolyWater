@@ -112,6 +112,7 @@ struct BoundingBox {
 #endif
 };
 
+
 struct BufferView {
   uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
   uint32_t count;      // Number of elements in the buffer view
@@ -128,10 +129,28 @@ struct TriangleMesh {
   BufferView tangents;  // tangents buffer view (vec4, optional)
 };
 
+struct GPUMeshlet {
+    uint32_t vertexOffset;   // Offset into the meshlet_vertices buffer
+    uint32_t triangleOffset; // Offset into the meshlet_triangles buffer
+    uint32_t vertexCount;    // Number of vertices in this meshlet (max 64)
+    uint32_t triangleCount;  // Number of triangles in this meshlet (max 124)
+    // TODO: Add bounding sphere/box or normal cone data here for culling
+};
+CHECK_STRUCT_ALIGNMENT(GPUMeshlet)
+
+struct MeshletTopology {
+  BufferView meshlets;         // Points to an array of GPUMeshlet structs
+  BufferView meshletVertices;  // Points to an array of uint32_t (global vertex indices)
+  BufferView meshletTriangles; // Points to an array of uint8_t (local triangle indices)
+  BufferView tmp; // Points to an array of uint8_t (local triangle indices)
+};
+CHECK_STRUCT_ALIGNMENT(MeshletTopology)
+
 struct MeshPrimitive {
   uint8_t *buffer =
       nullptr;             // Buffer to the data (index, position, normal, ...)
   TriangleMesh triMesh;    // Mesh data
+  MeshletTopology meshlet; // Meshlet data
   uint32_t rawBufferIndex; // Index into raw data buffers
   int indexType;           // Index type (uint16_t or uint32_t)
   BoundingBox bbox;        // Local space bbox

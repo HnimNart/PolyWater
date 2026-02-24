@@ -407,8 +407,8 @@ void SceneResourcesManager::finalizeSceneResources()
   for (const auto &mesh : m_pendingOptimizedMesh) {
     uploadOptimizedMesh(mesh);
   }
-  assert(m_pendingOptimizedMesh.size() == 0 && m_pendingMeshes == 0);
   m_pendingOptimizedMesh.clear();
+  assert(m_pendingOptimizedMesh.size() == 0 && m_pendingMeshes == 0);
 
   // Upload textures
   uploadPendingTextures(false);

@@ -9,15 +9,6 @@
 
 #include "obj_utils.hpp"
 
-// --- Optimizer Specific Structs ---
-struct Vertex {
-  glm::vec3 pos;
-  glm::vec3 normal;
-  glm::vec2 uv;
-  glm::vec4 tangent;
-  glm::vec4 color;
-};
-
 struct OptimizedPayload {
   std::vector<uint8_t> rawBuffer;                  // Single GPU buffer
   std::vector<shaderio::MeshPrimitive> primitives; // Metadata for your engine

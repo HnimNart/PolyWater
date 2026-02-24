@@ -53,6 +53,27 @@ __generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress,
          T(barycentrics.z) * attr2;
 }
 
+// Helper to fetch the GPUMeshlet struct from the raw buffer
+GPUMeshlet getMeshlet(uint8_t* dataBufferAddress, BufferView bufferView, uint meshletIndex)
+{
+    GPUMeshlet* ptr = (GPUMeshlet*)(dataBufferAddress + bufferView.offset + meshletIndex * bufferView.byteStride);
+    return ptr[0];
+}
+
+// Helper to fetch the 32-bit global vertex index
+uint getMeshletVertex(uint8_t* dataBufferAddress, BufferView bufferView, uint elementIndex)
+{
+    uint* ptr = (uint*)(dataBufferAddress + bufferView.offset + elementIndex * bufferView.byteStride);
+    return ptr[0];
+}
+
+// Helper to fetch the tightly packed 8-bit local triangle index
+uint8_t getMeshletTriangle(uint8_t* dataBufferAddress, BufferView bufferView, uint elementIndex)
+{
+    uint8_t* ptr = (uint8_t*)(dataBufferAddress + bufferView.offset + elementIndex);
+    return ptr[0];
+}
+
 struct HitState
 {
   float3 pos;

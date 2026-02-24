@@ -17,7 +17,7 @@
 #include "renderer/interfaces/IRenderer.hpp"
 #include "renderer/vulkan/SceneAssetManager.hpp"
 
-// Generated Shaders (You will need to create gltf_meshlet.slang)
+#include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_meshlet.slang.h"
 
 /**********************************************************/
@@ -47,8 +47,10 @@ void MeshletPass::deinit(VulkanContextManager *coreManager)
 void MeshletPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
-  builder.write(RenderOutput::Linear, PipelineStage::RenderTarget,
-                ResourceState::RenderTarget);
+  builder.write(
+      RenderOutput::Linear, PipelineStage::RenderTarget,
+      ResourceState::RenderTarget); // Translates to COLOR_ATTACHMENT_OPTIMAL
+
   builder.write(RenderOutput::DepthBuffer, PipelineStage::RenderTarget,
                 ResourceState::DepthWrite);
 }
@@ -84,7 +86,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
   const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
       .layout = m_pipelineLayout,
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
       .pValues = &constants,
@@ -114,7 +116,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
@@ -130,6 +132,9 @@ void MeshletPass::execute(const IRenderContext &ctx)
   pipelineState.cmdSetViewportAndScissor(cmd, size);
 
   // --- Dynamic State Setups ---
+  vkCmdSetDepthCompareOp(cmd, VK_COMPARE_OP_LESS_OR_EQUAL);
+  vkCmdSetCullMode(cmd, VK_CULL_MODE_NONE);
+  vkCmdSetFrontFace(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
   vkCmdSetDepthTestEnable(cmd, VK_TRUE);
   vkCmdSetDepthWriteEnable(cmd, VK_TRUE);
   vkCmdSetDepthCompareOp(cmd, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -137,23 +142,39 @@ void MeshletPass::execute(const IRenderContext &ctx)
   VkPolygonMode polyMode =
       rasterParams.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
   vkCmdSetPolygonModeEXT(cmd, polyMode);
-
   if (rasterParams.wireframe) {
     vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
   }
 
   // --- BIND MESH & FRAGMENT SHADERS ---
-  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_MESH_BIT_EXT,
-                                          VK_SHADER_STAGE_FRAGMENT_BIT};
-  const VkShaderEXT shaders[] = {m_meshShader, m_fragmentShader};
-  vkCmdBindShadersEXT(cmd, 2, stages, shaders);
+  // Bind Shaders
+  const VkShaderStageFlagBits stages[] = {
+      VK_SHADER_STAGE_VERTEX_BIT,
+      VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+      VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+      VK_SHADER_STAGE_GEOMETRY_BIT,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      VK_SHADER_STAGE_TASK_BIT_EXT, // Because we enabled Mesh Shaders
+      VK_SHADER_STAGE_MESH_BIT_EXT  // Because we enabled Mesh Shaders
+  };
+
+  const VkShaderEXT shaders[] = {
+      VK_NULL_HANDLE, // No vertex shader
+      VK_NULL_HANDLE, // No Tessellation Control
+      VK_NULL_HANDLE, // No Tessellation Eval
+      VK_NULL_HANDLE, // No Geometry
+      m_fragmentShader,
+      VK_NULL_HANDLE, // No Task
+      m_meshShader,
+  };
+  vkCmdBindShadersEXT(cmd, 7, stages, shaders);
 
   // Vertex Input is explicitly NOT needed for Mesh Shaders
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
+  vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
   // Draw Loop
   for (size_t i = 0; i < sceneResources->instances.size(); i++) {
-
     const shaderio::Instance &instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
     const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
@@ -165,19 +186,14 @@ void MeshletPass::execute(const IRenderContext &ctx)
       continue;
     }
 
-    // Push constants
-    constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(instance.transform)));
-    constants.instanceIndex = int(i);
-    vkCmdPushConstants2(cmd, &pushInfo);
-
     // Get the number of meshlets to draw
     uint32_t meshletCount = meshPrim.meshlet.meshlets.count;
-
-    // --- DRAW MESH TASKS ---
     if (meshletCount > 0) {
-      // Dispatch 1 workgroup per meshlet
-      // Note: Requires VK_EXT_mesh_shader enabled on your Vulkan Device!
+      // Push constants
+      constants.normalMatrix =
+          glm::transpose(glm::inverse(glm::mat3(instance.transform)));
+      constants.instanceIndex = int(i);
+      vkCmdPushConstants2(cmd, &pushInfo);
       vkCmdDrawMeshTasksEXT(cmd, meshletCount, 1, 1);
     }
   }
@@ -204,7 +220,7 @@ void MeshletPass::createPipelineLayout(VkDevice device)
 /**********************************************************/
 {
   const VkPushConstantRange pushConstantRange{
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
@@ -234,12 +250,18 @@ void MeshletPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
-  // Make sure you create this slang file!
-  VkShaderModuleCreateInfo shaderCode = SlangCompiler::instance().compile(
+  VkShaderModuleCreateInfo meshletCode = SlangCompiler::instance().compile(
       "gltf_meshlet.slang", gltf_meshlet_slang);
+  VkShaderModuleCreateInfo fragmentCode = SlangCompiler::instance().compile(
+      "gltf_fragment.slang", gltf_fragment_slang);
 
-  const VkPushConstantRange pushConstantRange{
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+  // Use the UNION of all stages that will use this push constant block
+  // This makes the ranges "identically defined" across the pipeline stages.
+  const VkShaderStageFlags pipelineStages =
+      VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  const VkPushConstantRange identicalRange{
+      .stageFlags = pipelineStages,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
   };
@@ -247,30 +269,31 @@ void MeshletPass::compileShaders()
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-      .pName = "main", // Default fallback
+      .codeSize = meshletCode.codeSize,
+      .pCode = meshletCode.pCode,
       .setLayoutCount = 1,
       .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
-      .pPushConstantRanges = &pushConstantRange,
+      .pPushConstantRanges = &identicalRange,
   };
 
   // --- MESH SHADER ---
   shaderInfo.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
   shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  shaderInfo.pName = "meshMain"; // Entry point in Slang
-  shaderInfo.codeSize = shaderCode.codeSize;
-  shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
-                     &m_meshShader);
-  NVVK_DBG_NAME(m_meshShader);
+  shaderInfo.pName = "meshMain";
+  shaderInfo.flags = VK_SHADER_CREATE_NO_TASK_SHADER_BIT_EXT;
+
+  NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
+                                nullptr, &m_meshShader));
 
   // --- FRAGMENT SHADER ---
   shaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.nextStage = 0;
-  shaderInfo.pName = "fragmentMain"; // Entry point in Slang
-  shaderInfo.codeSize = shaderCode.codeSize;
-  shaderInfo.pCode = shaderCode.pCode;
-  vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
-                     &m_fragmentShader);
-  NVVK_DBG_NAME(m_fragmentShader);
+  shaderInfo.pName = "fragmentMain";
+  shaderInfo.codeSize = fragmentCode.codeSize;
+  shaderInfo.pCode = fragmentCode.pCode;
+  shaderInfo.flags = 0;
+
+  NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
+                                nullptr, &m_fragmentShader));
 }

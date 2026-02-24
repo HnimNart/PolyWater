@@ -545,16 +545,24 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
     return {};
   }
 
+  VkImageViewCreateInfo viewInfo = DEFAULT_VkImageViewCreateInfo;
+  viewInfo.format = imageInfo.format;
+
+  viewInfo.subresourceRange.aspectMask =
+      (raw.format == core::ImageFormat::DEPTH32_SFLOAT)
+          ? VK_IMAGE_ASPECT_DEPTH_BIT
+          : VK_IMAGE_ASPECT_COLOR_BIT;
+
   nvvk::Image texture;
-  NVVK_CHECK(staging.getResourceAllocator()->createImage(
-      texture, imageInfo, DEFAULT_VkImageViewCreateInfo));
+  NVVK_CHECK(staging.getResourceAllocator()->createImage(texture, imageInfo,
+                                                         viewInfo));
 
   const std::span<const uint8_t> dataSpan(raw.pixels.data(), raw.pixels.size());
+
   VkImageLayout finalLayout =
       (raw.format == core::ImageFormat::DEPTH32_SFLOAT)
           ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
           : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
   NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
   return texture;
 }

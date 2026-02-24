@@ -27,7 +27,7 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 
 /**********************************************************/
 void VulkanRenderContext::submitBarriers(
-    const std::vector<BarrierInfo> &barriers)
+    const std::vector<BarrierInfo> &barriers) const
 /**********************************************************/
 {
   if (barriers.empty())

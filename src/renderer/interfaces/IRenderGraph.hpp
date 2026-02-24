@@ -39,6 +39,8 @@ public:
   void compile() {
     m_barriers.clear();
     m_barriers.resize(m_passes.size());
+    m_finalBarriers.clear();
+    m_finalStates.clear();
 
     struct CurrentState {
       ResourceState state = ResourceState::Undefined;
@@ -88,24 +90,61 @@ public:
           current.hasBeenProduced = true;
         }
       }
+
+      // Collect intended final states from this pass
+      for (const auto &[resource, finalIntent] : builder.getFinalStates()) {
+        m_finalStates[resource] = finalIntent;
+      }
+    }
+
+    // Now that we know the very last state of every resource, check if any
+    // of them need to be transitioned to a specific final exported state.
+    for (const auto &[resource, finalIntent] : m_finalStates) {
+      auto it = globalState.find(resource);
+      if (it != globalState.end()) {
+        const CurrentState &current = it->second;
+        ResourceState finalState = finalIntent.first;
+        PipelineStage finalStage = finalIntent.second;
+
+        if (current.state != finalState) {
+          BarrierInfo barrier;
+          barrier.resource = resource;
+          barrier.oldState = current.state;
+          barrier.srcStage = current.stage;
+          barrier.newState = finalState;
+          barrier.dstStage = finalStage;
+
+          m_finalBarriers.push_back(barrier);
+        }
+      }
     }
   }
+
   // -----------------------------------------------------------------------
   // EXECUTE: Delegates to the Context
   // -----------------------------------------------------------------------
   void execute(IRenderContext &ctx) const {
     for (size_t i = 0; i < m_passes.size(); ++i) {
-      // 1. Submit Barriers (The Context handles the API translation)
+      // Submit Barriers (The Context handles the API translation)
       if (!m_barriers[i].empty()) {
         ctx.submitBarriers(m_barriers[i]);
       }
 
-      // 2. Execute Pass
+      // Execute Pass
       m_passes[i]->execute(ctx);
+    }
+
+    // Submit Final Export Barriers
+    if (!m_finalBarriers.empty()) {
+      ctx.submitBarriers(m_finalBarriers);
     }
   }
 
 private:
   std::vector<std::unique_ptr<IRenderPass>> m_passes;
   std::vector<std::vector<BarrierInfo>> m_barriers; // List of barriers per pass
+
+  std::unordered_map<RenderOutput, std::pair<ResourceState, PipelineStage>>
+      m_finalStates;
+  std::vector<BarrierInfo> m_finalBarriers;
 };

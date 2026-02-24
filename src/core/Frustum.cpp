@@ -2,21 +2,36 @@
 
 namespace core {
 
-Frustum extractFrustumPlanes(const glm::mat4 &vpMatrix) {
+/**********************************************************/
+// Extracts the 6 clipping planes from a View-Projection matrix
+Frustum extractFrustumPlanes(const glm::mat4 &vpMatrix)
+/**********************************************************/
+{
   Frustum f;
-
   // Left
-  f.planes[0] = vpMatrix[3] + vpMatrix[0];
+  f.planes[0] = glm::vec4(
+      vpMatrix[0][3] + vpMatrix[0][0], vpMatrix[1][3] + vpMatrix[1][0],
+      vpMatrix[2][3] + vpMatrix[2][0], vpMatrix[3][3] + vpMatrix[3][0]);
   // Right
-  f.planes[1] = vpMatrix[3] - vpMatrix[0];
+  f.planes[1] = glm::vec4(
+      vpMatrix[0][3] - vpMatrix[0][0], vpMatrix[1][3] - vpMatrix[1][0],
+      vpMatrix[2][3] - vpMatrix[2][0], vpMatrix[3][3] - vpMatrix[3][0]);
   // Bottom
-  f.planes[2] = vpMatrix[3] + vpMatrix[1];
+  f.planes[2] = glm::vec4(
+      vpMatrix[0][3] + vpMatrix[0][1], vpMatrix[1][3] + vpMatrix[1][1],
+      vpMatrix[2][3] + vpMatrix[2][1], vpMatrix[3][3] + vpMatrix[3][1]);
   // Top
-  f.planes[3] = vpMatrix[3] - vpMatrix[1];
+  f.planes[3] = glm::vec4(
+      vpMatrix[0][3] - vpMatrix[0][1], vpMatrix[1][3] - vpMatrix[1][1],
+      vpMatrix[2][3] - vpMatrix[2][1], vpMatrix[3][3] - vpMatrix[3][1]);
   // Near
-  f.planes[4] = vpMatrix[3] + vpMatrix[2];
+  f.planes[4] = glm::vec4(
+      vpMatrix[0][3] + vpMatrix[0][2], vpMatrix[1][3] + vpMatrix[1][2],
+      vpMatrix[2][3] + vpMatrix[2][2], vpMatrix[3][3] + vpMatrix[3][2]);
   // Far
-  f.planes[5] = vpMatrix[3] - vpMatrix[2];
+  f.planes[5] = glm::vec4(
+      vpMatrix[0][3] - vpMatrix[0][2], vpMatrix[1][3] - vpMatrix[1][2],
+      vpMatrix[2][3] - vpMatrix[2][2], vpMatrix[3][3] - vpMatrix[3][2]);
 
   // Normalize planes
   for (auto &plane : f.planes) {

@@ -17,126 +17,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "shared/slang_types.h"
-
-#include "include/light/lights.h.slang"
-#include "include/bsdf/pbr.h.slang"
-#include "shared/structs.h"
-#include "shared/bindings.h"
+#include "gltf_shared.h.slang"
 
 // Per-vertex attributes to be assembled from bound vertex buffers.
-struct VSin
-{
+struct VSin {
   float3 position : POSITION;
   float3 normal : NORMAl;
 };
 
-// Output of the vertex shader
-struct VSout
-{
-  float4 sv_position : SV_Position;
-  float3 worldPos : POSITION;
-  float3 worldNormal : NORMAL;
-  float2 worldTexCoord : TEXCOORD0;
-};
-
-// Output of the fragment shader
-struct PSout
-{
-  float4 color : SV_Target;
-};
-
-__generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress, BufferView bufferView, uint attributeIndex)
-{
-  if(bufferView.count > 0)
-  {
-    T* ptr = (T*)(dataBufferAddress + bufferView.offset + attributeIndex * bufferView.byteStride);
-    return ptr[0];
-  }
-
-  return T(1);  // Error case
-}
-
-
 // Vertex  Shader
-[shader("vertex")] VSout vertexMain(VSin input, uint vertexIndex
-                                    : SV_VertexID)
-{
+[shader("vertex")] FragmentInput vertexMain(VSin input, uint vertexIndex
+                                            : SV_VertexID) {
   int instanceIndex = pushConst.instanceIndex;
 
-  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources* sceneResources = pushConst.resourcesAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
+  SceneResources *sceneResources = pushConst.resourcesAddress;
 
   Instance instance = sceneResources.instances[instanceIndex];
   MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
   Material material = sceneResources.materials[instance.materialIndex];
 
   // Retrieve the data
-  float3 posMesh = getAttribute<float3>(meshIo.buffer,
-                                        meshIo.triMesh.positions, vertexIndex);
-  float3 normal = getAttribute<float3>(meshIo.buffer,
-                                       meshIo.triMesh.normals, vertexIndex);
+  float3 posMesh = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions,
+                                        vertexIndex);
+  float3 normal =
+      getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals, vertexIndex);
   float2 texCoord = getAttribute<float2>(meshIo.buffer,
                                          meshIo.triMesh.texCoords, vertexIndex);
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 
-  VSout output;
+  FragmentInput output;
+  output.debugColor = colorFromIndex(vertexIndex); // Example custom logic
   output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
   output.worldPos = pos.xyz;
   output.worldNormal = normalize(mul(normal, float3x3(pushConst.normalMatrix)));
   output.worldTexCoord = texCoord;
-
-  return output;
-}
-
-    // Fragment Shader
-    [shader("pixel")] PSout fragmentMain(VSout stage)
-{
-  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources sceneResources = pushConst.resourcesAddress[0];
-  Instance instance = sceneResources.instances[pushConst.instanceIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
-
-  LightSample light = sampleLight(sceneInfo, stage.worldPos);
-
-  float3 V = normalize(sceneInfo->cameraPosition - stage.worldPos);
-  float3 N = normalize(stage.worldNormal);
-  float3 L = normalize(light.direction);
-
-  // Get base color from material or texture
-  float3 albedo = material.baseColorFactor.xyz;
-  if (material.baseColorTextureIndex > 0)
-  {
-    albedo *= textures[material.baseColorTextureIndex]
-                  .Sample(stage.worldTexCoord)
-                  .xyz;
-  }
-
-  // Get metallic and roughness from material
-  float metallic = material.metallicFactor;
-  float roughness = material.roughnessFactor;
-
-  // Calculate PBR lighting with sun's color and intensity
-  float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
-  // Apply light color and intensity
-  color *= light.color * light.intensity;
-
-  // Apply ambient
-  float3 ambient = sceneInfo->backgroundColor;
-  if (sceneInfo->useSky == 1)
-  {
-    // Add ambient lighting (sky effect)
-    float3 skyUpDir = float3(0, 1, 0);
-    float3 groundColor = sceneInfo->skySimpleParam.groundColor;
-    float3 skyColor = sceneInfo->skySimpleParam.skyColor;
-    float3 ambient = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
-  }
-  // Add ambient to final color
-  color += ambient * albedo * 0.025;
-
-  PSout output;
-  output.color = float4(clamp(color, float3(0.0), float3(1.0)), 1.0);
 
   return output;
 }

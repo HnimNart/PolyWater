@@ -123,7 +123,7 @@ private:
 #define FUNC_SIG __func__
 #endif
 
-#if defined(DEBUG) || defined(ENABLE_PROFILING)
+#if defined(NDEBUG) || defined(ENABLE_PROFILING)
   // --- Helpers for __LINE__ expansion ---
 #define TIMER_CONCAT_INNER(a, b) a##b
 #define TIMER_CONCAT(a, b) TIMER_CONCAT_INNER(a, b)

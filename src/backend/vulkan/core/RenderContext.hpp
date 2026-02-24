@@ -26,7 +26,7 @@ public:
   VulkanRenderContext &operator=(VulkanRenderContext &&) = delete;
 
   // API funcs
-  void submitBarriers(const std::vector<BarrierInfo> &barriers) override;
+  void submitBarriers(const std::vector<BarrierInfo> &barriers) const override;
 
   // Static helper to cast from the interface
   static const VulkanRenderContext &get(const IRenderContext &ctx) {

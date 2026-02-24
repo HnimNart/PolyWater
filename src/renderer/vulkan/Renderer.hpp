@@ -56,7 +56,7 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  void *getImageDescriptor(RenderOutput output) const override;
+  int64_t getImageDescriptor(RenderOutput output) const override;
   IToneMapper &postProcessor() noexcept override;
   std::shared_ptr<IDeviceAssets> deviceResources() noexcept override;
 

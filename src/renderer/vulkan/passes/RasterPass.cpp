@@ -19,6 +19,7 @@
 #include "renderer/vulkan/SceneAssetManager.hpp"
 
 // Generated Shaders
+#include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
@@ -148,11 +149,28 @@ void RasterPass::execute(const IRenderContext &ctx)
     vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
   }
 
-  // Bind Shaders
-  const VkShaderStageFlagBits stages[] = {VK_SHADER_STAGE_VERTEX_BIT,
-                                          VK_SHADER_STAGE_FRAGMENT_BIT};
-  const VkShaderEXT shaders[] = {m_vertexShader, m_fragmentShader};
-  vkCmdBindShadersEXT(cmd, 2, stages, shaders);
+  // Define all 7 possible graphics stages
+  const VkShaderStageFlagBits stages[] = {
+      VK_SHADER_STAGE_VERTEX_BIT,
+      VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+      VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+      VK_SHADER_STAGE_GEOMETRY_BIT,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      VK_SHADER_STAGE_TASK_BIT_EXT,
+      VK_SHADER_STAGE_MESH_BIT_EXT};
+
+  const VkShaderEXT shaders[] = {
+      m_vertexShader,   // Maps to VERTEX
+      VK_NULL_HANDLE,   // Maps to TESS_CONTROL (Disabled)
+      VK_NULL_HANDLE,   // Maps to TESS_EVALUATION (Disabled)
+      VK_NULL_HANDLE,   // Maps to GEOMETRY (Disabled)
+      m_fragmentShader, // Maps to FRAGMENT
+      VK_NULL_HANDLE,   // Maps to TASK (Disabled)
+      VK_NULL_HANDLE    // Maps to MESH (Disabled)
+  };
+
+  // 3. Bind all 7 explicitly
+  vkCmdBindShadersEXT(cmd, 7, stages, shaders);
 
   // Vertex Input (Empty, pulled in shader)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
@@ -238,8 +256,10 @@ void RasterPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
-  VkShaderModuleCreateInfo shaderCode =
+  VkShaderModuleCreateInfo vertexCode =
       SlangCompiler::instance().compile("gltf_raster.slang", gltf_raster_slang);
+  VkShaderModuleCreateInfo fragmentCode = SlangCompiler::instance().compile(
+      "gltf_fragment.slang", gltf_fragment_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
@@ -261,8 +281,8 @@ void RasterPass::compileShaders()
   shaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
   shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.pName = "vertexMain";
-  shaderInfo.codeSize = shaderCode.codeSize;
-  shaderInfo.pCode = shaderCode.pCode;
+  shaderInfo.codeSize = vertexCode.codeSize;
+  shaderInfo.pCode = vertexCode.pCode;
   vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
@@ -271,8 +291,8 @@ void RasterPass::compileShaders()
   shaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.nextStage = 0;
   shaderInfo.pName = "fragmentMain";
-  shaderInfo.codeSize = shaderCode.codeSize;
-  shaderInfo.pCode = shaderCode.pCode;
+  shaderInfo.codeSize = fragmentCode.codeSize;
+  shaderInfo.pCode = fragmentCode.pCode;
   vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);

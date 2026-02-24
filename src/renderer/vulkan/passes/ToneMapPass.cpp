@@ -68,12 +68,17 @@ void ToneMapPass::execute(const IRenderContext &ctx)
       vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::Linear);
   VkDescriptorImageInfo outputColor =
       vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::ToneMapped);
+  inputColor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  outputColor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   runCompute(vkCtx.cmdBuffer, vkCtx.gBuffers->getSize(), m_tonemapperData,
              inputColor, outputColor);
 }
 
+/**********************************************************/
 VkResult ToneMapPass::init(nvvk::ResourceAllocator *alloc,
-                           std::span<const uint32_t> spirv) {
+                           std::span<const uint32_t> spirv)
+/**********************************************************/
+{
   assert(!m_device);
   m_alloc = alloc;
   m_device = alloc->getDevice();
@@ -163,7 +168,10 @@ VkResult ToneMapPass::init(nvvk::ResourceAllocator *alloc,
   return VK_SUCCESS;
 }
 
-void ToneMapPass::deinit() {
+/**********************************************************/
+void ToneMapPass::deinit()
+/**********************************************************/
+{
   if (!m_device)
     return;
 
@@ -184,10 +192,14 @@ void ToneMapPass::deinit() {
 //----------------------------------
 // Run the tonemapper compute shader
 //
+
+/**********************************************************/
 void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
                              const shaderio::TonemapperData &tonemapper,
                              const VkDescriptorImageInfo &inImage,
-                             const VkDescriptorImageInfo &outImage) {
+                             const VkDescriptorImageInfo &outImage)
+/**********************************************************/
+{
   NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
 
   // Push constant
@@ -236,9 +248,12 @@ void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
   vkCmdDispatch(cmd, groupSize.width, groupSize.height, 1);
 }
 
-void ToneMapPass::runAutoExposureHistogram(
-    VkCommandBuffer cmd, const VkExtent2D &size,
-    const VkDescriptorImageInfo &inImage) {
+/**********************************************************/
+void ToneMapPass::runAutoExposureHistogram(VkCommandBuffer cmd,
+                                           const VkExtent2D &size,
+                                           const VkDescriptorImageInfo &inImage)
+/**********************************************************/
+{
   NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
 
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_histogramPipeline);
@@ -252,7 +267,10 @@ void ToneMapPass::runAutoExposureHistogram(
             .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT});
 }
 
-void ToneMapPass::runAutoExposure(VkCommandBuffer cmd) {
+/**********************************************************/
+void ToneMapPass::runAutoExposure(VkCommandBuffer cmd)
+/**********************************************************/
+{
   NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipeline);
   vkCmdDispatch(cmd, 1, 1, 1);
@@ -264,7 +282,10 @@ void ToneMapPass::runAutoExposure(VkCommandBuffer cmd) {
             .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT});
 }
 
-void ToneMapPass::clearHistogram(VkCommandBuffer cmd) {
+/**********************************************************/
+void ToneMapPass::clearHistogram(VkCommandBuffer cmd)
+/**********************************************************/
+{
   std::array<uint32_t, EXPOSURE_HISTOGRAM_SIZE> histogramData{0};
   vkCmdUpdateBuffer(cmd, m_histogramBuffer.buffer, 0,
                     sizeof(uint32_t) * EXPOSURE_HISTOGRAM_SIZE,

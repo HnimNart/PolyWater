@@ -25,7 +25,8 @@ public:
   IRenderContext(IRenderContext &&) = delete;
   IRenderContext &operator=(IRenderContext &&) = delete;
 
-  virtual void submitBarriers(const std::vector<BarrierInfo> &barriers) = 0;
+  virtual void
+  submitBarriers(const std::vector<BarrierInfo> &barriers) const = 0;
 
 public:
   uint64_t frameNumber{
