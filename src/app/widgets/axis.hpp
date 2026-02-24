@@ -53,16 +53,26 @@ inline void drawAxis(const glm::mat4 &modelView, float size = 50.f) {
   ImVec2 windowSize = ImGui::GetWindowSize();
   float dpiScale = ImGui::GetWindowDpiScale();
 
-  // Padding from the edges
-  ImVec2 offset = ImVec2(size * 1.5F * dpiScale, -size * 1.5F * dpiScale);
+  // 1. Strip translation and scale to make it FOV/Distance independent
+  // We only care about how the camera is oriented.
+  glm::mat3 rotationPart = glm::mat3(modelView);
 
-  // Bottom-Right Calculation:
-  // x = Start of window + Total Width - Padding
-  // y = Start of window + Total Height - Padding (offset.y is already negative)
+  // Normalize the basis vectors to remove any scaling/zoom from the matrix
+  rotationPart[0] = glm::normalize(rotationPart[0]);
+  rotationPart[1] = glm::normalize(rotationPart[1]);
+  rotationPart[2] = glm::normalize(rotationPart[2]);
+
+  glm::mat4 pureRotationMatrix = glm::mat4(rotationPart);
+
+  // 2. Padding and Position Calculation
+  float scaledSize = size * dpiScale;
+  ImVec2 offset = ImVec2(scaledSize * 1.5f, scaledSize * 1.5f);
+
   ImVec2 pos = ImVec2(windowPos.x + windowSize.x - offset.x,
-                      windowPos.y + windowSize.y + offset.y);
+                      windowPos.y + windowSize.y - offset.y);
 
-  Axis(pos, modelView, size);
+  // 3. Draw using the pure rotation
+  Axis(pos, pureRotationMatrix, scaledSize);
 }
 
 }; // namespace app

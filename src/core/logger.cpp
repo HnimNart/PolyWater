@@ -17,10 +17,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <chrono>
 #include <csignal>
 #include <cstdarg>
 #include <ctime>
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -200,6 +202,24 @@ std::string core::Logger::formatString(const char *format, va_list args) {
   return std::string(buffer.data());
 }
 
+static std::string currentDateTime() {
+  // 1. Get the current wall-clock time
+  auto now = std::chrono::system_clock::now();
+
+  // 2. Convert to local time (or system time)
+  // floor<ms> ensures we have millisecond precision for the parts extractor
+  auto ms_since_epoch = std::chrono::floor<std::chrono::milliseconds>(now);
+
+  // 3. Get the time of day (hours, minutes, seconds, subseconds)
+  // We treat the time as a duration since midnight
+  auto days = std::chrono::floor<std::chrono::days>(ms_since_epoch);
+  std::chrono::hh_mm_ss hms{ms_since_epoch - days};
+
+  return fmt::format("{:02}:{:02}:{:02}.{:03}", hms.hours().count(),
+                     hms.minutes().count(), hms.seconds().count(),
+                     hms.subseconds().count());
+}
+
 static std::string currentTime() {
   static core::PerformanceTimer startTimer;
 
@@ -247,7 +267,7 @@ void core::Logger::addPrefixes(LogLevel level, std::string &message) {
     if (m_show & eSHOW_LEVEL)
       logStream << logLevelToString(level) << ": ";
     if (m_show & eSHOW_TIME)
-      logStream << "[" << currentTime() << "] ";
+      logStream << "[" << currentDateTime() << "] ";
     logStream << message;
     message = logStream.str();
   }

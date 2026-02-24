@@ -79,6 +79,8 @@ int main(int argc, char **argv) {
                            const std::string &message) {
         ptr->addLog(severity, message.c_str());
       });
+  core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
+  core::Logger::getInstance().setFileFlush(true);
 
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();

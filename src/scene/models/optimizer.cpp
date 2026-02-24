@@ -515,8 +515,8 @@ bool loadMeshCache(const std::filesystem::path &filepath, TempMesh &tm)
   file.read((char *)tm.vertexData.data(), vCount * stride);
   file.read((char *)tm.indices.data(), iCount * sizeof(uint32_t));
 
-  LOGI("Loaded cached mesh %s (Vertices %zu - Indices %zu)\n", filepath.c_str(),
-       tm.vertexData.size(), tm.indices.size());
+  LOGD("Loaded cached mesh %s (Vertices %zu - Indices %zu)\n",
+       filepath.filename().c_str(), tm.vertexData.size(), tm.indices.size());
   return true;
 }
 
