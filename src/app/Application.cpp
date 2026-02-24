@@ -113,7 +113,7 @@ void Application::shutdown()
 
 #ifdef PROFILE_APP
   if (m_profilerManager) {
-    m_profileTimeline->clear();
+    m_profilerManager->destroyTimeline(m_profileTimeline);
     m_profilerManager.reset();
   }
 #endif
@@ -236,6 +236,7 @@ void Application::runOneFrame()
 /**********************************************************/
 {
 #ifdef PROFILE_APP
+  m_profileTimeline->frameAdvance();
   const auto profiledSection = m_profileTimeline->frameSection(__func__);
 #endif
 
@@ -251,9 +252,6 @@ void Application::runOneFrame()
 
   runFrame();
   m_frameCounter++;
-#ifdef PROFILE_APP
-  m_profileTimeline->frameAdvance();
-#endif
 }
 
 /**********************************************************/
