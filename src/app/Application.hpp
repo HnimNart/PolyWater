@@ -13,7 +13,7 @@
 #include "IAppElement.hpp"
 #include "backend/interfaces/IRenderBackend.hpp"
 #include "core/Types.hpp"
-#include "frame_pacer.hpp"
+#include "FramePacer.hpp"
 
 // Forward declarations
 struct GLFWwindow;
