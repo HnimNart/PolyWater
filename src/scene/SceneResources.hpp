@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "Scene.h"
+#include "SceneData.hpp"
 #include "core/Camera.hpp"
 #include "lights/LightManager.hpp"
 #include "models/optimizer.hpp"
@@ -114,6 +115,9 @@ public:
   TextureID getTextureIDFromName(const std::string &name) const;
   const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const;
 
+  // Misc
+  SceneData extractSceneData() const;
+
 private:
   // Internal Loading Helpers
   std::vector<MeshID> loadGltf(const std::string &name,
@@ -155,6 +159,7 @@ private:
   std::vector<OptimizedPayload> m_pendingOptimizedMesh;
   std::vector<PendingTexture> m_pendingTextures;
   std::optional<PendingEnvMap> m_pendingEnvmap;
+  uint m_pendingMeshes{0};
 
   // Deduplication and Naming Maps
   std::unordered_map<std::string, MaterialID> m_materialMap;
@@ -163,6 +168,5 @@ private:
   std::unordered_map<std::string, TextureID> m_textureMap;
   std::unordered_map<std::string, core::Image> m_textureImageMap;
   std::unordered_map<std::filesystem::path, TextureID> m_fileToTextureMap;
-  uint m_pendingMeshes{0};
   core::Image m_envmapImage{};
 };

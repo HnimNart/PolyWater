@@ -1,4 +1,5 @@
 #include "SceneResources.hpp"
+#include "SceneData.hpp"
 #include "core/Math.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -47,7 +48,6 @@ findKeyByTextureId(int targetTextureId,
       return name; // Found the matching key!
     }
   }
-
   return std::nullopt; // Not found
 }
 
@@ -62,7 +62,6 @@ std::optional<std::string> findKeyByTextureId(
       return name; // Found the matching key!
     }
   }
-
   return std::nullopt; // Not found
 }
 
@@ -474,7 +473,6 @@ void SceneResourcesManager::clear()
   m_pendingMeshes = 0;
   m_pendingOptimizedMesh.clear();
   m_pendingTextures.clear();
-
   m_pendingEnvmap.reset();
 }
 
@@ -591,4 +589,131 @@ SceneResourcesManager::getTextureIDFromName(const std::string &name) const
 
   throw std::runtime_error(fmt::format(
       "[SceneResourcesManager] Texture name '{}' not found.", name));
+}
+
+/**********************************************************/
+SceneData SceneResourcesManager::extractSceneData() const
+/**********************************************************/
+{
+  SceneData data;
+
+  // =========================================================================
+  // 1. Build Reverse Lookup Maps (ID -> Name)
+  // =========================================================================
+  std::unordered_map<MeshID, std::string> idToMeshName;
+  for (const auto &[name, id] : m_meshMap)
+    idToMeshName[id] = name;
+
+  std::unordered_map<MaterialID, std::string> idToMaterialName;
+  for (const auto &[name, id] : m_materialMap)
+    idToMaterialName[id] = name;
+
+  std::unordered_map<TextureID, std::string> idToTextureName;
+  for (const auto &[name, id] : m_textureMap)
+    idToTextureName[id] = name;
+
+  std::unordered_map<TextureID, std::string> idToTexturePath;
+  for (const auto &[path, id] : m_fileToTextureMap)
+    idToTexturePath[id] = path;
+
+  // =========================================================================
+  // 2. Extract Assets
+  // =========================================================================
+  // Textures
+  for (const auto &[name, id] : m_textureMap) {
+    std::string path =
+        idToTexturePath.contains(id) ? idToTexturePath[id] : name;
+    data.texturePaths[name] =
+        path; // Assuming SceneData has an unordered_map for textures
+  }
+
+  // Meshes
+  // Note: Your manager doesn't currently store the original mesh filepaths.
+  // As a fallback, we use the name as the path. To fix this fully, add a
+  // m_fileToMeshMap similar to your m_fileToTextureMap!
+  for (const auto &[name, id] : m_meshMap) {
+    data.meshPaths[name] = name;
+  }
+
+  // =========================================================================
+  // 3. Extract Materials
+  // =========================================================================
+  for (size_t i = 0; i < m_scene_resources.materials.size(); i++) {
+    const auto &gpuMat = m_scene_resources.materials[i];
+    DataMaterial mat;
+
+    mat.name = idToMaterialName.contains(i) ? idToMaterialName[i]
+                                            : "Material_" + std::to_string(i);
+
+    // Map GPU properties back to CPU struct
+    mat.baseColor = gpuMat.baseColorFactor; // Adjust these variable names to
+                                            // match your shaderio struct
+    mat.metallic = gpuMat.metallicFactor;
+    mat.roughness = gpuMat.roughnessFactor;
+    mat.emission = gpuMat.emission;
+    mat.ior = gpuMat.ior; // If supported by your shaderio::Material
+
+    // Resolve Texture ID back to a string name
+    if (gpuMat.baseColorTextureIndex >= 0 &&
+        idToTextureName.contains(gpuMat.baseColorTextureIndex)) {
+      mat.textureId = idToTextureName[gpuMat.baseColorTextureIndex];
+    }
+
+    data.materials.push_back(mat);
+  }
+
+  // =========================================================================
+  // 4. Extract Instances
+  // =========================================================================
+  for (size_t i = 0; i < m_scene_resources.instances.size(); i++) {
+    const auto &gpuInst = m_scene_resources.instances[i];
+    DataInstance inst;
+
+    // Use a reverse lookup for the instance name if you added one,
+    // otherwise generate a fallback.
+    inst.name = "Instance_" + std::to_string(i);
+
+    // Resolve Mesh and Material Names
+    if (idToMeshName.contains(gpuInst.meshIndex)) {
+      inst.meshId = idToMeshName[gpuInst.meshIndex];
+    }
+
+    if (idToMaterialName.contains(gpuInst.materialIndex)) {
+      inst.materialId = idToMaterialName[gpuInst.materialIndex];
+    }
+
+    inst.hitGroup = gpuInst.hit_group;
+
+    // Transform mapping (Since you store TRS inside shaderio::Instance, we
+    // don't need to decompose the matrix!)
+    inst.translation = gpuInst.translation;
+    inst.rotation = gpuInst.rotation;
+    inst.scale = gpuInst.scale;
+
+    data.instances.push_back(inst);
+  }
+
+  // =========================================================================
+  // 5. Extract Scene Info (Camera, Envmap, etc.)
+  // =========================================================================
+  const auto &info = m_scene_resources.sceneInfo;
+
+  // Assuming you keep the original camera params somewhere or extract them from
+  // viewProj
+  data.camera.eye = info.cameraPosition;
+  // data.camera.center = ... (calculate from view matrix forward vector if
+  // needed)
+
+  // Envmap extraction
+  if (info.envmapLight.envTextureIdx >= 0 &&
+      idToTexturePath.contains(info.envmapLight.envTextureIdx)) {
+    data.envmap.useEnvMap = true;
+    data.envmap.path = idToTexturePath[info.envmapLight.envTextureIdx];
+    // Scale and rotation would ideally be stored in the manager or sceneInfo
+  }
+
+  // Add lights if you store them in a CPU array inside SceneResourcesManager
+  // data.lights = m_lights.getParsedLights();
+
+  return data;
 }
