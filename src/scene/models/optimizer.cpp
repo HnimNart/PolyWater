@@ -489,7 +489,6 @@ void extractAndOptimizePrimitive(const tinygltf::Model &model,
 bool loadMeshCache(const std::filesystem::path &filepath, TempMesh &tm)
 /**********************************************************/
 {
-  return false; // TODO remove me again
   std::ifstream file(filepath, std::ios::binary);
   if (!file.is_open())
     return false;
@@ -515,6 +514,9 @@ bool loadMeshCache(const std::filesystem::path &filepath, TempMesh &tm)
   tm.indices.resize(iCount);
   file.read((char *)tm.vertexData.data(), vCount * stride);
   file.read((char *)tm.indices.data(), iCount * sizeof(uint32_t));
+
+  LOGI("Loaded cached mesh %s (Vertices %zu - Indices %zu)\n", filepath.c_str(),
+       tm.vertexData.size(), tm.indices.size());
   return true;
 }
 

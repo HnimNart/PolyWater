@@ -426,30 +426,53 @@ void VulkanRendererElement::processPendingTexture(
   const auto &filename = m_pendingTexture->filename;
   const auto instanceId = m_pendingTexture->id;
 
-  // Validate filename and instance ID
-  if (filename.empty() || instanceId >= resourceMgr.getInstances().size()) {
-    LOGE("Invalid texture metadata or instance ID for %s", filename.c_str());
+  // 1. Validation
+  if (filename.empty()) {
+    LOGW("Texture Load Warning: Empty filename provided (Instance ID: %d)\n",
+         instanceId);
     m_pendingTexture.reset();
     return;
   }
 
+  // 2. Resource Management
   std::string name = core::getLowercasedStem(filename);
   TextureID textureId = resourceMgr.addTexture(name, filename);
 
-  if (textureId != -1) {
-    resourceMgr.onTextureChange();
+  if (textureId == -1) {
+    LOGE("Texture Load Failure: Could not load '%s'\n", filename.c_str());
+    m_pendingTexture.reset();
+    return;
+  }
 
-    // Safe Material Assignment
-    MaterialID materialId =
-        resourceMgr.getInstances()[instanceId].materialIndex;
-    if (materialId < resourceMgr.getMaterials().size()) {
-      resourceMgr.getMaterials()[materialId].baseColorTextureIndex = textureId;
-      resourceMgr.onMaterialChange();
+  // Log successful addition
+  LOGI("Texture Registered: [ID: %d] [Name: %s] [Path: %s]\n", textureId,
+       name.c_str(), filename.c_str());
+
+  resourceMgr.onTextureChange();
+
+  // 3. Material Assignment (if an instance ID was provided)
+  if (instanceId != -1) {
+    auto &instances = resourceMgr.getInstances();
+
+    if (instanceId < (int)instances.size()) {
+      MaterialID materialId = instances[instanceId].materialIndex;
+      auto &materials = resourceMgr.getMaterials();
+
+      if (materialId < materials.size()) {
+        materials[materialId].baseColorTextureIndex = textureId;
+        resourceMgr.onMaterialChange();
+
+        LOGI("Material Assignment: Instance %d (Material %d) updated with "
+             "Texture %d\n",
+             instanceId, materialId, textureId);
+      } else {
+        LOGW("Material Assignment Failure: Invalid Material ID %d for Instance "
+             "%d\n",
+             materialId, instanceId);
+      }
     } else {
-      LOGE("Invalid material ID %d for instance %d", materialId, instanceId);
+      LOGW("Material Assignment Failure: Invalid Instance ID %d\n", instanceId);
     }
-  } else {
-    LOGE("Failed to load texture: %s", filename.c_str());
   }
 
   m_pendingTexture.reset();
