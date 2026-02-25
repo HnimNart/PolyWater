@@ -395,6 +395,7 @@ void VulkanRendererElement::processPendingResources()
   if (!m_sceneFile.empty()) {
     clear();
     loadScene(m_sceneFile);
+    m_geometryPicker->onSceneUpdate(m_sceneManager.sceneResourceManager());
     m_sceneFile.clear();
   }
 

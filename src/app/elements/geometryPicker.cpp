@@ -20,6 +20,14 @@ app::GeometryPickerElement::GeometryPickerElement(
 }
 
 /**********************************************************/
+void app::GeometryPickerElement::onSceneUpdate(
+    const SceneResourcesManager &scene)
+/**********************************************************/
+{
+  m_accel.build(scene.data());
+}
+
+/**********************************************************/
 void app::GeometryPickerElement::onAttach(Application *app)
 /**********************************************************/
 {

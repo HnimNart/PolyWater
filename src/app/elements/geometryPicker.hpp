@@ -28,6 +28,8 @@ public:
   GeometryPickerElement(const SceneResourcesManager &sceneResources,
                         std::shared_ptr<core::CameraManipulator> camera);
 
+  void onSceneUpdate(const SceneResourcesManager &sceneResources);
+
   void onAttach(Application *app) override;
   void onUIRender() override;
 
