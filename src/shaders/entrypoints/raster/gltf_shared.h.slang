@@ -17,7 +17,8 @@ struct FragmentInput
   float3 worldPos : POSITION;
   float3 worldNormal : NORMAL;
   float2 worldTexCoord : TEXCOORD0;
-  nointerpolation float4 debugColor: COLOR0;      
+  nointerpolation float4 debugColor: COLOR0;
+  nointerpolation uint instanceIndex;
 };
 
 // Output of the fragment shader
@@ -29,14 +30,9 @@ struct PSout
 // Define the Payload structure
 #define TASK_WORKGROUP_SIZE 32
 
-// Add this to map a global thread to a specific meshlet & instance
-struct GlobalMeshletRef {
-    uint instanceIndex;
-    uint localMeshletIndex;
-};
 
 // Update the payload to hold BOTH the meshlet index and its instance index
 struct MeshTaskPayload {
     uint meshletIndices[TASK_WORKGROUP_SIZE];
-    uint instanceIndices[TASK_WORKGROUP_SIZE]; // <-- NEW
+    uint instanceIndices[TASK_WORKGROUP_SIZE]; 
 };

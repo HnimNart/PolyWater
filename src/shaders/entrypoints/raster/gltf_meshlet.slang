@@ -20,18 +20,21 @@ void meshMain(
     out indices uint3 triangles[124],
     out vertices FragmentInput outVertices[64]
 ) {
-    int instanceIndex = pushConst.instanceIndex;
-
     SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
     SceneResources *sceneResources = pushConst.resourcesAddress;
 
+    // --- CRITICAL UPDATE ---
+    // Read BOTH the instance index and the meshlet index from the payload!
+    uint instanceIndex = taskPayload.instanceIndices[groupId];
+    uint globalMeshletIndex = taskPayload.meshletIndices[groupId];
+
+    // Now fetch the correct instance and mesh using the dynamically retrieved index
     Instance instance = sceneResources.instances[instanceIndex];
     MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
 
     // Transpose of the inverse of the upper-left 3x3 of the transform matrix
     float3x3 normalMatrix = transpose(inverse3x3(float3x3(instance.transform)));
-    // Fetch the Meshlet index that survived culling in the Task shader
-    uint globalMeshletIndex = taskPayload.meshletIndices[groupId];
+    
     // Fetch the Meshlet header using the true global index
     GPUMeshlet meshlet = getMeshlet(meshIo.buffer, meshIo.meshlet.meshlets,
                                     globalMeshletIndex);
@@ -59,10 +62,11 @@ void meshMain(
 
         FragmentInput output;
         output.debugColor = colorFromIndex(globalMeshletIndex);
+        output.instanceIndex = instanceIndex;
         output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
         output.worldPos = pos.xyz;
         
-        // <-- UPDATED: Use the locally calculated normalMatrix
+        // Use the locally calculated normalMatrix
         output.worldNormal = normalize(mul(normal, normalMatrix));
         output.worldTexCoord = texCoord;
 

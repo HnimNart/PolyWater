@@ -49,6 +49,7 @@ struct VSin {
 
   FragmentInput output;
   output.debugColor = colorFromIndex(vertexIndex); // Example custom logic
+  output.instanceIndex = instanceIndex;
   output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
   output.worldPos = pos.xyz;
   output.worldNormal = normalize(mul(normal, float3x3(pushConst.normalMatrix)));

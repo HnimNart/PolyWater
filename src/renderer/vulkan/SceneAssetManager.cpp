@@ -386,9 +386,12 @@ void VulkanSceneAssetManager::updateSceneResources(VkCommandBuffer cmd) const
 {
   NVVK_DBG_SCOPE(cmd);
   shaderio::SceneResources resources = {
-      .instances = (shaderio::Instance *)m_data.bInstances.address,
-      .meshes = (shaderio::MeshPrimitive *)m_data.bMeshes.address,
-      .materials = (shaderio::Material *)m_data.bMaterials.address,
+      .instances =
+          reinterpret_cast<shaderio::Instance *>(m_data.bInstances.address),
+      .meshes =
+          reinterpret_cast<shaderio::MeshPrimitive *>(m_data.bMeshes.address),
+      .materials =
+          reinterpret_cast<shaderio::Material *>(m_data.bMaterials.address),
   };
   nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneResources.buffer,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,

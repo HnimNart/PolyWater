@@ -8,7 +8,7 @@
 [shader("pixel")] PSout fragmentMain(FragmentInput stage) {
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
   SceneResources sceneResources = pushConst.resourcesAddress[0];
-  Instance instance = sceneResources.instances[pushConst.instanceIndex];
+  Instance instance = sceneResources.instances[stage.instanceIndex];
   Material material = sceneResources.materials[instance.materialIndex];
 
   PSout output;

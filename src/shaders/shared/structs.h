@@ -142,6 +142,12 @@ struct GPUMeshlet {
 };
 CHECK_STRUCT_ALIGNMENT(GPUMeshlet)
 
+struct GlobalMeshletRef {
+  uint instanceIndex;
+  uint localMeshletIndex;
+};
+CHECK_STRUCT_ALIGNMENT(GlobalMeshletRef)
+
 struct MeshletTopology {
   BufferView meshlets; // Points to an array of GPUMeshlet structs
   BufferView
@@ -300,6 +306,12 @@ struct PushConstant {
   SceneResources *resourcesAddress; //
   RenderParams renderParams;
   RasterParams rasterParams;
+
+  // --- NEW: Global Meshlet Dispatch Data ---
+  GlobalMeshletRef
+      *globalMeshletRefsAddress; // 64-bit GPU pointer to this frame's array
+  uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
+  uint32_t pad_meshlet;
 };
 
 NAMESPACE_SHADERIO_END()

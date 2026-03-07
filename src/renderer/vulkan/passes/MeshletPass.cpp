@@ -34,6 +34,28 @@ void MeshletPass::init(VulkanContextManager *contextManager)
   m_context_manager = contextManager;
   createPipelineLayout(m_context_manager->getDevice());
   compileShaders();
+  allocateDynamicBuffers(m_context_manager->getAllocator());
+}
+
+/**********************************************************/
+void MeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator &allocator)
+/**********************************************************/
+{
+
+  VkDeviceSize bufferSize =
+      sizeof(shaderio::GlobalMeshletRef) * MAX_SCENE_MESHLETS;
+
+  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+    // Call your specific allocator function!
+    m_context_manager->getAllocator().createBuffer(
+        m_globalMeshletRefsBuffers[i], bufferSize,
+        VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR, // usage
+        VMA_MEMORY_USAGE_AUTO_PREFER_HOST,        // memoryUsage
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_MAPPED_BIT // flags (Forces buffer.mapping to
+                                             // be populated)
+    );
+  }
 }
 
 /**********************************************************/
@@ -42,6 +64,9 @@ void MeshletPass::deinit(VulkanContextManager *coreManager)
 {
   vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
   clearShaders();
+  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+    coreManager->getAllocator().destroyBuffer(m_globalMeshletRefsBuffers[i]);
+  }
 }
 
 /**********************************************************/
@@ -60,7 +85,6 @@ void MeshletPass::setup(PassBuilder &builder)
 void MeshletPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
 {}
-
 /**********************************************************/
 void MeshletPass::execute(const IRenderContext &ctx)
 /**********************************************************/
@@ -91,7 +115,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
                     VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
-      .pValues = &constants,
+      .pValues = &constants, // points to our local 'constants' struct which we
+                             // will update below
   };
 
   // Rendering to the GBuffer - Attachments
@@ -150,7 +175,6 @@ void MeshletPass::execute(const IRenderContext &ctx)
   }
 
   // --- BIND MESH & FRAGMENT SHADERS ---
-  // Bind Shaders
   const VkShaderStageFlagBits stages[] = {
       VK_SHADER_STAGE_VERTEX_BIT,
       VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
@@ -173,7 +197,12 @@ void MeshletPass::execute(const IRenderContext &ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
   vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-  // Draw Loop
+  // --- 1. Flatten the scene into a 1D array of meshlet references ---
+  std::vector<shaderio::GlobalMeshletRef> globalMeshlets;
+  globalMeshlets.reserve(
+      MAX_SCENE_MESHLETS /
+      10); // Reserve some capacity to avoid frequent reallocations
+
   for (size_t i = 0; i < sceneResources->instances.size(); i++) {
     const shaderio::Instance &instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
@@ -186,29 +215,54 @@ void MeshletPass::execute(const IRenderContext &ctx)
       continue;
     }
 
-    // Get the number of meshlets to draw
-    uint32_t meshletCount = meshPrim.meshlet.meshlets.count;
-    if (meshletCount > 0) {
-      // Push constants
-      constants.normalMatrix =
-          glm::transpose(glm::inverse(glm::mat3(instance.transform)));
-      constants.instanceIndex = int(i);
-      vkCmdPushConstants2(cmd, &pushInfo);
-
-      uint32_t taskGroupCount = (meshletCount + 31) / 32;
-      vkCmdDrawMeshTasksEXT(cmd, taskGroupCount, 1, 1);
+    uint32_t count = meshPrim.meshlet.meshlets.count;
+    for (uint32_t m = 0; m < count; m++) {
+      globalMeshlets.push_back({static_cast<uint32_t>(i), m});
     }
   }
 
+  if (globalMeshlets.empty()) {
+    vkCmdEndRendering(cmd);
+    return;
+  }
+
+  if (globalMeshlets.size() > MAX_SCENE_MESHLETS) {
+    LOGE("Too many meshlets! Max: %u, Trying to draw: %zu", MAX_SCENE_MESHLETS,
+         globalMeshlets.size());
+    vkCmdEndRendering(cmd);
+    return;
+  }
+
+  // --- 2. Upload to VMA mapped pointer ---
+  size_t uploadByteSize =
+      globalMeshlets.size() * sizeof(shaderio::GlobalMeshletRef);
+  std::memcpy(m_globalMeshletRefsBuffers[m_currentFrameIndex].mapping,
+              globalMeshlets.data(), uploadByteSize);
+
+  // --- 3. Push constants & Dispatch ---
+  constants.totalSceneMeshlets = static_cast<uint32_t>(globalMeshlets.size());
+  constants.globalMeshletRefsAddress =
+      reinterpret_cast<shaderio::GlobalMeshletRef *>(
+          m_globalMeshletRefsBuffers[m_currentFrameIndex].address);
+
+  // Issue the push constants right before the draw call
+  vkCmdPushConstants2(cmd, &pushInfo);
+
+  // THE SINGLE GLOBAL DISPATCH
+  uint32_t taskGroupCount = (constants.totalSceneMeshlets + 31) / 32;
+  vkCmdDrawMeshTasksEXT(cmd, taskGroupCount, 1, 1);
+
+  // Advance frame index for the next execute
+  m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
+
   if (culledCount > 0) {
-    LOGD("MeshletPass: Culled %u / %zu instances", culledCount,
+    LOGD("MeshletPass: CPU Culled %u / %zu instances", culledCount,
          sceneResources->instances.size());
   }
 
   // ** END RENDERING **
   vkCmdEndRendering(cmd);
 }
-
 /**********************************************************/
 void MeshletPass::reload()
 /**********************************************************/
