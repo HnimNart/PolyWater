@@ -42,7 +42,7 @@ private:
   const nvvk::DescriptorPack &m_descPack;
   VkPipelineLayout m_pipelineLayout{};
 
-  // --- NEW: Mesh Shader replaces Vertex Shader ---
+  VkShaderEXT m_taskShader{};
   VkShaderEXT m_meshShader{};
   VkShaderEXT m_fragmentShader{};
 };

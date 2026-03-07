@@ -10,6 +10,7 @@
 #include "models/obj_utils.hpp"
 #include "models/optimizer.hpp"
 
+#include <core/Frustum.hpp>
 #include <core/Image.hpp>
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
@@ -500,6 +501,11 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
   m_scene_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_scene_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
   m_scene_resources.sceneInfo.cameraPosition = camera->getEye();
+  auto cameraFrustum =
+      core::extractFrustumPlanes(m_scene_resources.sceneInfo.viewProjMatrix);
+  for (int i = 0; i < 6; ++i) {
+    m_scene_resources.sceneInfo.frustumPlanes[i] = cameraFrustum.planes[i];
+  }
 }
 
 /**********************************************************/

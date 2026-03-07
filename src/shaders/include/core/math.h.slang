@@ -11,4 +11,24 @@ uint hash(uint seed)
     return seed;
 }
 
+// Computes the inverse of a 3x3 matrix
+float3x3 inverse3x3(float3x3 m) {
+    float det = m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
+                m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+                m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    
+    float invDet = 1.0 / det;
+    float3x3 res;
+    res[0][0] =  (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invDet;
+    res[0][1] = -(m[0][1] * m[2][2] - m[0][2] * m[2][1]) * invDet;
+    res[0][2] =  (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invDet;
+    res[1][0] = -(m[1][0] * m[2][2] - m[1][2] * m[2][0]) * invDet;
+    res[1][1] =  (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invDet;
+    res[1][2] = -(m[0][0] * m[1][2] - m[1][0] * m[0][2]) * invDet;
+    res[2][0] =  (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * invDet;
+    res[2][1] = -(m[0][0] * m[2][1] - m[2][0] * m[0][1]) * invDet;
+    res[2][2] =  (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * invDet;
+    return res;
+}
+
 #endif

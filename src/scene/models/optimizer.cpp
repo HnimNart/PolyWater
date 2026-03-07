@@ -141,6 +141,18 @@ MeshletData buildMeshlets(const TempMesh &tm)
     m.triangleOffset = localMeshlets[i].triangle_offset;
     m.vertexCount = localMeshlets[i].vertex_count;
     m.triangleCount = localMeshlets[i].triangle_count;
+
+    meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+        &localVertices[m.vertexOffset], &localTriangles[m.triangleOffset],
+        m.triangleCount, positions, vertex_count, tm.vertexStride);
+
+    // Assign to your GPUMeshlet struct
+    m.center = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
+    m.radius = bounds.radius;
+    // Optional: For normal-based backface culling (Cone Culling)
+    m.coneAxis = glm::vec3(bounds.cone_axis[0], bounds.cone_axis[1],
+                           bounds.cone_axis[2]);
+    m.coneCutoff = bounds.cone_cutoff;
     result.meshlets.push_back(m);
   }
 

@@ -16,7 +16,7 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo)
   VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
   meshFeatures.meshShader = VK_TRUE;
-  // meshFeatures.taskShader = VK_TRUE;
+  meshFeatures.taskShader = VK_TRUE;
   meshFeatures.primitiveFragmentShadingRateMeshShader = VK_FALSE;
 
   VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjFeatures{

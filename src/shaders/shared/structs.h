@@ -112,7 +112,6 @@ struct BoundingBox {
 #endif
 };
 
-
 struct BufferView {
   uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
   uint32_t count;      // Number of elements in the buffer view
@@ -130,18 +129,25 @@ struct TriangleMesh {
 };
 
 struct GPUMeshlet {
-    uint32_t vertexOffset;   // Offset into the meshlet_vertices buffer
-    uint32_t triangleOffset; // Offset into the meshlet_triangles buffer
-    uint32_t vertexCount;    // Number of vertices in this meshlet (max 64)
-    uint32_t triangleCount;  // Number of triangles in this meshlet (max 124)
-    // TODO: Add bounding sphere/box or normal cone data here for culling
+  uint32_t vertexOffset;   // Offset into the meshlet_vertices buffer
+  uint32_t triangleOffset; // Offset into the meshlet_triangles buffer
+  uint32_t vertexCount;    // Number of vertices in this meshlet (max 64)
+  uint32_t triangleCount;  // Number of triangles in this meshlet (max 124)
+
+  // Culling data
+  float3 center;
+  float radius;
+  float3 coneAxis;
+  float coneCutoff;
 };
 CHECK_STRUCT_ALIGNMENT(GPUMeshlet)
 
 struct MeshletTopology {
-  BufferView meshlets;         // Points to an array of GPUMeshlet structs
-  BufferView meshletVertices;  // Points to an array of uint32_t (global vertex indices)
-  BufferView meshletTriangles; // Points to an array of uint8_t (local triangle indices)
+  BufferView meshlets; // Points to an array of GPUMeshlet structs
+  BufferView
+      meshletVertices; // Points to an array of uint32_t (global vertex indices)
+  BufferView meshletTriangles; // Points to an array of uint8_t (local triangle
+                               // indices)
   BufferView tmp; // Points to an array of uint8_t (local triangle indices)
 };
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
@@ -229,9 +235,9 @@ struct AreaLight {
 struct EnvmapLight {
   // GPU Buffer Addresses for MIS
   float *cdfRows = nullptr; // Conditional CDF: (width + 1) * height
-  int cdfRowsBufferIndex  = -1;
+  int cdfRowsBufferIndex = -1;
   float *cdfCols = nullptr; // Marginal CDF: (height + 1)
-  int cdfColsBufferIndex  = -1;
+  int cdfColsBufferIndex = -1;
 
   // Transformation & Intensity
   float rotationAzimuthDegree;
@@ -270,6 +276,7 @@ struct SceneInfo {
   float4x4 projInvMatrix;  // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;  // Inverse view matrix for the scene
   float3 cameraPosition;   // Camera position in world space
+  float4 frustumPlanes[6]; // Frustum planes
 
   // Light info
   int useSky; // Whether to use the sky rendering

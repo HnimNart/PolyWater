@@ -173,6 +173,34 @@ inline float powerHeuristic(float a, float b)
   return t / (b * b + t);
 }
 
+// Tests a local-space bounding sphere against 6 world-space frustum planes.
+// Returns true if the sphere is visible (inside or intersecting the frustum), false if culled.
+bool frustumCullSphere(float3 localCenter, float localRadius, float4x4 transform, float4 frustumPlanes[6])
+{
+    // 1. Transform Center to World Space
+    float3 worldCenter = mul(float4(localCenter, 1.0), transform).xyz;
+
+    // 2. Extract Max Scale
+    float scaleX = length(float3(transform[0][0], transform[1][0], transform[2][0]));
+    float scaleY = length(float3(transform[0][1], transform[1][1], transform[2][1]));
+    float scaleZ = length(float3(transform[0][2], transform[1][2], transform[2][2]));
+    float maxScale = max(scaleX, max(scaleY, scaleZ));
+    
+    float worldRadius = localRadius * maxScale;
+
+    // 3. Frustum Culling Test
+    for (int i = 0; i < 6; ++i) 
+    {
+        float distanceToPlane = dot(frustumPlanes[i].xyz, worldCenter) + frustumPlanes[i].w;
+        if (distanceToPlane < -worldRadius) 
+        {
+            return false; // Completely outside this plane
+        }
+    }
+    
+    return true; // Survived all planes, it is visible!
+}
+
 
 NAMESPACE_SHADERIO_END()
 

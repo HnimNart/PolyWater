@@ -19,6 +19,7 @@
 
 #include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_meshlet.slang.h"
+#include "_autogen/gltf_task.slang.h"
 
 /**********************************************************/
 MeshletPass::MeshletPass(const nvvk::DescriptorPack &descPack)
@@ -86,7 +87,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
   const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
       .layout = m_pipelineLayout,
-      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT |
+                    VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
       .pValues = &constants,
@@ -116,7 +118,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // Bind Descriptor Sets
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
-      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT |
+                    VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
@@ -154,18 +157,15 @@ void MeshletPass::execute(const IRenderContext &ctx)
       VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
       VK_SHADER_STAGE_GEOMETRY_BIT,
       VK_SHADER_STAGE_FRAGMENT_BIT,
-      VK_SHADER_STAGE_TASK_BIT_EXT, // Because we enabled Mesh Shaders
-      VK_SHADER_STAGE_MESH_BIT_EXT  // Because we enabled Mesh Shaders
-  };
+      VK_SHADER_STAGE_TASK_BIT_EXT,
+      VK_SHADER_STAGE_MESH_BIT_EXT};
 
   const VkShaderEXT shaders[] = {
       VK_NULL_HANDLE, // No vertex shader
       VK_NULL_HANDLE, // No Tessellation Control
       VK_NULL_HANDLE, // No Tessellation Eval
       VK_NULL_HANDLE, // No Geometry
-      m_fragmentShader,
-      VK_NULL_HANDLE, // No Task
-      m_meshShader,
+      m_fragmentShader, m_taskShader, m_meshShader,
   };
   vkCmdBindShadersEXT(cmd, 7, stages, shaders);
 
@@ -194,7 +194,9 @@ void MeshletPass::execute(const IRenderContext &ctx)
           glm::transpose(glm::inverse(glm::mat3(instance.transform)));
       constants.instanceIndex = int(i);
       vkCmdPushConstants2(cmd, &pushInfo);
-      vkCmdDrawMeshTasksEXT(cmd, meshletCount, 1, 1);
+
+      uint32_t taskGroupCount = (meshletCount + 31) / 32;
+      vkCmdDrawMeshTasksEXT(cmd, taskGroupCount, 1, 1);
     }
   }
 
@@ -220,7 +222,8 @@ void MeshletPass::createPipelineLayout(VkDevice device)
 /**********************************************************/
 {
   const VkPushConstantRange pushConstantRange{
-      .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT |
+                    VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
@@ -240,6 +243,7 @@ void MeshletPass::createPipelineLayout(VkDevice device)
 void MeshletPass::clearShaders()
 /**********************************************************/
 {
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_taskShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_meshShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
 }
@@ -250,15 +254,17 @@ void MeshletPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
+  VkShaderModuleCreateInfo taskCode =
+      SlangCompiler::instance().compile("gltf_task.slang", gltf_task_slang);
   VkShaderModuleCreateInfo meshletCode = SlangCompiler::instance().compile(
       "gltf_meshlet.slang", gltf_meshlet_slang);
   VkShaderModuleCreateInfo fragmentCode = SlangCompiler::instance().compile(
       "gltf_fragment.slang", gltf_fragment_slang);
 
   // Use the UNION of all stages that will use this push constant block
-  // This makes the ranges "identically defined" across the pipeline stages.
-  const VkShaderStageFlags pipelineStages =
-      VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  const VkShaderStageFlags pipelineStages = VK_SHADER_STAGE_TASK_BIT_EXT |
+                                            VK_SHADER_STAGE_MESH_BIT_EXT |
+                                            VK_SHADER_STAGE_FRAGMENT_BIT;
 
   const VkPushConstantRange identicalRange{
       .stageFlags = pipelineStages,
@@ -269,19 +275,30 @@ void MeshletPass::compileShaders()
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-      .codeSize = meshletCode.codeSize,
-      .pCode = meshletCode.pCode,
       .setLayoutCount = 1,
       .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &identicalRange,
   };
 
+  // --- TASK SHADER ---
+  shaderInfo.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
+  shaderInfo.nextStage = VK_SHADER_STAGE_MESH_BIT_EXT;
+  shaderInfo.pName = "taskMain";
+  shaderInfo.codeSize = taskCode.codeSize;
+  shaderInfo.pCode = taskCode.pCode;
+  shaderInfo.flags = 0; // Standard flags
+
+  NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
+                                nullptr, &m_taskShader));
+
   // --- MESH SHADER ---
   shaderInfo.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
   shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.pName = "meshMain";
-  shaderInfo.flags = VK_SHADER_CREATE_NO_TASK_SHADER_BIT_EXT;
+  shaderInfo.codeSize = meshletCode.codeSize;
+  shaderInfo.pCode = meshletCode.pCode;
+  shaderInfo.flags = 0;
 
   NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
                                 nullptr, &m_meshShader));
