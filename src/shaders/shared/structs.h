@@ -45,6 +45,7 @@
 #define MAX_LIGHTS 2
 #define MAX_SCENE_TEXTURES 4096
 #define MAX_SCENE_MESHLETS (10000000)
+#define MAX_SCENE_INSTANCES (10000000)
 
 enum class MaterialType : uint16_t {
   eDiffuse,
@@ -74,8 +75,6 @@ struct HitPayload {
 struct ShadowPayload {
   bool isHit;
 };
-
-
 
 struct BoundingBox {
   float3 min;
@@ -278,7 +277,7 @@ struct SceneInfo {
   float4x4 projInvMatrix;  // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;  // Inverse view matrix for the scene
   float3 cameraPosition;   // Camera position in world space
-  float nearZ;   
+  float nearZ;
   float4 frustumPlanes[6]; // Frustum planes
 
   // Light info
@@ -304,11 +303,13 @@ struct PushConstant {
   RenderParams renderParams;
   RasterParams rasterParams;
 
-  // --- NEW: Global Meshlet Dispatch Data ---
-  GlobalMeshletRef
-      *globalMeshletRefsAddress; // 64-bit GPU pointer to this frame's array
-  uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
+  // Global Meshlet Dispatch Data ---
+  GlobalMeshletRef *globalMeshletRefsAddress; // 64-bit GPU pointer
+  uint32_t totalSceneMeshlets; // How many meshlets we are drawing
   uint32_t pad_meshlet;
+
+  // Raster
+  uint64_t instanceMapAddress;
 
   uint2 screenResolution;
 };

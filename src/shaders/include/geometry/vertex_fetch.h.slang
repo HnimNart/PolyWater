@@ -19,6 +19,35 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
   return T(1);  // Error case - return default value
 }
 
+
+uint getIndex(uint8_t* dataBufferAddress, BufferView bufferView, uint attributeIndex, int indexType)
+{
+    if (indexType == 1)
+        return getIndex32(dataBufferAddress, bufferView, attributeIndex);
+    else
+        return getIndex16(dataBufferAddress, bufferView, attributeIndex);
+}
+
+uint getIndex32(uint8_t* dataBufferAddress, BufferView bufferView, uint attributeIndex)
+{
+  if (bufferView.count > 0) {
+    uint actualStride = bufferView.byteStride == 0 ? 4 : bufferView.byteStride;
+    uint* ptr = (uint*) (dataBufferAddress + bufferView.offset + attributeIndex * actualStride);
+    return ptr[0];
+  }
+  return 0;
+}
+
+uint getIndex16(uint8_t* dataBufferAddress, BufferView bufferView, uint attributeIndex)
+{
+  if (bufferView.count > 0) {
+    uint actualStride = bufferView.byteStride == 0 ? 2 : bufferView.byteStride;
+    uint16_t* ptr = (uint16_t*) (dataBufferAddress + bufferView.offset + attributeIndex * actualStride);
+    return ptr[0];
+  }
+  return 0;
+}
+
 // Retrieve triangle vertex indices from the mesh index buffer
 int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
                         int primitiveID, int indexType)
@@ -103,7 +132,6 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   SceneResources sceneResources = pushConst.resourcesAddress[0];
   Instance instance = sceneResources.instances[instanceID];
   MeshPrimitive mesh = sceneResources.meshes[instance.meshIndex];
-
   s.material = sceneResources.materials[instance.materialIndex];
 
   // 4. Interpolate Attributes

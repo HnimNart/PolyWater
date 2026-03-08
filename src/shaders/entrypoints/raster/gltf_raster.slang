@@ -1,58 +1,44 @@
-/*
- * Copyright (c) 2023-2025, NVIDIA CORPORATION.  All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION.
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include "gltf_shared.h.slang"
 
-// Per-vertex attributes to be assembled from bound vertex buffers.
-struct VSin {
-  float3 position : POSITION;
-  float3 normal : NORMAl;
-};
-
-// Vertex  Shader
-[shader("vertex")] FragmentInput vertexMain(VSin input, uint vertexIndex
-                                            : SV_VertexID) {
-  int instanceIndex = pushConst.instanceIndex;
-
+[shader("vertex")] FragmentInput vertexMain(uint logicalVertexID
+                                            : SV_VertexID, uint drawSlot
+                                            : SV_DrawIndex) {
+  uint32_t *instanceMap = (uint32_t *)pushConst.instanceMapAddress;
+  uint instanceID = instanceMap[drawSlot]; // true scene instance index
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
   SceneResources *sceneResources = pushConst.resourcesAddress;
 
-  Instance instance = sceneResources.instances[instanceIndex];
+  Instance instance = sceneResources.instances[instanceID];
   MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
 
-  // Retrieve the data
+  // ==========================================================
+  // 1. PROGRAMMABLE INDEX PULLING
+  // ==========================================================
+  uint actualVertexIndex = getIndex(meshIo.buffer, meshIo.triMesh.indices,
+                                    logicalVertexID, meshIo.indexType);
+  // ==========================================================
+  // 2. FETCH VERTEX PAYLOAD
+  // ==========================================================
   float3 posMesh = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions,
-                                        vertexIndex);
-  float3 normal =
-      getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals, vertexIndex);
-  float2 texCoord = getAttribute<float2>(meshIo.buffer,
-                                         meshIo.triMesh.texCoords, vertexIndex);
+                                        actualVertexIndex);
+  float3 normal = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,
+                                       actualVertexIndex);
+  float2 texCoord = getAttribute<float2>(
+      meshIo.buffer, meshIo.triMesh.texCoords, actualVertexIndex);
 
+  // ==========================================================
+  // 3. TRANSFORMATIONS
+  // ==========================================================
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 
+  float3x3 normalMatrix = transpose(inverse3x3((float3x3)instance.transform));
+
   FragmentInput output;
-  output.debugColor = colorFromIndex(vertexIndex); // Example custom logic
-  output.instanceIndex = instanceIndex;
+  output.debugColor = colorFromIndex(instanceID);
+  output.instanceIndex = instanceID;
   output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
   output.worldPos = pos.xyz;
-  output.worldNormal = normalize(mul(normal, float3x3(pushConst.normalMatrix)));
+  output.worldNormal = normalize(mul(normal, normalMatrix));
   output.worldTexCoord = texCoord;
 
   return output;

@@ -49,7 +49,6 @@ private:
   VkShaderEXT m_meshShader{};
   VkShaderEXT m_fragmentShader{};
 
-  // Add to your class members
   static constexpr uint32_t FRAMES_IN_FLIGHT = 3;
   nvvk::Buffer m_globalMeshletRefsBuffers[FRAMES_IN_FLIGHT];
   uint32_t m_currentFrameIndex = 0; // Tracks which buffer to use this frame

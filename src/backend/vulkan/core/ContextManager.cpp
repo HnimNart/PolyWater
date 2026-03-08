@@ -38,10 +38,14 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo)
   VkPhysicalDeviceFragmentShadingRateFeaturesKHR fsrFeatures{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
 
+  VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT robustFeatures{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_ROBUSTNESS_FEATURES_EXT};
+  robustFeatures.vertexAttributeRobustness = VK_TRUE;
+
   // Setup Context Initialization
   nvvk::ContextInitInfo vkSetup;
   vkSetup.apiVersion = VK_API_VERSION_1_4;
-  vkSetup.enableAllFeatures = false;
+  vkSetup.enableAllFeatures = true;
 
   // Attach each feature to its corresponding extension
   vkSetup.deviceExtensions = {
@@ -76,7 +80,12 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo)
 
       // Enables Variable Rate Shading (VRS) to decouple fragment shading
       // execution rate from the render target resolution
-      // {VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, &fsrFeatures, true},
+      {VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, &fsrFeatures, true},
+
+      {VK_EXT_MULTI_DRAW_EXTENSION_NAME, nullptr, true},
+      {VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, nullptr, true},
+      {VK_EXT_VERTEX_ATTRIBUTE_ROBUSTNESS_EXTENSION_NAME, &robustFeatures,
+       true},
   };
 
   // Validation and Instance Setup
