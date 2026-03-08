@@ -1,5 +1,6 @@
 #include "RayTracePass.hpp"
 
+#include <shaders/shared/bindings.h>
 #include <shaders/shared/structs.h>
 
 #include <algorithm>

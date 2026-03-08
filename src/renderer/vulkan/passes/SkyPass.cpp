@@ -9,7 +9,10 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/Scene.h"
 
-void SkyPass::init(VulkanContextManager *core) {
+/**********************************************************/
+void SkyPass::init(VulkanContextManager *core)
+/**********************************************************/
+{
   m_core = core;
   m_device = core->getDevice();
 
@@ -64,12 +67,18 @@ void SkyPass::init(VulkanContextManager *core) {
   vkCreateShadersEXT(m_device, 1U, &shaderInfo, nullptr, &m_shader);
 }
 
-void SkyPass::setup(PassBuilder &builder) {
+/**********************************************************/
+void SkyPass::setup(PassBuilder &builder)
+/**********************************************************/
+{
   builder.write(RenderOutput::Linear, PipelineStage::Compute,
                 ResourceState::General);
 }
 
-void SkyPass::execute(const IRenderContext &ctx) {
+/**********************************************************/
+void SkyPass::execute(const IRenderContext &ctx)
+/**********************************************************/
+{
   const auto &vkCtx = VulkanRenderContext::get(ctx);
   const auto &sceneInfo = vkCtx.sceneResources->sceneInfo;
 
@@ -113,7 +122,10 @@ void SkyPass::execute(const IRenderContext &ctx) {
                 (size.height + 15) / 16, 1);
 }
 
-void SkyPass::deinit(VulkanContextManager *core) {
+/**********************************************************/
+void SkyPass::deinit(VulkanContextManager *core)
+/**********************************************************/
+{
   vkDestroyShaderEXT(m_device, m_shader, nullptr);
   vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
   vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);

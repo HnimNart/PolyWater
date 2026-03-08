@@ -73,13 +73,7 @@ struct ShadowPayload {
   bool isHit;
 };
 
-// Binding Points
-enum BindingPoints {
-  eTextures = 0,   // Binding point for textures
-  eTlas = 1,       // Top-level acceleration structure
-  eOutImage = 2,   // Binding point for output image
-  eAccumImage = 3, //
-};
+
 
 struct BoundingBox {
   float3 min;
@@ -282,6 +276,7 @@ struct SceneInfo {
   float4x4 projInvMatrix;  // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;  // Inverse view matrix for the scene
   float3 cameraPosition;   // Camera position in world space
+  float nearZ;   
   float4 frustumPlanes[6]; // Frustum planes
 
   // Light info
@@ -312,6 +307,8 @@ struct PushConstant {
       *globalMeshletRefsAddress; // 64-bit GPU pointer to this frame's array
   uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
   uint32_t pad_meshlet;
+
+  uint2 screenResolution;
 };
 
 NAMESPACE_SHADERIO_END()

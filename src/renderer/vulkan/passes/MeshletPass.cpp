@@ -32,6 +32,22 @@ void MeshletPass::init(VulkanContextManager *contextManager)
 /**********************************************************/
 {
   m_context_manager = contextManager;
+
+  nvvk::DescriptorBindings passBindings;
+  passBindings.addBinding({.binding = shaderio::BindingPoints::eHiZTexture,
+                           .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                           .descriptorCount = 1,
+                           .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT});
+
+  passBindings.addBinding({.binding = shaderio::BindingPoints::eHiZSampler,
+                           .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+                           .descriptorCount = 1,
+                           .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT});
+
+  m_passDescPack.init(passBindings, m_context_manager->getDevice(), 0,
+                      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
+  // -------------------------------------------------------------
+
   createPipelineLayout(m_context_manager->getDevice());
   compileShaders();
   allocateDynamicBuffers(m_context_manager->getAllocator());
@@ -41,20 +57,16 @@ void MeshletPass::init(VulkanContextManager *contextManager)
 void MeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator &allocator)
 /**********************************************************/
 {
-
   VkDeviceSize bufferSize =
       sizeof(shaderio::GlobalMeshletRef) * MAX_SCENE_MESHLETS;
 
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-    // Call your specific allocator function!
     m_context_manager->getAllocator().createBuffer(
         m_globalMeshletRefsBuffers[i], bufferSize,
-        VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR, // usage
-        VMA_MEMORY_USAGE_AUTO_PREFER_HOST,        // memoryUsage
+        VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR,
+        VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-            VMA_ALLOCATION_CREATE_MAPPED_BIT // flags (Forces buffer.mapping to
-                                             // be populated)
-    );
+            VMA_ALLOCATION_CREATE_MAPPED_BIT);
   }
 }
 
@@ -67,15 +79,17 @@ void MeshletPass::deinit(VulkanContextManager *coreManager)
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
     coreManager->getAllocator().destroyBuffer(m_globalMeshletRefsBuffers[i]);
   }
+
+  // Clean up the new descriptor pack
+  m_passDescPack.deinit();
 }
 
 /**********************************************************/
 void MeshletPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
-  builder.write(
-      RenderOutput::Linear, PipelineStage::RenderTarget,
-      ResourceState::RenderTarget); // Translates to COLOR_ATTACHMENT_OPTIMAL
+  builder.write(RenderOutput::Linear, PipelineStage::RenderTarget,
+                ResourceState::RenderTarget);
 
   builder.write(RenderOutput::DepthBuffer, PipelineStage::RenderTarget,
                 ResourceState::DepthWrite);
@@ -85,6 +99,7 @@ void MeshletPass::setup(PassBuilder &builder)
 void MeshletPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
 {}
+
 /**********************************************************/
 void MeshletPass::execute(const IRenderContext &ctx)
 /**********************************************************/
@@ -115,8 +130,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
                     VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
-      .pValues = &constants, // points to our local 'constants' struct which we
-                             // will update below
+      .pValues = &constants,
   };
 
   // Rendering to the GBuffer - Attachments
@@ -140,7 +154,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
   renderingInfo.pColorAttachments = &colorAttachment;
   renderingInfo.pDepthAttachment = &depthAttachment;
 
-  // Bind Descriptor Sets
+  // --- BIND SET 0 (Global Textures) ---
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
       .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT |
@@ -150,6 +164,26 @@ void MeshletPass::execute(const IRenderContext &ctx)
       .descriptorSetCount = 1,
       .pDescriptorSets = m_descPack.getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
+
+  // --- PUSH SET 1 (Hi-Z Pass Data) ---
+  if (vkCtx.hiZTexture && vkCtx.hiZTexture->image != VK_NULL_HANDLE) {
+    VkDescriptorImageInfo hizTexInfo = {
+        VK_NULL_HANDLE, vkCtx.hiZTexture->descriptor.imageView,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+
+    VkDescriptorImageInfo hizSampInfo = {vkCtx.hiZTexture->descriptor.sampler,
+                                         VK_NULL_HANDLE,
+                                         VK_IMAGE_LAYOUT_UNDEFINED};
+
+    nvvk::WriteSetContainer write{};
+    write.append(m_passDescPack.makeWrite(shaderio::BindingPoints::eHiZTexture),
+                 &hizTexInfo);
+    write.append(m_passDescPack.makeWrite(shaderio::BindingPoints::eHiZSampler),
+                 &hizSampInfo);
+
+    vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineLayout, 1, write.size(), write.data());
+  }
 
   // ** BEGIN RENDERING **
   vkCmdBeginRendering(cmd, &renderingInfo);
@@ -197,11 +231,9 @@ void MeshletPass::execute(const IRenderContext &ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
   vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-  // --- 1. Flatten the scene into a 1D array of meshlet references ---
+  // --- Flatten the scene into a 1D array of meshlet references ---
   std::vector<shaderio::GlobalMeshletRef> globalMeshlets;
-  globalMeshlets.reserve(
-      MAX_SCENE_MESHLETS /
-      10); // Reserve some capacity to avoid frequent reallocations
+  globalMeshlets.reserve(MAX_SCENE_MESHLETS / 10);
 
   for (size_t i = 0; i < sceneResources->instances.size(); i++) {
     const shaderio::Instance &instance = sceneResources->instances[i];
@@ -233,7 +265,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
     return;
   }
 
-  // --- 2. Upload to VMA mapped pointer ---
+  // --- Upload to VMA mapped pointer ---
   size_t uploadByteSize =
       globalMeshlets.size() * sizeof(shaderio::GlobalMeshletRef);
   std::memcpy(m_globalMeshletRefsBuffers[m_currentFrameIndex].mapping,
@@ -263,6 +295,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // ** END RENDERING **
   vkCmdEndRendering(cmd);
 }
+
 /**********************************************************/
 void MeshletPass::reload()
 /**********************************************************/
@@ -281,10 +314,14 @@ void MeshletPass::createPipelineLayout(VkDevice device)
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
+  // --- CHANGED: Now parsing an array of 2 layouts ---
+  VkDescriptorSetLayout layouts[] = {m_descPack.getLayout(),
+                                     m_passDescPack.getLayout()};
+
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 1,
-      .pSetLayouts = m_descPack.getLayoutPtr(),
+      .setLayoutCount = 2,
+      .pSetLayouts = layouts,
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
@@ -315,7 +352,6 @@ void MeshletPass::compileShaders()
   VkShaderModuleCreateInfo fragmentCode = SlangCompiler::instance().compile(
       "gltf_fragment.slang", gltf_fragment_slang);
 
-  // Use the UNION of all stages that will use this push constant block
   const VkShaderStageFlags pipelineStages = VK_SHADER_STAGE_TASK_BIT_EXT |
                                             VK_SHADER_STAGE_MESH_BIT_EXT |
                                             VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -326,11 +362,15 @@ void MeshletPass::compileShaders()
       .size = sizeof(shaderio::PushConstant),
   };
 
+  // --- CHANGED: Now parsing an array of 2 layouts ---
+  VkDescriptorSetLayout layouts[] = {m_descPack.getLayout(),
+                                     m_passDescPack.getLayout()};
+
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-      .setLayoutCount = 1,
-      .pSetLayouts = m_descPack.getLayoutPtr(),
+      .setLayoutCount = 2,
+      .pSetLayouts = layouts,
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &identicalRange,
   };
@@ -341,7 +381,7 @@ void MeshletPass::compileShaders()
   shaderInfo.pName = "taskMain";
   shaderInfo.codeSize = taskCode.codeSize;
   shaderInfo.pCode = taskCode.pCode;
-  shaderInfo.flags = 0; // Standard flags
+  shaderInfo.flags = 0;
 
   NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
                                 nullptr, &m_taskShader));

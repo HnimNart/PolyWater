@@ -12,6 +12,7 @@
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "passes/MeshletPass.hpp"
+#include "passes/MipReductionPass.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/SkyPass.hpp"
 #include "passes/ToneMapPass.hpp"
@@ -67,6 +68,7 @@ void VulkanRenderer::deinit()
   m_gBuffers->deinit();
   m_accel.reset();
   m_resources->deinit();
+  destroyHiZBuffer();
 }
 
 /**********************************************************/
@@ -141,6 +143,7 @@ void VulkanRenderer::buildGraph()
     m_graph.addPass(std::make_unique<SkyPass>());
     m_graph.addPass(
         std::make_unique<MeshletPass>(m_resources->getDesriptorPack()));
+    m_graph.addPass(std::make_unique<MipReductionPass>(&m_hiZTexture));
   } else if (m_render_mode == RenderMode::RAYTRACE) {
     // Ray Tracing pipeline
     m_graph.addPass(std::make_unique<RayTracePass>(
@@ -171,6 +174,7 @@ void VulkanRenderer::render(IRenderContext &ctx)
   vkCtx.gBuffers = m_gBuffers.get();
   vkCtx.bvh = m_accel.get();
   vkCtx.assetManager = m_resources.get();
+  vkCtx.hiZTexture = &m_hiZTexture;
 
   // 2. Update GPU Resources (Uploads & Barriers)
   auto *sceneInfoAddress =
@@ -183,6 +187,8 @@ void VulkanRenderer::render(IRenderContext &ctx)
   vkCtx.pushValues.renderParams = m_renderParams;
   vkCtx.pushValues.renderParams.frameIdx = m_frameIndex;
   vkCtx.pushValues.rasterParams = m_rasterParams;
+  vkCtx.pushValues.screenResolution = {m_gBuffers->getSize().width,
+                                       m_gBuffers->getSize().height};
 
   // 4. Setup Render Targets (Swapchain)
   if (m_swapchain_manager) {
@@ -206,6 +212,7 @@ void VulkanRenderer::onResize(const WindowSize &size)
   m_context->waitForDeviceIdle();
   VkCommandBuffer cmd = m_context->startSingleTimeCmd();
   NVVK_CHECK(m_gBuffers->update(cmd, {size.width, size.height}));
+  initHiZBuffer(cmd, {size.width, size.height});
   m_context->endSingleTimeCmd(cmd);
 }
 
@@ -290,4 +297,103 @@ void VulkanRenderer::saveImage(const std::filesystem::path &filename,
   vkUnmapMemory(device, dstImageMemory);
   vkFreeMemory(device, dstImageMemory, nullptr);
   vkDestroyImage(device, dstImage, nullptr);
+}
+
+/**********************************************************/
+void VulkanRenderer::initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size)
+/**********************************************************/
+{
+  destroyHiZBuffer();
+
+  // Calculate full mip chain down to 1x1
+  uint32_t mipLevels = static_cast<uint32_t>(std::floor(
+                           std::log2(std::max(size.width, size.height)))) +
+                       1;
+
+  // Setup Image Info
+  VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.format = VK_FORMAT_R32_SFLOAT;
+  imageInfo.extent = {size.width, size.height, 1};
+  imageInfo.mipLevels = mipLevels;
+  imageInfo.arrayLayers = 1;
+  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+  // Setup Image View Info
+  VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format = imageInfo.format;
+  viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = mipLevels;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+
+  // Create the Image via Allocator
+  NVVK_CHECK(
+      m_context->getAllocator().createImage(m_hiZTexture, imageInfo, viewInfo));
+  NVVK_DBG_NAME(m_hiZTexture.image);
+
+  // Create the strictly NEAREST sampler
+  VkSamplerCreateInfo samplerInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+  samplerInfo.magFilter = VK_FILTER_NEAREST;
+  samplerInfo.minFilter = VK_FILTER_NEAREST;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.minLod = 0.0f;
+  samplerInfo.maxLod = static_cast<float>(mipLevels);
+
+  NVVK_CHECK(vkCreateSampler(m_context->getDevice(), &samplerInfo, nullptr,
+                             &m_hiZTexture.descriptor.sampler));
+
+  // --- Transition Layout Immediately ---
+  if (cmd != VK_NULL_HANDLE) {
+    VkImageMemoryBarrier2 barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = m_hiZTexture.image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    // Using explicitly calculated mipLevels is safer than
+    // VK_REMAINING_MIP_LEVELS
+    barrier.subresourceRange.levelCount = mipLevels;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+    barrier.srcAccessMask = 0;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+
+    VkDependencyInfo depInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+    depInfo.imageMemoryBarrierCount = 1;
+    depInfo.pImageMemoryBarriers = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &depInfo);
+
+    // Update tracking to reflect the new layout
+    m_hiZTexture.descriptor.imageLayout =
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  } else {
+    m_hiZTexture.descriptor.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  }
+}
+
+/**********************************************************/
+void VulkanRenderer::destroyHiZBuffer()
+/**********************************************************/
+{
+  if (m_hiZTexture.image != VK_NULL_HANDLE) {
+    vkDestroySampler(m_context->getDevice(), m_hiZTexture.descriptor.sampler,
+                     nullptr);
+    m_context->getAllocator().destroyImage(m_hiZTexture);
+    m_hiZTexture = {};
+  }
 }

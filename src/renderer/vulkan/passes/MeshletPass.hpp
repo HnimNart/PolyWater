@@ -42,6 +42,7 @@ private:
 
   VulkanContextManager *m_context_manager = nullptr;
   const nvvk::DescriptorPack &m_descPack;
+  nvvk::DescriptorPack m_passDescPack;
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_taskShader{};
@@ -50,7 +51,6 @@ private:
 
   // Add to your class members
   static constexpr uint32_t FRAMES_IN_FLIGHT = 3;
-  static constexpr uint32_t MAX_SCENE_MESHLETS = 1000000;
   nvvk::Buffer m_globalMeshletRefsBuffers[FRAMES_IN_FLIGHT];
   uint32_t m_currentFrameIndex = 0; // Tracks which buffer to use this frame
 };

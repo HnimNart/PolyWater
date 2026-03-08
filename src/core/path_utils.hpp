@@ -31,7 +31,6 @@
 
 namespace common {
 
-
 /**********************************************************/
 inline static std::filesystem::path getCacheDir()
 /**********************************************************/
@@ -84,6 +83,7 @@ inline static std::vector<std::filesystem::path> getShaderDirs()
       std::filesystem::absolute(entryBase / "raytrace" / "hit"),
       std::filesystem::absolute(entryBase / "raytrace" / "miss"),
       std::filesystem::absolute(entryBase / "raster"),
+      std::filesystem::absolute(entryBase / "compute"),
 
       // 2. The Legacy/Binary Directory
       // Often used when shaders are copied next to the executable during build

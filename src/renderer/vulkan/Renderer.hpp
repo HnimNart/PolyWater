@@ -73,6 +73,10 @@ private:
   std::unique_ptr<AccelerationStructures> m_accel{};
   RenderGraph m_graph;
 
+  nvvk::Image m_hiZTexture{};
+  void initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size);
+  void destroyHiZBuffer();
+
   // Reference to post for UI
   ToneMapPass *m_post = nullptr;
 };

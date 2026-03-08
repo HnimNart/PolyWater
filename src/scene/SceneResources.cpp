@@ -501,6 +501,8 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
   m_scene_resources.sceneInfo.projInvMatrix = glm::inverse(projMatrix);
   m_scene_resources.sceneInfo.viewInvMatrix = glm::inverse(viewMatrix);
   m_scene_resources.sceneInfo.cameraPosition = camera->getEye();
+  m_scene_resources.sceneInfo.nearZ = camera->getClipPlanes().x;
+
   auto cameraFrustum =
       core::extractFrustumPlanes(m_scene_resources.sceneInfo.viewProjMatrix);
   for (int i = 0; i < 6; ++i) {
