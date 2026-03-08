@@ -34,12 +34,12 @@ void MeshletPass::init(VulkanContextManager *contextManager)
   m_context_manager = contextManager;
 
   nvvk::DescriptorBindings passBindings;
-  passBindings.addBinding({.binding = shaderio::BindingPoints::eHiZTexture,
+  passBindings.addBinding({.binding = shaderio::BindRaster::eHiZTexture,
                            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                            .descriptorCount = 1,
                            .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT});
 
-  passBindings.addBinding({.binding = shaderio::BindingPoints::eHiZSampler,
+  passBindings.addBinding({.binding = shaderio::BindRaster::eHiZSampler,
                            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
                            .descriptorCount = 1,
                            .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT});
@@ -176,9 +176,9 @@ void MeshletPass::execute(const IRenderContext &ctx)
                                          VK_IMAGE_LAYOUT_UNDEFINED};
 
     nvvk::WriteSetContainer write{};
-    write.append(m_passDescPack.makeWrite(shaderio::BindingPoints::eHiZTexture),
+    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZTexture),
                  &hizTexInfo);
-    write.append(m_passDescPack.makeWrite(shaderio::BindingPoints::eHiZSampler),
+    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZSampler),
                  &hizSampInfo);
 
     vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,

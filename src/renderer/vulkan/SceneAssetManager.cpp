@@ -188,7 +188,7 @@ void VulkanSceneAssetManager::updateTextureDescriptorSets(
     auto it = m_textures.find(index);
     if (it != m_textures.end()) {
       auto write_set =
-          m_descPack.makeWrite(shaderio::BindingPoints::eTextures, 0, index, 1);
+          m_descPack.makeWrite(shaderio::BindGlobal::eTextures, 0, index, 1);
       write.append(write_set, it->second);
     }
   }
@@ -424,7 +424,7 @@ void VulkanSceneAssetManager::createDesctriptorLayout()
 
   nvvk::DescriptorBindings bindings;
   bindings.addBinding(
-      {.binding = shaderio::BindingPoints::eTextures,
+      {.binding = shaderio::BindGlobal::eTextures,
        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
        .descriptorCount = maxTextures,
        .stageFlags = VK_SHADER_STAGE_ALL},

@@ -1,13 +1,16 @@
 #pragma once
 
 #include "shared/slang_types.h"
+#include "shared/bindings.h"
+#include "shared/structs.h"
 
 #include "include/bsdf/pbr.h.slang"
 #include "include/geometry/vertex_fetch.h.slang"
 #include "include/light/lights.h.slang"
-#include "shared/bindings.h"
-#include "shared/structs.h"
 #include "include/core/color.h.slang"
+
+[[vk::binding(BindRaster::eHiZTexture, 1)]] Texture2D<float> hiZTexture;
+[[vk::binding(BindRaster::eHiZSampler, 1)]] SamplerState hiZSampler;
 
 
 // Output of the mesh shader 

@@ -92,15 +92,15 @@ void RayTracePass::createDescriptorLayout()
   SCOPED_TIMER_FUNC();
   nvvk::DescriptorBindings bindings;
   bindings.addBinding(
-      {.binding = shaderio::BindingPoints::eTlas,
+      {.binding = shaderio::BindRayTrace::eTlas,
        .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
        .descriptorCount = 1,
        .stageFlags = VK_SHADER_STAGE_ALL});
-  bindings.addBinding({.binding = shaderio::BindingPoints::eOutImage,
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eOutImage,
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
-  bindings.addBinding({.binding = shaderio::BindingPoints::eAccumImage,
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eAccumImage,
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
@@ -297,13 +297,13 @@ void RayTracePass::execute(const IRenderContext &ctx)
 
   // Push descriptor sets for ray tracing
   nvvk::WriteSetContainer write{};
-  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eTlas),
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eTlas),
                bvh->tlas());
-  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eOutImage),
+  write.append(m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eOutImage),
                gBuffers->getColorImageView(RenderOutput::Linear),
                VK_IMAGE_LAYOUT_GENERAL);
   write.append(
-      m_RayTraceDescPack.makeWrite(shaderio::BindingPoints::eAccumImage),
+      m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eAccumImage),
       gBuffers->getColorImageView(RenderOutput::AccumLinear),
       VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,

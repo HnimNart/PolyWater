@@ -2,42 +2,40 @@
 
 NAMESPACE_SHADERIO_BEGIN()
 
-// Binding Points
-enum BindingPoints {
-  eTlas = 0,       // Top-level acceleration structure
-  eOutImage = 1,   // Binding point for output image
-  eAccumImage = 2, //
-  eHiZTexture = 3, // NEW: Hi-Z depth texture (Set 1)
-  eHiZSampler = 4, // NEW: Hi-Z sampler (Set 1)
-  eTextures = 5,   // Binding point for textures
+// ==========================================
+// SET 0: GLOBAL 
+// ==========================================
+enum BindGlobal {
+    eTextures = 0,  // Bindless array
+};
+
+// ==========================================
+// SET 1: PASS-SPECIFIC (Swappable at Runtime)
+// ==========================================
+
+// For Ray Tracing Shaders (.rgen / .rchit)
+enum BindRayTrace {
+    eTlas     = 0,
+    eOutImage    = 1,
+    eAccumImage  = 2
+};
+
+// For Meshlet/Raster Shaders (.mesh / .frag)
+enum BindRaster {
+    eHiZTexture  = 0,
+    eHiZSampler  = 1
 };
 
 #ifndef __cplusplus
 // clang-format off
-// Push constants containing scene information, camera data, and material overrides
+// Push constants containing scene information, camera data
 [[vk::push_constant]]                           ConstantBuffer<PushConstant> pushConst;
 
-// ==========================================
-// SET 0: Global Shared Resources
-// ==========================================
-[[vk::binding(BindingPoints::eTextures, 0)]] Sampler2D textures[]; 
-
-// ==========================================
-// SET 1: Pass-Specific Resources
-// ==========================================
-// Ray Tracing
-[[vk::binding(BindingPoints::eTlas, 1)]]       RaytracingAccelerationStructure topLevelAS;
-[[vk::binding(BindingPoints::eOutImage, 1)]]   RWTexture2D<float4> outImage;
-[[vk::binding(BindingPoints::eAccumImage, 1)]] RWTexture2D<float4> accumImage;
-
-// Rasterization (Meshlet Pass)
-[[vk::binding(BindingPoints::eHiZTexture, 1)]] Texture2D<float> hiZTexture;
-[[vk::binding(BindingPoints::eHiZSampler, 1)]] SamplerState hiZSampler;
+// --- SHARED GLOBALS ---
+[[vk::binding(BindGlobal::eTextures, 0)]] Sampler2D textures[];
 
 // clang-format on
 #endif
 
-#define MAX_SCENE_TEXTURES 4096
-#define MAX_SCENE_MESHLETS (1000000)
 
 NAMESPACE_SHADERIO_END()
