@@ -202,6 +202,47 @@ bool frustumCullSphere(float3 localCenter, float localRadius, float4x4 transform
 }
 
 
+
+bool isAABBInsideFrustum(float4 planes[6], float3 minBounds, float3 maxBounds, float4x4 transform) {
+    // 1. Calculate center and extents (half-size) in local space
+    float3 localCenter = (maxBounds + minBounds) * 0.5;
+    float3 localExtents = (maxBounds - minBounds) * 0.5;
+
+    // 2. Transform the center to world space using mul(vector, matrix)
+    float3 worldCenter = mul(float4(localCenter, 1.0), transform).xyz;
+
+    // 3. Transform the local axes to get the world-space extents.
+    // Notice the vector is on the left here too!
+    float3 right   = mul(float4(localExtents.x, 0.0, 0.0, 0.0), transform).xyz;
+    float3 up      = mul(float4(0.0, localExtents.y, 0.0, 0.0), transform).xyz;
+    float3 forward = mul(float4(0.0, 0.0, localExtents.z, 0.0), transform).xyz;
+
+    // 4. Test against all 6 planes
+    for (int p = 0; p < 6; p++) {
+        float4 plane = planes[p];
+        float3 normal = plane.xyz;
+
+        // Compute the "radius" of the box projected along the plane's normal
+        float projectedRadius = abs(dot(normal, right)) + 
+                                abs(dot(normal, up)) + 
+                                abs(dot(normal, forward));
+
+        // Get the length of the plane normal (in case planes aren't normalized on CPU)
+        float planeLength = length(normal);
+
+        // Compute the true, normalized signed distance from the box center to the plane
+        float distance = (dot(normal, worldCenter) + plane.w) / planeLength;
+
+        // If the center is further behind the plane than the radius, it is culled
+        if (distance < -projectedRadius) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+
 NAMESPACE_SHADERIO_END()
 
 #endif  // NVVKHL_FUNC_H

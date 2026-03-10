@@ -49,8 +49,10 @@ private:
   nvvk::BufferTyped<VkDrawIndirectCommand>
       m_indirectCommandsBuffers[FRAMES_IN_FLIGHT];
   nvvk::Buffer m_instanceMapBuffers[FRAMES_IN_FLIGHT];
+  nvvk::Buffer m_drawCountBuffers[FRAMES_IN_FLIGHT];
   uint32_t m_currentFrameIndex = 0;
 
+  VkShaderEXT m_cullShader{};
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
 };

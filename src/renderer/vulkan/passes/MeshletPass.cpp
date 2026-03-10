@@ -280,6 +280,12 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // Issue the push constants right before the draw call
   vkCmdPushConstants2(cmd, &pushInfo);
 
+  VkExtent2D fragmentSize = {1, 1};
+  VkFragmentShadingRateCombinerOpKHR combinerOps[2] = {
+      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR};
+  vkCmdSetFragmentShadingRateKHR(cmd, &fragmentSize, combinerOps);
+
   // THE SINGLE GLOBAL DISPATCH
   uint32_t taskGroupCount = (constants.totalSceneMeshlets + 31) / 32;
   vkCmdDrawMeshTasksEXT(cmd, taskGroupCount, 1, 1);

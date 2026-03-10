@@ -13,12 +13,12 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
-#include "core/Frustum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 #include "renderer/vulkan/SceneAssetManager.hpp"
 
 // Generated Shaders
+#include "_autogen/gltf_cull.slang.h"
 #include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_raster.slang.h"
 
@@ -41,7 +41,8 @@ void RasterPass::init(VulkanContextManager *contextManager)
       sizeof(VkDrawIndirectCommand) * MAX_SCENE_INSTANCES;
   VkBufferUsageFlags2KHR indirectUsage =
       VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT_KHR |
-      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR;
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR |
+      VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT_KHR;
 
   // --- NEW: Instance Map Buffer Setup ---
   // This buffer allows the shader to look up the True Instance ID via DrawID
@@ -49,6 +50,14 @@ void RasterPass::init(VulkanContextManager *contextManager)
   VkBufferUsageFlags2KHR mapUsage =
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR |
       VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT_KHR; // match the type
+
+  VkDeviceSize countBufferSize = sizeof(uint32_t);
+  VkBufferUsageFlags2KHR countUsage =
+      VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT_KHR |
+      VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR |
+      VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT_KHR |
+      VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR; // Needed to vkCmdFillBuffer
+                                              // (clear it)
 
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
     // Create Indirect Command Buffers
@@ -64,6 +73,10 @@ void RasterPass::init(VulkanContextManager *contextManager)
         VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_MAPPED_BIT);
+
+    m_context_manager->getAllocator().createBuffer(
+        m_drawCountBuffers[i], countBufferSize, countUsage,
+        VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
   }
 }
 
@@ -75,8 +88,8 @@ void RasterPass::deinit(VulkanContextManager *coreManager)
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
     m_context_manager->getAllocator().destroyBuffer(
         m_indirectCommandsBuffers[i]);
-    m_context_manager->getAllocator().destroyBuffer(
-        m_instanceMapBuffers[i]); // Clean up the map!
+    m_context_manager->getAllocator().destroyBuffer(m_instanceMapBuffers[i]);
+    m_context_manager->getAllocator().destroyBuffer(m_drawCountBuffers[i]);
   }
 
   vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
@@ -118,63 +131,71 @@ void RasterPass::execute(const IRenderContext &ctx)
 
   NVVK_DBG_SCOPE(cmd);
 
-  // ==========================================================
-  // 1. CPU CULLING & INDIRECT COMMAND PREPARATION
-  // ==========================================================
-  core::Frustum cameraFrustum =
-      core::extractFrustumPlanes(scene_info.viewProjMatrix);
-
-  // Pointer to the indirect commands buffer
-  VkDrawIndirectCommand *indirectCommands =
-      reinterpret_cast<VkDrawIndirectCommand *>(
-          m_indirectCommandsBuffers[m_currentFrameIndex].mapping);
-
-  uint32_t *instanceMap = reinterpret_cast<uint32_t *>(
-      m_instanceMapBuffers[m_currentFrameIndex].mapping);
-
-  uint32_t drawCount = 0;
-  for (size_t i = 0; i < sceneResources->instances.size(); i++) {
-    const shaderio::Instance &instance = sceneResources->instances[i];
-    const shaderio::MeshPrimitive &meshPrim =
-        sceneResources->meshes[instance.meshIndex];
-
-    if (!core::isAABBInsideFrustum(cameraFrustum, meshPrim.bbox.min,
-                                   meshPrim.bbox.max, instance.transform)) {
-      continue;
-    }
-
-    if (drawCount >= MAX_SCENE_INSTANCES)
-      break;
-
-    // Record this instance as visible
-    instanceMap[drawCount] = static_cast<uint32_t>(i);
-
-    // Fill the indirect command
-    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
-    VkDrawIndirectCommand &cmdDraw = indirectCommands[drawCount];
-    cmdDraw.vertexCount = triMesh.indices.count;
-    cmdDraw.instanceCount = 1;
-    cmdDraw.firstVertex = 0;
-    cmdDraw.firstInstance = drawCount;
-    drawCount++;
-  }
-
-  if (drawCount == 0) {
+  uint32_t totalInstances =
+      static_cast<uint32_t>(sceneResources->instances.size());
+  if (totalInstances == 0) {
     m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     return;
   }
-  LOGD("drawCount = %u / %zu instances\n", drawCount,
-       sceneResources->instances.size());
 
-  // // Ensure GPU sees the command buffer writes
-  vmaFlushAllocation(
-      m_context_manager->getAllocator(),
-      m_indirectCommandsBuffers[m_currentFrameIndex].allocation, 0,
-      sizeof(VkDrawIndirectCommand) * drawCount); // not VK_WHOLE_SIZE
+  // ==========================================================
+  // 1. GPU CULLING & INDIRECT COMMAND PREPARATION
+  // ==========================================================
 
-  vmaFlushAllocation(m_context_manager->getAllocator(),
-                     m_instanceMapBuffers[m_currentFrameIndex].allocation, 0,
-                     sizeof(uint32_t) * drawCount); // not VK_WHOLE_SIZE
+  // Clear the draw count buffer to 0 before the compute shader runs
+  vkCmdFillBuffer(cmd, m_drawCountBuffers[m_currentFrameIndex].buffer, 0,
+                  VK_WHOLE_SIZE, 0);
+
+  // Barrier: Ensure the clear finishes before the compute shader starts
+  // executing
+  VkMemoryBarrier clearBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  clearBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  clearBarrier.dstAccessMask =
+      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+  vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+                       &clearBarrier, 0, nullptr, 0, nullptr);
+
+  // Set compute-specific push constants
+  constants.indirectCommandsAddress =
+      m_indirectCommandsBuffers[m_currentFrameIndex].address;
+  constants.instanceMapAddress =
+      m_instanceMapBuffers[m_currentFrameIndex].address;
+  constants.drawCountAddress = m_drawCountBuffers[m_currentFrameIndex].address;
+
+  // Bind the compute shader object (Assuming you compiled gltf_cull.slang into
+  // m_cullShader)
+  const VkShaderEXT compShaders[] = {m_cullShader};
+  const VkShaderStageFlagBits compStages[] = {VK_SHADER_STAGE_COMPUTE_BIT};
+  vkCmdBindShadersEXT(cmd, 1, compStages, compShaders);
+
+  constants.totalSceneInstances = totalInstances;
+  const VkPushConstantsInfo compPushInfo{
+      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
+      .layout = m_pipelineLayout,
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT |
+                    VK_SHADER_STAGE_ALL_GRAPHICS, // Ensure it hits compute
+      .offset = 0,
+      .size = sizeof(shaderio::PushConstant),
+      .pValues = &constants,
+  };
+
+  vkCmdPushConstants2(cmd, &compPushInfo);
+
+  // Dispatch the compute shader
+  uint32_t groupCount = (totalInstances + 63) / 64; // 64 threads per group
+  vkCmdDispatch(cmd, groupCount, 1, 1);
+
+  // Barrier: Ensure compute shader finishes writing before the graphics
+  // pipeline reads the buffers
+  VkMemoryBarrier computeBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  computeBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  computeBarrier.dstAccessMask =
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
+  vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
+                           VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                       0, 1, &computeBarrier, 0, nullptr, 0, nullptr);
 
   // ==========================================================
   // 2. VULKAN RENDERING SETUP
@@ -201,7 +222,7 @@ void RasterPass::execute(const IRenderContext &ctx)
 
   const VkBindDescriptorSetsInfo bindDescriptorSetsInfo{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT,
       .layout = m_pipelineLayout,
       .firstSet = 0,
       .descriptorSetCount = 1,
@@ -223,10 +244,10 @@ void RasterPass::execute(const IRenderContext &ctx)
   vkCmdSetPolygonModeEXT(cmd, rasterParams.wireframe ? VK_POLYGON_MODE_LINE
                                                      : VK_POLYGON_MODE_FILL);
 
-  const VkShaderEXT shaders[] = {
+  const VkShaderEXT gfxShaders[] = {
       m_vertexShader,   VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
       m_fragmentShader, VK_NULL_HANDLE, VK_NULL_HANDLE};
-  const VkShaderStageFlagBits stages[] = {
+  const VkShaderStageFlagBits gfxStages[] = {
       VK_SHADER_STAGE_VERTEX_BIT,
       VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
       VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
@@ -235,24 +256,24 @@ void RasterPass::execute(const IRenderContext &ctx)
       VK_SHADER_STAGE_TASK_BIT_EXT,
       VK_SHADER_STAGE_MESH_BIT_EXT};
 
-  vkCmdBindShadersEXT(cmd, 7, stages, shaders);
+  vkCmdBindShadersEXT(cmd, 7, gfxStages, gfxShaders);
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
   vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-  constants.instanceMapAddress =
-      m_instanceMapBuffers[m_currentFrameIndex].address;
-  const VkPushConstantsInfo pushInfo{
+  // Re-push constants for the graphics pipeline just in case (though layout
+  // overlap might make this redundant, it's safer)
+  const VkPushConstantsInfo gfxPushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
       .layout = m_pipelineLayout,
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
       .pValues = &constants,
   };
-  vkCmdPushConstants2(cmd, &pushInfo);
+  vkCmdPushConstants2(cmd, &gfxPushInfo);
 
   // ==========================================================
-  // 3. THE DRAW LOOP (The "Old Reliable" Method)
+  // 3. THE DRAW LOOP (GPU Driven)
   // ==========================================================
 
   VkExtent2D fragmentSize = {1, 1};
@@ -260,32 +281,17 @@ void RasterPass::execute(const IRenderContext &ctx)
       VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
       VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR};
   vkCmdSetFragmentShadingRateKHR(cmd, &fragmentSize, combinerOps);
-  vkCmdDrawIndirect(cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
-                    0, drawCount, sizeof(VkDrawIndirectCommand));
-  // for (uint32_t d = 0; d < drawCount; ++d) {
-  //   // 1. Update push constant with THIS specific instance ID
-  //   constants.instanceIndex = visibleInstanceIndices[d];
 
-  //   // 2. Push constants to GPU
-  //   constants.instanceMapAddress =
-  //       m_instanceMapBuffers[m_currentFrameIndex].address;
-  //   const VkPushConstantsInfo pushInfo{
-  //       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
-  //       .layout = m_pipelineLayout,
-  //       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-  //       .offset = 0,
-  //       .size = sizeof(shaderio::PushConstant),
-  //       .pValues = &constants,
-  //   };
-  //   vkCmdPushConstants2(cmd, &pushInfo);
-
-  //   // 3. Indirect Draw for exactly one command at a time
-  //   vkCmdDrawIndirect(
-  //       cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
-  //       d * sizeof(VkDrawIndirectCommand), // Offset steps through the buffer
-  //       1,                                 // Draw exactly one
-  //       sizeof(VkDrawIndirectCommand));
-  // }
+  // Use DrawIndirectCount. The GPU will read the exact number of culled
+  // instances from m_drawCountBuffers and execute that many indirect draws!
+  vkCmdDrawIndirectCount(
+      cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
+      0, // Command Buffer & Offset
+      m_drawCountBuffers[m_currentFrameIndex].buffer,
+      0,                            // Count Buffer & Offset
+      MAX_SCENE_INSTANCES,          // Maximum possible draws
+      sizeof(VkDrawIndirectCommand) // Stride between commands
+  );
 
   vkCmdEndRendering(cmd);
   m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
@@ -304,7 +310,7 @@ void RasterPass::createPipelineLayout(VkDevice device)
 /**********************************************************/
 {
   const VkPushConstantRange pushConstantRange{
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
@@ -326,6 +332,7 @@ void RasterPass::clearShaders()
 {
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_cullShader, nullptr);
 }
 
 /**********************************************************/
@@ -338,9 +345,12 @@ void RasterPass::compileShaders()
       SlangCompiler::instance().compile("gltf_raster.slang", gltf_raster_slang);
   VkShaderModuleCreateInfo fragmentCode = SlangCompiler::instance().compile(
       "gltf_fragment.slang", gltf_fragment_slang);
+  VkShaderModuleCreateInfo cullCode =
+      SlangCompiler::instance().compile("gltf_cull.slang", gltf_cull_slang);
 
+  // UPDATED: Added VK_SHADER_STAGE_COMPUTE_BIT to the push constant range
   const VkPushConstantRange pushConstantRange{
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
   };
@@ -348,14 +358,14 @@ void RasterPass::compileShaders()
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-      .pName = "main",
+      .pName = "main", // Default, will be overridden below
       .setLayoutCount = 1,
       .pSetLayouts = m_descPack.getLayoutPtr(),
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
 
-  // Vertex Shader
+  // 1. Vertex Shader
   shaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
   shaderInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.pName = "vertexMain";
@@ -365,7 +375,7 @@ void RasterPass::compileShaders()
                      &m_vertexShader);
   NVVK_DBG_NAME(m_vertexShader);
 
-  // Fragment Shader
+  // 2. Fragment Shader
   shaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   shaderInfo.nextStage = 0;
   shaderInfo.pName = "fragmentMain";
@@ -374,4 +384,15 @@ void RasterPass::compileShaders()
   vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
                      &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
+
+  // 3. Compute Culling Shader
+  shaderInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  shaderInfo.nextStage = 0;
+  shaderInfo.pName =
+      "computeMain"; // Must match the entry point name in gltf_cull.slang
+  shaderInfo.codeSize = cullCode.codeSize;
+  shaderInfo.pCode = cullCode.pCode;
+  vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo, nullptr,
+                     &m_cullShader);
+  NVVK_DBG_NAME(m_cullShader);
 }

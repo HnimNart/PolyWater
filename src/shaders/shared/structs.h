@@ -143,6 +143,14 @@ struct GlobalMeshletRef {
 };
 CHECK_STRUCT_ALIGNMENT(GlobalMeshletRef)
 
+struct DrawIndirectCommand {
+    uint32_t vertexCount;
+    uint32_t instanceCount;
+    uint32_t firstVertex;
+    uint32_t firstInstance;
+};
+CHECK_STRUCT_ALIGNMENT(DrawIndirectCommand)
+
 struct MeshletTopology {
   BufferView meshlets; // Points to an array of GPUMeshlet structs
   BufferView
@@ -310,6 +318,9 @@ struct PushConstant {
 
   // Raster
   uint64_t instanceMapAddress;
+  uint64_t indirectCommandsAddress; // NEW: Address of the indirect buffer
+  uint64_t drawCountAddress;        // NEW: Address of the atomic counter buffer
+  uint32_t totalSceneInstances;
 
   uint2 screenResolution;
 };
