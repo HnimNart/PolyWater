@@ -46,7 +46,7 @@ void RasterPass::init(VulkanContextManager *contextManager)
 
   // --- NEW: Instance Map Buffer Setup ---
   // This buffer allows the shader to look up the True Instance ID via DrawID
-  VkDeviceSize mapBufferSize = sizeof(uint32_t) * MAX_SCENE_INSTANCES;
+  VkDeviceSize mapBufferSize = sizeof(uint32_t) * MAX_SCENE_INSTANCES * 4;
   VkBufferUsageFlags2KHR mapUsage =
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR |
       VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT_KHR; // match the type
@@ -133,21 +133,31 @@ void RasterPass::execute(const IRenderContext &ctx)
 
   uint32_t totalInstances =
       static_cast<uint32_t>(sceneResources->instances.size());
+  uint32_t totalMeshes = static_cast<uint32_t>(sceneResources->meshes.size());
+
   if (totalInstances == 0) {
     m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     return;
   }
 
-  // ==========================================================
-  // 1. GPU CULLING & INDIRECT COMMAND PREPARATION
-  // ==========================================================
+  // Prepare host commands
+  std::vector<VkDrawIndirectCommand> hostCmds(totalMeshes);
+  uint32_t runningInstanceOffset = 0;
+  for (uint32_t m = 0; m < totalMeshes; ++m) {
+    const auto &meshPrim = sceneResources->meshes[m];
+    hostCmds[m].vertexCount = meshPrim.triMesh.indices.count;
+    hostCmds[m].instanceCount = 0;
+    hostCmds[m].firstVertex = 0;
+    hostCmds[m].firstInstance = runningInstanceOffset;
+    runningInstanceOffset += totalInstances; // Ensure buckets don't overlap
+  }
 
-  // Clear the draw count buffer to 0 before the compute shader runs
-  vkCmdFillBuffer(cmd, m_drawCountBuffers[m_currentFrameIndex].buffer, 0,
-                  VK_WHOLE_SIZE, 0);
+  // Upload to GPU
+  vkCmdUpdateBuffer(cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
+                    0, sizeof(VkDrawIndirectCommand) * totalMeshes,
+                    hostCmds.data());
 
-  // Barrier: Ensure the clear finishes before the compute shader starts
-  // executing
+  // CRITICAL BARRIER: Wait for TRANSFER to finish before COMPUTE starts
   VkMemoryBarrier clearBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
   clearBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   clearBarrier.dstAccessMask =
@@ -156,38 +166,33 @@ void RasterPass::execute(const IRenderContext &ctx)
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
                        &clearBarrier, 0, nullptr, 0, nullptr);
 
-  // Set compute-specific push constants
+  // Set push constants
   constants.indirectCommandsAddress =
       m_indirectCommandsBuffers[m_currentFrameIndex].address;
   constants.instanceMapAddress =
       m_instanceMapBuffers[m_currentFrameIndex].address;
-  constants.drawCountAddress = m_drawCountBuffers[m_currentFrameIndex].address;
-
-  // Bind the compute shader object (Assuming you compiled gltf_cull.slang into
-  // m_cullShader)
-  const VkShaderEXT compShaders[] = {m_cullShader};
-  const VkShaderStageFlagBits compStages[] = {VK_SHADER_STAGE_COMPUTE_BIT};
-  vkCmdBindShadersEXT(cmd, 1, compStages, compShaders);
-
   constants.totalSceneInstances = totalInstances;
-  const VkPushConstantsInfo compPushInfo{
+  // constants.totalSceneMeshes = totalMeshes; // UNCOMMENT THIS
+
+  const VkPushConstantsInfo pushInfo{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
       .layout = m_pipelineLayout,
-      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT |
-                    VK_SHADER_STAGE_ALL_GRAPHICS, // Ensure it hits compute
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_ALL_GRAPHICS,
       .offset = 0,
       .size = sizeof(shaderio::PushConstant),
       .pValues = &constants,
   };
+  vkCmdPushConstants2(cmd, &pushInfo);
 
-  vkCmdPushConstants2(cmd, &compPushInfo);
+  // Dispatch Culling
+  const VkShaderEXT cullShaders[] = {m_cullShader};
+  const VkShaderStageFlagBits compStages[] = {VK_SHADER_STAGE_COMPUTE_BIT};
+  vkCmdBindShadersEXT(cmd, 1, compStages, cullShaders);
 
-  // Dispatch the compute shader
-  uint32_t groupCount = (totalInstances + 63) / 64; // 64 threads per group
+  uint32_t groupCount = (totalInstances + 63) / 64;
   vkCmdDispatch(cmd, groupCount, 1, 1);
 
-  // Barrier: Ensure compute shader finishes writing before the graphics
-  // pipeline reads the buffers
+  // CRITICAL BARRIER: Wait for COMPUTE to finish before GRAPHICS reads
   VkMemoryBarrier computeBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
   computeBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
   computeBarrier.dstAccessMask =
@@ -198,16 +203,15 @@ void RasterPass::execute(const IRenderContext &ctx)
                        0, 1, &computeBarrier, 0, nullptr, 0, nullptr);
 
   // ==========================================================
-  // 2. VULKAN RENDERING SETUP
+  // 2. VULKAN RENDERING SETUP (Restored Missing Identifiers)
   // ==========================================================
   VkRenderingAttachmentInfo colorAttachment = DEFAULT_VkRenderingAttachmentInfo;
   colorAttachment.loadOp = scene_info.useSky ? VK_ATTACHMENT_LOAD_OP_LOAD
                                              : VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.imageView = gBuffers->getColorImageView(RenderOutput::Linear);
   colorAttachment.clearValue = {
-      .color = VkClearColorValue{scene_info.backgroundColor.x,
-                                 scene_info.backgroundColor.y,
-                                 scene_info.backgroundColor.z, 1.0f}};
+      .color = {{scene_info.backgroundColor.x, scene_info.backgroundColor.y,
+                 scene_info.backgroundColor.z, 1.0f}}};
 
   VkRenderingAttachmentInfo depthAttachment = DEFAULT_VkRenderingAttachmentInfo;
   depthAttachment.imageView = gBuffers->getDepthImageView();
@@ -231,7 +235,7 @@ void RasterPass::execute(const IRenderContext &ctx)
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
   vkCmdBeginRendering(cmd, &renderingInfo);
 
-  // Apply base state
+  // Apply base state (Restored pipelineState)
   nvvk::GraphicsPipelineState pipelineState{};
   pipelineState.rasterizationState.cullMode = VK_CULL_MODE_NONE;
   pipelineState.cmdApplyAllStates(cmd);
@@ -260,38 +264,14 @@ void RasterPass::execute(const IRenderContext &ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
   vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-  // Re-push constants for the graphics pipeline just in case (though layout
-  // overlap might make this redundant, it's safer)
-  const VkPushConstantsInfo gfxPushInfo{
-      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
-      .layout = m_pipelineLayout,
-      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT,
-      .offset = 0,
-      .size = sizeof(shaderio::PushConstant),
-      .pValues = &constants,
-  };
-  vkCmdPushConstants2(cmd, &gfxPushInfo);
+  // Re-push constants for graphics stage
+  vkCmdPushConstants2(cmd, &pushInfo);
 
   // ==========================================================
-  // 3. THE DRAW LOOP (GPU Driven)
+  // 3. THE DRAW LOOP (Multi-Draw Indirect)
   // ==========================================================
-
-  VkExtent2D fragmentSize = {1, 1};
-  VkFragmentShadingRateCombinerOpKHR combinerOps[2] = {
-      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
-      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR};
-  vkCmdSetFragmentShadingRateKHR(cmd, &fragmentSize, combinerOps);
-
-  // Use DrawIndirectCount. The GPU will read the exact number of culled
-  // instances from m_drawCountBuffers and execute that many indirect draws!
-  vkCmdDrawIndirectCount(
-      cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
-      0, // Command Buffer & Offset
-      m_drawCountBuffers[m_currentFrameIndex].buffer,
-      0,                            // Count Buffer & Offset
-      MAX_SCENE_INSTANCES,          // Maximum possible draws
-      sizeof(VkDrawIndirectCommand) // Stride between commands
-  );
+  vkCmdDrawIndirect(cmd, m_indirectCommandsBuffers[m_currentFrameIndex].buffer,
+                    0, totalMeshes, sizeof(VkDrawIndirectCommand));
 
   vkCmdEndRendering(cmd);
   m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
@@ -333,6 +313,7 @@ void RasterPass::clearShaders()
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_vertexShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_fragmentShader, nullptr);
   vkDestroyShaderEXT(m_context_manager->getDevice(), m_cullShader, nullptr);
+  vkDestroyShaderEXT(m_context_manager->getDevice(), m_buildCmdShader, nullptr);
 }
 
 /**********************************************************/

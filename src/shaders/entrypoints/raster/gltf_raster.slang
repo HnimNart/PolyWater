@@ -1,21 +1,33 @@
 #include "gltf_shared.h.slang"
 
-[shader("vertex")] FragmentInput vertexMain(uint logicalVertexID
-                                            : SV_VertexID, uint drawSlot
-                                            : SV_DrawIndex) {
-  uint32_t *instanceMap = (uint32_t *)pushConst.instanceMapAddress;
-  uint instanceID = instanceMap[drawSlot]; // true scene instance index
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *sceneResources = pushConst.resourcesAddress;
+[[vk::push_constant]]
+ConstantBuffer<PushConstant> pushConsts;
 
-  Instance instance = sceneResources.instances[instanceID];
-  MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
+[shader("vertex")] FragmentInput vertexMain(uint logicalVertexID
+                                            : SV_VertexID, uint instSlot
+                                            : SV_InstanceID) {
+  // 1. Look up the true scene instance index from our compacted map
+  uint32_t *instanceMap = (uint32_t *)pushConsts.instanceMapAddress;
+  uint instanceID = instanceMap[instSlot];
+
+  SceneInfo *sceneInfo = pushConsts.sceneInfoAddress;
+  SceneResources *sceneResources = pushConsts.resourcesAddress;
+
+  Instance instance = sceneResources->instances[instanceID];
+  MeshPrimitive meshIo = sceneResources->meshes[instance.meshIndex];
+
+  if (logicalVertexID >= meshIo.triMesh.indices.count) {
+    FragmentInput degenerateOutput;
+    degenerateOutput.sv_position = float4(0.0, 0.0, 0.0, 1.0);
+    return degenerateOutput;
+  }
 
   // ==========================================================
   // 1. PROGRAMMABLE INDEX PULLING
   // ==========================================================
   uint actualVertexIndex = getIndex(meshIo.buffer, meshIo.triMesh.indices,
                                     logicalVertexID, meshIo.indexType);
+
   // ==========================================================
   // 2. FETCH VERTEX PAYLOAD
   // ==========================================================
@@ -36,7 +48,7 @@
   FragmentInput output;
   output.debugColor = colorFromIndex(instanceID);
   output.instanceIndex = instanceID;
-  output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
+  output.sv_position = mul(pos, sceneInfo->viewProjMatrix);
   output.worldPos = pos.xyz;
   output.worldNormal = normalize(mul(normal, normalMatrix));
   output.worldTexCoord = texCoord;

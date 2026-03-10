@@ -146,7 +146,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path &filePath)
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> disScale(0.1f, 1.0f);
 
-    const int numInstances = 10000;
+    const int numInstances = 20000;
     const float goldenAngle = 2.39996323f;
     const float spread = 0.8f;
     const float centerOpenRadius = 5.0f;

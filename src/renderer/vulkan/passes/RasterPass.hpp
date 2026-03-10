@@ -55,4 +55,5 @@ private:
   VkShaderEXT m_cullShader{};
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
+  VkShaderEXT m_buildCmdShader{};
 };
