@@ -7,7 +7,8 @@
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/
-ToneMapPass::ToneMapPass()
+ToneMapPass::ToneMapPass(RenderOutput input)
+    : m_input(input)
 /**********************************************************/
 {}
 
@@ -38,8 +39,7 @@ void ToneMapPass::setup(PassBuilder &builder)
 {
   // 1. Read the HDR "Linear" color buffer produced by Raster/RayTrace
   // We need it in 'ShaderResource' state so the compute shader can sample it.
-  builder.read(RenderOutput::Linear, PipelineStage::Compute,
-               ResourceState::ShaderResource);
+  builder.read(m_input, PipelineStage::Compute, ResourceState::ShaderResource);
 
   // 2. Write to the LDR "ToneMapped" color buffer
   builder.write(RenderOutput::ToneMapped, PipelineStage::Compute,
@@ -65,7 +65,7 @@ void ToneMapPass::execute(const IRenderContext &ctx)
   }
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
   VkDescriptorImageInfo inputColor =
-      vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::Linear);
+      vkCtx.gBuffers->getDescriptorImageInfo(m_input);
   VkDescriptorImageInfo outputColor =
       vkCtx.gBuffers->getDescriptorImageInfo(RenderOutput::ToneMapped);
   inputColor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

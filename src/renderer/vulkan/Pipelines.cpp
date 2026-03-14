@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 // default passes
+#include "passes/DenoisePass.hpp"
 #include "passes/MeshletPass.hpp"
 #include "passes/MipReductionPass.hpp"
 #include "passes/RasterPass.hpp"
@@ -27,7 +28,7 @@ PipelineManager::PipelineManager()
     graph->addPass(std::make_unique<SkyPass>());
     graph->addPass(
         std::make_unique<RasterPass>(descriptorPack, settings.assetManager));
-    graph->addPass(std::make_unique<ToneMapPass>());
+    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Linear));
 
     if (settings.swapchainManager) {
       graph->addPass(
@@ -47,7 +48,7 @@ PipelineManager::PipelineManager()
     graph->addPass(
         std::make_unique<MeshletPass>(descriptorPack, settings.hiZTexture));
     graph->addPass(std::make_unique<MipReductionPass>(settings.hiZTexture));
-    graph->addPass(std::make_unique<ToneMapPass>());
+    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Linear));
 
     if (settings.swapchainManager) {
       graph->addPass(
@@ -56,17 +57,21 @@ PipelineManager::PipelineManager()
     return graph;
   });
 
-  // ---------------------------------------------------------
-  // 3. Raytrace Pipeline
-  // ---------------------------------------------------------
   registerPipeline("Raytrace", [](const BuildSettings &settings) {
     auto graph = std::make_unique<RenderGraph>("Raytrace");
     auto &descriptorPack = settings.assetManager->getDesriptorPack();
 
+    // 1. Trace the rays (outputs noisy HDR image to RenderOutput::Linear)
     graph->addPass(std::make_unique<RayTracePass>(
         descriptorPack, settings.shaderManager, settings.accel));
-    graph->addPass(std::make_unique<ToneMapPass>());
 
+    // 2. Denoise the image
+    graph->addPass(std::make_unique<DenoisePass>());
+
+    // 3. Tone Mapping
+    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Denoised));
+
+    // 4. UI Layer
     if (settings.swapchainManager) {
       graph->addPass(
           std::make_unique<UIPass>(settings.swapchainManager->getUICallback()));

@@ -31,12 +31,13 @@ enum class PipelineStage {
 };
 
 enum RenderOutput : uint8_t {
-  Linear = 0,      // HDR, raw output
-  ToneMapped = 1,  // SDR, final output for presentation
-  AccumLinear = 2, //
-  DepthBuffer = 3, // Depth buffer
-  Swapchain = 4,   //
-  Count = 5,
+  Linear = 0,      // HDR raw
+  ToneMapped = 1,  // SDR presentation
+  AccumLinear = 2, // HDR accumulated
+  Denoised = 3,    // HDR clean
+  DepthBuffer = 4, // Depth (handled separately by GBuffer)
+  Swapchain = 5,   // Swapchain (handled by SwapchainManager)
+  Count = 6,
 };
 
 // 3. A Generic Barrier "Instruction" calculated by the Graph

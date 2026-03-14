@@ -218,8 +218,13 @@ void VulkanRenderer::initGBuffers()
 
   nvvk::GBufferInitInfo info{
       .allocator = &m_context->getAllocator(),
-      .colorFormats = {VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM,
-                       VK_FORMAT_R32G32B32A32_SFLOAT},
+      .colorFormats =
+          {
+              VK_FORMAT_R32G32B32A32_SFLOAT, // [0] Linear
+              VK_FORMAT_R8G8B8A8_UNORM,      // [1] ToneMapped
+              VK_FORMAT_R32G32B32A32_SFLOAT, // [2] AccumLinear
+              VK_FORMAT_R32G32B32A32_SFLOAT  // [3] Denoised
+          },
       .depthFormat = nvvk::findDepthFormat(m_context->getPhysicalDevice()),
       .imageSampler = linearSampler,
       .descriptorPool = m_context->getDescriptorPool()};

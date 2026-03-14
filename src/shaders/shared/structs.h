@@ -258,6 +258,12 @@ struct RenderParams {
   int maxBounces = 16;
   int nBouncesRR = 3;
   uint frameIdx;
+
+  uint denoise; // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
+  // --- Denoiser Settings ---
+  float denoiseRadius = 2.0f;        // Cast to int in shader
+  float denoiseSpatialSigma = 2.0f;  
+  float denoiseLuminanceSigma = 0.5f;
 };
 
 struct RasterParams {

@@ -38,7 +38,6 @@ public:
   const nvvk::GBuffer &gbuffer() const;
 
 private:
-  void createDescriptorSetLayout(VkDevice device);
   void createPipelineLayout(VkDevice device);
   void clearShaders();
   void compileShaders();

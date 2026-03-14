@@ -56,6 +56,22 @@ inline bool renderEditor(SceneResourcesManager &resources,
       hasChanged |= PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
       hasChanged |=
           PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+      bool denoiseEnabled = (params.denoise > 0);
+      if (PE::Checkbox("Denoise", &denoiseEnabled)) {
+        params.denoise = denoiseEnabled ? 1 : 0;
+        hasChanged = true;
+      }
+
+      // --- Conditionally show Denoiser Settings ---
+      if (denoiseEnabled) {
+        // Assuming your PE wrapper supports SliderFloat. If not, use DragFloat.
+        hasChanged |=
+            PE::SliderFloat("Blur Radius", &params.denoiseRadius, 1.0f, 10.0f);
+        hasChanged |= PE::SliderFloat("Spatial Sigma",
+                                      &params.denoiseSpatialSigma, 0.1f, 10.0f);
+        hasChanged |= PE::SliderFloat(
+            "Luminance Sigma", &params.denoiseLuminanceSigma, 0.01f, 2.0f);
+      }
 
       if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f))) {
         hasChanged = true;
