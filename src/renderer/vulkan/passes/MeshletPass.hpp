@@ -21,7 +21,8 @@ struct PushConstant;
 
 class MeshletPass : public IRenderPass {
 public:
-  MeshletPass(const nvvk::DescriptorPack &descPack);
+  MeshletPass(const nvvk::DescriptorPack &descPack,
+              const nvvk::Image *hiZtexture);
   ~MeshletPass() = default;
 
   void init(VulkanContextManager *coreManager) override;
@@ -44,6 +45,7 @@ private:
   const nvvk::DescriptorPack &m_descPack;
   nvvk::DescriptorPack m_passDescPack;
   VkPipelineLayout m_pipelineLayout{};
+  const nvvk::Image *m_hiZTexture = nullptr;
 
   VkShaderEXT m_taskShader{};
   VkShaderEXT m_meshShader{};

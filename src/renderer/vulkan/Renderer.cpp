@@ -11,12 +11,8 @@
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
-#include "passes/MeshletPass.hpp"
-#include "passes/MipReductionPass.hpp"
-#include "passes/RasterPass.hpp"
-#include "passes/SkyPass.hpp"
 #include "passes/ToneMapPass.hpp"
-#include "passes/UIPass.hpp"
+
 #include "renderer/interfaces/IToneMapper.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/shared/structs.h"
@@ -46,7 +42,7 @@ void VulkanRenderer::init(const SceneResourcesManager & /*scene*/)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  buildGraph();
+  buildGraph("Raytrace");
 }
 
 /**********************************************************/
@@ -55,7 +51,7 @@ void VulkanRenderer::clear()
 {
   m_context->waitForDeviceIdle();
   m_resources->clear();
-  m_graph.deinit(m_context);
+  m_graph->deinit(m_context);
 }
 
 /**********************************************************/
@@ -63,8 +59,7 @@ void VulkanRenderer::deinit()
 /**********************************************************/
 {
   m_context->waitForDeviceIdle();
-  m_post = nullptr;
-  m_graph.deinit(m_context);
+  m_graph->deinit(m_context);
   m_gBuffers->deinit();
   m_accel.reset();
   m_resources->deinit();
@@ -89,7 +84,7 @@ void VulkanRenderer::reload()
 /**********************************************************/
 {
   m_context->waitForDeviceIdle();
-  buildGraph();
+  buildGraph(m_graph->name());
 }
 
 /**********************************************************/
@@ -100,7 +95,7 @@ bool VulkanRenderer::update(const SceneResourcesManager &scene)
     return false;
   }
 
-  if (m_render_mode == RenderMode::RAYTRACE) {
+  if (m_graph->name() == "Raytrace") {
     if (scene.requireRebuild()) {
       m_accel->clear();
       m_accel->build(scene, m_shaderManager);
@@ -112,56 +107,53 @@ bool VulkanRenderer::update(const SceneResourcesManager &scene)
 }
 
 /**********************************************************/
-void VulkanRenderer::setRenderMode(RenderMode mode)
+void VulkanRenderer::setRenderMode(const std::string &mode)
 /**********************************************************/
 {
-  if (m_render_mode != mode) {
+  auto available = m_pipelineManager.getAvaliableGraphs();
+
+  const std::string &current_mode = m_graph->name();
+  if (std::find(available.begin(), available.end(), mode) != available.end() &&
+      current_mode != mode) {
     m_context->waitForDeviceIdle();
-    m_render_mode = mode;
-    buildGraph();
+    buildGraph(mode);
     reset();
+  } else {
+    std::string valid_list;
+    for (size_t i = 0; i < available.size(); ++i) {
+      valid_list +=
+          "'" + available[i] + "'" + (i < available.size() - 1 ? ", " : "");
+    }
+
+    LOGE(
+        "Attempted to set invalid render mode: '%s'. Available modes are: [%s]",
+        mode.c_str(), valid_list.c_str());
   }
 }
 
 /**********************************************************/
-void VulkanRenderer::buildGraph()
+void VulkanRenderer::buildGraph(const std::string &name)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-
-  // 1. Clear existing passes
-  m_graph.deinit(m_context);
-
-  // 2. Add passes based on mode
-  if (m_render_mode == RenderMode::RASTER) {
-    // Traditional Vertex/Index pipeline
-    m_graph.addPass(std::make_unique<SkyPass>());
-    m_graph.addPass(
-        std::make_unique<RasterPass>(m_resources->getDesriptorPack()));
-  } else if (m_render_mode == RenderMode::MESHLET) {
-    // Mesh Shader pipeline
-    m_graph.addPass(std::make_unique<SkyPass>());
-    m_graph.addPass(
-        std::make_unique<MeshletPass>(m_resources->getDesriptorPack()));
-    m_graph.addPass(std::make_unique<MipReductionPass>(&m_hiZTexture));
-  } else if (m_render_mode == RenderMode::RAYTRACE) {
-    // Ray Tracing pipeline
-    m_graph.addPass(std::make_unique<RayTracePass>(
-        m_resources->getDesriptorPack(), &m_shaderManager));
+  m_context->waitForDeviceIdle();
+  if (m_graph) {
+    m_graph->deinit(m_context);
   }
 
-  // Common: Post Processing
-  auto tonePass = std::make_unique<ToneMapPass>();
-  m_post = tonePass.get(); // Cache pointer for UI access
-  m_graph.addPass(std::move(tonePass));
+  // Prepare settings for the manager
+  PipelineManager::BuildSettings settings{
+      .context = m_context,
+      .assetManager = m_resources.get(),
+      .swapchainManager = m_swapchain_manager,
+      .shaderManager = &m_shaderManager,
+      .hiZTexture = &m_hiZTexture,
+      .accel = m_accel.get(),
+  };
 
-  if (m_swapchain_manager) {
-    m_graph.addPass(
-        std::make_unique<UIPass>(m_swapchain_manager->getUICallback()));
-  }
-
-  m_graph.init(m_context);
-  m_graph.compile();
+  m_graph = m_pipelineManager.buildGraph(settings, name);
+  m_graph->init(m_context);
+  m_graph->compile();
 }
 
 /**********************************************************/
@@ -172,9 +164,6 @@ void VulkanRenderer::render(IRenderContext &ctx)
 
   // 1. Link Core Subsystems
   vkCtx.gBuffers = m_gBuffers.get();
-  vkCtx.bvh = m_accel.get();
-  vkCtx.assetManager = m_resources.get();
-  vkCtx.hiZTexture = &m_hiZTexture;
 
   // 2. Update GPU Resources (Uploads & Barriers)
   auto *sceneInfoAddress =
@@ -193,14 +182,13 @@ void VulkanRenderer::render(IRenderContext &ctx)
   // 4. Setup Render Targets (Swapchain)
   if (m_swapchain_manager) {
     const auto &swapchain = m_swapchain_manager->getSwapchain();
-
     vkCtx.swapchainImage = swapchain.getImage();
     vkCtx.swapchainImageView = swapchain.getImageView();
     vkCtx.screenSize = m_swapchain_manager->getWindowSize();
   }
 
   // 5. Execute Render Graph
-  m_graph.execute(ctx);
+  m_graph->execute(ctx);
 
   m_frameIndex++;
 }
@@ -254,7 +242,8 @@ int64_t VulkanRenderer::getImageDescriptor(RenderOutput output) const
 IToneMapper &VulkanRenderer::postProcessor() noexcept
 /**********************************************************/
 {
-  return *m_post;
+  auto *pass = m_graph->findPass<ToneMapPass>();
+  return *dynamic_cast<IToneMapper *>(pass);
 }
 
 /**********************************************************/
@@ -396,4 +385,19 @@ void VulkanRenderer::destroyHiZBuffer()
     m_context->getAllocator().destroyImage(m_hiZTexture);
     m_hiZTexture = {};
   }
+}
+
+/**********************************************************/
+std::vector<std::string> VulkanRenderer::getAvaliableModes() const
+/**********************************************************/
+{
+  return m_pipelineManager.getAvaliableGraphs();
+}
+
+/**********************************************************/
+std::string VulkanRenderer::getCurrentMode() const
+/**********************************************************/
+{
+  assert(m_graph);
+  return m_graph->name();
 }

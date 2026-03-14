@@ -19,26 +19,6 @@ struct RenderParams;
 class IDeviceAssets;
 class IToneMapper;
 
-enum class RenderMode {
-  RAYTRACE = 0,
-  RASTER = 1,
-  MESHLET = 2,
-  COUNT = 3,
-};
-
-static inline const char *renderModeToString(RenderMode mode) {
-  switch (mode) {
-  case RenderMode::RAYTRACE:
-    return "Raytracing";
-  case RenderMode::RASTER:
-    return "Rasterization";
-  case RenderMode::MESHLET:
-    return "Meshlet";
-  default:
-    return "Unknown";
-  }
-}
-
 class IRenderer {
 public:
   virtual ~IRenderer() = default;
@@ -56,7 +36,9 @@ public:
   // -------------------------------------------------------------------------
   // Execution Cycle
   // -------------------------------------------------------------------------
-  virtual void setRenderMode(RenderMode mode) = 0;
+  virtual void setRenderMode(const std::string &mode) = 0;
+  virtual std::string getCurrentMode() const { return ""; };
+  virtual std::vector<std::string> getAvaliableModes() const { return {}; };
   // Main render pass.
   virtual void render(IRenderContext &ctx) = 0;
 
@@ -67,7 +49,6 @@ public:
   virtual IToneMapper &postProcessor() noexcept = 0;
   shaderio::RenderParams &renderParams() { return m_renderParams; }
   shaderio::RasterParams &rasterParams() { return m_rasterParams; }
-  RenderMode getRenderMode() const { return m_render_mode; }
   const ShaderManager &getShaderManager() const { return m_shaderManager; }
   uint32_t getFrameCount() const { return m_frameIndex; }
 
@@ -79,7 +60,6 @@ public:
                          int quality = 100) const = 0;
 
 protected:
-  RenderMode m_render_mode = RenderMode::RAYTRACE;
   shaderio::RenderParams m_renderParams;
   shaderio::RasterParams m_rasterParams;
   ShaderManager m_shaderManager;

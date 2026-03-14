@@ -23,8 +23,9 @@
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
-RasterPass::RasterPass(const nvvk::DescriptorPack &descPack)
-    : m_descPack(descPack)
+RasterPass::RasterPass(const nvvk::DescriptorPack &descPack,
+                       const VulkanSceneAssetManager *assetManager)
+    : m_descPack(descPack), m_assetManager(assetManager)
 /**********************************************************/
 {}
 
@@ -71,7 +72,6 @@ void RasterPass::execute(const IRenderContext &ctx)
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
-  const VulkanSceneAssetManager *assetManager = vkCtx.assetManager;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
   const Scene *sceneResources = vkCtx.sceneResources;
@@ -196,7 +196,7 @@ void RasterPass::execute(const IRenderContext &ctx)
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    const nvvk::Buffer &v = assetManager->getBufferFromIndex(meshIndex);
+    const nvvk::Buffer &v = m_assetManager->getBufferFromIndex(meshIndex);
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
                          VkIndexType(meshPrim.indexType));
 

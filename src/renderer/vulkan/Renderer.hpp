@@ -5,11 +5,8 @@
 #include <memory>
 
 #include "Acceleration.hpp"
-#include "backend/vulkan/core/ContextManager.hpp"
-#include "passes/RasterPass.hpp"
+#include "Pipelines.h"
 #include "passes/RayTracePass.hpp"
-#include "renderer/interfaces/IDeviceAssets.hpp"
-#include "renderer/interfaces/IRenderGraph.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 #include "scene/SceneManager.hpp"
 
@@ -21,6 +18,7 @@ class FrameSynchronizationManager;
 class SwapchainRenderManager;
 class ToneMapPass;
 class VulkanBackend;
+class RenderGraph;
 
 class VulkanRenderer final : public IRenderer {
 public:
@@ -47,7 +45,7 @@ public:
   // ---------------------------------------------------------------------------
   // Rendering
   // ---------------------------------------------------------------------------
-  void setRenderMode(RenderMode mode) override;
+  void setRenderMode(const std::string &mode) override;
   void render(IRenderContext &ctx) override;
   void onResize(const WindowSize &size) override;
   void saveImage(const std::filesystem::path &filename,
@@ -59,10 +57,12 @@ public:
   int64_t getImageDescriptor(RenderOutput output) const override;
   IToneMapper &postProcessor() noexcept override;
   std::shared_ptr<IDeviceAssets> deviceResources() noexcept override;
+  std::vector<std::string> getAvaliableModes() const override;
+  std::string getCurrentMode() const override;
 
 private:
   void initGBuffers();
-  void buildGraph();
+  void buildGraph(const std::string &mode);
   void registerShaders();
 
   // Data
@@ -71,12 +71,12 @@ private:
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;
   std::unique_ptr<AccelerationStructures> m_accel{};
-  RenderGraph m_graph;
 
   nvvk::Image m_hiZTexture{};
   void initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size);
   void destroyHiZBuffer();
 
   // Reference to post for UI
-  ToneMapPass *m_post = nullptr;
+  std::unique_ptr<RenderGraph> m_graph;
+  PipelineManager m_pipelineManager;
 };

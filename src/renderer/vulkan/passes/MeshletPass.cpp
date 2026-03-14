@@ -22,8 +22,9 @@
 #include "_autogen/gltf_task.slang.h"
 
 /**********************************************************/
-MeshletPass::MeshletPass(const nvvk::DescriptorPack &descPack)
-    : m_descPack(descPack)
+MeshletPass::MeshletPass(const nvvk::DescriptorPack &descPack,
+                         const nvvk::Image *hizTexture)
+    : m_descPack(descPack), m_hiZTexture(hizTexture)
 /**********************************************************/
 {}
 
@@ -108,7 +109,6 @@ void MeshletPass::execute(const IRenderContext &ctx)
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
-  const VulkanSceneAssetManager *assetManager = vkCtx.assetManager;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
   const Scene *sceneResources = vkCtx.sceneResources;
@@ -166,12 +166,12 @@ void MeshletPass::execute(const IRenderContext &ctx)
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // --- PUSH SET 1 (Hi-Z Pass Data) ---
-  if (vkCtx.hiZTexture && vkCtx.hiZTexture->image != VK_NULL_HANDLE) {
+  if (m_hiZTexture && m_hiZTexture->image != VK_NULL_HANDLE) {
     VkDescriptorImageInfo hizTexInfo = {
-        VK_NULL_HANDLE, vkCtx.hiZTexture->descriptor.imageView,
+        VK_NULL_HANDLE, m_hiZTexture->descriptor.imageView,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
-    VkDescriptorImageInfo hizSampInfo = {vkCtx.hiZTexture->descriptor.sampler,
+    VkDescriptorImageInfo hizSampInfo = {m_hiZTexture->descriptor.sampler,
                                          VK_NULL_HANDLE,
                                          VK_IMAGE_LAYOUT_UNDEFINED};
 

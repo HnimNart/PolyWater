@@ -45,10 +45,6 @@ public:
   VkDevice device{};
 
   const nvvk::GBuffer *gBuffers{};
-  const VulkanSceneAssetManager *assetManager{};
-  const AccelerationStructures *bvh{};
-  const nvvk::Image *hiZTexture{};
-
   // --- Swapchain Integration ---
   // These are updated every frame by the SwapchainRenderManager
   VkImage swapchainImage{}; // For pipeline barriers (Layout transitions)

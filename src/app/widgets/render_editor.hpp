@@ -16,20 +16,30 @@ inline bool renderEditor(SceneResourcesManager &resources,
                          IRenderer *renderer) {
   namespace PE = app::PropertyEditor;
   bool hasChanged = false;
+
   if (PE::begin("RenderModeTable")) {
-    RenderMode m_renderMode = renderer->getRenderMode();
-    const char *preview = renderModeToString(m_renderMode);
+    // Fetch current mode and available modes
+    std::string currentMode = renderer->getCurrentMode();
+    const std::vector<std::string> availableModes =
+        renderer->getAvaliableModes();
+
     if (PE::entry("Mode", [&]() {
           bool changed = false;
-          if (ImGui::BeginCombo("##mode", preview)) {
-            for (int n = 0; n < static_cast<int>(RenderMode::COUNT); n++) {
-              auto mode = static_cast<RenderMode>(n);
-              if (ImGui::Selectable(renderModeToString(mode),
-                                    m_renderMode == mode)) {
-                m_renderMode = mode;
-                renderer->setRenderMode(m_renderMode);
+          // Use the current mode string as the preview
+          if (ImGui::BeginCombo("##mode", currentMode.c_str())) {
+            for (const std::string &mode : availableModes) {
+              bool isSelected = (currentMode == mode);
+
+              if (ImGui::Selectable(mode.c_str(), isSelected)) {
+                currentMode = mode;
+                renderer->setRenderMode(currentMode);
                 resources.setDirty(true);
                 changed = true;
+              }
+
+              // Set the initial focus when opening the combo
+              if (isSelected) {
+                ImGui::SetItemDefaultFocus();
               }
             }
             ImGui::EndCombo();
@@ -39,15 +49,20 @@ inline bool renderEditor(SceneResourcesManager &resources,
       hasChanged = true;
     }
 
-    if (m_renderMode == RenderMode::RAYTRACE) {
+    // Update conditional checks to use the string literals from your
+    // PipelineManager
+    if (currentMode == "Raytrace") {
       shaderio::RenderParams &params = renderer->renderParams();
       hasChanged |= PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
       hasChanged |=
           PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
+
       if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f))) {
         hasChanged = true;
       }
     } else {
+      // Handles both "Raster" and "Meshlet" modes (or any other raster-based
+      // graph)
       shaderio::RasterParams &params = renderer->rasterParams();
       if (PE::Checkbox("Wireframe Mode", (bool *)&params.wireframe)) {
         hasChanged = true;
@@ -64,6 +79,7 @@ inline bool renderEditor(SceneResourcesManager &resources,
 
     PE::end();
   }
+
   return hasChanged;
 }
 

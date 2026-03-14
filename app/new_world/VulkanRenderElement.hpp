@@ -84,7 +84,6 @@ private:
   std::shared_ptr<app::GeometryPickerElement> m_geometryPicker = nullptr;
 
   // Editor/Render state
-  RenderMode m_renderMode = RenderMode::RAYTRACE;
   bool m_hasChanged = false;
 
   std::string m_sceneFile{};

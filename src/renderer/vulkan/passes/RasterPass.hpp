@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "SceneAssetManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
 #include <nvvk/descriptors.hpp>
 
@@ -20,7 +21,8 @@ struct PushConstant;
 
 class RasterPass : public IRenderPass {
 public:
-  RasterPass(const nvvk::DescriptorPack &descPack);
+  RasterPass(const nvvk::DescriptorPack &descPack,
+             const VulkanSceneAssetManager *assetManager);
   ~RasterPass() = default;
 
   void init(VulkanContextManager *coreManager) override;
@@ -42,6 +44,7 @@ private:
   void compileShaders();
 
   VulkanContextManager *m_context_manager = nullptr;
+  const VulkanSceneAssetManager *m_assetManager = nullptr;
   const nvvk::DescriptorPack &m_descPack;
   VkPipelineLayout m_pipelineLayout{};
 

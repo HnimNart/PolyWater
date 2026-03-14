@@ -25,7 +25,7 @@ public:
   // Lifecycle
   // -------------------------------------------------------------------------
   RayTracePass(const nvvk::DescriptorPack &descPack,
-               ShaderManager *materialManager);
+               ShaderManager *materialManager, AccelerationStructures *accel);
   ~RayTracePass() = default;
 
   void init(VulkanContextManager *coreManager) override;
@@ -65,6 +65,7 @@ private:
   nvvk::DescriptorPack m_RayTraceDescPack{};
   VkPipeline m_pipeline{};
   VkPipelineLayout m_pipelineLayout{};
+  std::vector<VkShaderModuleCreateInfo> m_shaderCode;
 
   // Shader Binding Table (SBT)
   nvvk::SBTGenerator m_sbtGenerator{};
@@ -75,6 +76,5 @@ private:
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
   ShaderManager *m_shaderManager = nullptr;
-
-  std::vector<VkShaderModuleCreateInfo> m_shaderCode;
+  AccelerationStructures *m_accel{};
 };

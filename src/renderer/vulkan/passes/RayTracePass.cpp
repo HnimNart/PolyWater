@@ -19,8 +19,9 @@
 
 /**********************************************************/
 RayTracePass::RayTracePass(const nvvk::DescriptorPack &descPack,
-                           ShaderManager *shaderManager)
-    : m_sharedDescPack(descPack)
+                           ShaderManager *shaderManager,
+                           AccelerationStructures *accel)
+    : m_sharedDescPack(descPack), m_accel(accel)
 /**********************************************************/
 {
   m_shaderManager = shaderManager;
@@ -276,7 +277,6 @@ void RayTracePass::execute(const IRenderContext &ctx)
 {
   const auto &vkCtx = VulkanRenderContext::get(ctx);
   const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
-  const AccelerationStructures *bvh = vkCtx.bvh;
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
 
@@ -298,7 +298,7 @@ void RayTracePass::execute(const IRenderContext &ctx)
   // Push descriptor sets for ray tracing
   nvvk::WriteSetContainer write{};
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eTlas),
-               bvh->tlas());
+               m_accel->tlas());
   write.append(m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eOutImage),
                gBuffers->getColorImageView(RenderOutput::Linear),
                VK_IMAGE_LAYOUT_GENERAL);

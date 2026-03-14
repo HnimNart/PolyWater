@@ -19,6 +19,9 @@ public:
 
 class RenderGraph {
 public:
+  RenderGraph(std::string name) : m_name(std::move(name)){};
+  const std::string &name() const { return m_name; }
+
   void addPass(std::unique_ptr<IRenderPass> pass) {
     m_passes.push_back(std::move(pass));
   }
@@ -34,6 +37,21 @@ public:
       p->deinit(core);
     }
     m_passes.clear();
+  }
+
+  /**
+   * @brief Finds the first pass of type T in the graph.
+   * @return Pointer to the pass of type T, or nullptr if not found.
+   */
+  template <typename T> T *findPass() {
+    for (const auto &pass : m_passes) {
+      // Try to cast the base pointer (IRenderPass*) to the derived type (T*)
+      T *castedPass = dynamic_cast<T *>(pass.get());
+      if (castedPass) {
+        return castedPass;
+      }
+    }
+    return nullptr;
   }
 
   void compile() {
@@ -147,4 +165,6 @@ private:
   std::unordered_map<RenderOutput, std::pair<ResourceState, PipelineStage>>
       m_finalStates;
   std::vector<BarrierInfo> m_finalBarriers;
+
+  std::string m_name = "";
 };
