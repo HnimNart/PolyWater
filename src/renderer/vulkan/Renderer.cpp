@@ -110,7 +110,7 @@ bool VulkanRenderer::update(const SceneResourcesManager &scene)
 void VulkanRenderer::setRenderMode(const std::string &mode)
 /**********************************************************/
 {
-  auto available = m_pipelineManager.getAvaliableGraphs();
+  auto available = m_pipelineManager.getAvailableGraphs();
 
   const std::string &current_mode = m_graph->name();
   if (std::find(available.begin(), available.end(), mode) != available.end() &&
@@ -391,7 +391,7 @@ void VulkanRenderer::destroyHiZBuffer()
 std::vector<std::string> VulkanRenderer::getAvaliableModes() const
 /**********************************************************/
 {
-  return m_pipelineManager.getAvaliableGraphs();
+  return m_pipelineManager.getAvailableGraphs();
 }
 
 /**********************************************************/
