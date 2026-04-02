@@ -36,9 +36,46 @@ set(SHADER_INCLUDE_FLAGS
 )
 
 
-# Run compilation macros
-compile_slang("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
-compile_glsl("${SHADER_GLSL_FILES}" "${SHADER_OUTPUT_DIR}" GLSL_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
+# -------------------------------------------------------------------
+# Shader Compilation
+# -------------------------------------------------------------------
+
+# 1. Determine the active backend
+# You can change this to an explicit `option(USE_METAL "Use Metal" ON)` if you prefer
+if(APPLE)
+    set(ACTIVE_SHADER_BACKEND "metal")
+else()
+    set(ACTIVE_SHADER_BACKEND "vulkan")
+endif()
+
+# 2. Compile Slang Shaders (Now Backend-Aware)
+compile_slang(
+    "${SHADER_SLANG_FILES}" 
+    "${SHADER_OUTPUT_DIR}" 
+    SLANG_OUT 
+    BACKEND ${ACTIVE_SHADER_BACKEND}
+    EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
+)
+
+# 3. Compile GLSL Shaders (Vulkan Only)
+# Metal cannot natively consume standard compiled GLSL (SPIR-V) without a runtime 
+# translator like SPIRV-Cross. It is highly recommended to port these to .slang.
+if(ACTIVE_SHADER_BACKEND STREQUAL "vulkan")
+    compile_glsl(
+        "${SHADER_GLSL_FILES}" 
+        "${SHADER_OUTPUT_DIR}" 
+        GLSL_OUT 
+        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
+    )
+else()
+    # If on Metal, we skip GLSL and just output an empty list so CMake doesn't break
+    set(GLSL_OUT "") 
+    if(SHADER_GLSL_FILES)
+        message(WARNING "GLSL shaders found, but the Metal backend is active. "
+                        "These will not be compiled. Consider porting them to Slang.")
+    endif()
+endif()
+
 
 # Create dedicated target to force shader generation
 add_custom_target(generate_shaders DEPENDS ${SLANG_OUT} ${GLSL_OUT})
