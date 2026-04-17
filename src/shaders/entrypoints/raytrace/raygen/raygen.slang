@@ -35,7 +35,7 @@
         mul(float4(normalize(target.xyz), 0.0), sceneInfo->viewInvMatrix);
     float4 origin = mul(float4(0.0, 0.0, 0.0, 1.0), sceneInfo->viewInvMatrix);
 
-    // 2. INIT RAY & PAYLOAD
+    // INIT RAY & PAYLOAD
     const uint rayFlags = 0;
     const uint rayMask = 0xFF;
 
@@ -46,8 +46,8 @@
     ray.TMax = INFINITE;
 
     HitPayload payload;
-    payload.color = float3(0, 0, 0);   // Accumulator for this sample
-    payload.weight = float3(1, 1, 1);  // Starts at 100% throughput
+    payload.color = float3(0, 0, 0);   
+    payload.weight = float3(1, 1, 1);  
     payload.depth = 0;
     payload.seed = sampleSeed;
     payload.stop = true;
@@ -62,7 +62,7 @@
         break;
       }
 
-      // C. Russian Roulette
+      // Russian Roulette
       float p = max(payload.weight.r, max(payload.weight.g, payload.weight.b));
       if (bounce > params.nBouncesRR)
       {
@@ -73,7 +73,6 @@
         payload.weight /= p;  // Boost survivors to keep math correct
       }
 
-      // D. Prepare Next Ray
       // Update the ray descriptor with data from the Hit Shader
       ray.Origin = payload.nextRayOrigin;
       ray.Direction = payload.nextRayDir;

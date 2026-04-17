@@ -2,12 +2,14 @@
 
 ## TODOS
 - [x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
-- [x] Lazy Loading (Rasterization): Implement the deferred GPU upload for meshes/textures.
-- [x] RenderGraph: Architecture for dynamic resource aliasing and pass synchronization.
-- [ ] Debug Crash: Root cause and fix the validation layer / memory access crash in Debug.
+- [ ] Add SceneSaver support
 - [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
 - [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
 - [ ] Add a geometry picker and widget
+- [ ] Add OIDN denoiser
+- [ ] Add Mac OS support
+- [ ] Add probe light/light cuts rendering
+- [ ] Add support for 16-bit indices
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.

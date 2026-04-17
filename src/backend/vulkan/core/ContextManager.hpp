@@ -12,6 +12,8 @@
 
 #include "app/AppInfo.hpp"
 
+#include "shaders/shared/structs.h"
+
 class VulkanContextManager {
 public:
   bool init(const app::ApplicationCreateInfo &appInfo);
@@ -46,7 +48,7 @@ private:
   nvvk::ResourceAllocator m_allocator;
   nvvk::StagingUploader m_stagingUploader;
 
-  static constexpr uint32_t m_maxTexturePool = 16384;
+  static constexpr uint32_t m_maxTexturePool = MAX_SCENE_TEXTURES;
 
   void setupDescriptorPool();
   void setupTransientCommandPool();

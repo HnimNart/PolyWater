@@ -314,7 +314,7 @@ void MeshletPass::createPipelineLayout(VkDevice device)
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
-  // --- CHANGED: Now parsing an array of 2 layouts ---
+  // --- parsing an array of 2 layouts ---
   VkDescriptorSetLayout layouts[] = {m_descPack.getLayout(),
                                      m_passDescPack.getLayout()};
 

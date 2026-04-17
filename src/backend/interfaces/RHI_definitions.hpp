@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// 1. Generic Resource States
+// Generic Resource States
 enum class ResourceState {
   Undefined,
   General,        // Read/Write (e.g., Storage Image)
@@ -15,7 +15,7 @@ enum class ResourceState {
   Present         // Ready for Swapchain
 };
 
-// 2. Generic Pipeline Stages
+// Generic Pipeline Stages
 enum class PipelineStage {
   // clang-format off
   TopOfPipe,    // The very start of the GPU command processor, before any work begins
@@ -40,7 +40,7 @@ enum RenderOutput : uint8_t {
   Count = 6,
 };
 
-// 3. A Generic Barrier "Instruction" calculated by the Graph
+// A Generic Barrier "Instruction" calculated by the Graph
 struct BarrierInfo {
   RenderOutput resource;
   ResourceState oldState;
