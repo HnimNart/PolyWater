@@ -19,13 +19,10 @@
 
 #include <algorithm>
 
-#include "core/alignment.hpp"
-
+#include "alignment.hpp"
 #include "check_error.hpp"
 #include "debug_util.hpp"
-#include "helpers.hpp"
 #include "sbt_generator.hpp"
-#include "staging.hpp"
 
 namespace nvvk {
 //--------------------------------------------------------------------------------------------------
