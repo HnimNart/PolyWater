@@ -10,6 +10,7 @@
 - [ ] Add Mac OS support
 - [ ] Add probe light/light cuts rendering
 - [ ] Add support for 16-bit indices
+- [ ] Check if this works on windows
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
