@@ -116,6 +116,22 @@ if(NOT TARGET imgui)
     set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 endif()
 
+# imgui Metal backend (Apple platforms only)
+if(APPLE AND TARGET imgui)
+    target_sources(imgui PRIVATE
+        "${IMGUI_DIR}/backends/imgui_impl_metal.h"
+        "${IMGUI_DIR}/backends/imgui_impl_metal.mm"
+    )
+    set_source_files_properties(
+        "${IMGUI_DIR}/backends/imgui_impl_metal.mm"
+        PROPERTIES LANGUAGE OBJCXX
+    )
+    target_link_libraries(imgui PUBLIC
+        "-framework Metal"
+        "-framework QuartzCore"
+    )
+endif()
+
 # implot
 if(NOT TARGET implot)
   set(IMPLOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/implot")
