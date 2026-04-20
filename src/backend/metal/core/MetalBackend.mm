@@ -21,6 +21,8 @@ struct MetalBackendData {
   MTLRenderPassDescriptor     *currentRenderPassDesc = nil;
   id<MTLRenderCommandEncoder>  currentRenderEncoder  = nil;
   id<CAMetalDrawable>          currentDrawable        = nil;
+  id<MTLTexture>               depthTexture           = nil;
+  CGSize                       depthTextureSize       = {0, 0};
 };
 
 /**********************************************************/
@@ -115,6 +117,7 @@ void MetalBackend::deinit()
 {
   waitForDeviceIdle();
 
+  m_data->depthTexture = nil;
   m_data->metalLayer = nil;
 
   if (m_contextManager) {
@@ -156,6 +159,25 @@ IRenderContext *MetalBackend::beginFrame()
       (__bridge id<MTLCommandQueue>)m_contextManager->getCommandQueueHandle();
   m_data->currentCommandBuffer = [commandQueue commandBuffer];
 
+  // --- Depth texture: create or recreate if the size changed ---
+  id<MTLDevice> device =
+      (__bridge id<MTLDevice>)m_contextManager->getDeviceHandle();
+  CGSize drawableSize = m_data->metalLayer.drawableSize;
+  if (!m_data->depthTexture ||
+      m_data->depthTextureSize.width  != drawableSize.width ||
+      m_data->depthTextureSize.height != drawableSize.height) {
+    MTLTextureDescriptor *depthDesc =
+        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:
+            MTLPixelFormatDepth32Float
+                                                          width:(NSUInteger)drawableSize.width
+                                                         height:(NSUInteger)drawableSize.height
+                                                      mipmapped:NO];
+    depthDesc.usage        = MTLTextureUsageRenderTarget;
+    depthDesc.storageMode  = MTLStorageModePrivate;
+    m_data->depthTexture      = [device newTextureWithDescriptor:depthDesc];
+    m_data->depthTextureSize  = drawableSize;
+  }
+
   // Build the render pass descriptor for this frame.
   m_data->currentRenderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
   m_data->currentRenderPassDesc.colorAttachments[0].texture =
@@ -166,6 +188,10 @@ IRenderContext *MetalBackend::beginFrame()
       MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
   m_data->currentRenderPassDesc.colorAttachments[0].storeAction =
       MTLStoreActionStore;
+  m_data->currentRenderPassDesc.depthAttachment.texture     = m_data->depthTexture;
+  m_data->currentRenderPassDesc.depthAttachment.loadAction  = MTLLoadActionClear;
+  m_data->currentRenderPassDesc.depthAttachment.clearDepth  = 1.0;
+  m_data->currentRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
 
   m_data->currentRenderEncoder = [m_data->currentCommandBuffer
       renderCommandEncoderWithDescriptor:m_data->currentRenderPassDesc];

@@ -16,8 +16,9 @@ add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 
 # 4. Link Dependencies (Metal backend + windowing; no Vulkan renderer)
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    metal_renderer  # MetalRenderer, MetalRasterPass, MetalDeviceAssets
     metal_backend   # MetalContextManager + metal-cpp headers
-    common # ApplicationCreateInfo and common app types
+    common          # ApplicationCreateInfo, scene_lib, app_lib, core_lib
     glfw            # GLFW windowing (GLFW_NO_API / Metal surface)
 )
 
@@ -49,4 +50,5 @@ source_group("Source Files" FILES ${EXE_SOURCES})
 # 8. Include Directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )

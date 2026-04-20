@@ -1,11 +1,12 @@
 // metalElement.cpp
-// A minimal ImGui application using the Metal backend.
-// Mirrors the structure of app/new_world/main.cpp but targets macOS/Metal
-// instead of the Vulkan backend.
+// Metal renderer application.
+// Renders a simple scene using the Metal rasterisation backend.
 
 #ifdef __APPLE__
 
+#include "MetalRendererElement.hpp"
 #include "app/Application.hpp"
+#include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
 #include "app/elements/logger.hpp"
@@ -19,7 +20,7 @@ int main(int /*argc*/, char ** /*argv*/)
 //---------------------------------------------------------------------------------------------------------------
 {
   app::ApplicationCreateInfo appInfo{};
-  appInfo.name = "Metal Element";
+  appInfo.name = "Metal Renderer";
 
   // Initialize the Metal context.
   std::unique_ptr<MetalBackend> backend = MetalBackend::create(appInfo);
@@ -32,18 +33,29 @@ int main(int /*argc*/, char ** /*argv*/)
   // Create the application (owns the backend and GUI system).
   app::Application application(appInfo, std::move(backend), gui);
 
-  // --- UI Elements ---
+  // --- Application Elements ---
   auto windowMenu  = std::make_shared<app::ElementDefaultMenu>();
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
   auto logger      = std::make_shared<app::ElementLogger>(true);
+  auto renderElem  = std::make_shared<MetalRendererElement>("default_scene.json");
+  auto elemCamera  = std::make_shared<app::ElementCamera>();
 
   application.addElement(windowMenu);
   application.addElement(windowTitle);
   application.addElement(logger);
+  application.addElement(renderElem);
+  application.addElement(elemCamera);
 
-  logger->setLevelFilter(app::ElementLogger::eBitAll);
+  // --- Wire elements together ---
+  elemCamera->setCameraManipulator(renderElem->getCameraManipulator());
+
+  windowMenu->addFileSelectedCallback(
+      [ptr = renderElem.get()](const std::filesystem::path &f) {
+        ptr->onFileSelected(f);
+      });
 
   // Route core logger output to the on-screen logger panel.
+  logger->setLevelFilter(app::ElementLogger::eBitAll);
   core::Logger::getInstance().setLogCallback(
       [ptr = logger.get()](core::Logger::LogLevel severity,
                            const std::string &message) {
@@ -52,8 +64,8 @@ int main(int /*argc*/, char ** /*argv*/)
   core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
   core::Logger::getInstance().setFileFlush(true);
 
-  application.run();      // Blocking loop until the window is closed.
-  application.shutdown(); // Clean up in reverse-init order.
+  application.run();
+  application.shutdown();
 
   return 0;
 }

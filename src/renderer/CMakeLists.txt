@@ -35,3 +35,9 @@ if(UNIX AND NOT APPLE)
     message(STATUS "Linux detected: adding Vulkan components")
     add_subdirectory(vulkan)
 endif()
+
+# Add the Metal renderer on Apple platforms
+if(APPLE)
+    message(STATUS "Apple detected: adding Metal renderer")
+    add_subdirectory(metal)
+endif()
