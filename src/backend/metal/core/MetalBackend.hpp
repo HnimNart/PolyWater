@@ -48,7 +48,8 @@ public:
   RenderRegistry &getRegistry();
 
 private:
-  MetalBackend() = default;
+  MetalBackend();
+  ~MetalBackend();
   bool initMetal(const app::ApplicationCreateInfo &appInfo);
 
   std::unique_ptr<MetalContextManager> m_contextManager;
