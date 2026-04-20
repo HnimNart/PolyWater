@@ -43,7 +43,6 @@ target_link_libraries(${LIB_NAME} INTERFACE
     core_lib
     app_lib
     scene_lib
-    generate_shaders # Triggers shader build when 'common' is used
 )
 
 # 6. Add subdirectories

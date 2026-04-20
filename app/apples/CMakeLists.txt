@@ -17,7 +17,7 @@ add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 # 4. Link Dependencies (Metal backend + windowing; no Vulkan renderer)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     metal_backend   # MetalContextManager + metal-cpp headers
-    app_lib         # ApplicationCreateInfo and common app types
+    common # ApplicationCreateInfo and common app types
     glfw            # GLFW windowing (GLFW_NO_API / Metal surface)
 )
 

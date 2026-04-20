@@ -20,7 +20,7 @@
 // Minimal macOS/Metal application using the metal_backend.
 // No Vulkan runtime dependencies are used.
 
-#include "backend/metal/core/ContextManager.hpp"
+#include "metal/core/ContextManager.hpp"
 
 // metal-cpp headers (implementations live in metal_backend via MetalImpl.cpp)
 #include <Foundation/Foundation.hpp>
@@ -29,6 +29,15 @@
 // GLFW – request no graphics-API context so Metal owns the surface
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "app/Application.hpp"
+#include "app/elements/camera.hpp"
+#include "app/elements/default_menu.hpp"
+#include "app/elements/default_title.hpp"
+#include "app/elements/geometryPicker.hpp"
+#include "app/elements/gpu_monitor.hpp"
+#include "app/elements/logger.hpp"
+#include "app/elements/profiler.hpp"
 
 #include <iostream>
 
@@ -48,9 +57,10 @@ int main(int /*argc*/, char ** /*argv*/) {
   // =========================================================================
   // Metal Initialization
   // =========================================================================
-  // appInfo carries the window dimensions used both by GLFW and MetalContextManager.
+  // appInfo carries the window dimensions used both by GLFW and
+  // MetalContextManager.
   app::ApplicationCreateInfo appInfo{};
-  appInfo.name       = "Apples";
+  appInfo.name = "Apples";
   appInfo.windowSize = {1280, 720};
 
   // Width and height are fixed at 1280×720, well within the range of int.
@@ -73,8 +83,8 @@ int main(int /*argc*/, char ** /*argv*/) {
     return 1;
   }
 
-  std::cout << "Metal device: "
-            << metalCtx.getDevice()->name()->utf8String() << '\n';
+  std::cout << "Metal device: " << metalCtx.getDevice()->name()->utf8String()
+            << '\n';
 
   // =========================================================================
   // Application Loop
