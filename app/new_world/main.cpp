@@ -17,8 +17,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <app/cli/parameter_parser.hpp> // Parameter parser
-#include <core/timers.hpp>              // Timers for profiling
+#include <app/cli/parameter_parser.hpp>
+#include <core/timers.hpp>
 
 #include "VulkanRenderElement.hpp"
 #include "app/Application.hpp"
@@ -35,9 +35,12 @@
 
 //---------------------------------------------------------------------------------------------------------------
 int main(int argc, char **argv) {
+  // =========================================================================
+  // Configuration & CLI Parsing
+  // =========================================================================
   app::ApplicationCreateInfo appInfo{};
+  appInfo.name = "New World";
 
-  // Parsing the command line
   app::cli::ParameterParser cli(core::getExecutablePath().stem().string());
   app::cli::ParameterRegistry reg;
   reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
@@ -45,35 +48,59 @@ int main(int argc, char **argv) {
   cli.add(reg);
   cli.parse(argc, argv);
 
-  // Setting up the application
-  appInfo.name = "New World";
-
-  // Initialize the Vulkan context
+  // =========================================================================
+  // Core System Initialization
+  // =========================================================================
   std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
 
-  // Initialize vulkan imgui system
   auto gui = std::make_shared<ImGuiVulkanSystem>();
   gui->init(appInfo);
 
-  // Create the application
   app::Application application(appInfo, std::move(backend), gui);
 
-  // Elements added to the application
+  // =========================================================================
+  // Create Application Elements
+  // =========================================================================
+  auto logger = std::make_shared<app::ElementLogger>(true);
   auto renderElement =
       std::make_shared<VulkanRendererElement>(appInfo.sceneFile);
   auto elemCamera = std::make_shared<app::ElementCamera>();
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
   auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
-  auto logger = std::make_shared<app::ElementLogger>(true);
+  auto geometryPicker = std::make_shared<app::GeometryPickerElement>(
+      renderElement->getSceneManager().sceneResourceManager(),
+      renderElement->getCameraManipulator());
 
-  // Adding all elements
+  // =========================================================================
+  // Register Elements with the Application
+  // =========================================================================
+  application.addElement(windowTitle);
   application.addElement(windowMenu);
   application.addElement(logger);
-  logger->setLevelFilter(app::ElementLogger::eBitAll);
-  application.addElement(windowTitle);
+  application.addElement(renderElement);
   application.addElement(elemCamera);
+  application.addElement(geometryPicker);
 
+  // =========================================================================
+  // Connect Elements & Set up Callbacks (Wiring)
+  // =========================================================================
+  elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
+  windowTitle->setRenderer(renderElement->getRenderer());
+  renderElement->setGeometryPicker(geometryPicker);
+
+  geometryPicker->setSelectionCallback(
+      std::bind(&VulkanRendererElement::onGeometryPicked, renderElement.get(),
+                std::placeholders::_1));
+
+  windowMenu->addFileSelectedCallback(
+      std::bind(&VulkanRendererElement::onFileSelected, renderElement.get(),
+                std::placeholders::_1));
+
+  // =========================================================================
+  // Configure Global Logging
+  // =========================================================================
+  logger->setLevelFilter(app::ElementLogger::eBitAll);
   core::Logger::getInstance().setLogCallback(
       [ptr = logger.get()](core::Logger::LogLevel severity,
                            const std::string &message) {
@@ -85,30 +112,17 @@ int main(int argc, char **argv) {
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();
   auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
-  application.addElement(profiler);
   auto monitor = std::make_shared<app::ElementGpuMonitor>(true);
+
+  application.addElement(profiler);
   application.addElement(monitor);
 #endif
-  application.addElement(renderElement);
 
-  elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
-  windowTitle->setRenderer(renderElement->getRenderer());
-
-  auto geometryPicker = std::make_shared<app::GeometryPickerElement>(
-      renderElement->getSceneManager().sceneResourceManager(),
-      renderElement->getCameraManipulator());
-  geometryPicker->setSelectionCallback(
-      std::bind(&VulkanRendererElement::onGeometryPicked, renderElement.get(),
-                std::placeholders::_1));
-  application.addElement(geometryPicker);
-  renderElement->setGeometryPicker(geometryPicker);
-
-  windowMenu->addFileSelectedCallback(
-      std::bind(&VulkanRendererElement::onFileSelected, renderElement.get(),
-                std::placeholders::_1));
-
-  application.run(); // Start the application, loop until the window is closed
-  application.shutdown(); // Closing application
+  // =========================================================================
+  // Execution
+  // =========================================================================
+  application.run();      // Start the application, loop until window is closed
+  application.shutdown(); // Cleanup
 
   return 0;
 }

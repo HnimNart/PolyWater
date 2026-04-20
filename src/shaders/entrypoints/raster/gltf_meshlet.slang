@@ -10,6 +10,22 @@
 #include "shared/slang_types.h"
 #include "shared/structs.h"
 
+float3x3 safe_transpose(float3x3 m) {
+    __target_switch {
+        case metal:
+            // Manual transpose to bypass Metal Mesh Shader restrictions
+            return float3x3(
+                m[0][0], m[1][0], m[2][0],
+                m[0][1], m[1][1], m[2][1],
+                m[0][2], m[1][2], m[2][2]
+            );
+        default:
+            // This code is only validated/compiled for non-Metal targets
+            return transpose(m);
+    }
+}
+
+
 [shader("mesh")]
 [numthreads(64, 1, 1)] // 64 threads per workgroup (matches max vertices per meshlet)
 [outputtopology("triangle")] 
@@ -33,7 +49,7 @@ void meshMain(
     MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
 
     // Transpose of the inverse of the upper-left 3x3 of the transform matrix
-    float3x3 normalMatrix = transpose(inverse3x3(float3x3(instance.transform)));
+    float3x3 normalMatrix = safe_transpose(inverse3x3(float3x3(instance.transform)));
     
     // Fetch the Meshlet header using the true global index
     GPUMeshlet meshlet = getMeshlet(meshIo.buffer, meshIo.meshlet.meshlets,

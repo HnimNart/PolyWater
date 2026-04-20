@@ -29,9 +29,7 @@ public:
   submitBarriers(const std::vector<BarrierInfo> &barriers) const = 0;
 
 public:
-  uint64_t frameNumber{
-      0}; // Timeline value for synchronization (increases each frame)
-
+  uint64_t frameNumber{0}; // Timeline value for synchronization
   Scene *sceneResources = nullptr;
   shaderio::PushConstant pushValues;
 };
