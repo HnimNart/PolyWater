@@ -11,37 +11,36 @@
 #include "_autogen/mip_reduction.slang.h"
 
 /**********************************************************/
-MipReductionPass::MipReductionPass(nvvk::Image *texture)
-    : m_mipTexture(texture)
+MipReductionPass::MipReductionPass(VulkanContextManager *contextManager,
+                                   nvvk::Image *texture)
+    : m_contextManager(contextManager), m_mipTexture(texture)
 /**********************************************************/
 {
   assert(m_mipTexture && "MipReductionPass requires a valid texture pointer.");
 }
 
 /**********************************************************/
-void MipReductionPass::init(VulkanContextManager *contextManager)
+void MipReductionPass::init()
 /**********************************************************/
 {
-  m_contextManager = contextManager;
-
   createDescriptorLayout();
   createPipelineLayout();
   compileShaders();
 }
 
 /**********************************************************/
-void MipReductionPass::deinit(VulkanContextManager *contextManager)
+void MipReductionPass::deinit()
 /**********************************************************/
 {
   for (VkImageView view : m_mipViews) {
-    vkDestroyImageView(contextManager->getDevice(), view, nullptr);
+    vkDestroyImageView(m_contextManager->getDevice(), view, nullptr);
   }
   m_mipViews.clear();
   m_mipCache = {};
 
-  vkDestroyPipelineLayout(contextManager->getDevice(), m_pipelineLayout,
+  vkDestroyPipelineLayout(m_contextManager->getDevice(), m_pipelineLayout,
                           nullptr);
-  vkDestroyShaderEXT(contextManager->getDevice(), m_computeShader, nullptr);
+  vkDestroyShaderEXT(m_contextManager->getDevice(), m_computeShader, nullptr);
   m_mipDescPack.deinit();
 }
 

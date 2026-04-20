@@ -6,11 +6,11 @@
 
 class DenoisePass : public IRenderPass {
 public:
-  DenoisePass() = default;
+  explicit DenoisePass(VulkanContextManager *contextManager);
   ~DenoisePass() override = default;
 
-  void init(VulkanContextManager *contextManager) override;
-  void deinit(VulkanContextManager *contextManager) override;
+  void init() override;
+  void deinit() override;
 
   // Declares dependencies for the RenderGraph
   void setup(PassBuilder &builder) override;

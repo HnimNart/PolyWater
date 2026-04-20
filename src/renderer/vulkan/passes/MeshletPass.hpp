@@ -21,12 +21,13 @@ struct PushConstant;
 
 class MeshletPass : public IRenderPass {
 public:
-  MeshletPass(const nvvk::DescriptorPack &descPack,
+  MeshletPass(VulkanContextManager *coreManager,
+              const nvvk::DescriptorPack &descPack,
               const nvvk::Image *hiZtexture);
   ~MeshletPass() = default;
 
-  void init(VulkanContextManager *coreManager) override;
-  void deinit(VulkanContextManager *coreManager) override;
+  void init() override;
+  void deinit() override;
 
   void setup(PassBuilder &builder) override;
 
