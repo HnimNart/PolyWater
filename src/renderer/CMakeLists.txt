@@ -29,4 +29,9 @@ target_include_directories(render_interfaces PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-add_subdirectory(vulkan)
+
+# Only add the Vulkan subdirectory if the platform is Linux
+if(UNIX AND NOT APPLE)
+    message(STATUS "Linux detected: adding Vulkan components")
+    add_subdirectory(vulkan)
+endif()
