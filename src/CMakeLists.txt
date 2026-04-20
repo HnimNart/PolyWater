@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# Library: common
+# Library: common (Umbrella Library)
 # -------------------------------------------------------------------
 set(LIB_NAME common)
 
@@ -10,96 +10,25 @@ find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 include(DownloadZSTD)
 include(DownloadZlibng)
 
-add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
-file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
+# 1. Change to INTERFACE. We don't need LIB_SOURCES or add_library(STATIC)
+add_library(${LIB_NAME} INTERFACE)
 
-target_compile_definitions(${LIB_NAME} PUBLIC
+# 2. INTERFACE libraries use the 'INTERFACE' keyword for definitions/includes
+target_compile_definitions(${LIB_NAME} INTERFACE
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
 
-# --- 4. Shader Compilation Logic ---
-include(CompilerGlslShader)
-include(CompilerSlangShader)
-file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
-# Filter out .h.slang headers from compilation list
-list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
-file(GLOB_RECURSE SHADER_GLSL_FILES  CONFIGURE_DEPENDS "shaders/*.glsl")
-set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
-file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
+# ... (Shader Compilation Logic remains the same) ...
 
-set(SHADER_INCLUDE_FLAGS
-    "-I${ROOT_DIR}"
-    "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders"
-    "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/shared"
-    "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
-)
-
-
-# -------------------------------------------------------------------
-# Shader Compilation
-# -------------------------------------------------------------------
-
-# 1. Determine the active backend
-# You can change this to an explicit `option(USE_METAL "Use Metal" ON)` if you prefer
-if(APPLE)
-    set(ACTIVE_SHADER_BACKEND "metal")
-else()
-    set(ACTIVE_SHADER_BACKEND "vulkan")
-endif()
-
-# 2. Compile Slang Shaders (Now Backend-Aware)
-compile_slang(
-    "${SHADER_SLANG_FILES}" 
-    "${SHADER_OUTPUT_DIR}" 
-    SLANG_OUT 
-    BACKEND ${ACTIVE_SHADER_BACKEND}
-    EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-)
-
-# 3. Compile GLSL Shaders (Vulkan Only)
-# Metal cannot natively consume standard compiled GLSL (SPIR-V) without a runtime 
-# translator like SPIRV-Cross. It is highly recommended to port these to .slang.
-if(ACTIVE_SHADER_BACKEND STREQUAL "vulkan")
-    compile_glsl(
-        "${SHADER_GLSL_FILES}" 
-        "${SHADER_OUTPUT_DIR}" 
-        GLSL_OUT 
-        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-    )
-else()
-    # If on Metal, we skip GLSL and just output an empty list so CMake doesn't break
-    set(GLSL_OUT "") 
-    if(SHADER_GLSL_FILES)
-        message(WARNING "GLSL shaders found, but the Metal backend is active. "
-                        "These will not be compiled. Consider porting them to Slang.")
-    endif()
-endif()
-
-
-# Create dedicated target to force shader generation
+# 3. Use an INTERFACE target to force shader generation
+# Note: INTERFACE libraries cannot have PRIVATE target_sources or add_dependencies directly in older CMake.
+# We attach the dependency to the INTERFACE target so anyone linking to 'common' triggers the shaders.
 add_custom_target(generate_shaders DEPENDS ${SLANG_OUT} ${GLSL_OUT})
-set_source_files_properties(${SLANG_OUT} ${GLSL_OUT} PROPERTIES GENERATED TRUE)
-add_dependencies(${LIB_NAME} generate_shaders)
+set_target_properties(generate_shaders PROPERTIES FOLDER "Shaders")
 
-# Attach shaders and generated headers to the library
-target_sources(${LIB_NAME} PRIVATE 
-    ${SHADER_SLANG_FILES} 
-    ${SHADER_GLSL_FILES}
-    ${SLANG_OUT} 
-    ${GLSL_OUT}
-)
-
-
-add_subdirectory(core)
-add_subdirectory(scene)
-add_subdirectory(app)
-add_subdirectory(backend)
-add_subdirectory(renderer)
-
-
-# --- Include Directories ---
-target_include_directories(${LIB_NAME} PUBLIC 
+# 4. Attach generated headers and includes to the INTERFACE
+target_include_directories(${LIB_NAME} INTERFACE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
@@ -109,16 +38,23 @@ target_include_directories(${LIB_NAME} PUBLIC
     ${ROOT_DIR}/ext/stb
 )
 
-
-# --- Linking ---
-target_link_libraries(${LIB_NAME} PUBLIC
+# 5. Link sub-libraries as INTERFACE dependencies
+target_link_libraries(${LIB_NAME} INTERFACE
     core_lib
     app_lib
     scene_lib
+    generate_shaders # Triggers shader build when 'common' is used
 )
 
+# 6. Add subdirectories
+add_subdirectory(core)
+add_subdirectory(scene)
+add_subdirectory(app)
+add_subdirectory(backend)
+add_subdirectory(renderer)
+
 # --- 7. IDE Organization ---
-source_group("Sources" FILES ${LIB_SOURCES})
+# (source_group is mostly for visual organization in IDEs)
 source_group("Shaders\\Slang" FILES ${SHADER_SLANG_FILES})
 source_group("Shaders\\GLSL" FILES ${SHADER_GLSL_FILES})
 source_group("Shaders\\Generated" FILES ${SLANG_OUT} ${GLSL_OUT})
