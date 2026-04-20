@@ -17,112 +17,94 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <app/cli/parameter_parser.hpp>
-#include <core/timers.hpp>
+// Minimal macOS/Metal application using the metal_backend.
+// No Vulkan runtime dependencies are used.
 
-#include "VulkanRenderElement.hpp"
-#include "app/Application.hpp"
-#include "app/elements/camera.hpp"
-#include "app/elements/default_menu.hpp"
-#include "app/elements/default_title.hpp"
-#include "app/elements/geometryPicker.hpp"
-#include "app/elements/gpu_monitor.hpp"
-#include "app/elements/logger.hpp"
-#include "app/elements/profiler.hpp"
-#include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
-#include "core/path_utils.hpp"
+#include "backend/metal/core/ContextManager.hpp"
+
+// metal-cpp headers (implementations live in metal_backend via MetalImpl.cpp)
+#include <Foundation/Foundation.hpp>
+#include <Metal/Metal.hpp>
+
+// GLFW – request no graphics-API context so Metal owns the surface
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+#include <iostream>
 
 //---------------------------------------------------------------------------------------------------------------
-int main(int argc, char **argv) {
+int main(int /*argc*/, char ** /*argv*/) {
   // =========================================================================
-  // Configuration & CLI Parsing
+  // Windowing – GLFW with no API (Metal will drive the surface)
   // =========================================================================
+  if (glfwInit() != GLFW_TRUE) {
+    std::cerr << "Failed to initialize GLFW\n";
+    return 1;
+  }
+
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+  // =========================================================================
+  // Metal Initialization
+  // =========================================================================
+  // appInfo carries the window dimensions used both by GLFW and MetalContextManager.
   app::ApplicationCreateInfo appInfo{};
-  appInfo.name = "New World";
+  appInfo.name       = "Apples";
+  appInfo.windowSize = {1280, 720};
 
-  app::cli::ParameterParser cli(core::getExecutablePath().stem().string());
-  app::cli::ParameterRegistry reg;
-  reg.add({"headless", "Run in headless mode"}, &appInfo.headless, true);
-  reg.add({"scene", "Scene file"}, &appInfo.sceneFile);
-  cli.add(reg);
-  cli.parse(argc, argv);
+  // Width and height are fixed at 1280×720, well within the range of int.
+  GLFWwindow *window =
+      glfwCreateWindow(static_cast<int>(appInfo.windowSize.width),
+                       static_cast<int>(appInfo.windowSize.height),
+                       appInfo.name.c_str(), nullptr, nullptr);
+  if (!window) {
+    std::cerr << "Failed to create GLFW window\n";
+    glfwTerminate();
+    return 1;
+  }
 
-  // =========================================================================
-  // Core System Initialization
-  // =========================================================================
-  std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
-  assert(backend);
+  // init() creates the MTL::Device and a MTL::CommandQueue using appInfo.
+  MetalContextManager metalCtx;
+  if (!metalCtx.init(appInfo)) {
+    std::cerr << "Failed to initialize Metal context\n";
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 1;
+  }
 
-  auto gui = std::make_shared<ImGuiVulkanSystem>();
-  gui->init(appInfo);
-
-  app::Application application(appInfo, std::move(backend), gui);
-
-  // =========================================================================
-  // Create Application Elements
-  // =========================================================================
-  auto logger = std::make_shared<app::ElementLogger>(true);
-  auto renderElement =
-      std::make_shared<VulkanRendererElement>(appInfo.sceneFile);
-  auto elemCamera = std::make_shared<app::ElementCamera>();
-  auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
-  auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
-  auto geometryPicker = std::make_shared<app::GeometryPickerElement>(
-      renderElement->getSceneManager().sceneResourceManager(),
-      renderElement->getCameraManipulator());
+  std::cout << "Metal device: "
+            << metalCtx.getDevice()->name()->utf8String() << '\n';
 
   // =========================================================================
-  // Connect Elements & Set up Callbacks (Wiring)
+  // Application Loop
   // =========================================================================
-  elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
-  windowTitle->setRenderer(renderElement->getRenderer());
-  renderElement->setGeometryPicker(geometryPicker);
+  while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
 
-  geometryPicker->setSelectionCallback(
-      std::bind(&VulkanRendererElement::onGeometryPicked, renderElement.get(),
-                std::placeholders::_1));
+    // Each frame gets its own autorelease pool to manage short-lived objects.
+    NS::AutoreleasePool *pool = NS::AutoreleasePool::alloc()->init();
 
-  windowMenu->addFileSelectedCallback(
-      std::bind(&VulkanRendererElement::onFileSelected, renderElement.get(),
-                std::placeholders::_1));
+    // Submit an empty command buffer – the minimal unit of GPU work.
+    // In a real application, render/compute encoders and draw calls would be
+    // recorded into this command buffer before calling commit().
+    MTL::CommandBuffer *cmd = metalCtx.getCommandQueue()->commandBuffer();
+    if (cmd) {
+      cmd->commit();
+    }
 
-  // =========================================================================
-  // Configure Global Logging
-  // =========================================================================
-  logger->setLevelFilter(app::ElementLogger::eBitAll);
-  core::Logger::getInstance().setLogCallback(
-      [ptr = logger.get()](core::Logger::LogLevel severity,
-                           const std::string &message) {
-        ptr->addLog(severity, message.c_str());
-      });
-  core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
-  core::Logger::getInstance().setFileFlush(true);
+    pool->release();
+  }
 
   // =========================================================================
-  // Register Elements with the Application
+  // Shutdown
   // =========================================================================
-  application.addElement(windowTitle);
-  application.addElement(windowMenu);
-  application.addElement(logger);
-  application.addElement(renderElement);
-  application.addElement(elemCamera);
-  application.addElement(geometryPicker);
-
-#ifdef PROFILE_APP
-  core::ProfilerManager *profilerManager = application.getProfiler();
-  auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
-  auto monitor = std::make_shared<app::ElementGpuMonitor>(true);
-
-  application.addElement(profiler);
-  application.addElement(monitor);
-#endif
-
-  // =========================================================================
-  // Execution
-  // =========================================================================
-  application.run();      // Start the application, loop until window is closed
-  application.shutdown(); // Cleanup
+  // MetalContextManager::deinit() waits for device idle and releases Metal
+  // objects. It is also called automatically by the destructor, but invoking it
+  // here makes the teardown order explicit.
+  metalCtx.deinit();
+  glfwDestroyWindow(window);
+  glfwTerminate();
 
   return 0;
 }
