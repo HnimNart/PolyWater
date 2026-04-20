@@ -43,7 +43,7 @@ public:
   void render() override;
 
   // UI rendering
-  void renderMenu(const std::vector<app::IAppElementPtr> &elements) override;
+  void renderMenu(const std::vector<std::shared_ptr<app::IAppElement>> &elements) override;
   bool getWindowSize(const std::string &windowName, WindowSize &size) override;
   void setWindowSize(const WindowSize &size) override;
 
