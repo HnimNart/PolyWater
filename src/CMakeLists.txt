@@ -10,15 +10,15 @@ find_package(CUDAToolkit COMPONENTS CUDA::nvml QUIET)
 include(DownloadZSTD)
 include(DownloadZlibng)
 
-add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
-file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.hpp")
 
-target_compile_definitions(${LIB_NAME} PUBLIC
+# Umbrella target (no archive output)
+add_library(${LIB_NAME} INTERFACE)
+
+target_compile_definitions(${LIB_NAME} INTERFACE
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
-
-# --- 4. Shader Compilation Logic ---
+#-- 4. Shader Compilation Logic ---
 include(CompilerGlslShader)
 include(CompilerSlangShader)
 file(GLOB_RECURSE SHADER_SLANG_FILES CONFIGURE_DEPENDS "shaders/*.slang")
@@ -27,14 +27,12 @@ list(FILTER SHADER_SLANG_FILES EXCLUDE REGEX ".*\\.h\\.slang$")
 file(GLOB_RECURSE SHADER_GLSL_FILES  CONFIGURE_DEPENDS "shaders/*.glsl")
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
 file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
-
 set(SHADER_INCLUDE_FLAGS
     "-I${ROOT_DIR}"
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders"
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/shared"
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
 )
-
 
 # Run compilation macros
 compile_slang("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
@@ -54,6 +52,9 @@ target_sources(${LIB_NAME} PRIVATE
 )
 
 
+# -------------------------------------------------------------------
+# Subdirectories
+# -------------------------------------------------------------------
 add_subdirectory(core)
 add_subdirectory(scene)
 add_subdirectory(app)
@@ -62,7 +63,7 @@ add_subdirectory(renderer)
 
 
 # --- Include Directories ---
-target_include_directories(${LIB_NAME} PUBLIC 
+target_include_directories(${LIB_NAME} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
@@ -72,9 +73,8 @@ target_include_directories(${LIB_NAME} PUBLIC
     ${ROOT_DIR}/ext/stb
 )
 
-
 # --- Linking ---
-target_link_libraries(${LIB_NAME} PUBLIC
+target_link_libraries(${LIB_NAME} INTERFACE
     core_lib
     app_lib
     scene_lib
@@ -82,6 +82,19 @@ target_link_libraries(${LIB_NAME} PUBLIC
 
 # --- 7. IDE Organization ---
 source_group("Sources" FILES ${LIB_SOURCES})
+# Ensure anything that links 'common' also builds shaders first
+# (INTERFACE libs can carry "usage requirements", but not real build deps;
+# so we attach shader build to sub-libs below after they exist.)
+# We'll do that after add_subdirectory() calls.
+
+
+
+# Make the real libraries depend on shader generation (pick what makes sense)
+add_dependencies(core_lib generate_shaders)
+add_dependencies(scene_lib generate_shaders)
+add_dependencies(app_lib generate_shaders)
+
+# --- IDE Organization ---
 source_group("Shaders\\Slang" FILES ${SHADER_SLANG_FILES})
 source_group("Shaders\\GLSL" FILES ${SHADER_GLSL_FILES})
 source_group("Shaders\\Generated" FILES ${SLANG_OUT} ${GLSL_OUT})
