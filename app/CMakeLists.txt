@@ -1,5 +1,5 @@
 if(APPLE)
-    # add_subdirectory(apples)
+    add_subdirectory(apples)
 else()
     add_subdirectory(new_world)
 endif()
