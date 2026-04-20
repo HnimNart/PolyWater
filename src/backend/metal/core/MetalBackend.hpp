@@ -7,8 +7,8 @@
 #include "IRenderable.hpp"
 #include "MetalContextManager.hpp"
 #include "MetalRenderContext.hpp"
-#include "backend/interfaces/IRenderBackend.hpp"
 #include "app/IGUISystem.hpp"
+#include "backend/interfaces/IRenderBackend.hpp"
 
 class ImGuiMetalSystem;
 
@@ -26,6 +26,8 @@ class MetalBackend : public IRenderBackend {
 public:
   static std::unique_ptr<MetalBackend>
   create(const app::ApplicationCreateInfo &appInfo);
+
+  ~MetalBackend();
 
   void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) override;
   void initProfiler(core::ProfilerTimeline *timeline) override;
@@ -49,13 +51,12 @@ public:
 
 private:
   MetalBackend();
-  ~MetalBackend();
   bool initMetal(const app::ApplicationCreateInfo &appInfo);
 
   std::unique_ptr<MetalContextManager> m_contextManager;
-  std::unique_ptr<MetalRenderContext>  m_renderContext;
-  RenderRegistry                       m_renderRegistry;
-  std::unique_ptr<MetalBackendData>    m_data;
+  std::unique_ptr<MetalRenderContext> m_renderContext;
+  RenderRegistry m_renderRegistry;
+  std::unique_ptr<MetalBackendData> m_data;
 };
 
 #endif // __APPLE__

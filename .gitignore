@@ -9,9 +9,13 @@ ext/zstd
 ext/zlib-ng/
 
 **/_*/
-.DS_Store
 
 
 
 *.meshcache
 
+
+# Mac OS ignores
+.ini
+log.txt
+.DS_Store
