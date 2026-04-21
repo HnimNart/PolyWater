@@ -47,21 +47,19 @@ set(SHADER_INCLUDE_FLAGS
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
 )
 
+message(STATUS "--- Shaders to be compiled for ${ACTIVE_SHADER_BACKEND} ---")
+foreach(SHADER_PATH ${SHADER_SLANG_FILES})
+    get_filename_component(SHADER_NAME ${SHADER_PATH} NAME)
+    message(STATUS "  [Slang] Found: ${SHADER_PATH}")
+endforeach()
+
 # Determine backend + compile shaders
 if(APPLE)
     set(ACTIVE_SHADER_BACKEND "metal")
-    compile_slang_to_metal(
-        "${SHADER_SLANG_FILES}"
-        "${SHADER_OUTPUT_DIR}"
-        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-    )
+    compile_slang_to_metal("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
 else()
     set(ACTIVE_SHADER_BACKEND "vulkan")
-    compile_slang_to_spirv(
-        "${SHADER_SLANG_FILES}"
-        "${SHADER_OUTPUT_DIR}"
-        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
-    )
+    compile_slang_to_spirv("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
 endif()
 
 # GLSL compilation only for Vulkan builds
