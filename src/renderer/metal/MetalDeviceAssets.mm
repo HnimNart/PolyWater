@@ -377,6 +377,40 @@ void MetalDeviceAssets::updateSceneInfo(const shaderio::SceneInfo &info)
 }
 
 /**********************************************************/
+void MetalDeviceAssets::useResources(void *renderCommandEncoderHandle) const
+/**********************************************************/
+{
+  id<MTLRenderCommandEncoder> enc =
+      (__bridge id<MTLRenderCommandEncoder>)renderCommandEncoderHandle;
+
+  // Helper: call useResource only when the buffer is non-nil.
+  const MTLRenderStages vsfs = MTLRenderStageVertex | MTLRenderStageFragment;
+  const MTLRenderStages vs   = MTLRenderStageVertex;
+
+  auto use = [&](id<MTLBuffer> buf, MTLRenderStages stages) {
+    if (buf) {
+      [enc useResource:buf usage:MTLResourceUsageRead stages:stages];
+    }
+  };
+
+  // Buffers directly addressed from PushConstant pointer fields.
+  use(m_data->sceneInfoGpuBuffer,      vsfs);
+  use(m_data->sceneResourcesGpuBuffer, vsfs);
+
+  // Buffers indirectly addressed via SceneResources pointer fields.
+  use(m_data->instancesGpuBuffer,      vsfs);
+  use(m_data->meshPrimitivesGpuBuffer, vsfs);
+  use(m_data->materialsGpuBuffer,      vsfs);
+
+  // Raw mesh-data buffers addressed via MeshPrimitive.buffer.
+  // These are the leaf nodes of the pointer chain; the vertex shader reads
+  // positions, normals and UVs from them.
+  for (auto &[bufferId, buf] : m_data->rawBuffers) {
+    use(buf, vs);
+  }
+}
+
+/**********************************************************/
 bool MetalDeviceAssets::addAndUploadTexture(const core::Image & /*image*/,
                                             TextureID &id,
                                             bool /*immediate*/)

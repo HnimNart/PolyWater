@@ -84,6 +84,13 @@ public:
   // Must be called once per frame before MetalRasterPass::execute().
   void updateSceneInfo(const shaderio::SceneInfo &info);
 
+  // Makes every GPU-address-chained buffer resident on the given render
+  // command encoder.  Must be called once per frame, before any draw calls,
+  // so the GPU can safely dereference the pointer fields in PushConstant and
+  // SceneResources (sceneInfo, sceneResources, instances, meshes, materials,
+  // and every raw mesh-data buffer pointed to by MeshPrimitive.buffer).
+  void useResources(void *renderCommandEncoderHandle) const;
+
 private:
   MetalContextManager *m_ctx;
   std::unique_ptr<MetalDeviceAssetsData> m_data;

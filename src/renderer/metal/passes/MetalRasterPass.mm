@@ -163,6 +163,12 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [encoder setCullMode:MTLCullModeBack];
 
+  // Make every GPU-address-chained buffer resident before any draw call.
+  // Without this Metal's hazard tracker doesn't know the shader will access
+  // these buffers through pointer indirection, so the GPU reads zeros and
+  // the viewport stays black.
+  m_assets->useResources((__bridge void *)encoder);
+
   // Retrieve stable GPU addresses for the scene resource blocks.
   const uint64_t sceneInfoAddr      = m_assets->getSceneInfoGpuAddress();
   const uint64_t sceneResourcesAddr = m_assets->getSceneResourcesGpuAddress();
