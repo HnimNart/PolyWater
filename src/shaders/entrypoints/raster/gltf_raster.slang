@@ -19,15 +19,8 @@
 
 #include "gltf_shared.h.slang"
 
-// Per-vertex attributes to be assembled from bound vertex buffers.
-struct VSin {
-  float3 position : POSITION;
-  float3 normal : NORMAl;
-};
-
-// Vertex  Shader
-[shader("vertex")] FragmentInput vertexMain(VSin input, uint vertexIndex
-                                            : SV_VertexID) {
+// Vertex Shader
+[shader("vertex")] FragmentInput vertexMain(uint vertexIndex : SV_VertexID) {
   int instanceIndex = pushConst.instanceIndex;
 
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
@@ -52,7 +45,7 @@ struct VSin {
   output.instanceIndex = instanceIndex;
   output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
   output.worldPos = pos.xyz;
-  output.worldNormal = normalize(mul(normal, float3x3(pushConst.normalMatrix)));
+  output.worldNormal = normalize(mul(normal, transpose(inverse3x3(float3x3(instance.transform)))));
   output.worldTexCoord = texCoord;
 
   return output;

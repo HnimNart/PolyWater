@@ -303,7 +303,6 @@ struct SceneInfo {
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
-  float3x3 normalMatrix;
   int instanceIndex;                // Instance index for the current draw call
   SceneInfo *sceneInfoAddress;      // Address of the scene information buffer
   SceneResources *resourcesAddress; //

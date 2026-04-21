@@ -195,9 +195,6 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     // Store GPU virtual addresses in the pointer fields.
     std::memcpy(&pc.sceneInfoAddress,  &sceneInfoAddr,      sizeof(uint64_t));
     std::memcpy(&pc.resourcesAddress,  &sceneResourcesAddr, sizeof(uint64_t));
-    // Normal matrix = transpose(inverse(upper-left 3×3 of model matrix)).
-    pc.normalMatrix =
-        glm::mat3(glm::transpose(glm::inverse(glm::mat3(inst.transform))));
 
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
     [encoder setVertexBytes:&pc   length:sizeof(pc) atIndex:0];

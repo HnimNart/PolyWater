@@ -190,8 +190,6 @@ void RasterPass::execute(const IRenderContext &ctx)
 
     const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
     // Push constants
-    constants.normalMatrix =
-        glm::transpose(glm::inverse(glm::mat3(instance.transform)));
     constants.instanceIndex = int(i);
     vkCmdPushConstants2(cmd, &pushInfo);
 
