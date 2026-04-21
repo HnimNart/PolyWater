@@ -1,4 +1,4 @@
-// metalElement.cpp
+// main.cpp
 // Metal renderer application.
 // Renders a simple scene using the Metal rasterisation backend.
 
