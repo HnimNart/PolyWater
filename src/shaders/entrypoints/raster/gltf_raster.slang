@@ -23,26 +23,55 @@
 [shader("vertex")] FragmentInput vertexMain(uint vertexIndex : SV_VertexID) {
   int instanceIndex = pushConst.instanceIndex;
 
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *sceneResources = pushConst.resourcesAddress;
+  SceneInfo   sceneInfo;
+  Instance    instance;
+  MeshPrimitive meshIo;
 
-  Instance instance = sceneResources.instances[instanceIndex];
-  MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
+  // On Metal use explicitly-bound buffers (no BDA pointer chain needed).
+  // On Vulkan/SPIRV keep the original Buffer Device Address path.
+  __target_switch {
+  case metal: {
+    sceneInfo = g_metalSceneInfoBuf;
+    instance  = g_metalInstancesBuf[instanceIndex];
+    meshIo    = g_metalMeshesBuf[instance.meshIndex];
+  }
+  default: {
+    SceneInfo *si = pushConst.sceneInfoAddress;
+    sceneInfo = *si;
+    SceneResources *sceneResources = pushConst.resourcesAddress;
+    instance  = sceneResources.instances[instanceIndex];
+    meshIo    = sceneResources.meshes[instance.meshIndex];
+  }
+  }
 
-  // Retrieve vertex attributes.
-  float3 posMesh = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
-  float3 normal  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
-  float2 texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
+  float3 posMesh;
+  float3 normal;
+  float2 texCoord;
+
+  // On Metal read vertex attributes from the interleaved vertex buffer
+  // bound at slot 5 by MetalRasterPass.  On Vulkan use BDA-based fetch.
+  __target_switch {
+  case metal: {
+    MetalVertex mv = g_metalVertexBuf[vertexIndex];
+    posMesh  = mv.position;
+    normal   = mv.normal;
+    texCoord = mv.texcoord;
+  }
+  default: {
+    posMesh  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
+    normal   = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
+    texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
+  }
+  }
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 
   FragmentInput output;
-  output.debugColor = colorFromIndex(vertexIndex); // Example custom logic
+  output.debugColor    = colorFromIndex(vertexIndex);
   output.instanceIndex = instanceIndex;
-  output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
-  output.worldPos = pos.xyz;
-  output.worldNormal = normalize(mul(normal, transpose(inverse3x3(float3x3(instance.transform)))));
+  output.sv_position   = mul(pos, sceneInfo.viewProjMatrix);
+  output.worldPos      = pos.xyz;
+  output.worldNormal   = normalize(mul(normal, transpose(inverse3x3(float3x3(instance.transform)))));
   output.worldTexCoord = texCoord;
 
   return output;

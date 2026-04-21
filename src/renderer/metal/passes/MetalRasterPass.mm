@@ -169,14 +169,31 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   // the viewport stays black.
   m_assets->useResources((__bridge void *)encoder);
 
-  // Retrieve stable GPU addresses for the scene resource blocks.
+  // Bind scene-wide explicit buffers (constant across all draw calls).
+  // These match the g_metal*Buf declarations in gltf_shared.h.slang:
+  //   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
+  //   buffer(4) = Materials,  buffer(5) = per-draw vertex buffer.
+  if (id<MTLBuffer> sib = (__bridge id<MTLBuffer>)m_assets->getSceneInfoMetalBuffer()) {
+    [encoder setVertexBuffer:sib   offset:0 atIndex:1];
+    [encoder setFragmentBuffer:sib offset:0 atIndex:1];
+  }
+  if (id<MTLBuffer> instb = (__bridge id<MTLBuffer>)m_assets->getInstancesMetalBuffer()) {
+    [encoder setVertexBuffer:instb   offset:0 atIndex:2];
+    [encoder setFragmentBuffer:instb offset:0 atIndex:2];
+  }
+  if (id<MTLBuffer> meshb = (__bridge id<MTLBuffer>)m_assets->getMeshPrimitivesMetalBuffer()) {
+    [encoder setVertexBuffer:meshb offset:0 atIndex:3];
+  }
+  if (id<MTLBuffer> matb = (__bridge id<MTLBuffer>)m_assets->getMaterialsMetalBuffer()) {
+    [encoder setFragmentBuffer:matb offset:0 atIndex:4];
+  }
+
+  // Retrieve stable GPU addresses for the scene resource blocks
+  // (still passed in PushConstant for any residual BDA accesses).
   const uint64_t sceneInfoAddr      = m_assets->getSceneInfoGpuAddress();
   const uint64_t sceneResourcesAddr = m_assets->getSceneResourcesGpuAddress();
 
   // One indexed draw call per instance.
-  // The Slang vertex shader reads instance/mesh/vertex data entirely via
-  // GPU-virtual-address pointers embedded in PushConstant, so there is no
-  // vertex buffer to bind — only the index buffer is needed.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
        ++i) {
     const shaderio::Instance &inst = scene->instances[i];
@@ -189,10 +206,19 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
+    // Bind the interleaved vertex buffer for this mesh at slot 5.
+    void *vbPtr = m_assets->getVertexMetalBuffer(meshIdx);
+    if (!vbPtr) {
+      continue;
+    }
+    id<MTLBuffer> vb = (__bridge id<MTLBuffer>)vbPtr;
+    [encoder setVertexBuffer:vb offset:0 atIndex:5];
+
     // Build the PushConstant for this draw call.
     shaderio::PushConstant pc{};
     pc.instanceIndex = static_cast<int>(i);
-    // Store GPU virtual addresses in the pointer fields.
+    // Store GPU virtual addresses in the pointer fields (used on Vulkan;
+    // on Metal the explicit buffer bindings above are used instead).
     std::memcpy(&pc.sceneInfoAddress,  &sceneInfoAddr,      sizeof(uint64_t));
     std::memcpy(&pc.resourcesAddress,  &sceneResourcesAddr, sizeof(uint64_t));
 

@@ -56,6 +56,14 @@ public:
   // Returns true when the index buffer contains 32-bit indices.
   bool is32BitIndex(MeshID meshId) const;
 
+  // Metal-specific: returns direct MTLBuffer handles for the GPU-side
+  // scene resource arrays.  Used by MetalRasterPass to bind them as
+  // explicit shader parameters (bypassing BDA pointer chains).
+  void *getSceneInfoMetalBuffer() const;
+  void *getInstancesMetalBuffer() const;
+  void *getMeshPrimitivesMetalBuffer() const;
+  void *getMaterialsMetalBuffer() const;
+
   // IDeviceAssets – textures (minimal stub)
   unsigned int reserveTextureSlot() override { return 0; }
   bool addAndUploadTexture(const core::Image &image, TextureID &id,

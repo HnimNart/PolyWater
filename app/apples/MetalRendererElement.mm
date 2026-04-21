@@ -3,9 +3,13 @@
 #include "MetalRendererElement.hpp"
 
 #include <imgui.h>
+#include <map>
 
 #include "app/Application.hpp"
 #include "app/widgets/camera.hpp"
+#include "app/widgets/instance_editor.hpp"
+#include "app/widgets/material_editor.hpp"
+#include "app/widgets/meshes_editor.hpp"
 #include "backend/metal/core/MetalBackend.hpp"
 #include "core/logger.hpp"
 #include "core/path_utils.hpp"
@@ -170,6 +174,7 @@ void MetalRendererElement::onUIRender()
 
   if (ImGui::Begin("Settings")) {
     if (ImGui::BeginTabBar("MetalSettingsTabs")) {
+      // --- SCENE ---
       if (ImGui::BeginTabItem("Scene")) {
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
           app::cameraWidget(camera);
@@ -184,6 +189,34 @@ void MetalRendererElement::onUIRender()
         }
         ImGui::EndTabItem();
       }
+
+      // --- MATERIALS ---
+      if (ImGui::BeginTabItem("Materials")) {
+        auto &resourceMgr = m_sceneManager.sceneResourceManager();
+        if (app::materialEditor(resourceMgr)) {
+          resourceMgr.onMaterialChange();
+        }
+        ImGui::EndTabItem();
+      }
+
+      // --- INSTANCES ---
+      if (ImGui::BeginTabItem("Instances")) {
+        auto &resourceMgr = m_sceneManager.sceneResourceManager();
+        // Metal renderer has no shader registry; pass an empty map.
+        static const std::map<MaterialType, MaterialEntry> kEmptyRegistry{};
+        if (app::instanceEditor(resourceMgr, kEmptyRegistry)) {
+          resourceMgr.onInstanceChange();
+        }
+        ImGui::EndTabItem();
+      }
+
+      // --- MESHES ---
+      if (ImGui::BeginTabItem("Meshes")) {
+        auto &resourceMgr = m_sceneManager.sceneResourceManager();
+        app::meshEditor(resourceMgr);
+        ImGui::EndTabItem();
+      }
+
       ImGui::EndTabBar();
     }
   }

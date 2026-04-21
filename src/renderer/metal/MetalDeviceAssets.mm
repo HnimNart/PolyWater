@@ -10,10 +10,12 @@
 
 // ---------------------------------------------------------------------------
 // Interleaved vertex layout used by the Metal rasterisation shaders.
+// Must match the MetalVertex struct declared in gltf_shared.h.slang.
 // ---------------------------------------------------------------------------
 struct MetalVertex {
   float position[3]; // x, y, z
   float normal[3];   // nx, ny, nz
+  float texcoord[2]; // u, v
 };
 
 // Per-mesh Metal GPU resources built from the raw mesh bytes.
@@ -132,7 +134,7 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
   // index buffer from the raw data already uploaded to rawBuffers.
   for (uint32_t meshIdx = 0; meshIdx < resources.meshes.size(); ++meshIdx) {
     const shaderio::MeshPrimitive &prim = resources.meshes[meshIdx];
-    if (meshIdx >= resources.meshData.size()) {
+    if (prim.rawBufferIndex >= resources.meshData.size()) {
       continue;
     }
     const std::vector<uint8_t> &rawData = resources.meshData[prim.rawBufferIndex];
@@ -148,7 +150,7 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
     }
 
     // ----------------------------------------------------------------
-    // Build interleaved vertex buffer: float3 position + float3 normal
+    // Build interleaved vertex buffer: float3 position + float3 normal + float2 texcoord
     // ----------------------------------------------------------------
     const uint32_t posStride  = tri.positions.byteStride == 0
                                     ? 12u
@@ -156,7 +158,11 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
     const uint32_t normStride = tri.normals.byteStride == 0
                                     ? 12u
                                     : tri.normals.byteStride;
-    const bool hasNormals = tri.normals.count > 0;
+    const uint32_t uvStride   = tri.texCoords.byteStride == 0
+                                    ? 8u
+                                    : tri.texCoords.byteStride;
+    const bool hasNormals   = tri.normals.count > 0;
+    const bool hasTexCoords = tri.texCoords.count > 0;
 
     std::vector<MetalVertex> vertices(vertexCount);
     for (uint32_t v = 0; v < vertexCount; ++v) {
@@ -174,6 +180,16 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
         vertices[v].normal[0] = 0.0f;
         vertices[v].normal[1] = 1.0f;
         vertices[v].normal[2] = 0.0f;
+      }
+
+      // Texcoord (default 0,0 if mesh has none)
+      if (hasTexCoords) {
+        const uint8_t *uvPtr =
+            rawData.data() + tri.texCoords.offset + v * uvStride;
+        std::memcpy(vertices[v].texcoord, uvPtr, sizeof(float) * 2);
+      } else {
+        vertices[v].texcoord[0] = 0.0f;
+        vertices[v].texcoord[1] = 0.0f;
       }
     }
 
@@ -363,6 +379,34 @@ uint64_t MetalDeviceAssets::getSceneInfoGpuAddress() const
     return 0;
   }
   return [m_data->sceneInfoGpuBuffer gpuAddress];
+}
+
+/**********************************************************/
+void *MetalDeviceAssets::getSceneInfoMetalBuffer() const
+/**********************************************************/
+{
+  return (__bridge void *)m_data->sceneInfoGpuBuffer;
+}
+
+/**********************************************************/
+void *MetalDeviceAssets::getInstancesMetalBuffer() const
+/**********************************************************/
+{
+  return (__bridge void *)m_data->instancesGpuBuffer;
+}
+
+/**********************************************************/
+void *MetalDeviceAssets::getMeshPrimitivesMetalBuffer() const
+/**********************************************************/
+{
+  return (__bridge void *)m_data->meshPrimitivesGpuBuffer;
+}
+
+/**********************************************************/
+void *MetalDeviceAssets::getMaterialsMetalBuffer() const
+/**********************************************************/
+{
+  return (__bridge void *)m_data->materialsGpuBuffer;
 }
 
 /**********************************************************/

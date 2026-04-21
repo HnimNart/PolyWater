@@ -6,10 +6,26 @@
 #include "shared/structs.h"
 
 [shader("pixel")] PSout fragmentMain(FragmentInput stage) {
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources sceneResources = pushConst.resourcesAddress[0];
-  Instance instance = sceneResources.instances[stage.instanceIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
+  SceneInfo sceneInfo;
+  Instance  instance;
+  Material  material;
+
+  // On Metal use explicitly-bound buffers (no BDA pointer chain needed).
+  // On Vulkan/SPIRV keep the original Buffer Device Address path.
+  __target_switch {
+  case metal: {
+    sceneInfo = g_metalSceneInfoBuf;
+    instance  = g_metalInstancesBuf[stage.instanceIndex];
+    material  = g_metalMaterialsBuf[instance.materialIndex];
+  }
+  default: {
+    SceneInfo *si = pushConst.sceneInfoAddress;
+    sceneInfo = *si;
+    SceneResources sceneResources = pushConst.resourcesAddress[0];
+    instance = sceneResources.instances[stage.instanceIndex];
+    material = sceneResources.materials[instance.materialIndex];
+  }
+  }
 
   PSout output;
   float3 finalColor = float3(0);
@@ -29,9 +45,9 @@
   case MaterialType::eGltfPbr:
   default: {
     // Standard PBR path
-    LightSample light = sampleLight(sceneInfo, stage.worldPos);
+    LightSample light = sampleLight(&sceneInfo, stage.worldPos);
 
-    float3 V = normalize(sceneInfo->cameraPosition - stage.worldPos);
+    float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
     float3 N = normalize(stage.worldNormal);
     float3 L = normalize(light.direction);
 
@@ -51,11 +67,11 @@
     color *= light.color * light.intensity;
 
     // Ambient / Sky
-    float3 ambient = sceneInfo->backgroundColor;
-    if (sceneInfo->useSky == 1) {
+    float3 ambient = sceneInfo.backgroundColor;
+    if (sceneInfo.useSky == 1) {
       float3 skyUpDir = float3(0, 1, 0);
-      float3 groundColor = sceneInfo->skySimpleParam.groundColor;
-      float3 skyColor = sceneInfo->skySimpleParam.skyColor;
+      float3 groundColor = sceneInfo.skySimpleParam.groundColor;
+      float3 skyColor = sceneInfo.skySimpleParam.skyColor;
       ambient = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
     }
 
