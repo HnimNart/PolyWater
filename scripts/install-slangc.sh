@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # --- Configuration ---
-SLANG_VERSION="2025.13.1"
+SLANG_VERSION="2026.5.2"
 # We hardcode macos-aarch64 for Apple Silicon (M1/M2/M3)
 SLANG_ARCH="macos-aarch64" 
 # Use the exact path from your previous error log so CMake finds it
