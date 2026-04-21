@@ -43,7 +43,9 @@
 #include "sky_io.h.slang"
 
 #define MAX_LIGHTS 2
+#ifndef MAX_SCENE_TEXTURES
 #define MAX_SCENE_TEXTURES 4096
+#endif
 #define MAX_SCENE_MESHLETS (10000000)
 
 enum class MaterialType : uint16_t {

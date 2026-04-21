@@ -1,9 +1,10 @@
 #pragma once
 
+#include <nvvk/descriptors.hpp>
 #include <vulkan/vulkan.h>
 
+#include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
-#include <nvvk/descriptors.hpp>
 
 // Forward declarations
 struct VulkanSceneGpuData;
