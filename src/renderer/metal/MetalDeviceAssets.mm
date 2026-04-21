@@ -37,6 +37,21 @@ struct MetalDeviceAssetsData {
   // mesh ID → ready-to-draw Metal buffers (built in uploadSceneResoures)
   std::unordered_map<IDeviceAssets::MeshID, MetalMeshBuffer> meshBuffers;
 
+  // ---------------------------------------------------------------------------
+  // Slang-shader GPU scene resource buffers
+  // ---------------------------------------------------------------------------
+  // MeshPrimitive[] with each element's 'buffer' field set to the GPU virtual
+  // address of the raw mesh data Metal buffer.
+  id<MTLBuffer> meshPrimitivesGpuBuffer;
+  // Instance[] array buffer.
+  id<MTLBuffer> instancesGpuBuffer;
+  // Material[] array buffer.
+  id<MTLBuffer> materialsGpuBuffer;
+  // Single shaderio::SceneResources struct whose pointer fields hold GPU addresses.
+  id<MTLBuffer> sceneResourcesGpuBuffer;
+  // Single shaderio::SceneInfo struct updated per frame via updateSceneInfo().
+  id<MTLBuffer> sceneInfoGpuBuffer;
+
   IDeviceAssets::BufferID nextId = 1;
 };
 
@@ -66,6 +81,11 @@ void MetalDeviceAssets::deinit()
   m_data->rawBuffers.clear();
   m_data->meshBuffers.clear();
   m_data->meshToBuffer.clear();
+  m_data->meshPrimitivesGpuBuffer  = nil;
+  m_data->instancesGpuBuffer       = nil;
+  m_data->materialsGpuBuffer       = nil;
+  m_data->sceneResourcesGpuBuffer  = nil;
+  m_data->sceneInfoGpuBuffer       = nil;
 }
 
 /**********************************************************/
@@ -190,6 +210,84 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 
     m_data->meshBuffers[meshIdx] = mb;
   }
+
+  // -----------------------------------------------------------------------
+  // Build GPU-side scene resource buffers for the Slang-compiled shaders.
+  //
+  // The gltf_raster.slang vertex shader fetches vertex data entirely via
+  // GPU-virtual-address pointers stored inside SceneResources / MeshPrimitive.
+  // We populate those pointer fields here using MTLBuffer.gpuAddress (Metal 3+
+  // / Apple Silicon) so the GPU can dereference them directly.
+  // -----------------------------------------------------------------------
+
+  id<MTLDevice> device = m_data->device;
+
+  // 1. Build MeshPrimitive[] with each element's 'buffer' field set to the GPU
+  //    address of the corresponding raw-data Metal buffer.
+  std::vector<shaderio::MeshPrimitive> gpuMeshPrims(resources.meshes.size());
+  for (uint32_t meshIdx = 0; meshIdx < resources.meshes.size(); ++meshIdx) {
+    gpuMeshPrims[meshIdx] = resources.meshes[meshIdx];
+    // Replace the CPU-side null pointer with the GPU virtual address.
+    auto bufIt = m_data->meshToBuffer.find(meshIdx);
+    if (bufIt != m_data->meshToBuffer.end()) {
+      auto rawIt = m_data->rawBuffers.find(bufIt->second);
+      if (rawIt != m_data->rawBuffers.end()) {
+        const uint64_t gpuAddr = [rawIt->second gpuAddress];
+        std::memcpy(&gpuMeshPrims[meshIdx].buffer, &gpuAddr,
+                    sizeof(gpuAddr));
+      }
+    }
+  }
+  if (!gpuMeshPrims.empty()) {
+    m_data->meshPrimitivesGpuBuffer =
+        [device newBufferWithBytes:gpuMeshPrims.data()
+                            length:gpuMeshPrims.size() *
+                                   sizeof(shaderio::MeshPrimitive)
+                           options:MTLResourceStorageModeShared];
+  }
+
+  // 2. Upload Instance[] array.
+  if (!resources.instances.empty()) {
+    m_data->instancesGpuBuffer =
+        [device newBufferWithBytes:resources.instances.data()
+                            length:resources.instances.size() *
+                                   sizeof(shaderio::Instance)
+                           options:MTLResourceStorageModeShared];
+  }
+
+  // 3. Upload Material[] array.
+  if (!resources.materials.empty()) {
+    m_data->materialsGpuBuffer =
+        [device newBufferWithBytes:resources.materials.data()
+                            length:resources.materials.size() *
+                                   sizeof(shaderio::Material)
+                           options:MTLResourceStorageModeShared];
+  }
+
+  // 4. Build the SceneResources struct whose pointer fields hold GPU addresses
+  //    of the arrays uploaded above.
+  shaderio::SceneResources sr{};
+  if (m_data->instancesGpuBuffer) {
+    const uint64_t addr = [m_data->instancesGpuBuffer gpuAddress];
+    std::memcpy(&sr.instances, &addr, sizeof(addr));
+  }
+  if (m_data->meshPrimitivesGpuBuffer) {
+    const uint64_t addr = [m_data->meshPrimitivesGpuBuffer gpuAddress];
+    std::memcpy(&sr.meshes, &addr, sizeof(addr));
+  }
+  if (m_data->materialsGpuBuffer) {
+    const uint64_t addr = [m_data->materialsGpuBuffer gpuAddress];
+    std::memcpy(&sr.materials, &addr, sizeof(addr));
+  }
+  m_data->sceneResourcesGpuBuffer =
+      [device newBufferWithBytes:&sr
+                          length:sizeof(shaderio::SceneResources)
+                         options:MTLResourceStorageModeShared];
+
+  // 5. Allocate the per-frame SceneInfo buffer (content updated each frame).
+  m_data->sceneInfoGpuBuffer =
+      [device newBufferWithLength:sizeof(shaderio::SceneInfo)
+                          options:MTLResourceStorageModeShared];
 }
 
 /**********************************************************/
@@ -245,6 +343,37 @@ bool MetalDeviceAssets::is32BitIndex(MeshID meshId) const
     return false;
   }
   return it->second.is32Bit;
+}
+
+/**********************************************************/
+uint64_t MetalDeviceAssets::getSceneResourcesGpuAddress() const
+/**********************************************************/
+{
+  if (!m_data->sceneResourcesGpuBuffer) {
+    return 0;
+  }
+  return [m_data->sceneResourcesGpuBuffer gpuAddress];
+}
+
+/**********************************************************/
+uint64_t MetalDeviceAssets::getSceneInfoGpuAddress() const
+/**********************************************************/
+{
+  if (!m_data->sceneInfoGpuBuffer) {
+    return 0;
+  }
+  return [m_data->sceneInfoGpuBuffer gpuAddress];
+}
+
+/**********************************************************/
+void MetalDeviceAssets::updateSceneInfo(const shaderio::SceneInfo &info)
+/**********************************************************/
+{
+  if (!m_data->sceneInfoGpuBuffer) {
+    return;
+  }
+  std::memcpy([m_data->sceneInfoGpuBuffer contents], &info,
+              sizeof(shaderio::SceneInfo));
 }
 
 /**********************************************************/

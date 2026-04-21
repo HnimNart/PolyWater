@@ -11,87 +11,22 @@
 #import "scene/Scene.h"
 #import "shaders/shared/structs.h"
 
-// ---------------------------------------------------------------------------
-// Vertex layout matching MetalDeviceAssets::MetalVertex
-// ---------------------------------------------------------------------------
-struct MetalVertex {
-  float position[3];
-  float normal[3];
-};
+// Slang-generated Metal shader sources (produced by the build system at
+// ${CMAKE_BINARY_DIR}/_autogen/ which is on the compiler include path).
+// Each header defines a const char[] variable named after the file with '.'
+// replaced by '_', e.g. gltf_raster_slang / gltf_fragment_slang.
+#include "gltf_raster.slang.h"
+#include "gltf_fragment.slang.h"
 
-// Per-draw uniforms pushed via setVertexBytes / setFragmentBytes
-struct PerDrawUniforms {
-  simd_float4x4 modelMatrix;
-  simd_float4x4 viewProjMatrix;
-  simd_float4   baseColor;
-};
-
+// ---------------------------------------------------------------------------
+// Internal pass state (ObjC objects kept behind an opaque pointer)
+// ---------------------------------------------------------------------------
 struct MetalRasterPassData {
   id<MTLDevice>              device;
   id<MTLRenderPipelineState> pipelineState;
   id<MTLDepthStencilState>   depthStencilState;
   bool                       ready = false;
 };
-
-// ---------------------------------------------------------------------------
-// Inline MSL source
-// ---------------------------------------------------------------------------
-static NSString *const kRasterShaderSrc = @R"MSL(
-#include <metal_stdlib>
-using namespace metal;
-
-struct VertexIn {
-    float3 position [[attribute(0)]];
-    float3 normal   [[attribute(1)]];
-};
-
-struct VertexOut {
-    float4 position [[position]];
-    float3 worldNormal;
-    float3 worldPos;
-};
-
-struct PerDrawUniforms {
-    float4x4 modelMatrix;
-    float4x4 viewProjMatrix;
-    float4   baseColor;
-};
-
-vertex VertexOut vertex_main(VertexIn in [[stage_in]],
-                             constant PerDrawUniforms &u [[buffer(1)]])
-{
-    VertexOut out;
-    float4 worldPos  = u.modelMatrix * float4(in.position, 1.0);
-    out.position     = u.viewProjMatrix * worldPos;
-    out.worldNormal  = normalize((u.modelMatrix * float4(in.normal, 0.0)).xyz);
-    out.worldPos     = worldPos.xyz;
-    return out;
-}
-
-fragment float4 fragment_main(VertexOut in       [[stage_in]],
-                               constant PerDrawUniforms &u [[buffer(1)]])
-{
-    float3 N       = normalize(in.worldNormal);
-    float3 L       = normalize(float3(1.0, 2.0, 1.0));
-    float  diffuse = max(dot(N, L), 0.0);
-    float  ambient = 0.15;
-    float3 color   = u.baseColor.rgb * (ambient + diffuse * 0.85);
-    return float4(color, 1.0);
-}
-)MSL";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-static simd_float4x4 glmToSimd(const glm::mat4 &m)
-{
-  simd_float4x4 result;
-  for (int col = 0; col < 4; ++col) {
-    result.columns[col] = simd_make_float4(m[col][0], m[col][1],
-                                           m[col][2], m[col][3]);
-  }
-  return result;
-}
 
 // ---------------------------------------------------------------------------
 // MetalRasterPass
@@ -134,7 +69,6 @@ void MetalRasterPass::setup(PassBuilder &builder)
 /**********************************************************/
 {
   // Rasterise directly into the swapchain colour + depth attachment.
-  // Metal uses automatic hazard tracking, so we just declare an intent.
   builder.write(RenderOutput::Swapchain, PipelineStage::Fragment,
                 ResourceState::RenderTarget);
 }
@@ -146,37 +80,42 @@ void MetalRasterPass::createPipeline()
   NSError *error = nil;
   id<MTLDevice> device = m_data->device;
 
-  // --- Compile shaders ---
-  id<MTLLibrary> lib = [device newLibraryWithSource:kRasterShaderSrc
-                                            options:nil
-                                              error:&error];
-  if (!lib) {
-    NSLog(@"[MetalRasterPass] Shader compile error: %@", error.localizedDescription);
+  // --- Compile vertex library from Slang-generated Metal source ---
+  NSString *vertSrc = [NSString stringWithUTF8String:gltf_raster_slang];
+  id<MTLLibrary> vertLib =
+      [device newLibraryWithSource:vertSrc options:nil error:&error];
+  if (!vertLib) {
+    NSLog(@"[MetalRasterPass] Vertex shader compile error: %@",
+          error.localizedDescription);
+    return;
+  }
+  id<MTLFunction> vertFn = [vertLib newFunctionWithName:@"vertexMain"];
+  if (!vertFn) {
+    NSLog(@"[MetalRasterPass] 'vertexMain' not found in vertex library");
     return;
   }
 
-  id<MTLFunction> vertFn = [lib newFunctionWithName:@"vertex_main"];
-  id<MTLFunction> fragFn = [lib newFunctionWithName:@"fragment_main"];
-
-  // --- Vertex descriptor: matches MetalVertex layout ---
-  MTLVertexDescriptor *vertDesc = [MTLVertexDescriptor new];
-  // attribute 0: position (float3, offset 0)
-  vertDesc.attributes[0].format      = MTLVertexFormatFloat3;
-  vertDesc.attributes[0].offset      = 0;
-  vertDesc.attributes[0].bufferIndex = 0;
-  // attribute 1: normal (float3, offset 12)
-  vertDesc.attributes[1].format      = MTLVertexFormatFloat3;
-  vertDesc.attributes[1].offset      = 12;
-  vertDesc.attributes[1].bufferIndex = 0;
-  // buffer 0 layout: stride = sizeof(MetalVertex)
-  vertDesc.layouts[0].stride         = sizeof(MetalVertex);
-  vertDesc.layouts[0].stepFunction   = MTLVertexStepFunctionPerVertex;
+  // --- Compile fragment library from Slang-generated Metal source ---
+  NSString *fragSrc = [NSString stringWithUTF8String:gltf_fragment_slang];
+  id<MTLLibrary> fragLib =
+      [device newLibraryWithSource:fragSrc options:nil error:&error];
+  if (!fragLib) {
+    NSLog(@"[MetalRasterPass] Fragment shader compile error: %@",
+          error.localizedDescription);
+    return;
+  }
+  id<MTLFunction> fragFn = [fragLib newFunctionWithName:@"fragmentMain"];
+  if (!fragFn) {
+    NSLog(@"[MetalRasterPass] 'fragmentMain' not found in fragment library");
+    return;
+  }
 
   // --- Render pipeline ---
+  // The Slang vertex shader fetches all vertex data from GPU-virtual-address
+  // pointers inside PushConstant; no stage_in vertex descriptor is needed.
   MTLRenderPipelineDescriptor *pd = [MTLRenderPipelineDescriptor new];
   pd.vertexFunction               = vertFn;
   pd.fragmentFunction             = fragFn;
-  pd.vertexDescriptor             = vertDesc;
   pd.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
   pd.depthAttachmentPixelFormat   = MTLPixelFormatDepth32Float;
 
@@ -216,46 +155,49 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     return;
   }
 
+  // Upload the current frame's SceneInfo (view/proj matrices, lights, …).
+  m_assets->updateSceneInfo(scene->sceneInfo);
+
   [encoder setRenderPipelineState:m_data->pipelineState];
   [encoder setDepthStencilState:m_data->depthStencilState];
   [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [encoder setCullMode:MTLCullModeBack];
 
-  const simd_float4x4 viewProj =
-      glmToSimd(scene->sceneInfo.viewProjMatrix);
+  // Retrieve stable GPU addresses for the scene resource blocks.
+  const uint64_t sceneInfoAddr      = m_assets->getSceneInfoGpuAddress();
+  const uint64_t sceneResourcesAddr = m_assets->getSceneResourcesGpuAddress();
 
-  for (const shaderio::Instance &inst : scene->instances) {
+  // One indexed draw call per instance.
+  // The Slang vertex shader reads instance/mesh/vertex data entirely via
+  // GPU-virtual-address pointers embedded in PushConstant, so there is no
+  // vertex buffer to bind — only the index buffer is needed.
+  for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
+       ++i) {
+    const shaderio::Instance &inst = scene->instances[i];
     const uint32_t meshIdx = inst.meshIndex;
 
-    void *vbPtr = m_assets->getVertexMetalBuffer(meshIdx);
     void *ibPtr = m_assets->getIndexMetalBuffer(meshIdx);
     const uint32_t indexCount = m_assets->getIndexCount(meshIdx);
-
-    if (!vbPtr || !ibPtr || indexCount == 0) {
+    if (!ibPtr || indexCount == 0) {
       continue;
     }
-
-    id<MTLBuffer> vb = (__bridge id<MTLBuffer>)vbPtr;
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
-    // Build per-draw uniforms
-    PerDrawUniforms uniforms;
-    uniforms.modelMatrix  = glmToSimd(inst.transform);
-    uniforms.viewProjMatrix = viewProj;
+    // Build the PushConstant for this draw call.
+    shaderio::PushConstant pc{};
+    pc.instanceIndex = static_cast<int>(i);
+    // Store GPU virtual addresses in the pointer fields.
+    std::memcpy(&pc.sceneInfoAddress,  &sceneInfoAddr,      sizeof(uint64_t));
+    std::memcpy(&pc.resourcesAddress,  &sceneResourcesAddr, sizeof(uint64_t));
+    // Normal matrix = transpose(inverse(upper-left 3×3 of model matrix)).
+    pc.normalMatrix =
+        glm::mat3(glm::transpose(glm::inverse(glm::mat3(inst.transform))));
 
-    // Material base colour
-    glm::vec4 color(0.7f, 0.7f, 0.7f, 1.0f);
-    if (inst.materialIndex < scene->materials.size()) {
-      const shaderio::Material &mat = scene->materials[inst.materialIndex];
-      color = mat.baseColorFactor;
-    }
-    uniforms.baseColor = simd_make_float4(color.x, color.y, color.z, color.w);
+    // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
+    [encoder setVertexBytes:&pc   length:sizeof(pc) atIndex:0];
+    [encoder setFragmentBytes:&pc length:sizeof(pc) atIndex:0];
 
-    [encoder setVertexBuffer:vb offset:0 atIndex:0];
-    [encoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:1];
-    [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:1];
-
-    MTLIndexType indexType = m_assets->is32BitIndex(meshIdx)
+    const MTLIndexType indexType = m_assets->is32BitIndex(meshIdx)
         ? MTLIndexTypeUInt32
         : MTLIndexTypeUInt16;
 

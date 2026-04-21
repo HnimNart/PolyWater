@@ -68,6 +68,22 @@ public:
   void update(const std::vector<shaderio::Instance> &) override {}
   void update(const std::vector<shaderio::Material> &) override {}
 
+  // ---------------------------------------------------------------------------
+  // Slang-shader GPU scene resources
+  // ---------------------------------------------------------------------------
+  // Returns the GPU virtual address of the SceneResources struct buffer.
+  // The struct holds typed GPU pointers to Instance[], MeshPrimitive[], and
+  // Material[] arrays, all of which are built in uploadSceneResoures().
+  uint64_t getSceneResourcesGpuAddress() const;
+
+  // Returns the GPU virtual address of the per-frame SceneInfo buffer.
+  uint64_t getSceneInfoGpuAddress() const;
+
+  // Copies 'info' into the shared SceneInfo Metal buffer so that the current
+  // frame's view/projection matrix and lighting data are visible to the GPU.
+  // Must be called once per frame before MetalRasterPass::execute().
+  void updateSceneInfo(const shaderio::SceneInfo &info);
+
 private:
   MetalContextManager *m_ctx;
   std::unique_ptr<MetalDeviceAssetsData> m_data;
