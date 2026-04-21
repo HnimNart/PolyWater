@@ -19,7 +19,7 @@
 
 #include "gltf_shared.h.slang"
 
-// Vertex Shader
+// Vertex shader
 [shader("vertex")] FragmentInput vertexMain(uint vertexIndex : SV_VertexID) {
   int instanceIndex = pushConst.instanceIndex;
 
