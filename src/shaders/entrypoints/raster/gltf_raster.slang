@@ -30,13 +30,27 @@
   MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
   Material material = sceneResources.materials[instance.materialIndex];
 
-  // Retrieve the data
-  float3 posMesh = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions,
-                                        vertexIndex);
-  float3 normal =
-      getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals, vertexIndex);
-  float2 texCoord = getAttribute<float2>(meshIo.buffer,
-                                         meshIo.triMesh.texCoords, vertexIndex);
+  // Retrieve vertex attributes.
+  // On Metal, getAttribute generates an as_type(device uint8_t* → ulong) cast
+  // that Metal's shader compiler rejects.  Use byte-safe helpers on Metal and
+  // the generic getAttribute path on all other targets.
+  float3 posMesh, normal;
+  float2 texCoord;
+
+  __target_switch {
+  case metal: {
+    posMesh  = _getFloat3FromBytes(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
+    normal   = _getFloat3FromBytes(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
+    texCoord = _getFloat2FromBytes(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
+    break;
+  }
+  default: {
+    posMesh  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
+    normal   = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
+    texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
+    break;
+  }
+  }
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 

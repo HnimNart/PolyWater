@@ -125,5 +125,49 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   return s;
 }
 
+
+// ---------------------------------------------------------------------------
+// Metal-safe vertex attribute readers
+// ---------------------------------------------------------------------------
+// Metal's shader compiler forbids as_type reinterpretation of a device pointer
+// to an integer type (e.g. "as_type<ulong>(device uint8_t*)"), which is what
+// Slang generates for a C-style pointer cast such as "(T*)(uint8_t_ptr)".
+// The helpers below avoid that entirely: they index into the byte buffer
+// directly (legal uint8_t array access) and reconstruct each float via scalar
+// as_type<float>(uint), which Metal does permit.
+// These are used by gltf_raster.slang through a __target_switch block so that
+// non-Metal targets continue to use the generic getAttribute function.
+
+// Read one float from a raw byte buffer at the given byte offset.
+float _readFloatFromBytes(uint8_t* buf, uint byteOffset)
+{
+    uint word = uint(buf[byteOffset    ])
+              | (uint(buf[byteOffset + 1]) <<  8)
+              | (uint(buf[byteOffset + 2]) << 16)
+              | (uint(buf[byteOffset + 3]) << 24);
+    return as_type<float>(word);
+}
+
+// Read a float3 attribute from a raw byte buffer using a BufferView descriptor.
+float3 _getFloat3FromBytes(uint8_t* buf, BufferView view, uint index)
+{
+    if (view.count == 0) return float3(1);
+    uint stride = view.byteStride == 0 ? 12u : view.byteStride;
+    uint base   = view.offset + index * stride;
+    return float3(_readFloatFromBytes(buf, base),
+                  _readFloatFromBytes(buf, base + 4),
+                  _readFloatFromBytes(buf, base + 8));
+}
+
+// Read a float2 attribute from a raw byte buffer using a BufferView descriptor.
+float2 _getFloat2FromBytes(uint8_t* buf, BufferView view, uint index)
+{
+    if (view.count == 0) return float2(1);
+    uint stride = view.byteStride == 0 ? 8u : view.byteStride;
+    uint base   = view.offset + index * stride;
+    return float2(_readFloatFromBytes(buf, base),
+                  _readFloatFromBytes(buf, base + 4));
+}
+
 #endif
 
