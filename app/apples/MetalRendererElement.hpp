@@ -8,7 +8,8 @@
 #include "core/Camera.hpp"
 #include "scene/SceneManager.hpp"
 
-class MetalRenderer;
+#include "renderer/metal/MetalRenderer.hpp"
+
 class MetalBackend;
 
 //------------------------------------------------------------

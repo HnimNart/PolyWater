@@ -249,7 +249,7 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
       const shaderio::Material &mat = scene->materials[inst.materialIndex];
       color = mat.baseColorFactor;
     }
-    uniforms.baseColor = simd_make_float4(color.r, color.g, color.b, color.a);
+    uniforms.baseColor = simd_make_float4(color.x, color.y, color.z, color.w);
 
     [encoder setVertexBuffer:vb offset:0 atIndex:0];
     [encoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:1];
