@@ -57,7 +57,6 @@ public:
 
 private:
   void buildGraph();
-  void uploadScene(const SceneResourcesManager &scene);
 
   MetalBackend        *m_backend;
   MetalContextManager *m_ctx;

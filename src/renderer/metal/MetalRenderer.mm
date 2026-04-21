@@ -18,7 +18,12 @@
 MetalRenderer::MetalRenderer(MetalBackend *backend)
     : m_backend(backend), m_ctx(backend->getContextManager())
 /**********************************************************/
-{}
+{
+  // Create the device-asset store immediately so that deviceResources()
+  // returns a valid pointer before init() is called.  This mirrors the
+  // Vulkan renderer where m_resources is allocated in the constructor.
+  m_assets = std::make_shared<MetalDeviceAssets>(m_ctx);
+}
 
 /**********************************************************/
 MetalRenderer::~MetalRenderer()
@@ -28,14 +33,13 @@ MetalRenderer::~MetalRenderer()
 }
 
 /**********************************************************/
-void MetalRenderer::init(const SceneResourcesManager &scene)
+void MetalRenderer::init(const SceneResourcesManager & /*scene*/)
 /**********************************************************/
 {
-  // Create the device-asset store and upload geometry.
-  m_assets = std::make_shared<MetalDeviceAssets>(m_ctx);
-  uploadScene(scene);
-
-  // Build the render graph (single raster pass).
+  // Scene geometry has already been uploaded to m_assets by the
+  // SceneResourcesManager via the IDeviceAssets interface
+  // (upload / linkMeshToBuffer / uploadSceneResoures).
+  // We only need to (re-)build the render graph here.
   buildGraph();
 }
 
@@ -48,28 +52,11 @@ void MetalRenderer::deinit()
     m_graph.reset();
   }
   if (m_assets) {
+    // Clear GPU-side data only; keep the shared_ptr alive so the
+    // SceneResourcesManager (which also holds m_assets) can re-upload
+    // scene geometry after a reload without a dangling pointer.
     m_assets->deinit();
-    m_assets.reset();
   }
-}
-
-/**********************************************************/
-void MetalRenderer::uploadScene(const SceneResourcesManager &scene)
-/**********************************************************/
-{
-  const Scene &sceneData = scene.data();
-
-  // Upload each raw mesh buffer once.
-  for (uint32_t i = 0; i < sceneData.meshData.size(); ++i) {
-    const auto &rawBytes = sceneData.meshData[i];
-    if (rawBytes.empty()) {
-      continue;
-    }
-    m_assets->upload(std::span<const uint8_t>(rawBytes));
-  }
-
-  // Build per-mesh interleaved vertex + index buffers.
-  m_assets->uploadSceneResoures(sceneData);
 }
 
 /**********************************************************/
@@ -130,6 +117,9 @@ std::vector<std::string> MetalRenderer::getAvaliableModes() const
 void MetalRenderer::render(IRenderContext &ctx)
 /**********************************************************/
 {
+  if (!m_graph) {
+    return;
+  }
   m_graph->execute(ctx);
 }
 

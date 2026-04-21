@@ -3,7 +3,6 @@
 #include "MetalRendererElement.hpp"
 
 #include <imgui.h>
-#include <imgui_internal.h>
 
 #include "app/Application.hpp"
 #include "app/widgets/camera.hpp"
@@ -103,7 +102,7 @@ void MetalRendererElement::onPreRender()
     auto &resourceMgr = m_sceneManager.sceneResourceManager();
     resourceMgr.loadModel(m_modelFileToLoad);
     resourceMgr.finalizeSceneResources();
-    m_renderer->deinit();
+    // Assets were already uploaded via m_device_resources; just rebuild graph.
     m_renderer->init(resourceMgr);
     m_modelFileToLoad.clear();
   }
@@ -208,7 +207,11 @@ void MetalRendererElement::loadScene(const std::filesystem::path &filePath)
   SceneLoader loader;
   SceneData sceneData;
   try {
-    loader.load(filepath, sceneData);
+    if (!loader.load(filepath.string(), sceneData)) {
+      LOGE("MetalRendererElement: failed to parse scene '%s'\n",
+           filepath.c_str());
+      return;
+    }
     LOGI("MetalRendererElement: loaded scene '%s'\n", filepath.c_str());
   } catch (const std::exception &e) {
     LOGE("MetalRendererElement: failed to load '%s': %s\n",
