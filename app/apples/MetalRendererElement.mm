@@ -142,6 +142,33 @@ void MetalRendererElement::onUIRender()
 {
   auto camera = m_sceneManager.camera();
 
+  // ---------------------------------------------------------------------------
+  // Invisible full-screen "Viewport" window.
+  //
+  // ElementCamera::onUIRender() calls ImGui::FindWindowByName("Viewport") and
+  // only forwards mouse/keyboard input when that window is hovered.  Metal
+  // renders directly to the swapchain so there is no off-screen texture to
+  // display here – we just need the named window to exist and cover the whole
+  // drawable area so that the camera registers input everywhere outside the
+  // Settings panel.
+  // ---------------------------------------------------------------------------
+  {
+    const WindowSize vs = m_app->getViewportSize();
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(vs.width),
+                                    static_cast<float>(vs.height)),
+                             ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.0f);
+    constexpr ImGuiWindowFlags kViewportFlags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoFocusOnAppearing |
+        ImGuiWindowFlags_NoBringToDisplayOnFocus |
+        ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoNav;
+    ImGui::Begin("Viewport", nullptr, kViewportFlags);
+    ImGui::End();
+  }
+
   if (ImGui::Begin("Settings")) {
     if (ImGui::BeginTabBar("MetalSettingsTabs")) {
       if (ImGui::BeginTabItem("Scene")) {
