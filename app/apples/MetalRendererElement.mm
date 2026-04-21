@@ -77,8 +77,7 @@ void MetalRendererElement::onFileDrop(const std::filesystem::path &filename,
   } else if (ext == ".obj" || ext == ".gltf" || ext == ".glb") {
     m_modelFileToLoad = filename.string();
   } else {
-    LOGI("MetalRendererElement: unrecognised file type %s\n",
-         filename.c_str());
+    LOGI("MetalRendererElement: unrecognised file type %s\n", filename.c_str());
   }
 }
 
@@ -127,7 +126,7 @@ void MetalRendererElement::onRender(const IRenderContext &ctx)
   }
 
   IRenderContext &mutableCtx = const_cast<IRenderContext &>(ctx);
-  mutableCtx.sceneResources  = m_sceneManager.getScenePtr();
+  mutableCtx.sceneResources = m_sceneManager.getScenePtr();
 
   m_renderer->render(mutableCtx);
 }
@@ -155,16 +154,16 @@ void MetalRendererElement::onUIRender()
   {
     const WindowSize vs = m_app->getViewportSize();
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(vs.width),
-                                    static_cast<float>(vs.height)),
-                             ImGuiCond_Always);
+    ImGui::SetNextWindowSize(
+        ImVec2(static_cast<float>(vs.width), static_cast<float>(vs.height)),
+        ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.0f);
     constexpr ImGuiWindowFlags kViewportFlags =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoFocusOnAppearing |
-        ImGuiWindowFlags_NoBringToDisplayOnFocus |
-        ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoNav;
+        ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoNav;
     ImGui::Begin("Viewport", nullptr, kViewportFlags);
     ImGui::End();
   }
@@ -241,8 +240,8 @@ void MetalRendererElement::loadScene(const std::filesystem::path &filePath)
     }
     LOGI("MetalRendererElement: loaded scene '%s'\n", filepath.c_str());
   } catch (const std::exception &e) {
-    LOGE("MetalRendererElement: failed to load '%s': %s\n",
-         filepath.c_str(), e.what());
+    LOGE("MetalRendererElement: failed to load '%s': %s\n", filepath.c_str(),
+         e.what());
     return;
   }
 
