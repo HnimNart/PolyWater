@@ -133,8 +133,8 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
 // to an integer type (e.g. "as_type<ulong>(device uint8_t*)"), which is what
 // Slang generates for a C-style pointer cast such as "(T*)(uint8_t_ptr)".
 // The helpers below avoid that entirely: they index into the byte buffer
-// directly (legal uint8_t array access) and reconstruct each float via scalar
-// as_type<float>(uint), which Metal does permit.
+// directly (legal uint8_t array access) and reconstruct each float via Slang's
+// bit_cast<float>(uint), which compiles cleanly to MSL with no pointer casts.
 // These are used by gltf_raster.slang through a __target_switch block so that
 // non-Metal targets continue to use the generic getAttribute function.
 
@@ -145,7 +145,7 @@ float _readFloatFromBytes(uint8_t* buf, uint byteOffset)
               | (uint(buf[byteOffset + 1]) <<  8)
               | (uint(buf[byteOffset + 2]) << 16)
               | (uint(buf[byteOffset + 3]) << 24);
-    return as_type<float>(word);
+    return bit_cast<float>(word);
 }
 
 // Read a float3 attribute from a raw byte buffer using a BufferView descriptor.
