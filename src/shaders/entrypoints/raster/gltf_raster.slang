@@ -26,43 +26,12 @@
   SceneInfo   sceneInfo;
   Instance    instance;
   MeshPrimitive meshIo;
-
-  // On Metal use explicitly-bound buffers (no BDA pointer chain needed).
-  // On Vulkan/SPIRV keep the original Buffer Device Address path.
-  __target_switch {
-  case metal: {
-    sceneInfo = g_metalSceneInfoBuf;
-    instance  = g_metalInstancesBuf[instanceIndex];
-    meshIo    = g_metalMeshesBuf[instance.meshIndex];
-  }
-  default: {
-    SceneInfo *si = pushConst.sceneInfoAddress;
-    sceneInfo = *si;
-    SceneResources *sceneResources = pushConst.resourcesAddress;
-    instance  = sceneResources.instances[instanceIndex];
-    meshIo    = sceneResources.meshes[instance.meshIndex];
-  }
-  }
+  fetchVertexResources(instanceIndex, sceneInfo, instance, meshIo);
 
   float3 posMesh;
   float3 normal;
   float2 texCoord;
-
-  // On Metal read vertex attributes from the interleaved vertex buffer
-  // bound at slot 5 by MetalRasterPass.  On Vulkan use BDA-based fetch.
-  __target_switch {
-  case metal: {
-    MetalVertex mv = g_metalVertexBuf[vertexIndex];
-    posMesh  = mv.position;
-    normal   = mv.normal;
-    texCoord = mv.texcoord;
-  }
-  default: {
-    posMesh  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
-    normal   = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
-    texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
-  }
-  }
+  fetchVertexAttributes(vertexIndex, meshIo, posMesh, normal, texCoord);
 
   float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 

@@ -9,23 +9,7 @@
   SceneInfo sceneInfo;
   Instance  instance;
   Material  material;
-
-  // On Metal use explicitly-bound buffers (no BDA pointer chain needed).
-  // On Vulkan/SPIRV keep the original Buffer Device Address path.
-  __target_switch {
-  case metal: {
-    sceneInfo = g_metalSceneInfoBuf;
-    instance  = g_metalInstancesBuf[stage.instanceIndex];
-    material  = g_metalMaterialsBuf[instance.materialIndex];
-  }
-  default: {
-    SceneInfo *si = pushConst.sceneInfoAddress;
-    sceneInfo = *si;
-    SceneResources sceneResources = pushConst.resourcesAddress[0];
-    instance = sceneResources.instances[stage.instanceIndex];
-    material = sceneResources.materials[instance.materialIndex];
-  }
-  }
+  fetchFragmentResources(stage.instanceIndex, sceneInfo, instance, material);
 
   PSout output;
   float3 finalColor = float3(0);
