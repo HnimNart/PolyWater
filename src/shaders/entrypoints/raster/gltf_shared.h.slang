@@ -136,9 +136,7 @@ void fetchFragmentResources(uint instanceIndex,
 }
 
 // ---------------------------------------------------------------------------
-// Fragment shading helper — wraps all PBR logic so that pointer operations
-// (e.g. sampleLight(&sceneInfo, ...)) never appear directly inside a Metal
-// entry point, which raises E36107.
+// Fragment shading helper — keeps the fragment path pointer-free for Metal.
 // ---------------------------------------------------------------------------
 float3 computeFragmentColor(SceneInfo sceneInfo,
                             Instance  instance,
@@ -153,7 +151,7 @@ float3 computeFragmentColor(SceneInfo sceneInfo,
 
     case MaterialType::eGltfPbr:
     default: {
-        LightSample light = sampleLight(&sceneInfo, stage.worldPos);
+        LightSample light = sampleLight(sceneInfo, stage.worldPos);
 
         float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
         float3 N = normalize(stage.worldNormal);
