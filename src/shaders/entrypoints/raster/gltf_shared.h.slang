@@ -53,16 +53,15 @@ struct MetalVertex {
 
 // ---------------------------------------------------------------------------
 // Metal-specific explicit buffer bindings (buffer slots 1-5).
-// These are bound by MetalRasterPass::execute() and avoid the multi-level
-// BDA pointer chain that goes through PushConstant.  On Vulkan/SPIRV only
-// the default path (BDA via pushConst) is compiled in.
+// These are declared unconditionally (Slang does not support __target_switch
+// at module scope for variable declarations).  On Vulkan/SPIRV they are
+// unreferenced and will not appear in the generated descriptor sets.
+// MetalRasterPass::execute() binds them at the corresponding slots:
+//   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
+//   buffer(4) = Materials,  buffer(5) = per-draw vertex buffer.
 // ---------------------------------------------------------------------------
-__target_switch {
-case metal: {
-    ConstantBuffer<SceneInfo>      g_metalSceneInfoBuf;   // Metal buffer(1)
-    StructuredBuffer<Instance>     g_metalInstancesBuf;   // Metal buffer(2)
-    StructuredBuffer<MeshPrimitive> g_metalMeshesBuf;     // Metal buffer(3)
-    StructuredBuffer<Material>     g_metalMaterialsBuf;   // Metal buffer(4)
-    StructuredBuffer<MetalVertex>  g_metalVertexBuf;      // Metal buffer(5)
-}
-}
+ConstantBuffer<SceneInfo>       g_metalSceneInfoBuf;   // Metal buffer(1)
+StructuredBuffer<Instance>      g_metalInstancesBuf;   // Metal buffer(2)
+StructuredBuffer<MeshPrimitive> g_metalMeshesBuf;      // Metal buffer(3)
+StructuredBuffer<Material>      g_metalMaterialsBuf;   // Metal buffer(4)
+StructuredBuffer<MetalVertex>   g_metalVertexBuf;      // Metal buffer(5)
