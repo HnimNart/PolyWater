@@ -134,3 +134,53 @@ void fetchFragmentResources(uint instanceIndex,
     }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Fragment shading helper — wraps all PBR logic so that pointer operations
+// (e.g. sampleLight(&sceneInfo, ...)) never appear directly inside a Metal
+// entry point, which raises E36107.
+// ---------------------------------------------------------------------------
+float3 computeFragmentColor(SceneInfo sceneInfo,
+                            Instance  instance,
+                            Material  material,
+                            FragmentInput stage) {
+    switch ((MaterialType)instance.hit_group) {
+    case MaterialType::eDiffuse:
+        return stage.debugColor.rgb;
+
+    case MaterialType::eNormals:
+        return (stage.worldNormal.rgb + 1.0f) * 0.5f;
+
+    case MaterialType::eGltfPbr:
+    default: {
+        LightSample light = sampleLight(&sceneInfo, stage.worldPos);
+
+        float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
+        float3 N = normalize(stage.worldNormal);
+        float3 L = normalize(light.direction);
+
+        float3 albedo = material.baseColorFactor.xyz;
+        if (material.baseColorTextureIndex > 0) {
+            albedo *= textures[material.baseColorTextureIndex]
+                          .Sample(stage.worldTexCoord)
+                          .xyz;
+        }
+
+        float metallic  = material.metallicFactor;
+        float roughness = material.roughnessFactor;
+
+        float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
+        color *= light.color * light.intensity;
+
+        float3 ambient = sceneInfo.backgroundColor;
+        if (sceneInfo.useSky == 1) {
+            float3 skyUpDir    = float3(0, 1, 0);
+            float3 groundColor = sceneInfo.skySimpleParam.groundColor;
+            float3 skyColor    = sceneInfo.skySimpleParam.skyColor;
+            ambient = lerp(groundColor, skyColor, dot(N, skyUpDir) * 0.5 + 0.5);
+        }
+
+        return color + (ambient * albedo * 0.025);
+    }
+    }
+}
