@@ -98,7 +98,7 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
 
   // The GPU address is resolved later in uploadSceneResoures() via
   // MTLBuffer.gpuAddress and stored in MeshPrimitive.buffer.
-  return BufferHandle{.address = nullptr, .id = id};
+  return BufferHandle{.address = (uint8_t*)buf.gpuAddress, .id = id};
 }
 
 /**********************************************************/
@@ -177,29 +177,14 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
   // We populate those pointer fields here using MTLBuffer.gpuAddress (Metal 3+
   // / Apple Silicon) so the GPU can dereference them directly.
   // -----------------------------------------------------------------------
-
   id<MTLDevice> device = m_data->device;
 
   // 1. Build MeshPrimitive[] with each element's 'buffer' field set to the GPU
   //    address of the corresponding raw-data Metal buffer.
-  std::vector<shaderio::MeshPrimitive> gpuMeshPrims(resources.meshes.size());
-  for (uint32_t meshIdx = 0; meshIdx < resources.meshes.size(); ++meshIdx) {
-    gpuMeshPrims[meshIdx] = resources.meshes[meshIdx];
-    // Replace the CPU-side null pointer with the GPU virtual address.
-    auto bufIt = m_data->meshToBuffer.find(meshIdx);
-    if (bufIt != m_data->meshToBuffer.end()) {
-      auto rawIt = m_data->rawBuffers.find(bufIt->second);
-      if (rawIt != m_data->rawBuffers.end()) {
-        const uint64_t gpuAddr = [rawIt->second gpuAddress];
-        std::memcpy(&gpuMeshPrims[meshIdx].buffer, &gpuAddr,
-                    sizeof(gpuAddr));
-      }
-    }
-  }
-  if (!gpuMeshPrims.empty()) {
+  if (!resources.meshes.empty()) {
     m_data->meshPrimitivesGpuBuffer =
-        [device newBufferWithBytes:gpuMeshPrims.data()
-                            length:gpuMeshPrims.size() *
+        [device newBufferWithBytes:resources.meshes.data()
+                            length:resources.meshes.size() *
                                    sizeof(shaderio::MeshPrimitive)
                            options:MTLResourceStorageModeShared];
   }
