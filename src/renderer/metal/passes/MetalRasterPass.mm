@@ -172,7 +172,10 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   // Bind scene-wide explicit buffers (constant across all draw calls).
   // These match the g_metal*Buf declarations in gltf_shared.h.slang:
   //   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
-  //   buffer(4) = Materials,  buffer(5) = per-draw vertex buffer.
+  //   buffer(4) = Materials.
+  // Vertex attributes are fetched from the raw mesh data buffers via the GPU
+  // virtual addresses in MeshPrimitive.buffer using the same BufferView layout
+  // as the Vulkan renderer — no separate interleaved vertex buffer at slot 5.
   if (id<MTLBuffer> sib = (__bridge id<MTLBuffer>)m_assets->getSceneInfoMetalBuffer()) {
     [encoder setVertexBuffer:sib   offset:0 atIndex:1];
     [encoder setFragmentBuffer:sib offset:0 atIndex:1];
@@ -189,7 +192,7 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   }
 
   // Retrieve stable GPU addresses for the scene resource blocks
-  // (still passed in PushConstant for any residual BDA accesses).
+  // (passed in PushConstant so the shader can dereference them via BDA).
   const uint64_t sceneInfoAddr      = m_assets->getSceneInfoGpuAddress();
   const uint64_t sceneResourcesAddr = m_assets->getSceneResourcesGpuAddress();
 
@@ -206,19 +209,11 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
-    // Bind the interleaved vertex buffer for this mesh at slot 5.
-    void *vbPtr = m_assets->getVertexMetalBuffer(meshIdx);
-    if (!vbPtr) {
-      continue;
-    }
-    id<MTLBuffer> vb = (__bridge id<MTLBuffer>)vbPtr;
-    [encoder setVertexBuffer:vb offset:0 atIndex:5];
-
     // Build the PushConstant for this draw call.
     shaderio::PushConstant pc{};
     pc.instanceIndex = static_cast<int>(i);
-    // Store GPU virtual addresses in the pointer fields (used on Vulkan;
-    // on Metal the explicit buffer bindings above are used instead).
+    // GPU virtual addresses: used by the BDA path in fetchVertexResources
+    // and by fetchVertexAttributes via getAttribute<T>() for vertex data.
     std::memcpy(&pc.sceneInfoAddress,  &sceneInfoAddr,      sizeof(uint64_t));
     std::memcpy(&pc.resourcesAddress,  &sceneResourcesAddr, sizeof(uint64_t));
 
