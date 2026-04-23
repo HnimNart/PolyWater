@@ -17,12 +17,14 @@ struct MetalDeviceAssetsData;
 //------------------------------------------------------------
 // Concrete Metal implementation of IDeviceAssets.
 // Uploads mesh geometry as Metal buffers and provides per-mesh
-// interleaved vertex / index buffers for the rasterisation pass.
+// index buffers for the rasterisation pass.  Vertex attributes
+// (positions, normals, UVs) are read directly from the raw mesh
+// data buffers via GPU virtual addresses using the same BufferView
+// layout as the Vulkan renderer.
 //
-// Note: This implementation does NOT use Buffer Device Addresses (BDA)
-// – a Vulkan concept.  The "address" field returned by upload() is
-// always nullptr; callers must use getMetalBufferForMesh() to obtain
-// the underlying id<MTLBuffer>.
+// Note: The "address" field returned by upload() is always nullptr;
+// GPU virtual addresses are resolved later in uploadSceneResoures()
+// via MTLBuffer.gpuAddress and stored in MeshPrimitive.buffer.
 class MetalDeviceAssets final : public IDeviceAssets {
 public:
   explicit MetalDeviceAssets(MetalContextManager *ctx);
@@ -47,8 +49,6 @@ public:
   // uploadSceneResoures().
   void *getRawMetalBuffer(BufferID id) const;
 
-  // Metal-specific: returns the interleaved vertex buffer for a mesh.
-  void *getVertexMetalBuffer(MeshID meshId) const;
   // Metal-specific: returns the index buffer for a mesh.
   void *getIndexMetalBuffer(MeshID meshId) const;
   // Returns the number of indices for the given mesh.

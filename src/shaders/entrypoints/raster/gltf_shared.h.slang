@@ -41,30 +41,18 @@ struct MeshTaskPayload {
 };
 
 // ---------------------------------------------------------------------------
-// Interleaved vertex layout built by MetalDeviceAssets::uploadSceneResoures().
-// Used by the Metal rasterisation path to read per-vertex data from an
-// explicitly-bound buffer, bypassing BDA pointer chains.
-// ---------------------------------------------------------------------------
-struct MetalVertex {
-    float3 position;
-    float3 normal;
-    float2 texcoord;
-};
-
-// ---------------------------------------------------------------------------
-// Metal-specific explicit buffer bindings (buffer slots 1-5).
+// Metal-specific explicit buffer bindings (buffer slots 1-4).
 // These are declared unconditionally (Slang does not support __target_switch
 // at module scope for variable declarations).  On Vulkan/SPIRV they are
 // unreferenced and will not appear in the generated descriptor sets.
 // MetalRasterPass::execute() binds them at the corresponding slots:
 //   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
-//   buffer(4) = Materials,  buffer(5) = per-draw vertex buffer.
+//   buffer(4) = Materials.
 // ---------------------------------------------------------------------------
 ConstantBuffer<SceneInfo>       g_metalSceneInfoBuf;   // Metal buffer(1)
 StructuredBuffer<Instance>      g_metalInstancesBuf;   // Metal buffer(2)
 StructuredBuffer<MeshPrimitive> g_metalMeshesBuf;      // Metal buffer(3)
 StructuredBuffer<Material>      g_metalMaterialsBuf;   // Metal buffer(4)
-StructuredBuffer<MetalVertex>   g_metalVertexBuf;      // Metal buffer(5)
 
 // ---------------------------------------------------------------------------
 // Helper functions that wrap __target_switch so it does not appear directly
@@ -94,24 +82,18 @@ void fetchVertexResources(int instanceIndex,
 }
 
 // Fetch per-vertex attributes for the vertex stage.
+// Both Vulkan and Metal use the same BufferView-based layout: attributes are
+// read from the raw mesh data buffer (MeshPrimitive.buffer) using the offsets
+// and strides described by the TriangleMesh BufferView structs.  This ensures
+// both renderers share exactly the same geometry memory layout.
 void fetchVertexAttributes(uint vertexIndex,
                            MeshPrimitive meshIo,
                            out float3 posMesh,
                            out float3 normal,
                            out float2 texCoord) {
-    __target_switch {
-    case metal: {
-        MetalVertex mv = g_metalVertexBuf[vertexIndex];
-        posMesh  = mv.position;
-        normal   = mv.normal;
-        texCoord = mv.texcoord;
-    }
-    default: {
-        posMesh  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
-        normal   = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
-        texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
-    }
-    }
+    posMesh  = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions, vertexIndex);
+    normal   = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.normals,   vertexIndex);
+    texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
 }
 
 // Fetch SceneInfo / Instance / Material for the fragment stage.

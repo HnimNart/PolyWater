@@ -8,19 +8,8 @@
 #import "scene/Scene.h"
 #import "shaders/shared/structs.h"
 
-// ---------------------------------------------------------------------------
-// Interleaved vertex layout used by the Metal rasterisation shaders.
-// Must match the MetalVertex struct declared in gltf_shared.h.slang.
-// ---------------------------------------------------------------------------
-struct MetalVertex {
-  float position[3]; // x, y, z
-  float normal[3];   // nx, ny, nz
-  float texcoord[2]; // u, v
-};
-
 // Per-mesh Metal GPU resources built from the raw mesh bytes.
 struct MetalMeshBuffer {
-  id<MTLBuffer> vertexBuffer;
   id<MTLBuffer> indexBuffer;
   uint32_t indexCount  = 0;
   bool     is32Bit     = false;
@@ -107,7 +96,8 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
   IDeviceAssets::BufferID id = m_data->nextId++;
   m_data->rawBuffers[id]     = buf;
 
-  // Metal has no BDA; address is left nullptr intentionally.
+  // The GPU address is resolved later in uploadSceneResoures() via
+  // MTLBuffer.gpuAddress and stored in MeshPrimitive.buffer.
   return BufferHandle{.address = nullptr, .id = id};
 }
 
@@ -130,8 +120,11 @@ void MetalDeviceAssets::linkMeshToBuffer(MeshID meshId, BufferID bufferId)
 void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 /**********************************************************/
 {
-  // For every mesh, build an interleaved vertex buffer and a compact
-  // index buffer from the raw data already uploaded to rawBuffers.
+  // For every mesh, build a compact index buffer from the raw data already
+  // uploaded to rawBuffers.  Vertex positions, normals, and UVs are read
+  // directly from the raw buffer by the shader using the BufferView offsets
+  // and strides stored in MeshPrimitive.triMesh — the same layout used by
+  // the Vulkan renderer, so both renderers share identical geometry layout.
   for (uint32_t meshIdx = 0; meshIdx < resources.meshes.size(); ++meshIdx) {
     const shaderio::MeshPrimitive &prim = resources.meshes[meshIdx];
     if (prim.rawBufferIndex >= resources.meshData.size()) {
@@ -143,60 +136,10 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
     }
 
     const shaderio::TriangleMesh &tri = prim.triMesh;
-    const uint32_t vertexCount = tri.positions.count;
     const uint32_t indexCount  = tri.indices.count;
-    if (vertexCount == 0 || indexCount == 0) {
+    if (indexCount == 0) {
       continue;
     }
-
-    // ----------------------------------------------------------------
-    // Build interleaved vertex buffer: float3 position + float3 normal + float2 texcoord
-    // ----------------------------------------------------------------
-    const uint32_t posStride  = tri.positions.byteStride == 0
-                                    ? 12u
-                                    : tri.positions.byteStride;
-    const uint32_t normStride = tri.normals.byteStride == 0
-                                    ? 12u
-                                    : tri.normals.byteStride;
-    const uint32_t uvStride   = tri.texCoords.byteStride == 0
-                                    ? 8u
-                                    : tri.texCoords.byteStride;
-    const bool hasNormals   = tri.normals.count > 0;
-    const bool hasTexCoords = tri.texCoords.count > 0;
-
-    std::vector<MetalVertex> vertices(vertexCount);
-    for (uint32_t v = 0; v < vertexCount; ++v) {
-      // Position
-      const uint8_t *posPtr =
-          rawData.data() + tri.positions.offset + v * posStride;
-      std::memcpy(vertices[v].position, posPtr, sizeof(float) * 3);
-
-      // Normal (default upward if mesh has none)
-      if (hasNormals) {
-        const uint8_t *normPtr =
-            rawData.data() + tri.normals.offset + v * normStride;
-        std::memcpy(vertices[v].normal, normPtr, sizeof(float) * 3);
-      } else {
-        vertices[v].normal[0] = 0.0f;
-        vertices[v].normal[1] = 1.0f;
-        vertices[v].normal[2] = 0.0f;
-      }
-
-      // Texcoord (default 0,0 if mesh has none)
-      if (hasTexCoords) {
-        const uint8_t *uvPtr =
-            rawData.data() + tri.texCoords.offset + v * uvStride;
-        std::memcpy(vertices[v].texcoord, uvPtr, sizeof(float) * 2);
-      } else {
-        vertices[v].texcoord[0] = 0.0f;
-        vertices[v].texcoord[1] = 0.0f;
-      }
-    }
-
-    id<MTLBuffer> vb = [m_data->device
-        newBufferWithBytes:vertices.data()
-                   length:vertices.size() * sizeof(MetalVertex)
-                  options:MTLResourceStorageModeShared];
 
     // ----------------------------------------------------------------
     // Build index buffer
@@ -219,7 +162,6 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
                   options:MTLResourceStorageModeShared];
 
     MetalMeshBuffer mb;
-    mb.vertexBuffer = vb;
     mb.indexBuffer  = ib;
     mb.indexCount   = indexCount;
     mb.is32Bit      = is32Bit;
@@ -315,17 +257,6 @@ void *MetalDeviceAssets::getRawMetalBuffer(BufferID id) const
     return nullptr;
   }
   return (__bridge void *)it->second;
-}
-
-/**********************************************************/
-void *MetalDeviceAssets::getVertexMetalBuffer(MeshID meshId) const
-/**********************************************************/
-{
-  auto it = m_data->meshBuffers.find(meshId);
-  if (it == m_data->meshBuffers.end()) {
-    return nullptr;
-  }
-  return (__bridge void *)it->second.vertexBuffer;
 }
 
 /**********************************************************/
