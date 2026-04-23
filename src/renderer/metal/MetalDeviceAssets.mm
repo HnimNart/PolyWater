@@ -367,7 +367,23 @@ void MetalDeviceAssets::updateSceneInfo(const shaderio::SceneInfo &info)
   if (!m_data->sceneInfoGpuBuffer) {
     return;
   }
-  std::memcpy([m_data->sceneInfoGpuBuffer contents], &info,
+
+  // The CPU-side matrices are built with Vulkan conventions:
+  //   projMatrix[1][1] *= -1  (Y-flip so Vulkan clip-space Y points down).
+  //
+  // Metal NDC uses Y-up (same as OpenGL), so we must undo that flip before
+  // uploading to the GPU.  Vulkan rendering is unaffected — it reads from
+  // the CPU-side SceneInfo directly.
+  shaderio::SceneInfo metalInfo = info;
+
+  // Undo the Vulkan Y-flip by negating the same element once more.
+  metalInfo.projMatrix[1][1] *= -1.0f;
+
+  // Recompute the combined and inverse matrices from the corrected projection.
+  metalInfo.viewProjMatrix = metalInfo.projMatrix * metalInfo.viewMatrix;
+  metalInfo.projInvMatrix  = glm::inverse(metalInfo.projMatrix);
+
+  std::memcpy([m_data->sceneInfoGpuBuffer contents], &metalInfo,
               sizeof(shaderio::SceneInfo));
 }
 
