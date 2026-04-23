@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <stb/stb_image.h>
-
 namespace core {
 
 enum class ImageFormat { RGBA8_UNORM, RGBA32_SFLOAT, DEPTH32_SFLOAT, UNKNOWN };

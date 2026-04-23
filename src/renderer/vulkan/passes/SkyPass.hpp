@@ -5,9 +5,10 @@
 
 class SkyPass : public IRenderPass {
 public:
-  void init(VulkanContextManager *core) override;
+  explicit SkyPass(VulkanContextManager *core);
+  void init() override;
   void setup(PassBuilder &builder) override;
-  void deinit(VulkanContextManager *core) override;
+  void deinit() override;
   void execute(const IRenderContext &ctx) override;
 
 private:

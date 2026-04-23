@@ -24,13 +24,14 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(const nvvk::DescriptorPack &descPack,
+  RayTracePass(VulkanContextManager *contextManager,
+               const nvvk::DescriptorPack &descPack,
                ShaderManager *materialManager, AccelerationStructures *accel);
   ~RayTracePass() = default;
 
-  void init(VulkanContextManager *coreManager) override;
+  void init() override;
   void setup(PassBuilder &builder) override;
-  void deinit(VulkanContextManager *coreManager) override;
+  void deinit() override;
 
   // -------------------------------------------------------------------------
   // Setup & Configuration

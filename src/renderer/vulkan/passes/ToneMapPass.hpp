@@ -14,13 +14,13 @@
 
 class ToneMapPass : public IToneMapper, public IRenderPass {
 public:
-  ToneMapPass(RenderOutput input);
+  ToneMapPass(VulkanContextManager *core, RenderOutput input);
   ~ToneMapPass() override;
 
-  void init(VulkanContextManager *core) override;
+  void init() override;
 
   void setup(PassBuilder &builder) override;
-  void deinit(VulkanContextManager *core) override;
+  void deinit() override;
   void execute(const IRenderContext &ctx) override;
 
   // Explicitly non-copyable
@@ -29,7 +29,7 @@ public:
 
   VkResult init(nvvk::ResourceAllocator *alloc,
                 std::span<const uint32_t> spirv);
-  void deinit();
+  void destroyResources();
 
   void runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
                   const shaderio::TonemapperData &tonemapper,
@@ -57,5 +57,6 @@ private:
   // Auto-Exposure
   nvvk::Buffer m_exposureBuffer;
   nvvk::Buffer m_histogramBuffer;
+  VulkanContextManager *m_context = nullptr;
   bool m_initialized = false;
 };

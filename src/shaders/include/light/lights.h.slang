@@ -38,23 +38,23 @@ uint selectLightIndex(float randomValue, float *cdfBuffer, uint count) {
 //-----------------------------------------------------------------------
 // HELPER: LIGHT SAMPLING FUNCTION
 //-----------------------------------------------------------------------
-LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
-                        float3 worldPos,      // Surface position being shaded
-                        int lightIndex = 0)   // Index of light to sample
+LightSample sampleLight(SceneInfo sceneInfo, // Scene data
+                        float3 worldPos,     // Surface position being shaded
+                        int lightIndex = 0)  // Index of light to sample
 {
   LightSample result;
 
   // 1. Fetch Raw Data
   // -----------------
-  PunctualLight lightRaw = sceneInfo->punctualLights[lightIndex];
+  PunctualLight lightRaw = sceneInfo.punctualLights[lightIndex];
 
   // 2. Sky/Sun Override (Special Case for Index 0)
   // -----------------
   // If sky is enabled, Light 0 becomes the Sun.
-  if (sceneInfo->useSky == 1 && lightIndex == 0) {
-    result.direction = normalize(sceneInfo->skySimpleParam.sunDirection);
-    result.color = sceneInfo->skySimpleParam.sunColor;
-    result.intensity = sceneInfo->skySimpleParam.sunIntensity;
+  if (sceneInfo.useSky == 1 && lightIndex == 0) {
+    result.direction = normalize(sceneInfo.skySimpleParam.sunDirection);
+    result.color = sceneInfo.skySimpleParam.sunColor;
+    result.intensity = sceneInfo.skySimpleParam.sunIntensity;
     result.pdf = 1.0;
     result.type = LightType::eDirectional;
 
@@ -115,6 +115,13 @@ LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
   }
 
   return result;
+}
+
+LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
+                        float3 worldPos,      // Surface position being shaded
+                        int lightIndex = 0)   // Index of light to sample
+{
+  return sampleLight(*sceneInfo, worldPos, lightIndex);
 }
 
 // ------------------------------------------------------------------

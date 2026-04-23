@@ -26,13 +26,19 @@ enum BindRaster {
     eHiZSampler  = 1
 };
 
+#ifndef MAX_SCENE_TEXTURES
+#define MAX_SCENE_TEXTURES 4096
+#endif
+
 #ifndef __cplusplus
 // clang-format off
 // Push constants containing scene information, camera data
 [[vk::push_constant]]                           ConstantBuffer<PushConstant> pushConst;
 
 // --- SHARED GLOBALS ---
-[[vk::binding(BindGlobal::eTextures, 0)]] Sampler2D textures[];
+// Fixed-size array required for Metal (MSL does not support flexible/unbounded
+// arrays of opaque resource types such as texture2d in a struct).
+[[vk::binding(BindGlobal::eTextures, 0)]] Sampler2D textures[MAX_SCENE_TEXTURES];
 
 // clang-format on
 #endif

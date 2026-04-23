@@ -43,7 +43,9 @@
 #include "sky_io.h.slang"
 
 #define MAX_LIGHTS 2
+#ifndef MAX_SCENE_TEXTURES
 #define MAX_SCENE_TEXTURES 4096
+#endif
 #define MAX_SCENE_MESHLETS (10000000)
 
 enum class MaterialType : uint16_t {
@@ -303,7 +305,6 @@ struct SceneInfo {
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
-  float3x3 normalMatrix;
   int instanceIndex;                // Instance index for the current draw call
   SceneInfo *sceneInfoAddress;      // Address of the scene information buffer
   SceneResources *resourcesAddress; //
