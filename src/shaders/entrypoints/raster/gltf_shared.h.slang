@@ -130,7 +130,7 @@ float3 computeBaseColor(Material material, float2 texCoord) {
     }
     default: {
         float3 albedo = material.baseColorFactor.xyz;
-        if (material.baseColorTextureIndex > 0) {
+        if (material.baseColorTextureIndex >= 0) {
             albedo *= textures[material.baseColorTextureIndex]
                           .Sample(texCoord)
                           .xyz;
