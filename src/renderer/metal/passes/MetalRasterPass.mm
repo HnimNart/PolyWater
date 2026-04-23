@@ -155,9 +155,6 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     return;
   }
 
-  // Upload the current frame's SceneInfo (view/proj matrices, lights, …).
-  m_assets->updateSceneInfo(scene->sceneInfo);
-
   [encoder setRenderPipelineState:m_data->pipelineState];
   [encoder setDepthStencilState:m_data->depthStencilState];
   [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
@@ -191,11 +188,6 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     [encoder setFragmentBuffer:matb offset:0 atIndex:4];
   }
 
-  // Retrieve stable GPU addresses for the scene resource blocks
-  // (passed in PushConstant so the shader can dereference them via BDA).
-  const uint64_t sceneInfoAddr      = m_assets->getSceneInfoGpuAddress();
-  const uint64_t sceneResourcesAddr = m_assets->getSceneResourcesGpuAddress();
-
   // One indexed draw call per instance.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
        ++i) {
@@ -209,13 +201,9 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
-    // Build the PushConstant for this draw call.
-    shaderio::PushConstant pc{};
+    // Start from frame-global push constants and patch only draw-local state.
+    shaderio::PushConstant pc = metalCtx.pushValues;
     pc.instanceIndex = static_cast<int>(i);
-    // GPU virtual addresses: used by the BDA path in fetchVertexResources
-    // and by fetchVertexAttributes via getAttribute<T>() for vertex data.
-    std::memcpy(&pc.sceneInfoAddress,  &sceneInfoAddr,      sizeof(uint64_t));
-    std::memcpy(&pc.resourcesAddress,  &sceneResourcesAddr, sizeof(uint64_t));
 
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
     [encoder setVertexBytes:&pc   length:sizeof(pc) atIndex:0];

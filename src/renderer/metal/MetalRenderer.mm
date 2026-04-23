@@ -7,8 +7,14 @@
 
 #import "backend/metal/core/MetalBackend.hpp"
 #import "backend/metal/core/MetalContextManager.hpp"
+#import "backend/metal/core/MetalRenderContext.hpp"
 #import "renderer/interfaces/IRenderGraph.hpp"
 #import "scene/SceneResources.hpp"
+
+#include <cstring>
+
+#import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 // ---------------------------------------------------------------------------
 // MetalRenderer
@@ -120,7 +126,35 @@ void MetalRenderer::render(IRenderContext &ctx)
   if (!m_graph) {
     return;
   }
+
+  auto &metalCtx = MetalRenderContext::get(ctx);
+
+  if (ctx.sceneResources) {
+    m_assets->updateSceneInfo(ctx.sceneResources->sceneInfo);
+  }
+
+  const uint64_t sceneInfoAddress = m_assets->getSceneInfoGpuAddress();
+  const uint64_t resourcesAddress = m_assets->getSceneResourcesGpuAddress();
+
+  std::memcpy(&metalCtx.pushValues.sceneInfoAddress, &sceneInfoAddress,
+              sizeof(sceneInfoAddress));
+  std::memcpy(&metalCtx.pushValues.resourcesAddress, &resourcesAddress,
+              sizeof(resourcesAddress));
+  metalCtx.pushValues.renderParams = m_renderParams;
+  metalCtx.pushValues.renderParams.frameIdx = m_frameIndex;
+  metalCtx.pushValues.rasterParams = m_rasterParams;
+
+  uint32_t width = 0;
+  uint32_t height = 0;
+  if (id<CAMetalDrawable> drawable =
+          (__bridge id<CAMetalDrawable>)metalCtx.getDrawableHandle()) {
+    width = static_cast<uint32_t>(drawable.texture.width);
+    height = static_cast<uint32_t>(drawable.texture.height);
+  }
+  metalCtx.pushValues.screenResolution = {width, height};
+
   m_graph->execute(ctx);
+  m_frameIndex++;
 }
 
 /**********************************************************/
