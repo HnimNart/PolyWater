@@ -15,6 +15,13 @@ struct MetalMeshBuffer {
   bool     is32Bit     = false;
 };
 
+static shaderio::Instance toMetalInstance(const shaderio::Instance &instance)
+{
+  shaderio::Instance metalInstance = instance;
+  metalInstance.transform = glm::transpose(instance.transform);
+  return metalInstance;
+}
+
 struct MetalDeviceAssetsData {
   id<MTLDevice> device;
 
@@ -191,9 +198,15 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 
   // 2. Upload Instance[] array.
   if (!resources.instances.empty()) {
+    std::vector<shaderio::Instance> metalInstances;
+    metalInstances.reserve(resources.instances.size());
+    for (const shaderio::Instance &instance : resources.instances) {
+      metalInstances.push_back(toMetalInstance(instance));
+    }
+
     m_data->instancesGpuBuffer =
-        [device newBufferWithBytes:resources.instances.data()
-                            length:resources.instances.size() *
+        [device newBufferWithBytes:metalInstances.data()
+                            length:metalInstances.size() *
                                    sizeof(shaderio::Instance)
                            options:MTLResourceStorageModeShared];
   }
