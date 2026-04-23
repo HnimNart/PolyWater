@@ -123,8 +123,9 @@ void fetchFragmentResources(uint instanceIndex,
 float3 computeBaseColor(Material material, float2 texCoord) {
     __target_switch {
     case metal: {
-        // The current Metal raster path does not bind the global bindless
-        // texture array, so keep fragment compilation texture-free on Metal.
+        // Temporary limitation: the current Metal raster path does not bind the
+        // global bindless texture array yet, so keep fragment compilation
+        // texture-free on Metal until Metal texture binding is implemented.
         return material.baseColorFactor.xyz;
     }
     default: {
