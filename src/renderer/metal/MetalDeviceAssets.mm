@@ -4,8 +4,6 @@
 
 #import <Metal/Metal.h>
 
-#include <iostream>
-#include <glm/gtx/string_cast.hpp>
 
 #import "backend/metal/core/MetalContextManager.hpp"
 #import "scene/Scene.h"
@@ -22,24 +20,15 @@ struct MetalMeshBuffer {
 };
 
 static shaderio::Instance toMetalInstance(shaderio::Instance instance) {
-    // 1. Define the Y-flip matrix (Vulkan Y-down to Metal Y-up)
-    // glm::mat4 yFlip = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
-
-    // 2. Apply the flip to the existing transform
-    // Multiplying yFlip * transform adjusts the coordinate system
-    // instance.transform = yFlip * instance.transform;
-
-    // 3. Transpose for Metal/HLSL 'mul(vec, mat)' compatibility
-    // This converts the internal layout from Column-Major to Row-Major
-    instance.transform = glm::transpose(instance.transform);
-
-    // 4. Manual correction (per your previous logic)
-    // Note: Since we just transposed, [3][1] now targets the 4th row, 2nd column
-    // instance.transform[3][1] = 0.0f;
-
-    // Optional: Logging for debug
-    std::cout << glm::to_string(instance.transform) << std::endl;
-
+    // The Slang shaders are compiled with -matrix-layout-row-major for both
+    // Vulkan and Metal targets.  With that flag, Slang interprets GPU buffer
+    // bytes as row-major.  GLM stores matrices column-major, so Slang naturally
+    // "sees" the mathematical transpose of every matrix it loads from a buffer.
+    // That implicit transpose is exactly what mul(v, M) needs to compute the
+    // correct column-vector transform (M * v).  No CPU-side transpose is needed
+    // or correct here — adding one causes Slang to see the original matrix
+    // instead of its transpose, which corrupts the w component and produces the
+    // "stretched towards camera" artifact.
     return instance;
 }
 
