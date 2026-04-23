@@ -120,6 +120,25 @@ void fetchFragmentResources(uint instanceIndex,
 // ---------------------------------------------------------------------------
 // Fragment shading helper — keeps the fragment path pointer-free for Metal.
 // ---------------------------------------------------------------------------
+float3 computeBaseColor(Material material, float2 texCoord) {
+    __target_switch {
+    case metal: {
+        // The current Metal raster path does not bind the global bindless
+        // texture array, so keep fragment compilation texture-free on Metal.
+        return material.baseColorFactor.xyz;
+    }
+    default: {
+        float3 albedo = material.baseColorFactor.xyz;
+        if (material.baseColorTextureIndex > 0) {
+            albedo *= textures[material.baseColorTextureIndex]
+                          .Sample(texCoord)
+                          .xyz;
+        }
+        return albedo;
+    }
+    }
+}
+
 float3 computeFragmentColor(SceneInfo sceneInfo,
                             Instance  instance,
                             Material  material,
@@ -139,12 +158,7 @@ float3 computeFragmentColor(SceneInfo sceneInfo,
         float3 N = normalize(stage.worldNormal);
         float3 L = normalize(light.direction);
 
-        float3 albedo = material.baseColorFactor.xyz;
-        if (material.baseColorTextureIndex > 0) {
-            albedo *= textures[material.baseColorTextureIndex]
-                          .Sample(stage.worldTexCoord)
-                          .xyz;
-        }
+        float3 albedo = computeBaseColor(material, stage.worldTexCoord);
 
         float metallic  = material.metallicFactor;
         float roughness = material.roughnessFactor;
