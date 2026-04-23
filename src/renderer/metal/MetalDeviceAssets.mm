@@ -8,6 +8,8 @@
 #import "scene/Scene.h"
 #import "shaders/shared/structs.h"
 
+#include <algorithm>
+
 // Per-mesh Metal GPU resources built from the raw mesh bytes.
 struct MetalMeshBuffer {
   id<MTLBuffer> indexBuffer;
@@ -198,11 +200,9 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 
   // 2. Upload Instance[] array.
   if (!resources.instances.empty()) {
-    std::vector<shaderio::Instance> metalInstances;
-    metalInstances.reserve(resources.instances.size());
-    for (const shaderio::Instance &instance : resources.instances) {
-      metalInstances.push_back(toMetalInstance(instance));
-    }
+    std::vector<shaderio::Instance> metalInstances(resources.instances.size());
+    std::transform(resources.instances.begin(), resources.instances.end(),
+                   metalInstances.begin(), toMetalInstance);
 
     m_data->instancesGpuBuffer =
         [device newBufferWithBytes:metalInstances.data()
