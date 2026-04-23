@@ -5,6 +5,8 @@
 #import <Metal/Metal.h>
 #import <simd/simd.h>
 
+#include <glm/gtx/string_cast.hpp>
+
 #import "backend/metal/core/MetalContextManager.hpp"
 #import "backend/metal/core/MetalRenderContext.hpp"
 #import "renderer/metal/MetalDeviceAssets.hpp"
@@ -166,27 +168,6 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   // the viewport stays black.
   m_assets->useResources((__bridge void *)encoder);
 
-  // Bind scene-wide explicit buffers (constant across all draw calls).
-  // These match the g_metal*Buf declarations in gltf_shared.h.slang:
-  //   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
-  //   buffer(4) = Materials.
-  // Vertex attributes are fetched from the raw mesh data buffers via the GPU
-  // virtual addresses in MeshPrimitive.buffer using the same BufferView layout
-  // as the Vulkan renderer — no separate interleaved vertex buffer at slot 5.
-  if (id<MTLBuffer> sib = (__bridge id<MTLBuffer>)m_assets->getSceneInfoMetalBuffer()) {
-    [encoder setVertexBuffer:sib   offset:0 atIndex:1];
-    [encoder setFragmentBuffer:sib offset:0 atIndex:1];
-  }
-  if (id<MTLBuffer> instb = (__bridge id<MTLBuffer>)m_assets->getInstancesMetalBuffer()) {
-    [encoder setVertexBuffer:instb   offset:0 atIndex:2];
-    [encoder setFragmentBuffer:instb offset:0 atIndex:2];
-  }
-  if (id<MTLBuffer> meshb = (__bridge id<MTLBuffer>)m_assets->getMeshPrimitivesMetalBuffer()) {
-    [encoder setVertexBuffer:meshb offset:0 atIndex:3];
-  }
-  if (id<MTLBuffer> matb = (__bridge id<MTLBuffer>)m_assets->getMaterialsMetalBuffer()) {
-    [encoder setFragmentBuffer:matb offset:0 atIndex:4];
-  }
 
   // One indexed draw call per instance.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());

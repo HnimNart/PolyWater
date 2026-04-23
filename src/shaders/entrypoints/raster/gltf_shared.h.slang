@@ -20,7 +20,7 @@ struct FragmentInput
   float3 worldPos : POSITION;
   float3 worldNormal : NORMAL;
   float2 worldTexCoord : TEXCOORD0;
-  nointerpolation float4 debugColor: COLOR0;
+  linear float4 debugColor: COLOR0;
   nointerpolation uint instanceIndex;
 };
 
@@ -32,27 +32,11 @@ struct PSout
 
 // Define the Payload structure
 #define TASK_WORKGROUP_SIZE 32
-
-
-// Update the payload to hold BOTH the meshlet index and its instance index
 struct MeshTaskPayload {
     uint meshletIndices[TASK_WORKGROUP_SIZE];
     uint instanceIndices[TASK_WORKGROUP_SIZE]; 
 };
 
-// ---------------------------------------------------------------------------
-// Metal-specific explicit buffer bindings (buffer slots 1-4).
-// These are declared unconditionally (Slang does not support __target_switch
-// at module scope for variable declarations).  On Vulkan/SPIRV they are
-// unreferenced and will not appear in the generated descriptor sets.
-// MetalRasterPass::execute() binds them at the corresponding slots:
-//   buffer(1) = SceneInfo, buffer(2) = Instances, buffer(3) = MeshPrimitives,
-//   buffer(4) = Materials.
-// ---------------------------------------------------------------------------
-ConstantBuffer<SceneInfo>       g_metalSceneInfoBuf;   // Metal buffer(1)
-StructuredBuffer<Instance>      g_metalInstancesBuf;   // Metal buffer(2)
-StructuredBuffer<MeshPrimitive> g_metalMeshesBuf;      // Metal buffer(3)
-StructuredBuffer<Material>      g_metalMaterialsBuf;   // Metal buffer(4)
 
 // ---------------------------------------------------------------------------
 // Helper functions that wrap __target_switch so it does not appear directly
@@ -65,20 +49,12 @@ void fetchVertexResources(int instanceIndex,
                           out SceneInfo     sceneInfo,
                           out Instance      instance,
                           out MeshPrimitive meshIo) {
-    __target_switch {
-    case metal: {
-        sceneInfo = g_metalSceneInfoBuf;
-        instance  = g_metalInstancesBuf[instanceIndex];
-        meshIo    = g_metalMeshesBuf[instance.meshIndex];
-    }
-    default: {
         SceneInfo *si = pushConst.sceneInfoAddress;
         sceneInfo = *si;
         SceneResources *sceneResources = pushConst.resourcesAddress;
         instance  = sceneResources.instances[instanceIndex];
         meshIo    = sceneResources.meshes[instance.meshIndex];
-    }
-    }
+    
 }
 
 // Fetch per-vertex attributes for the vertex stage.
@@ -101,20 +77,11 @@ void fetchFragmentResources(uint instanceIndex,
                             out SceneInfo sceneInfo,
                             out Instance  instance,
                             out Material  material) {
-    __target_switch {
-    case metal: {
-        sceneInfo = g_metalSceneInfoBuf;
-        instance  = g_metalInstancesBuf[instanceIndex];
-        material  = g_metalMaterialsBuf[instance.materialIndex];
-    }
-    default: {
         SceneInfo *si = pushConst.sceneInfoAddress;
         sceneInfo = *si;
         SceneResources sceneResources = pushConst.resourcesAddress[0];
         instance  = sceneResources.instances[instanceIndex];
         material  = sceneResources.materials[instance.materialIndex];
-    }
-    }
 }
 
 // ---------------------------------------------------------------------------

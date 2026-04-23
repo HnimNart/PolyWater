@@ -175,11 +175,11 @@ struct Instance {
   float3 translation = float3(0);       // Position in world space
   float4 rotation = float4(0, 0, 0, 1); // Rotation quaternion (x, y, z, w).
   float3 scale = float3(1);             // Scale factor
-  float4x4 transform;     // Cached Local-to-World matrix (T * R * S)
   uint32_t materialIndex; // Index into the materials storage buffer
   uint32_t meshIndex;     // Index into the meshes storage buffer
   MaterialType hit_group; // Shader Binding Table offset (which shaders to run)
   uint32_t pad;
+  float4x4 transform;     // Cached Local-to-World matrix (T * R * S)
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
 
@@ -318,6 +318,8 @@ struct PushConstant {
   uint32_t pad_meshlet;
 
   uint2 screenResolution;
+
+  float4x4 transform;                // Instance index for the current draw call
 };
 
 NAMESPACE_SHADERIO_END()
