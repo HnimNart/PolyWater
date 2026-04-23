@@ -126,6 +126,8 @@ float3 computeBaseColor(Material material, float2 texCoord) {
         // Temporary limitation: the current Metal raster path does not bind the
         // global bindless texture array yet, so keep fragment compilation
         // texture-free on Metal until Metal texture binding is implemented.
+        // Textured materials therefore currently render with baseColorFactor
+        // only on Metal raster.
         return material.baseColorFactor.xyz;
     }
     default: {
