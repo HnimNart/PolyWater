@@ -1,16 +1,19 @@
 #pragma once
 
-#include "renderer/interfaces/IRenderGraph.hpp"
 #include <nvvk/descriptors.hpp>
 #include <vulkan/vulkan_core.h>
 
+#include "backend/vulkan/core/ContextManager.hpp"
+
+#include "renderer/interfaces/IRenderGraph.hpp"
+
 class DenoisePass : public IRenderPass {
 public:
-  DenoisePass() = default;
+  explicit DenoisePass(VulkanContextManager *contextManager);
   ~DenoisePass() override = default;
 
-  void init(VulkanContextManager *contextManager) override;
-  void deinit(VulkanContextManager *contextManager) override;
+  void init() override;
+  void deinit() override;
 
   // Declares dependencies for the RenderGraph
   void setup(PassBuilder &builder) override;

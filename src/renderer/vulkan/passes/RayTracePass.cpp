@@ -18,25 +18,26 @@
 #include "renderer/interfaces/IRenderer.hpp"
 
 /**********************************************************/
-RayTracePass::RayTracePass(const nvvk::DescriptorPack &descPack,
+RayTracePass::RayTracePass(VulkanContextManager *contextManager,
+                           const nvvk::DescriptorPack &descPack,
                            ShaderManager *shaderManager,
                            AccelerationStructures *accel)
-    : m_sharedDescPack(descPack), m_accel(accel)
+    : m_context_manager(contextManager), m_sharedDescPack(descPack),
+      m_accel(accel)
 /**********************************************************/
 {
   m_shaderManager = shaderManager;
 }
 
 /**********************************************************/
-void RayTracePass::init(VulkanContextManager *contextManager)
+void RayTracePass::init()
 /**********************************************************/
 {
-  m_context_manager = contextManager;
   createPipeline();
 }
 
 /**********************************************************/
-void RayTracePass::deinit(VulkanContextManager * /* coreManager */)
+void RayTracePass::deinit()
 /**********************************************************/
 {
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,

@@ -22,19 +22,18 @@
 #include "_autogen/gltf_task.slang.h"
 
 /**********************************************************/
-MeshletPass::MeshletPass(const nvvk::DescriptorPack &descPack,
+MeshletPass::MeshletPass(VulkanContextManager *coreManager,
+                         const nvvk::DescriptorPack &descPack,
                          const nvvk::Image *hizTexture)
-    : m_descPack(descPack), m_hiZTexture(hizTexture)
+    : m_context_manager(coreManager), m_descPack(descPack),
+      m_hiZTexture(hizTexture)
 /**********************************************************/
 {}
 
 /**********************************************************/
-void MeshletPass::init(VulkanContextManager *contextManager)
+void MeshletPass::init()
 /**********************************************************/
-{
-  m_context_manager = contextManager;
-
-  nvvk::DescriptorBindings passBindings;
+{  nvvk::DescriptorBindings passBindings;
   passBindings.addBinding({.binding = shaderio::BindRaster::eHiZTexture,
                            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                            .descriptorCount = 1,
@@ -72,13 +71,15 @@ void MeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator &allocator)
 }
 
 /**********************************************************/
-void MeshletPass::deinit(VulkanContextManager *coreManager)
+void MeshletPass::deinit()
 /**********************************************************/
 {
-  vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
+                          nullptr);
   clearShaders();
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-    coreManager->getAllocator().destroyBuffer(m_globalMeshletRefsBuffers[i]);
+    m_context_manager->getAllocator().destroyBuffer(
+        m_globalMeshletRefsBuffers[i]);
   }
 
   // Clean up the new descriptor pack

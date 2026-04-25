@@ -30,12 +30,18 @@
 #include <sstream>
 #include <string>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <debugapi.h>
-#elif defined(__unix__)
-#include <signal.h>
+#include <io.h>
+#include <process.h>
+#define ISATTY _isatty
+#define FILENO _fileno
+#elif defined(__APPLE__) || defined(__linux__) || defined(__unix__)
+#include <unistd.h>
+#define ISATTY isatty
+#define FILENO fileno
 #endif
 
 #include <fmt/format.h>
@@ -322,7 +328,7 @@ void core::Logger::outputToConsoles(LogLevel level,
 
 #else
   const bool supportsColor =
-      isatty(fileno(level == LogLevel::eERROR ? stderr : stdout));
+      ISATTY(FILENO(level == LogLevel::eERROR ? stderr : stdout));
   if (level == LogLevel::eERROR && supportsColor) {
     *stdConsole << "\033[1;31m" << message << "\033[0m";
   } else if (level == LogLevel::eWARNING && supportsColor) {

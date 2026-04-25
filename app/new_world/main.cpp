@@ -73,6 +73,16 @@ int main(int argc, char **argv) {
       renderElement->getCameraManipulator());
 
   // =========================================================================
+  // Register Elements with the Application
+  // =========================================================================
+  application.addElement(windowTitle);
+  application.addElement(windowMenu);
+  application.addElement(logger);
+  application.addElement(renderElement);
+  application.addElement(elemCamera);
+  application.addElement(geometryPicker);
+
+  // =========================================================================
   // Connect Elements & Set up Callbacks (Wiring)
   // =========================================================================
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
@@ -98,16 +108,6 @@ int main(int argc, char **argv) {
       });
   core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
   core::Logger::getInstance().setFileFlush(true);
-
-  // =========================================================================
-  // Register Elements with the Application
-  // =========================================================================
-  application.addElement(windowTitle);
-  application.addElement(windowMenu);
-  application.addElement(logger);
-  application.addElement(renderElement);
-  application.addElement(elemCamera);
-  application.addElement(geometryPicker);
 
 #ifdef PROFILE_APP
   core::ProfilerManager *profilerManager = application.getProfiler();

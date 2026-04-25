@@ -25,10 +25,11 @@ PipelineManager::PipelineManager()
     auto graph = std::make_unique<RenderGraph>("Raster");
     auto &descriptorPack = settings.assetManager->getDesriptorPack();
 
-    graph->addPass(std::make_unique<SkyPass>());
+    graph->addPass(std::make_unique<SkyPass>(settings.context));
+    graph->addPass(std::make_unique<RasterPass>(settings.context, descriptorPack,
+                                                settings.assetManager));
     graph->addPass(
-        std::make_unique<RasterPass>(descriptorPack, settings.assetManager));
-    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Linear));
+        std::make_unique<ToneMapPass>(settings.context, RenderOutput::Linear));
 
     if (settings.swapchainManager) {
       graph->addPass(
@@ -44,11 +45,13 @@ PipelineManager::PipelineManager()
     auto graph = std::make_unique<RenderGraph>("Meshlet");
     auto &descriptorPack = settings.assetManager->getDesriptorPack();
 
-    graph->addPass(std::make_unique<SkyPass>());
+    graph->addPass(std::make_unique<SkyPass>(settings.context));
+    graph->addPass(std::make_unique<MeshletPass>(settings.context, descriptorPack,
+                                                 settings.hiZTexture));
+    graph->addPass(std::make_unique<MipReductionPass>(settings.context,
+                                                      settings.hiZTexture));
     graph->addPass(
-        std::make_unique<MeshletPass>(descriptorPack, settings.hiZTexture));
-    graph->addPass(std::make_unique<MipReductionPass>(settings.hiZTexture));
-    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Linear));
+        std::make_unique<ToneMapPass>(settings.context, RenderOutput::Linear));
 
     if (settings.swapchainManager) {
       graph->addPass(
@@ -63,13 +66,15 @@ PipelineManager::PipelineManager()
 
     // 1. Trace the rays (outputs noisy HDR image to RenderOutput::Linear)
     graph->addPass(std::make_unique<RayTracePass>(
-        descriptorPack, settings.shaderManager, settings.accel));
+        settings.context, descriptorPack, settings.shaderManager,
+        settings.accel));
 
     // 2. Denoise the image
-    graph->addPass(std::make_unique<DenoisePass>());
+    graph->addPass(std::make_unique<DenoisePass>(settings.context));
 
     // 3. Tone Mapping
-    graph->addPass(std::make_unique<ToneMapPass>(RenderOutput::Denoised));
+    graph->addPass(std::make_unique<ToneMapPass>(settings.context,
+                                                 RenderOutput::Denoised));
 
     // 4. UI Layer
     if (settings.swapchainManager) {

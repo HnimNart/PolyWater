@@ -155,9 +155,8 @@ public:
   }
 
   const glm::mat4 getViewProjection() const {
-    auto projMatrix = getPerspectiveMatrix();
-    projMatrix[1][1] *= -1; // Flip the Y axis
-    return projMatrix * getViewMatrix();
+    // getPerspectiveMatrix() already applies the Vulkan Y-flip once.
+    return getPerspectiveMatrix() * getViewMatrix();
   }
 
   // Set the position, interest from the matrix.

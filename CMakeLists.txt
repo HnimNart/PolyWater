@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.22...3.31)
-project(my_render VERSION 1.0 LANGUAGES C CXX)
+
+if(APPLE)
+    set(MACOS_LANGS OBJC OBJCXX)
+endif()
+project(my_render VERSION 1.0 LANGUAGES C CXX ${MACOS_LANGS})
 
 # --- 1. Global Compiler Settings ---
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

@@ -50,5 +50,6 @@ target_link_libraries(${LIB_NAME}
         scene_lib
         vk_backend
         imgui
+        glm
 )
 

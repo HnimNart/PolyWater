@@ -23,7 +23,7 @@
 #   ...
 # )
 
-set(Slang_VERSION "2025.13.1" CACHE STRING "Slang version. If you change this and ran CMake before, you will need to delete the other Slang_* cache variables")
+set(Slang_VERSION "2026.5.2" CACHE STRING "Slang version. If you change this and ran CMake before, you will need to delete the other Slang_* cache variables")
 
 if(NOT Slang_ROOT)
   string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ARCH_PROC)
@@ -45,8 +45,11 @@ if(NOT Slang_ROOT)
       message(FATAL_ERROR "Unhandled architecture '${ARCH_PROC}'")
   endif()
 
+  # --- UPDATED: Platform OS Detection ---
   if(WIN32)
       set(SLANG_OS "windows")
+  elseif(APPLE)
+      set(SLANG_OS "macos")
   else()
       set(SLANG_OS "linux")
   endif()
@@ -67,13 +70,21 @@ if(NOT Slang_ROOT)
     LOCATION Slang_SOURCE_DIR
   )
 
-  # On Linux, the Cloudfront download of Slang might not have the executable bit
+  # On Linux and macOS, the download of Slang might not have the executable bit
   # set on its executables and DLLs. This causes find_program to fail. To fix this,
   # call chmod a+rwx on those directories:
   if(UNIX)
     file(CHMOD_RECURSE ${Slang_SOURCE_DIR}/bin ${Slang_SOURCE_DIR}/lib
          FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_WRITE WORLD_EXECUTE
     )
+    # --- UPDATED: macOS Gatekeeper Bypass ---
+    if(APPLE)
+      # Remove the quarantine attribute so macOS allows the binaries to execute
+      execute_process(
+        COMMAND xattr -r -d com.apple.quarantine ${Slang_SOURCE_DIR}/bin ${Slang_SOURCE_DIR}/lib 
+        ERROR_QUIET
+      )
+    endif()
   endif()
 
   set(Slang_ROOT ${Slang_SOURCE_DIR} CACHE PATH "Path to the Slang SDK root directory")
@@ -119,8 +130,8 @@ if(WIN32)
     NO_DEFAULT_PATH
     DOC "Slang shared library (.dll)"
   )
-else() # Unix; uses .so
-  set(Slang_DLL ${Slang_LIBRARY} CACHE PATH "Slang shared library (.so)")
+else() # Unix/macOS; uses .so or .dylib
+  set(Slang_DLL ${Slang_LIBRARY} CACHE PATH "Slang shared library")
 endif()
 mark_as_advanced(Slang_DLL)
 
@@ -138,6 +149,8 @@ if(NOT TARGET Slang)
   )
   if(WIN32)
     set_property(TARGET Slang PROPERTY IMPORTED_IMPLIB ${Slang_LIBRARY})
+  elseif(APPLE)
+    # macOS doesn't need the rpath modifications that Linux does
   else()
     # Vulkan SDK includes 'libslang.so' and sets LD_LIBRARY_PATH, which conflict
     # with the downloaded slang. This uses the deprecated RPATH instead of
@@ -195,7 +208,6 @@ if(NOT TARGET SlangGlslang)
     set_property(TARGET SlangGlslang PROPERTY IMPORTED_IMPLIB ${Slang_LIBRARY})
   endif()
 endif()
-
 
 message(STATUS "--> using SLANGC under: ${Slang_SLANGC_EXECUTABLE}")
 

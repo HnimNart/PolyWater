@@ -10,9 +10,9 @@
 
 class MipReductionPass : public IRenderPass {
 public:
-  MipReductionPass(nvvk::Image *texture);
-  void init(VulkanContextManager *contextManager) override;
-  void deinit(VulkanContextManager *contextManager) override;
+  MipReductionPass(VulkanContextManager *contextManager, nvvk::Image *texture);
+  void init() override;
+  void deinit() override;
   void setup(PassBuilder &builder) override;
   void execute(const IRenderContext &ctx) override;
 

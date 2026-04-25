@@ -37,6 +37,7 @@ if(NOT TARGET glfw)
   set_target_properties(glfw update_mappings PROPERTIES FOLDER "ThirdParty/GLFW")
 endif()
 
+
 # volk
 find_package(VulkanExtra REQUIRED)
 if(NOT TARGET volk)
@@ -47,28 +48,34 @@ if(NOT TARGET volk)
     set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
     message(STATUS "Using fallback volk version")
   endif()
+  
   add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
   add_library(volk::volk ALIAS volk)
   target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
-  # We set these compile options on volk so that it sees platform-specific
-  # extension macros in vulkan.h.
+
+  # --- Platform Specific Configuration ---
   if(WIN32)
     target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-  else()
+  elseif(APPLE)
+    # Apple uses Metal surfaces for Vulkan (via MoltenVK)
+    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
     target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-    target_compile_definitions(
-      volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR
-    )
+  else()
+    # Assume Linux/BSD (X11/XCB)
+    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
   endif()
+
   # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
   # This is necessary because we are using volk to load Vulkan functions
   target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
 
   set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 endif()
+
+
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
-
 if(NOT TARGET imgui)
     set(IMGUI_FILES
         "${IMGUI_DIR}/imgui.cpp"
@@ -114,6 +121,22 @@ if(NOT TARGET imgui)
     target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
 
     set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
+endif()
+
+# imgui Metal backend (Apple platforms only)
+if(APPLE AND TARGET imgui)
+    target_sources(imgui PRIVATE
+        "${IMGUI_DIR}/backends/imgui_impl_metal.h"
+        "${IMGUI_DIR}/backends/imgui_impl_metal.mm"
+    )
+    set_source_files_properties(
+        "${IMGUI_DIR}/backends/imgui_impl_metal.mm"
+        PROPERTIES LANGUAGE OBJCXX
+    )
+    target_link_libraries(imgui PUBLIC
+        "-framework Metal"
+        "-framework QuartzCore"
+    )
 endif()
 
 # implot
