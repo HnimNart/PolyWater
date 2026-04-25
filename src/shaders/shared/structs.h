@@ -77,8 +77,6 @@ struct ShadowPayload {
   bool isHit;
 };
 
-
-
 struct BoundingBox {
   float3 min;
   float3 max;
@@ -172,14 +170,26 @@ struct MeshPrimitive {
 CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
 struct Instance {
-  float3 translation = float3(0);       // Position in world space
-  float4 rotation = float4(0, 0, 0, 1); // Rotation quaternion (x, y, z, w).
-  float3 scale = float3(1);             // Scale factor
-  uint32_t materialIndex; // Index into the materials storage buffer
-  uint32_t meshIndex;     // Index into the meshes storage buffer
-  MaterialType hit_group; // Shader Binding Table offset (which shaders to run)
-  uint32_t pad;
-  float4x4 transform;     // Cached Local-to-World matrix (T * R * S)
+  // Block 1 (16 bytes)
+  float3 translation; // 12 bytes
+  float pad0;         // 4 bytes -> Aligns next field to 16
+
+  // Block 2 (16 bytes)
+  float4 rotation; // 16 bytes (Already aligned)
+
+  // Block 3 (16 bytes)
+  float3 scale;           // 12 bytes
+  uint32_t materialIndex; // 4 bytes -> Perfectly fills the 16-byte block
+
+  // Block 4 (16 bytes)
+  uint32_t meshIndex;     // 4 bytes
+  MaterialType hit_group; // 4 bytes (Cast MaterialType to uint for consistency)
+  uint32_t pad1;          // 4 bytes
+  uint32_t pad2;          // 4 bytes -> Aligns the Matrix to 16
+
+  // Blocks 5-8 (64 bytes)
+  // Explicitly set layout to ensure byte-consistency across APIs
+  float4x4 transform;
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
 
@@ -263,8 +273,8 @@ struct RenderParams {
 
   uint denoise = 0; // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
   // --- Denoiser Settings ---
-  float denoiseRadius = 2.0f;        // Cast to int in shader
-  float denoiseSpatialSigma = 2.0f;  
+  float denoiseRadius = 2.0f; // Cast to int in shader
+  float denoiseSpatialSigma = 2.0f;
   float denoiseLuminanceSigma = 0.5f;
 };
 
@@ -286,7 +296,7 @@ struct SceneInfo {
   float4x4 projInvMatrix;  // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;  // Inverse view matrix for the scene
   float3 cameraPosition;   // Camera position in world space
-  float nearZ;   
+  float nearZ;
   float4 frustumPlanes[6]; // Frustum planes
 
   // Light info
@@ -316,10 +326,7 @@ struct PushConstant {
       *globalMeshletRefsAddress; // 64-bit GPU pointer to this frame's array
   uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
   uint32_t pad_meshlet;
-
   uint2 screenResolution;
-
-  float4x4 transform;                // Instance index for the current draw call
 };
 
 NAMESPACE_SHADERIO_END()

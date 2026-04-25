@@ -182,10 +182,15 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
+
     // Start from frame-global push constants and patch only draw-local state.
     shaderio::PushConstant pc = metalCtx.pushValues;
+    static int xx = 0;
+    if (!xx) {
+      printf("%p - %p\n", pc.sceneInfoAddress, pc.resourcesAddress);
+      xx++;
+    }
     pc.instanceIndex = static_cast<int>(i);
-
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
     [encoder setVertexBytes:&pc   length:sizeof(pc) atIndex:0];
     [encoder setFragmentBytes:&pc length:sizeof(pc) atIndex:0];

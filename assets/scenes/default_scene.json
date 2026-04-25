@@ -46,9 +46,6 @@
   },
   "assets": {
     "meshes": {
-      "teapot": "models/teapot.gltf",
-      "plane": "models/plane.gltf",
-      "sphere": "models/sphere.gltf",
       "cube": "models/cube.obj"
     },
     "textures": {

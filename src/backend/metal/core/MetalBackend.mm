@@ -244,6 +244,7 @@ void MetalBackend::present()
     [m_data->currentCommandBuffer
         presentDrawable:m_data->currentDrawable];
     [m_data->currentCommandBuffer commit];
+    [m_data->currentCommandBuffer waitUntilCompleted];
     m_data->currentCommandBuffer = nil;
     m_data->currentDrawable      = nil;
   }

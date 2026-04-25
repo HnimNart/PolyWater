@@ -11,6 +11,22 @@
 
 #include <algorithm>
 #include <iterator>
+#include <iostream>
+
+#include <glm/gtx/string_cast.hpp>
+
+
+namespace {
+  // Simple FNV-1a hash implementation
+uint64_t hash_data(std::span<const uint8_t> data) {
+    uint64_t hash = 0; // FNV offset basis
+    for (uint8_t byte : data) {
+        hash ^= byte;
+        hash *= 0x100000001b3;          // FNV prime
+    }
+    return hash;
+}
+}
 
 // Per-mesh Metal GPU resources built from the raw mesh bytes.
 struct MetalMeshBuffer {
@@ -20,15 +36,16 @@ struct MetalMeshBuffer {
 };
 
 static shaderio::Instance toMetalInstance(shaderio::Instance instance) {
-    // The Slang shaders are compiled with -matrix-layout-row-major for both
-    // Vulkan and Metal targets.  With that flag, Slang interprets GPU buffer
-    // bytes as row-major.  GLM stores matrices column-major, so Slang naturally
-    // "sees" the mathematical transpose of every matrix it loads from a buffer.
-    // That implicit transpose is exactly what mul(v, M) needs to compute the
-    // correct column-vector transform (M * v).  No CPU-side transpose is needed
-    // or correct here — adding one causes Slang to see the original matrix
-    // instead of its transpose, which corrupts the w component and produces the
-    // "stretched towards camera" artifact.
+  // The Slang shaders are compiled with -matrix-layout-row-major for both
+  // Vulkan and Metal targets.  With that flag, Slang interprets GPU buffer
+  // bytes as row-major.  GLM stores matrices column-major, so Slang naturally
+  // "sees" the mathematical transpose of every matrix it loads from a buffer.
+  // That implicit transpose is exactly what mul(v, M) needs to compute the
+  // correct column-vector transform (M * v).  No CPU-side transpose is needed
+  // or correct here — adding one causes Slang to see the original matrix
+  // instead of its transpose, which corrupts the w component and produces the
+  // "stretched towards camera" artifact.
+  std::cout << glm::to_string(instance.transform) << std::endl;
     return instance;
 }
 
@@ -62,7 +79,7 @@ struct MetalDeviceAssetsData {
   // Single shaderio::SceneInfo struct updated per frame via updateSceneInfo().
   id<MTLBuffer> sceneInfoGpuBuffer;
 
-  IDeviceAssets::BufferID nextId = 1;
+  IDeviceAssets::BufferID nextId = 0;
 };
 
 // ---------------------------------------------------------------------------
@@ -107,13 +124,27 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
     return {};
   }
 
+
+// --- Debug Logging ---
+  uint64_t dataHash = hash_data(data);
+  std::cout << "[Upload] Size: " << data.size() 
+            << " bytes | Hash: 0x" << std::hex << dataHash << std::dec << std::endl;
+
+  // Optional: Print first 16 bytes for a "sanity check"
+  if (!data.empty()) {
+      std::cout << "  Head: ";
+      for(size_t i = 0; i < std::min<size_t>(data.size(), 1 << 31); ++i)
+          std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)data[i] << " ";
+      std::cout << std::dec << "..." << std::endl;
+  }
+
   id<MTLBuffer> buf =
       [m_data->device newBufferWithBytes:data.data()
                                   length:data.size()
                                  options:MTLResourceStorageModeShared];
 
   IDeviceAssets::BufferID id = m_data->nextId++;
-  m_data->rawBuffers[id]     = buf;
+  m_data->rawBuffers.insert_or_assign(id, buf);
 
   // The GPU address is resolved later in uploadSceneResoures() via
   // MTLBuffer.gpuAddress and stored in MeshPrimitive.buffer.
@@ -215,11 +246,13 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
     std::transform(resources.instances.begin(), resources.instances.end(),
                    std::back_inserter(metalInstances), toMetalInstance);
 
-    m_data->instancesGpuBuffer =
-        [device newBufferWithBytes:metalInstances.data()
-                            length:metalInstances.size() *
-                                   sizeof(shaderio::Instance)
-                           options:MTLResourceStorageModeShared];
+    printf("%d %d\n", sizeof(shaderio::Instance), metalInstances.size());
+    m_data->instancesGpuBuffer = [device
+        newBufferWithBytes:metalInstances.data()
+                    length:metalInstances.size() * sizeof(shaderio::Instance)
+                   options:MTLResourceStorageModeShared];
+
+    printf("%p\n", m_data->instancesGpuBuffer.gpuAddress);
   }
 
   // 3. Upload Material[] array.
@@ -251,10 +284,18 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
                           length:sizeof(shaderio::SceneResources)
                          options:MTLResourceStorageModeShared];
 
+
+  printf("Resources %p\n", m_data->sceneResourcesGpuBuffer.gpuAddress);
+  printf("%p %ld\n", sr.instances, sizeof(uint8_t*));
+
   // 5. Allocate the per-frame SceneInfo buffer (content updated each frame).
   m_data->sceneInfoGpuBuffer =
       [device newBufferWithLength:sizeof(shaderio::SceneInfo)
                           options:MTLResourceStorageModeShared];
+
+  printf("Scene ifno Resources %p\n", m_data->sceneInfoGpuBuffer.gpuAddress);
+
+
 }
 
 /**********************************************************/
