@@ -32,16 +32,8 @@
   float3 normal;
   float2 texCoord;
   fetchVertexAttributes(vertexIndex, meshIo, posMesh, normal, texCoord);
-  float4x4 identity = float4x4(1.0);
-// Explicit construction
-float4x4 myMatrix = float4x4(
-    0.7, 0.0, 0.0, 0.0, // Row 0
-    0.0, 0.7, 0.0, 0.0, // Row 1
-    0.0, 0.0, 0.7, 0.0, // Row 2
-    0.0, 0.4, 0.0, 1.0  // Row 3 (Translation/W-axis)
-);
-  float4 pos = mul(float4(posMesh, 1.0), (myMatrix));
-  // float4 pos = mul(float4(posMesh, 1.0), (instance.transform));
+
+  float4 pos = mul(float4(posMesh, 1.0), instance.transform);
 
   FragmentInput output;
   output.debugColor = colorFromIndex(vertexIndex);

@@ -171,24 +171,28 @@ CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
 struct Instance {
   // Block 1 (16 bytes)
-  float3 translation; // 12 bytes
-  float pad0;         // 4 bytes -> Aligns next field to 16
+  float3 translation = float3(0); // 12 bytes: world-space position
+  float pad0 = 0;                 // 4 bytes -> Aligns next field to 16-byte boundary
+                                  // (Metal device address space requires float4 to be
+                                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
 
   // Block 2 (16 bytes)
-  float4 rotation; // 16 bytes (Already aligned)
+  float4 rotation = float4(0, 0, 0, 1); // 16 bytes: rotation quaternion (x, y, z, w)
 
   // Block 3 (16 bytes)
-  float3 scale;           // 12 bytes
-  uint32_t materialIndex; // 4 bytes -> Perfectly fills the 16-byte block
+  float3 scale = float3(1);       // 12 bytes: scale factor
+  uint32_t materialIndex = 0;     // 4 bytes -> Perfectly fills the 16-byte block
 
   // Block 4 (16 bytes)
-  uint32_t meshIndex;     // 4 bytes
-  MaterialType hit_group; // 4 bytes (Cast MaterialType to uint for consistency)
-  uint32_t pad1;          // 4 bytes
-  uint32_t pad2;          // 4 bytes -> Aligns the Matrix to 16
+  uint32_t meshIndex = 0;         // 4 bytes
+  MaterialType hit_group = MaterialType::eDiffuse; // 2 bytes
+  uint32_t pad1 = 0;              // 4 bytes (note: 2 bytes implicit padding precede this)
+  uint32_t pad2 = 0;              // 4 bytes -> Aligns the Matrix to 16-byte boundary
+                                  // (Metal device address space requires float4x4 to be
+                                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
 
   // Blocks 5-8 (64 bytes)
-  // Explicitly set layout to ensure byte-consistency across APIs
+  // Explicitly designed layout to ensure byte-consistency across APIs
   float4x4 transform;
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
