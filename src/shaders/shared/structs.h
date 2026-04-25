@@ -20,23 +20,35 @@
 #pragma once
 
 #ifdef __cplusplus
-#define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
+    // Use 16-byte alignment check for Metal/macOS compatibility
+    #define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 16 == 0, "Struct must be 16-byte aligned for Metal");
+    
+    // In C++, these macros are just placeholders or simple casts
+    #define BUFFER_REF_DECL(_type) 
+    #define BUFFER_REF(_type, _addr) ((_type*)(_addr))
 #elif defined(__SLANG__)
-#define CHECK_STRUCT_ALIGNMENT(_s)
+    // Slang natively supports pointers! 
+    // We define these to maintain compatibility with your existing code logic.
+    #define CHECK_STRUCT_ALIGNMENT(_s) 
+    
+    // In Slang, we don't need a special decl for buffer references.
+    #define BUFFER_REF_DECL(_type) 
+    
+    // We treat the address as a pointer to an unsized array of that type.
+    #define BUFFER_REF(_type, _addr) ((_type*)(_addr))
+#elif defined(__METAL_VERSION__)
+    // If you ever pass this header to a raw Metal compiler
+    #define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 16 == 0, "Alignment Error");
+    #define BUFFER_REF_DECL(_type) 
+    #define BUFFER_REF(_type, _addr) ((device _type*)(_addr))
 #else
-#define CHECK_STRUCT_ALIGNMENT(_s)
-
-// This is a utility to define a buffer reference in GLSL.
-// Usage: declare the buffer reference type with: BUFFER_REF_DECL(type), where
-// type is the type of the buffer (vec3, float, Material). Then use the buffer
-// reference in the shader with: BUFFER_REF(type, address), where address is the
-// address of the buffer in the shader.
-#define BUFFER_REF_DECL(_type)                                                 \
-  layout(buffer_reference, scalar) buffer _type##Buffer { _type o[]; };
-
-#define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
-
+    // Fallback for standard GLSL if needed
+    #define CHECK_STRUCT_ALIGNMENT(_s)
+    #define BUFFER_REF_DECL(_type) \
+        layout(buffer_reference, scalar) buffer _type##Buffer { _type o[]; };
+    #define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
 #endif
+
 
 #include "slang_types.h"
 
@@ -197,6 +209,8 @@ struct Instance {
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
 
+
+
 struct Material {
   // --- 16-byte aligned (float4) ---
   float4 baseColorFactor; // Base color factor (RGBA)
@@ -319,18 +333,22 @@ struct SceneInfo {
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
-  int instanceIndex;                // Instance index for the current draw call
-  SceneInfo *sceneInfoAddress;      // Address of the scene information buffer
-  SceneResources *resourcesAddress; //
-  RenderParams renderParams;
-  RasterParams rasterParams;
+    SceneInfo* sceneInfoAddress;       // 8
+    SceneResources* resourcesAddress;      // 8 (Total 16)
 
-  // --- NEW: Global Meshlet Dispatch Data ---
-  GlobalMeshletRef
-      *globalMeshletRefsAddress; // 64-bit GPU pointer to this frame's array
-  uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
-  uint32_t pad_meshlet;
-  uint2 screenResolution;
+    GlobalMeshletRef* globalMeshletRefsAddress; // 8
+    int              instanceIndex;            // 4
+    uint32_t         totalSceneMeshlets;       // 4 (Total 32)
+
+    // Ensure RenderParams + RasterParams combined are a multiple of 16!
+    RenderParams     renderParams; 
+    RasterParams     rasterParams; 
+
+    uint2            screenResolution;         // 8
+    uint32_t         pad_a, pad_b;             // 8 (Total 16)
+
+    float4x4         transform;                // 64 (Total 160)
 };
+CHECK_STRUCT_ALIGNMENT(PushConstant)
 
 NAMESPACE_SHADERIO_END()

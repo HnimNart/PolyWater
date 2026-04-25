@@ -15,17 +15,17 @@
 // ${CMAKE_BINARY_DIR}/_autogen/ which is on the compiler include path).
 // Each header defines a const char[] variable named after the file with '.'
 // replaced by '_', e.g. gltf_raster_slang / gltf_fragment_slang.
-#include "gltf_raster.slang.h"
 #include "gltf_fragment.slang.h"
+#include "gltf_raster.slang.h"
 
 // ---------------------------------------------------------------------------
 // Internal pass state (ObjC objects kept behind an opaque pointer)
 // ---------------------------------------------------------------------------
 struct MetalRasterPassData {
-  id<MTLDevice>              device;
+  id<MTLDevice> device;
   id<MTLRenderPipelineState> pipelineState;
-  id<MTLDepthStencilState>   depthStencilState;
-  bool                       ready = false;
+  id<MTLDepthStencilState> depthStencilState;
+  bool ready = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ struct MetalRasterPassData {
 
 /**********************************************************/
 MetalRasterPass::MetalRasterPass(MetalContextManager *ctx,
-                                 MetalDeviceAssets   *assets)
+                                 MetalDeviceAssets *assets)
     : m_ctx(ctx), m_assets(assets),
       m_data(std::make_unique<MetalRasterPassData>())
 /**********************************************************/
@@ -59,9 +59,9 @@ void MetalRasterPass::init()
 void MetalRasterPass::deinit()
 /**********************************************************/
 {
-  m_data->pipelineState    = nil;
+  m_data->pipelineState = nil;
   m_data->depthStencilState = nil;
-  m_data->ready            = false;
+  m_data->ready = false;
 }
 
 /**********************************************************/
@@ -114,13 +114,13 @@ void MetalRasterPass::createPipeline()
   // The Slang vertex shader fetches all vertex data from GPU-virtual-address
   // pointers inside PushConstant; no stage_in vertex descriptor is needed.
   MTLRenderPipelineDescriptor *pd = [MTLRenderPipelineDescriptor new];
-  pd.vertexFunction               = vertFn;
-  pd.fragmentFunction             = fragFn;
+  pd.vertexFunction = vertFn;
+  pd.fragmentFunction = fragFn;
   pd.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-  pd.depthAttachmentPixelFormat   = MTLPixelFormatDepth32Float;
+  pd.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
-  m_data->pipelineState = [device newRenderPipelineStateWithDescriptor:pd
-                                                                 error:&error];
+  m_data->pipelineState =
+      [device newRenderPipelineStateWithDescriptor:pd error:&error];
   if (!m_data->pipelineState) {
     NSLog(@"[MetalRasterPass] Pipeline error: %@", error.localizedDescription);
     return;
@@ -128,8 +128,8 @@ void MetalRasterPass::createPipeline()
 
   // --- Depth-stencil state ---
   MTLDepthStencilDescriptor *dd = [MTLDepthStencilDescriptor new];
-  dd.depthCompareFunction  = MTLCompareFunctionLess;
-  dd.depthWriteEnabled     = YES;
+  dd.depthCompareFunction = MTLCompareFunctionLess;
+  dd.depthWriteEnabled = YES;
   m_data->depthStencilState = [device newDepthStencilStateWithDescriptor:dd];
 
   m_data->ready = true;
@@ -149,23 +149,23 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   }
 
   const MetalRenderContext &metalCtx = MetalRenderContext::get(ctx);
-  id<MTLRenderCommandEncoder> encoder = (__bridge id<MTLRenderCommandEncoder>)
-      metalCtx.getRenderCommandEncoderHandle();
+  id<MTLRenderCommandEncoder> encoder =
+      (__bridge id<MTLRenderCommandEncoder>)
+          metalCtx.getRenderCommandEncoderHandle();
   if (!encoder) {
     return;
   }
 
   [encoder setRenderPipelineState:m_data->pipelineState];
-  [encoder setDepthStencilState:m_data->depthStencilState];
-  [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  [encoder setCullMode:MTLCullModeBack];
+  // [encoder setDepthStencilState:m_data->depthStencilState];
+  // [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  // [encoder setCullMode:MTLCullModeBack];
 
   // Make every GPU-address-chained buffer resident before any draw call.
   // Without this Metal's hazard tracker doesn't know the shader will access
   // these buffers through pointer indirection, so the GPU reads zeros and
   // the viewport stays black.
   m_assets->useResources((__bridge void *)encoder);
-
 
   // One indexed draw call per instance.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
@@ -180,17 +180,22 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
 
-
     // Start from frame-global push constants and patch only draw-local state.
     shaderio::PushConstant pc = metalCtx.pushValues;
+    printf("%p %p\n", pc.resourcesAddress, pc.sceneInfoAddress);
+    glm::mat4 myMatrix =
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4f, 0.0f));
+    myMatrix = glm::scale(myMatrix, glm::vec3(0.7f));
+    pc.transform = myMatrix;
+
     pc.instanceIndex = static_cast<int>(i);
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
-    [encoder setVertexBytes:&pc   length:sizeof(pc) atIndex:0];
+    [encoder setVertexBytes:&pc length:sizeof(pc) atIndex:0];
     [encoder setFragmentBytes:&pc length:sizeof(pc) atIndex:0];
 
     const MTLIndexType indexType = m_assets->is32BitIndex(meshIdx)
-        ? MTLIndexTypeUInt32
-        : MTLIndexTypeUInt16;
+                                       ? MTLIndexTypeUInt32
+                                       : MTLIndexTypeUInt16;
 
     [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                         indexCount:indexCount

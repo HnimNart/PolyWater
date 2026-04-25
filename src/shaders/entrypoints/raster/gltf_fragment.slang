@@ -3,7 +3,8 @@
 #include "gltf_shared.h.slang"
 #include "shared/structs.h"
 
-[shader("pixel")] PSout fragmentMain(FragmentInput stage) {
+
+[shader("fragment")] PSout fragmentMain(FragmentInput stage) {
   SceneInfo sceneInfo;
   Instance  instance;
   Material  material;

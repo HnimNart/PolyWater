@@ -18,30 +18,60 @@
  */
 
 #include "gltf_shared.h.slang"
-
-// Vertex shader
 [shader("vertex")] FragmentInput vertexMain(uint vertexIndex : SV_VertexID) {
-    int instanceIndex = pushConst.instanceIndex;
+  int instanceIndex = 0;
 
-  SceneInfo sceneInfo;
-  Instance instance;
-  MeshPrimitive meshIo;
-  fetchVertexResources(instanceIndex, sceneInfo, instance, meshIo);
+  // 1. Get the raw address value for comparison
+  // We cast the pointer to a 64-bit unsigned integer
 
-  float3 posMesh;
-  float3 normal;
+  // Define your threshold (example: a specific memory boundary)
+  // Note: 0x100000000 is just an example value
+
+  // 2. Resource fetching
+  SceneInfo sceneInfo = *pushConst.sceneInfoAddress;
+  SceneResources resPtr = *pushConst.resourcesAddress;
+  Instance instance = resPtr.instances[instanceIndex];
+  MeshPrimitive meshIo = resPtr.meshes[instance.meshIndex];
+
+  float3 posMesh, normal;
   float2 texCoord;
   fetchVertexAttributes(vertexIndex, meshIo, posMesh, normal, texCoord);
 
-  float4 pos = mul(float4(posMesh, 1.0), instance.transform);
+  float4x4 myMatrix = float4x4(0.7, 0.0, 0.0, 0.0, // Row 0
+                               0.0, 0.7, 0.0, 0.0, // Row 1
+                               0.0, 0.0, 0.7, 0.0, // Row 2
+                               0.0, 0.4, 0.0, 1.0  // Row 3 (Translation/W-axis)
+
+  );
+
+
+  float4x4 trans = pushConst.transform;
+
+
+  // red, red, green, red
+  // red, red, red, green
+  // red, red, red, red
+  // red, red, red, red
+
+  float val = instance.transform[0][2];
+  float threshold = 0.70;
+  float4 pos = mul(float4(posMesh, 1.0), (trans));
 
   FragmentInput output;
-  output.debugColor = colorFromIndex(vertexIndex);
+
+  // 3. Output two colors based on the pointer value
+  if (val < threshold) {
+    output.debugColor = float4(1.0, 0.0, 0.0, 1.0); // Red if address is "low"
+  } else {
+    output.debugColor =
+        float4(0.0, 1.0, 0.0, 1.0); // Green if address is "high"
+  }
+
   output.instanceIndex = instanceIndex;
   output.sv_position = mul(pos, sceneInfo.viewProjMatrix);
   output.worldPos = pos.xyz;
   output.worldNormal = normalize(
-      mul(normal, transpose(inverse3x3(float3x3(instance.transform)))));
+      mul(normal, (float3x3)instance.transform)); // Simplified for example
   output.worldTexCoord = texCoord;
 
   return output;
