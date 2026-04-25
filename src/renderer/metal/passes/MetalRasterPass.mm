@@ -5,8 +5,6 @@
 #import <Metal/Metal.h>
 #import <simd/simd.h>
 
-#include <glm/gtx/string_cast.hpp>
-
 #import "backend/metal/core/MetalContextManager.hpp"
 #import "backend/metal/core/MetalRenderContext.hpp"
 #import "renderer/metal/MetalDeviceAssets.hpp"
