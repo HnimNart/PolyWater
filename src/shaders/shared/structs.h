@@ -153,6 +153,7 @@ CHECK_STRUCT_ALIGNMENT(GPUMeshlet)
 struct GlobalMeshletRef {
   uint instanceIndex;
   uint localMeshletIndex;
+  uint32_t pad0, pad1; // Padding to 16-byte boundary (8 → 16 bytes)
 };
 CHECK_STRUCT_ALIGNMENT(GlobalMeshletRef)
 
@@ -178,6 +179,7 @@ struct MeshPrimitive {
   // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
   // the pointer), the GPU treats it as though it has a stride of 84.
   int padWorkaround;
+  uint32_t pad1, pad2; // Padding to 16-byte boundary (168 → 176 bytes)
 };
 CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
@@ -252,6 +254,7 @@ struct TriangleLight {
   float3 emission;
   float area;
   uint pad;
+  uint32_t pad0, pad1; // Padding to 16-byte boundary (56 → 64 bytes)
 };
 CHECK_STRUCT_ALIGNMENT(TriangleLight)
 
