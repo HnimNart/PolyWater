@@ -11,6 +11,117 @@
 #include <algorithm>
 #include <iterator>
 
+#include <iostream>
+#include <cstdio>
+#include <iomanip>
+
+void dumpMeshPrimitiveDeep(const shaderio::MeshPrimitive& mesh) {
+    const uint8_t* raw = reinterpret_cast<const uint8_t*>(&mesh);
+    size_t totalSize = sizeof(shaderio::MeshPrimitive);
+
+    std::printf("\n--- MeshPrimitive Deep Memory Dump (%zu bytes) ---\n", totalSize);
+    std::printf("%-8s | %-32s | %s\n", "Offset", "Bytes (Hex)", "Structure / Values");
+    std::printf("--------------------------------------------------------------------------------------\n");
+
+    for (size_t i = 0; i < totalSize; i += 16) {
+        std::printf("0x%03zx    | ", i);
+
+        // Print Hex Bytes
+        for (size_t j = 0; j < 16; ++j) {
+            if (i + j < totalSize) {
+                std::printf("%02x ", raw[i + j]);
+            } else {
+                std::printf("   ");
+            }
+            if ((j + 1) % 4 == 0 && j < 15) std::printf(" ");
+        }
+
+        std::printf(" | ");
+
+        // --- Interpretation Logic ---
+        // Offset 0: Pointer (8 bytes)
+        if (i == 0) {
+            uint64_t ptr; std::memcpy(&ptr, &raw[i], 8);
+            std::printf("Pointer: 0x%016llx", ptr);
+        }
+        // TriangleMesh starts after the pointer. 
+        // Based on your struct, if TriangleMesh starts at Offset 8:
+        else if (i >= 8 && i < 80) { 
+            // Calculate which BufferView we are in (each is 12 bytes + potential 4 byte pad)
+            size_t meshOffset = i - 8;
+            const char* views[] = {"Indices", "Positions", "Normals", "Colors", "TexCoords", "Tangents"};
+            int viewIdx = (int)(meshOffset / 16); // Assuming 16-byte alignment per view
+            
+            if (viewIdx < 6) {
+                uint32_t vals[3];
+                std::memcpy(vals, &raw[i], 12);
+                std::printf("%-10s: {off:%u, cnt:%u, str:%u}", views[viewIdx], vals[0], vals[1], vals[2]);
+            }
+        }
+        else if (i == 144) { // Typical offset for the trailing fields
+             uint32_t rIdx; int iType;
+             std::memcpy(&rIdx, &raw[i], 4);
+             std::memcpy(&iType, &raw[i+4], 4);
+             std::printf("rawBufIdx: %u, idxType: %d", rIdx, iType);
+        }
+
+        std::printf("\n");
+    }
+    std::printf("--------------------------------------------------------------------------------------\n\n");
+}
+
+
+
+void dumpInstanceMemory(const shaderio::Instance& inst) {
+    const uint8_t* raw = reinterpret_cast<const uint8_t*>(&inst);
+    size_t totalSize = sizeof(shaderio::Instance);
+
+    std::printf("\n--- Instance Memory Dump (%zu bytes) ---\n", totalSize);
+    std::printf("%-8s | %-32s | %s\n", "Offset", "Bytes (Hex)", "Interpreted Values");
+    std::printf("--------------------------------------------------------------------------------------\n");
+
+    for (size_t i = 0; i < totalSize; i += 16) {
+        // 1. Print Offset
+        std::printf("0x%03zx    | ", i);
+
+        // 2. Print Hex Bytes for this 16-byte block
+        for (size_t j = 0; j < 16; ++j) {
+            std::printf("%02x ", raw[i + j]);
+            if ((j + 1) % 4 == 0 && j < 15) std::printf(" ");
+        }
+
+        std::printf(" | ");
+
+        // 3. Print Interpreted Values based on your struct layout
+        if (i == 0) { // Block 1: Translation (float3) + Pad
+            float v[3]; std::memcpy(v, &raw[i], 12);
+            std::printf("Trans: [%.2f, %.2f, %.2f]", v[0], v[1], v[2]);
+        } 
+        else if (i == 16) { // Block 2: Rotation (float4)
+            float v[4]; std::memcpy(v, &raw[i], 16);
+            std::printf("Rot:   [%.2f, %.2f, %.2f, %.2f]", v[0], v[1], v[2], v[3]);
+        } 
+        else if (i == 32) { // Block 3: Scale (float3) + MatIdx
+            float v[3]; std::memcpy(v, &raw[i], 12);
+            uint32_t mIdx; std::memcpy(&mIdx, &raw[i + 12], 4);
+            std::printf("Scale: [%.2f, %.2f, %.2f] MatIdx: %u", v[0], v[1], v[2], mIdx);
+        } 
+        else if (i == 48) { // Block 4: Indices + Pads
+            uint32_t idx[4]; std::memcpy(idx, &raw[i], 16);
+            std::printf("Mesh: %u, Hit: %u, Pads: [%u, %u]", idx[0], idx[1], idx[2], idx[3]);
+        } 
+        else if (i >= 64) { // Blocks 5-8: Transform Matrix
+            float row[4]; std::memcpy(row, &raw[i], 16);
+            std::printf("Mat Row %zu: [%.2f, %.2f, %.2f, %.2f]", (i - 64) / 16, row[0], row[1], row[2], row[3]);
+        }
+
+        std::printf("\n");
+    }
+    std::printf("--------------------------------------------------------------------------------------\n\n");
+}
+
+
+
 // Per-mesh Metal GPU resources built from the raw mesh bytes.
 struct MetalMeshBuffer {
   id<MTLBuffer> indexBuffer;
@@ -108,12 +219,11 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
       [m_data->device newBufferWithBytes:data.data()
                                   length:data.size()
                                  options:MTLResourceStorageModeShared];
+  printf("%d %d %p\n", data.size(), data.size_bytes(), buf.gpuAddress);
 
   IDeviceAssets::BufferID id = m_data->nextId++;
   m_data->rawBuffers.insert_or_assign(id, buf);
 
-  // The GPU address is resolved later in uploadSceneResoures() via
-  // MTLBuffer.gpuAddress and stored in MeshPrimitive.buffer.
   return BufferHandle{.address = (uint8_t*)buf.gpuAddress, .id = id};
 }
 
@@ -129,6 +239,7 @@ void MetalDeviceAssets::destroyBuffer(BufferID id)
 void MetalDeviceAssets::linkMeshToBuffer(MeshID meshId, BufferID bufferId)
 /**********************************************************/
 {
+  printf("%d %d\n", meshId, bufferId);
   m_data->meshToBuffer[meshId] = bufferId;
 }
 
@@ -197,6 +308,9 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 
   // 1. Build MeshPrimitive[] with each element's 'buffer' field set to the GPU
   //    address of the corresponding raw-data Metal buffer.
+  for (const auto &mesh : resources.meshes) {
+    dumpMeshPrimitiveDeep(mesh);
+  }
   if (!resources.meshes.empty()) {
     m_data->meshPrimitivesGpuBuffer =
         [device newBufferWithBytes:resources.meshes.data()
@@ -205,6 +319,9 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
                            options:MTLResourceStorageModeShared];
   }
 
+  for (const auto &inst : resources.instances) {
+    dumpInstanceMemory(inst);
+  }
   // 2. Upload Instance[] array.
   if (!resources.instances.empty()) {
     std::vector<shaderio::Instance> metalInstances;

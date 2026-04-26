@@ -20,35 +20,37 @@
 #pragma once
 
 #ifdef __cplusplus
-    // Use 16-byte alignment check for Metal/macOS compatibility
-    #define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 16 == 0, "Struct must be 16-byte aligned for Metal");
-    
-    // In C++, these macros are just placeholders or simple casts
-    #define BUFFER_REF_DECL(_type) 
-    #define BUFFER_REF(_type, _addr) ((_type*)(_addr))
-#elif defined(__SLANG__)
-    // Slang natively supports pointers! 
-    // We define these to maintain compatibility with your existing code logic.
-    #define CHECK_STRUCT_ALIGNMENT(_s) 
-    
-    // In Slang, we don't need a special decl for buffer references.
-    #define BUFFER_REF_DECL(_type) 
-    
-    // We treat the address as a pointer to an unsized array of that type.
-    #define BUFFER_REF(_type, _addr) ((_type*)(_addr))
-#elif defined(__METAL_VERSION__)
-    // If you ever pass this header to a raw Metal compiler
-    #define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 16 == 0, "Alignment Error");
-    #define BUFFER_REF_DECL(_type) 
-    #define BUFFER_REF(_type, _addr) ((device _type*)(_addr))
-#else
-    // Fallback for standard GLSL if needed
-    #define CHECK_STRUCT_ALIGNMENT(_s)
-    #define BUFFER_REF_DECL(_type) \
-        layout(buffer_reference, scalar) buffer _type##Buffer { _type o[]; };
-    #define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
-#endif
+// Use 16-byte alignment check for Metal/macOS compatibility
+#define CHECK_STRUCT_ALIGNMENT(_s)                                             \
+  static_assert(sizeof(_s) % 16 == 0,                                          \
+                "Struct must be 16-byte aligned for Metal");
 
+// In C++, these macros are just placeholders or simple casts
+#define BUFFER_REF_DECL(_type)
+#define BUFFER_REF(_type, _addr) ((_type *)(_addr))
+#elif defined(__SLANG__)
+// Slang natively supports pointers!
+// We define these to maintain compatibility with your existing code logic.
+#define CHECK_STRUCT_ALIGNMENT(_s)
+
+// In Slang, we don't need a special decl for buffer references.
+#define BUFFER_REF_DECL(_type)
+
+// We treat the address as a pointer to an unsized array of that type.
+#define BUFFER_REF(_type, _addr) ((_type *)(_addr))
+#elif defined(__METAL_VERSION__)
+// If you ever pass this header to a raw Metal compiler
+#define CHECK_STRUCT_ALIGNMENT(_s)                                             \
+  static_assert(sizeof(_s) % 16 == 0, "Alignment Error");
+#define BUFFER_REF_DECL(_type)
+#define BUFFER_REF(_type, _addr) ((device _type *)(_addr))
+#else
+// Fallback for standard GLSL if needed
+#define CHECK_STRUCT_ALIGNMENT(_s)
+#define BUFFER_REF_DECL(_type)                                                 \
+  layout(buffer_reference, scalar) buffer _type##Buffer { _type o[]; };
+#define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
+#endif
 
 #include "slang_types.h"
 
@@ -60,7 +62,7 @@
 #endif
 #define MAX_SCENE_MESHLETS (10000000)
 
-enum class MaterialType : uint16_t {
+enum class MaterialType : uint32_t {
   eDiffuse,
   eGltfPbr,
   eNormals,
@@ -70,6 +72,25 @@ enum class MaterialType : uint16_t {
   eEmissive,
   eCount
 };
+
+#ifdef __cplusplus
+// --- Comparison Overloads ---
+inline bool operator==(uint32_t lhs, MaterialType rhs) {
+  return lhs == static_cast<uint32_t>(rhs);
+}
+inline bool operator!=(uint32_t lhs, MaterialType rhs) { return !(lhs == rhs); }
+inline bool operator==(MaterialType lhs, uint32_t rhs) {
+  return static_cast<uint32_t>(lhs) == rhs;
+}
+inline bool operator!=(MaterialType lhs, uint32_t rhs) { return !(lhs == rhs); }
+
+// --- Assignment Helper ---
+// Since we can't overload '=' for built-in types like uint32_t,
+// we use a simple setter or just a cast.
+// Most devs prefer the explicit cast for clarity in assignments:
+#define SET_ENUM(_field, _val) _field = static_cast<uint32_t>(_val)
+
+#endif
 
 NAMESPACE_SHADERIO_BEGIN()
 
@@ -125,6 +146,7 @@ struct BufferView {
   uint32_t count;      // Number of elements in the buffer view
   uint32_t byteStride; // Stride in bytes between consecutive elements (0 if
                        // tightly packed)
+  uint32_t _pad;       // Explicitly fill the 4-byte hole
 };
 
 struct TriangleMesh {
@@ -168,8 +190,8 @@ struct MeshletTopology {
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
 
 struct MeshPrimitive {
-  uint8_t *buffer =
-      nullptr;             // Buffer to the data (index, position, normal, ...)
+  uint8_t *buffer = nullptr; // Buffer to the data (index, position, normal,
+  uint64_t _padPtr;        // Manual 8-byte pad so TriangleMesh starts at 0x10//
   TriangleMesh triMesh;    // Mesh data
   MeshletTopology meshlet; // Meshlet data
   uint32_t rawBufferIndex; // Index into raw data buffers
@@ -186,32 +208,31 @@ CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 struct Instance {
   // Block 1 (16 bytes)
   float3 translation = float3(0); // 12 bytes: world-space position
-  float pad0 = 0;                 // 4 bytes -> Aligns next field to 16-byte boundary
-                                  // (Metal device address space requires float4 to be
-                                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
+  float pad0 = 0; // 4 bytes -> Aligns next field to 16-byte boundary
+                  // (Metal device address space requires float4 to be
+                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
 
   // Block 2 (16 bytes)
-  float4 rotation = float4(0, 0, 0, 1); // 16 bytes: rotation quaternion (x, y, z, w)
+  float4 rotation =
+      float4(0, 0, 0, 1); // 16 bytes: rotation quaternion (x, y, z, w)
 
   // Block 3 (16 bytes)
-  float3 scale = float3(1);       // 12 bytes: scale factor
-  uint32_t materialIndex = 0;     // 4 bytes -> Perfectly fills the 16-byte block
+  float3 scale = float3(1);   // 12 bytes: scale factor
+  uint32_t materialIndex = 0; // 4 bytes -> Perfectly fills the 16-byte block
 
   // Block 4 (16 bytes)
-  uint32_t meshIndex = 0;         // 4 bytes
-  MaterialType hit_group = MaterialType::eDiffuse; // 2 bytes
-  uint32_t pad1 = 0;              // 4 bytes (note: 2 bytes implicit padding precede this)
-  uint32_t pad2 = 0;              // 4 bytes -> Aligns the Matrix to 16-byte boundary
-                                  // (Metal device address space requires float4x4 to be
-                                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
+  uint32_t meshIndex = 0;                                // 4 bytes
+  uint32_t hit_group = (uint32_t)MaterialType::eDiffuse; // 2 bytes
+  uint32_t pad1 = 0; // 4 bytes (note: 2 bytes implicit padding precede this)
+  uint32_t pad2 = 0; // 4 bytes -> Aligns the Matrix to 16-byte boundary
+                     // (Metal device address space requires float4x4 to be
+                     //  16-byte aligned; C++/GLM only guarantees 4-byte)
 
   // Blocks 5-8 (64 bytes)
   // Explicitly designed layout to ensure byte-consistency across APIs
   float4x4 transform;
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
-
-
 
 struct Material {
   // --- 16-byte aligned (float4) ---
@@ -283,6 +304,7 @@ struct EnvmapLight {
   // Texture Information
   uint32_t envTextureIdx = -1; // Index for bindless texture lookup
   uint2 dims;                  // Width and Height of the texture
+  uint32_t pad0, pad1;
 };
 CHECK_STRUCT_ALIGNMENT(EnvmapLight)
 
@@ -300,7 +322,7 @@ struct RenderParams {
 };
 
 struct RasterParams {
-  bool wireframe = false;
+  uint32_t wireframe = false;
   float wireframeLineWidth = 1.0f;
 };
 
@@ -332,25 +354,28 @@ struct SceneInfo {
 
   AreaLight areaLight;
   EnvmapLight envmapLight;
+
+  uint32_t pad0, pad1;
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
-    SceneInfo* sceneInfoAddress;       // 8
-    SceneResources* resourcesAddress;      // 8 (Total 16)
 
-    GlobalMeshletRef* globalMeshletRefsAddress; // 8
-    int              instanceIndex;            // 4
-    uint32_t         totalSceneMeshlets;       // 4 (Total 32)
+  float4x4 transform;               // 64 (Total 160)
+  SceneInfo *sceneInfoAddress;      // 8
+  SceneResources *resourcesAddress; // 8 (Total 16)
 
-    // Ensure RenderParams + RasterParams combined are a multiple of 16!
-    RenderParams     renderParams; 
-    RasterParams     rasterParams; 
+  GlobalMeshletRef *globalMeshletRefsAddress; // 8
+  int instanceIndex;                          // 4
+  uint32_t totalSceneMeshlets;                // 4 (Total 32)
 
-    uint2            screenResolution;         // 8
-    uint32_t         pad_a, pad_b;             // 8 (Total 16)
+  // Ensure RenderParams + RasterParams combined are a multiple of 16!
+  RenderParams renderParams;
+  RasterParams rasterParams;
 
-    float4x4         transform;                // 64 (Total 160)
+  uint2 screenResolution; // 8
+  /* uint32_t pad_a, pad_b;  // 8 (Total 16) */
+  /* uint32_t pad0, pad1; */
 };
 CHECK_STRUCT_ALIGNMENT(PushConstant)
 

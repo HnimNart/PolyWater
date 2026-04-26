@@ -205,7 +205,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
                              ? matIdMap[materialIdx]
                              : 0;
     inst.meshIndex = currentID;
-    inst.hit_group = MaterialType::eDiffuse;
+    inst.hit_group = static_cast<uint32_t>(MaterialType::eDiffuse);
     addInstance(std::move(inst), uniqueName);
   }
 
@@ -367,6 +367,12 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
   m_scene_resources.meshData.emplace_back(payload.rawBuffer);
 
   const auto bufferHandle = m_device_resources->upload(data);
+  if (!bufferHandle.isValid()) {
+    m_pendingMeshes -= payload.primitives.size();
+    return;
+  }
+
+  printf("%p %d\n", bufferHandle.address, bufferHandle.id);
   const size_t startSize = m_scene_resources.meshes.size();
   m_scene_resources.meshes.reserve(startSize + payload.primitives.size());
 

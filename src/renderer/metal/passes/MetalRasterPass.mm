@@ -11,6 +11,8 @@
 #import "scene/Scene.h"
 #import "shaders/shared/structs.h"
 
+#include <glm/gtx/string_cast.hpp>
+
 // Slang-generated Metal shader sources (produced by the build system at
 // ${CMAKE_BINARY_DIR}/_autogen/ which is on the compiler include path).
 // Each header defines a const char[] variable named after the file with '.'
@@ -157,9 +159,9 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   }
 
   [encoder setRenderPipelineState:m_data->pipelineState];
-  // [encoder setDepthStencilState:m_data->depthStencilState];
-  // [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  // [encoder setCullMode:MTLCullModeBack];
+  [encoder setDepthStencilState:m_data->depthStencilState];
+  [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [encoder setCullMode:MTLCullModeBack];
 
   // Make every GPU-address-chained buffer resident before any draw call.
   // Without this Metal's hazard tracker doesn't know the shader will access
@@ -170,6 +172,9 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
   // One indexed draw call per instance.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
        ++i) {
+    if (i == 1) {
+      continue;
+    }
     const shaderio::Instance &inst = scene->instances[i];
     const uint32_t meshIdx = inst.meshIndex;
 
@@ -182,16 +187,12 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
 
     // Start from frame-global push constants and patch only draw-local state.
     shaderio::PushConstant pc = metalCtx.pushValues;
-    printf("%p %p\n", pc.resourcesAddress, pc.sceneInfoAddress);
-    glm::mat4 myMatrix =
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4f, 0.0f));
-    myMatrix = glm::scale(myMatrix, glm::vec3(0.7f));
-    pc.transform = myMatrix;
-
+    pc.transform = inst.transform;
     pc.instanceIndex = static_cast<int>(i);
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
-    [encoder setVertexBytes:&pc length:sizeof(pc) atIndex:0];
-    [encoder setFragmentBytes:&pc length:sizeof(pc) atIndex:0];
+    auto size = sizeof(pc);
+    [encoder setVertexBytes:&pc length:size atIndex:0];
+    [encoder setFragmentBytes:&pc length:size atIndex:0];
 
     const MTLIndexType indexType = m_assets->is32BitIndex(meshIdx)
                                        ? MTLIndexTypeUInt32

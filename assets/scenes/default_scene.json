@@ -101,24 +101,6 @@
   ],
   "instances": [
     {
-      "name": "Plane",
-      "meshId": "Plane",
-      "materialId": "mat_plane",
-      "transform": {
-        "translate": [
-          0.0,
-          -0.9,
-          0.0
-        ],
-        "scale": [
-          4.0,
-          2.0,
-          3.0
-        ]
-      },
-      "hitGroup": "Mirror"
-    },
-    {
       "name": "Teapot",
       "meshId": "Teapot",
       "materialId": "mat_teapot",
@@ -136,5 +118,6 @@
       },
       "hitGroup": "Dielectrics"
     }
+
   ]
 }

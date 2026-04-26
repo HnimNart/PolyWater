@@ -49,7 +49,7 @@ bool instanceEditor(SceneResourcesManager &resources,
           newInst.translation, newInst.rotation, newInst.scale);
       newInst.materialIndex = 0;
       newInst.meshIndex = 0;
-      newInst.hit_group = MaterialType::eDiffuse;
+      newInst.hit_group = static_cast<uint32_t>(MaterialType::eDiffuse);
 
       auto newId = resources.addInstance(std::move(newInst));
       changed = true;
@@ -115,7 +115,7 @@ bool instanceEditor(SceneResourcesManager &resources,
 
         if (PE::Combo("Shader Type", &currentTypeIdx, shaderNames.c_str(),
                       (int)types.size())) {
-          inst.hit_group = types[currentTypeIdx];
+          inst.hit_group = static_cast<uint32_t>(types[currentTypeIdx]);
           changed = true;
         }
 

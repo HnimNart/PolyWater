@@ -85,7 +85,7 @@ void SceneManager::buildSceneFromData(
     inst.translation = instData.translation;
     inst.scale = instData.scale;
     inst.rotation = math::eulerToQuat(instData.rotation);
-    inst.hit_group = instData.hitGroup;
+    inst.hit_group = static_cast<uint32_t>(instData.hitGroup);
 
     // Resolve Mesh ID
     inst.meshIndex = m_scene_resources.getMeshIDFromName(instData.meshId);
@@ -94,6 +94,8 @@ void SceneManager::buildSceneFromData(
                 << "[Skipping]" << std::endl;
       continue;
     }
+
+    printf("%d %s\n", inst.meshIndex, instData.meshId.c_str());
 
     // Resolve Material ID
     inst.materialIndex =
