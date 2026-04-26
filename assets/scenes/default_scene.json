@@ -47,7 +47,7 @@
   "assets": {
     "meshes": {
       "teapot": "models/teapot.gltf",
-      "plane": "models/plane.gltf"
+      "plane": "models/cube.obj"
     },
     "textures": {
       "floor": "textures/tiled_floor.png"
@@ -118,6 +118,5 @@
       },
       "hitGroup": "Dielectrics"
     }
-
   ]
 }

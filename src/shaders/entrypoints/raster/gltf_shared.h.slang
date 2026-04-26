@@ -44,19 +44,6 @@ struct MeshTaskPayload {
 // __target_switch statement is used directly inside a Metal entry point.
 // ---------------------------------------------------------------------------
 
-// Fetch SceneInfo / Instance / MeshPrimitive for the vertex stage.
-void fetchVertexResources(int instanceIndex,
-                          out SceneInfo     sceneInfo,
-                          out Instance      instance,
-                          out MeshPrimitive meshIo) {
-        SceneInfo *si = pushConst.sceneInfoAddress;
-        sceneInfo = *si;
-        SceneResources *sceneResources = pushConst.resourcesAddress;
-        instance  = sceneResources.instances[instanceIndex];
-        meshIo    = sceneResources.meshes[instance.meshIndex];
-    
-}
-
 // Fetch per-vertex attributes for the vertex stage.
 // Both Vulkan and Metal use the same BufferView-based layout: attributes are
 // read from the raw mesh data buffer (MeshPrimitive.buffer) using the offsets
@@ -72,17 +59,7 @@ void fetchVertexAttributes(uint vertexIndex,
     texCoord = getAttribute<float2>(meshIo.buffer, meshIo.triMesh.texCoords, vertexIndex);
 }
 
-// Fetch SceneInfo / Instance / Material for the fragment stage.
-void fetchFragmentResources(uint instanceIndex,
-                            out SceneInfo sceneInfo,
-                            out Instance  instance,
-                            out Material  material) {
-        SceneInfo *si = pushConst.sceneInfoAddress;
-        sceneInfo = *si;
-        SceneResources sceneResources = pushConst.resourcesAddress[0];
-        instance  = sceneResources.instances[instanceIndex];
-        material  = sceneResources.materials[instance.materialIndex];
-}
+
 
 // ---------------------------------------------------------------------------
 // Fragment shading helper — keeps the fragment path pointer-free for Metal.

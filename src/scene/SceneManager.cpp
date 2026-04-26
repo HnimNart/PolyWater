@@ -82,8 +82,8 @@ void SceneManager::buildSceneFromData(
   // 4. Create Instances
   for (const auto &instData : data.instances) {
     shaderio::Instance inst{};
-    inst.translation = instData.translation;
-    inst.scale = instData.scale;
+    inst.translation = glm::vec4(instData.translation, 1.0f);
+    inst.scale = glm::vec4(instData.scale, 1.0f);
     inst.rotation = math::eulerToQuat(instData.rotation);
     inst.hit_group = static_cast<uint32_t>(instData.hitGroup);
 

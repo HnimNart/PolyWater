@@ -23,6 +23,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <cstdarg> // Required for va_list
 
 /*
 

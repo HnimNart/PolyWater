@@ -21,16 +21,16 @@
 
 #include "gltf_shared.h.slang"
 
-
 // Vertex shader
 [shader("vertex")] FragmentInput vertexMain(uint vertexIndex : SV_VertexID) {
   int instanceIndex = pushConst.instanceIndex;
   // 1. Direct dereference of the SceneInfo pointer
   // Slang maps this to a direct 'device' memory load in Metal MSL
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *resPtr = pushConst.resourcesAddress;
-  Instance instance = resPtr->instances[instanceIndex];
-  MeshPrimitive meshIo = resPtr->meshes[instance.meshIndex];
+  SceneInfo *sceneInfo = (SceneInfo *)pushConst.sceneInfoAddress;
+  SceneResources *resPtr = (SceneResources *)pushConst.resourcesAddress;
+  Instance instance = ((Instance *)(resPtr->instances))[instanceIndex];
+  MeshPrimitive meshIo =
+      ((MeshPrimitive *)(resPtr->meshes))[instance.meshIndex];
 
   float3 posMesh;
   float3 normal;

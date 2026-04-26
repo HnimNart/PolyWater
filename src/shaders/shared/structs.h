@@ -21,14 +21,16 @@
 
 #ifdef __cplusplus
 // Use 16-byte alignment check for Metal/macOS compatibility
+#define ALIGN alignas(16)
 #define CHECK_STRUCT_ALIGNMENT(_s)                                             \
-  static_assert(sizeof(_s) % 16 == 0,                                          \
+  static_assert(sizeof(_s) % 4 == 0,                                           \
                 "Struct must be 16-byte aligned for Metal");
 
 // In C++, these macros are just placeholders or simple casts
 #define BUFFER_REF_DECL(_type)
 #define BUFFER_REF(_type, _addr) ((_type *)(_addr))
 #elif defined(__SLANG__)
+#define ALIGN
 // Slang natively supports pointers!
 // We define these to maintain compatibility with your existing code logic.
 #define CHECK_STRUCT_ALIGNMENT(_s)
@@ -190,7 +192,7 @@ struct MeshletTopology {
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
 
 struct MeshPrimitive {
-  uint8_t *buffer = nullptr; // Buffer to the data (index, position, normal,
+  uint64_t buffer;         // Buffer to the data (index, position, normal,
   uint64_t _padPtr;        // Manual 8-byte pad so TriangleMesh starts at 0x10//
   TriangleMesh triMesh;    // Mesh data
   MeshletTopology meshlet; // Meshlet data
@@ -206,31 +208,18 @@ struct MeshPrimitive {
 CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
 struct Instance {
-  // Block 1 (16 bytes)
-  float3 translation = float3(0); // 12 bytes: world-space position
-  float pad0 = 0; // 4 bytes -> Aligns next field to 16-byte boundary
-                  // (Metal device address space requires float4 to be
-                  //  16-byte aligned; C++/GLM only guarantees 4-byte)
+  float4 translation = float4(0); // .xyz = pos, .w = pad
+  float4 rotation = float4(0);    // quaternion
+  float4 scale =
+      float4(1, 1, 1, 0); // .xyz = scale, .w = materialIndex (Cast in shader!)
 
-  // Block 2 (16 bytes)
-  float4 rotation =
-      float4(0, 0, 0, 1); // 16 bytes: rotation quaternion (x, y, z, w)
+  // Block 3 & 4 Combined (Now 32 bytes)
+  uint32_t materialIndex; // 4 bytes
+  uint32_t meshIndex;     // 4 bytes
+  uint32_t hit_group;     // 4 bytes
+  uint32_t pad0 = 13;     // 4 bytes (Aligns to 16)
 
-  // Block 3 (16 bytes)
-  float3 scale = float3(1);   // 12 bytes: scale factor
-  uint32_t materialIndex = 0; // 4 bytes -> Perfectly fills the 16-byte block
-
-  // Block 4 (16 bytes)
-  uint32_t meshIndex = 0;                                // 4 bytes
-  uint32_t hit_group = (uint32_t)MaterialType::eDiffuse; // 2 bytes
-  uint32_t pad1 = 0; // 4 bytes (note: 2 bytes implicit padding precede this)
-  uint32_t pad2 = 0; // 4 bytes -> Aligns the Matrix to 16-byte boundary
-                     // (Metal device address space requires float4x4 to be
-                     //  16-byte aligned; C++/GLM only guarantees 4-byte)
-
-  // Blocks 5-8 (64 bytes)
-  // Explicitly designed layout to ensure byte-consistency across APIs
-  float4x4 transform;
+  float4x4 transform; // Starts at byte 64
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
 
@@ -327,8 +316,8 @@ struct RasterParams {
 };
 
 struct SceneResources {
-  Instance *instances;   // Address of the instance buffer
-  MeshPrimitive *meshes; // Address of the mesh buffer
+  uint64_t instances;   // Address of the instance buffer
+  uint64_t meshes; // Address of the mesh buffer
   Material *materials;   // Address of material properties
 };
 
@@ -361,9 +350,9 @@ CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
 
-  float4x4 transform;               // 64 (Total 160)
-  SceneInfo *sceneInfoAddress;      // 8
-  SceneResources *resourcesAddress; // 8 (Total 16)
+  float4x4 transform;        // 64 (Total 160)
+  uint64_t sceneInfoAddress; // 8
+  uint64_t resourcesAddress; // 8 (Total 16)
 
   GlobalMeshletRef *globalMeshletRefsAddress; // 8
   int instanceIndex;                          // 4

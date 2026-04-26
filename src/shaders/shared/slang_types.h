@@ -20,20 +20,22 @@
 #ifndef SLANG_TYPES_H
 #define SLANG_TYPES_H
 
-// This header provides type definitions and aliases to bridge between Slang shader types, C++ GLM types, and GLSL types.
-// It enables seamless data sharing between shader code and host code while maintaining type safety.
+// This header provides type definitions and aliases to bridge between Slang
+// shader types, C++ GLM types, and GLSL types. It enables seamless data sharing
+// between shader code and host code while maintaining type safety.
 
 #ifdef __cplusplus
 #include <glm/glm.hpp>
 
-// In C++, we put all of the shared types and functions into the 'shaderio' namespace.
-// We provide the below macros to deal with the fact that not all languages #include'ing this header actually support namespaces.
+// In C++, we put all of the shared types and functions into the 'shaderio'
+// namespace. We provide the below macros to deal with the fact that not all
+// languages #include'ing this header actually support namespaces.
 #define NAMESPACE_SHADERIO_BEGIN() namespace shaderio {
-#define NAMESPACE_SHADERIO_END() }  // namespace shaderio
+#define NAMESPACE_SHADERIO_END() }
 
 NAMESPACE_SHADERIO_BEGIN()
 
-using namespace glm;  // import all of glm into the shaderio namespace
+using namespace glm; // import all of glm into the shaderio namespace
 
 // Type aliases to match Slang shader types with C++ GLM types
 using float4x4 = glm::mat4;

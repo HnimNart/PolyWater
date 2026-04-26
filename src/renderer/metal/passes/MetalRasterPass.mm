@@ -158,32 +158,32 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     return;
   }
 
+  m_assets->useResources((__bridge void *)encoder);
+
   [encoder setRenderPipelineState:m_data->pipelineState];
   [encoder setDepthStencilState:m_data->depthStencilState];
   [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [encoder setCullMode:MTLCullModeBack];
 
-  // Make every GPU-address-chained buffer resident before any draw call.
-  // Without this Metal's hazard tracker doesn't know the shader will access
-  // these buffers through pointer indirection, so the GPU reads zeros and
-  // the viewport stays black.
-  m_assets->useResources((__bridge void *)encoder);
-
+  printf("%d\n", scene->instances.size());
   // One indexed draw call per instance.
   for (uint32_t i = 0; i < static_cast<uint32_t>(scene->instances.size());
        ++i) {
-    if (i == 1) {
-      continue;
-    }
+
     const shaderio::Instance &inst = scene->instances[i];
+    const shaderio::MeshPrimitive &mesh = scene->meshes[inst.meshIndex];
+    const shaderio::TriangleMesh &triMesh = mesh.triMesh;
     const uint32_t meshIdx = inst.meshIndex;
 
-    void *ibPtr = m_assets->getIndexMetalBuffer(meshIdx);
-    const uint32_t indexCount = m_assets->getIndexCount(meshIdx);
+    void *ibPtr = m_assets->getRawMetalBuffer(meshIdx);
+    const uint32_t indexCount = triMesh.indices.count;
     if (!ibPtr || indexCount == 0) {
       continue;
     }
     id<MTLBuffer> ib = (__bridge id<MTLBuffer>)ibPtr;
+
+    // printf("%d %d %d\n", mesh.triMesh.indices.byteStride,
+    //        mesh.triMesh.indices.count, mesh.triMesh.indices.offset);
 
     // Start from frame-global push constants and patch only draw-local state.
     shaderio::PushConstant pc = metalCtx.pushValues;
@@ -194,15 +194,13 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
     [encoder setVertexBytes:&pc length:size atIndex:0];
     [encoder setFragmentBytes:&pc length:size atIndex:0];
 
-    const MTLIndexType indexType = m_assets->is32BitIndex(meshIdx)
-                                       ? MTLIndexTypeUInt32
-                                       : MTLIndexTypeUInt16;
+    const MTLIndexType indexType = MTLIndexTypeUInt32;
 
     [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                         indexCount:indexCount
                          indexType:indexType
                        indexBuffer:ib
-                 indexBufferOffset:0];
+                 indexBufferOffset:triMesh.indices.offset];
   }
 }
 

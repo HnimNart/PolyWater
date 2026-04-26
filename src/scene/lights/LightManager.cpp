@@ -55,9 +55,9 @@ void LightManager::uploadAreaLights(
   const auto cdfHandle = deviceResources->upload(cdfDataView);
   float totalSum = std::accumulate(weights.begin(), weights.end(), 0.0f);
 
-  areaLight = {.triangles = lightHandle.as<shaderio::TriangleLight>(),
+  areaLight = {.triangles = lightHandle.as<shaderio::TriangleLight *>(),
                .TriangleLightBufferIndex = lightHandle.id,
-               .cdf = cdfHandle.as<float>(),
+               .cdf = cdfHandle.as<float *>(),
                .cdfBufferIndex = cdfHandle.id,
                .nTriangles = static_cast<uint32_t>(triangleLights.size()),
                .totalSum = totalSum};
@@ -253,7 +253,7 @@ void LightManager::uploadEnvmap(
     std::span<const uint8_t> cdfRowView(
         reinterpret_cast<const uint8_t *>(info.cdfRows.data()), cdfRowBytes);
     const auto rowHandle = deviceResources->upload(cdfRowView);
-    envmapLight.cdfRows = rowHandle.as<float>();
+    envmapLight.cdfRows = rowHandle.as<float *>();
     envmapLight.cdfRowsBufferIndex = rowHandle.id;
 
     // 3. Upload CDF Column Data (Marginal CDF)
@@ -261,7 +261,7 @@ void LightManager::uploadEnvmap(
     std::span<const uint8_t> cdfColView(
         reinterpret_cast<const uint8_t *>(info.cdfCols.data()), cdfColBytes);
     const auto colCdf = deviceResources->upload(cdfColView);
-    envmapLight.cdfCols = colCdf.as<float>();
+    envmapLight.cdfCols = colCdf.as<float *>();
     envmapLight.cdfColsBufferIndex = colCdf.id;
 
     envmapLight.scale = info.scale;

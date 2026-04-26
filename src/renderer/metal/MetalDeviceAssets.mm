@@ -144,18 +144,7 @@ struct MetalMeshBuffer {
   bool is32Bit = false;
 };
 
-static shaderio::Instance toMetalInstance(shaderio::Instance instance) {
-  // The Slang shaders are compiled with -matrix-layout-row-major for both
-  // Vulkan and Metal targets.  With that flag, Slang interprets GPU buffer
-  // bytes as row-major.  GLM stores matrices column-major, so Slang naturally
-  // "sees" the mathematical transpose of every matrix it loads from a buffer.
-  // That implicit transpose is exactly what mul(v, M) needs to compute the
-  // correct column-vector transform (M * v).  No CPU-side transpose is needed
-  // or correct here — adding one causes Slang to see the original matrix
-  // instead of its transpose, which corrupts the w component and produces the
-  // "stretched towards camera" artifact.
-  return instance;
-}
+
 
 struct MetalDeviceAssetsData {
   id<MTLDevice> device;
@@ -232,11 +221,12 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
     return {};
   }
 
+
   id<MTLBuffer> buf =
       [m_data->device newBufferWithBytes:data.data()
                                   length:data.size()
                                  options:MTLResourceStorageModeShared];
-  printf("%d %d %p\n", data.size(), data.size_bytes(), buf.gpuAddress);
+  printf("Upload - %d %d %p\n", data.size(), data.size_bytes(), buf.gpuAddress);
   IDeviceAssets::BufferID id = m_data->nextId++;
   m_data->rawBuffers.insert_or_assign(id, buf);
 
@@ -263,58 +253,6 @@ void MetalDeviceAssets::linkMeshToBuffer(MeshID meshId, BufferID bufferId)
 void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
 /**********************************************************/
 {
-  // For every mesh, build a compact index buffer from the raw data already
-  // uploaded to rawBuffers.  Vertex positions, normals, and UVs are read
-  // directly from the raw buffer by the shader using the BufferView offsets
-  // and strides stored in MeshPrimitive.triMesh — the same layout used by
-  // the Vulkan renderer, so both renderers share identical geometry layout.
-  for (uint32_t meshIdx = 0; meshIdx < resources.meshes.size(); ++meshIdx) {
-    const shaderio::MeshPrimitive &prim = resources.meshes[meshIdx];
-    if (prim.rawBufferIndex >= resources.meshData.size()) {
-      continue;
-    }
-    const std::vector<uint8_t> &rawData =
-        resources.meshData[prim.rawBufferIndex];
-    if (rawData.empty()) {
-      continue;
-    }
-
-    const shaderio::TriangleMesh &tri = prim.triMesh;
-    const uint32_t indexCount = tri.indices.count;
-    if (indexCount == 0) {
-      continue;
-    }
-
-    // ----------------------------------------------------------------
-    // Build index buffer
-    // ----------------------------------------------------------------
-    const bool is32Bit = (prim.indexType == IndexType32);
-    const uint32_t indexElemSize = is32Bit ? 4u : 2u;
-    const uint32_t idxStride =
-        tri.indices.byteStride == 0 ? indexElemSize : tri.indices.byteStride;
-    const size_t totalByteSize =
-        static_cast<size_t>(indexCount) * indexElemSize;
-
-    std::vector<uint8_t> indexData(totalByteSize);
-    if (totalByteSize > 0) {
-      std::memcpy(indexData.data(), rawData.data() + tri.indices.offset,
-                  totalByteSize);
-    }
-
-    printf("%d %d %d\n", idxStride, indexElemSize, indexCount);
-
-    id<MTLBuffer> ib =
-        [m_data->device newBufferWithBytes:indexData.data()
-                                    length:indexData.size() * sizeof(uint8_t)
-                                   options:MTLResourceStorageModeShared];
-
-    MetalMeshBuffer mb;
-    mb.indexBuffer = ib;
-    mb.indexCount = indexCount;
-    mb.is32Bit = is32Bit;
-    m_data->meshBuffers.insert_or_assign(meshIdx, mb);
-  }
-
   // -----------------------------------------------------------------------
   // Build GPU-side scene resource buffers for the Slang-compiled shaders.
   //
@@ -328,31 +266,31 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
   // 1. Build MeshPrimitive[] with each element's 'buffer' field set to the GPU
   //    address of the corresponding raw-data Metal buffer.
   for (const auto &mesh : resources.meshes) {
-    dumpMeshPrimitiveDeep(mesh);
+    // dumpMeshPrimitiveDeep(mesh);
   }
   if (!resources.meshes.empty()) {
     m_data->meshPrimitivesGpuBuffer =
         [device newBufferWithBytes:resources.meshes.data()
-                            length:resources.meshes.size() *
-                                   sizeof(shaderio::MeshPrimitive)
+                            length:resources.meshes.size() * sizeof(shaderio::MeshPrimitive)
                            options:MTLResourceStorageModeShared];
   }
 
+  printf("Meshses: %ld %ld - \n", resources.meshes.size(),
+         sizeof(shaderio::MeshPrimitive));
+
   for (const auto &inst : resources.instances) {
-    dumpInstanceMemory(inst);
+    // dumpInstanceMemory(inst);
   }
   // 2. Upload Instance[] array.
   if (!resources.instances.empty()) {
-    std::vector<shaderio::Instance> metalInstances;
-    metalInstances.reserve(resources.instances.size());
-    std::transform(resources.instances.begin(), resources.instances.end(),
-                   std::back_inserter(metalInstances), toMetalInstance);
-
-    m_data->instancesGpuBuffer = [device
-        newBufferWithBytes:metalInstances.data()
-                    length:metalInstances.size() * sizeof(shaderio::Instance)
-                   options:MTLResourceStorageModeShared];
+    m_data->instancesGpuBuffer =
+        [device newBufferWithBytes:resources.instances.data()
+                            length:resources.instances.size() *
+                                   sizeof(shaderio::Instance)
+                           options:MTLResourceStorageModeShared];
   }
+
+  printf("Ins %ld - \n", resources.instances.size() * sizeof(shaderio::Instance));
 
   // 3. Upload Material[] array.
   if (!resources.materials.empty()) {
@@ -363,21 +301,22 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
                            options:MTLResourceStorageModeShared];
   }
 
+  printf("%d\n", sizeof(shaderio::Instance));
+
   // 4. Build the SceneResources struct whose pointer fields hold GPU addresses
   //    of the arrays uploaded above.
   shaderio::SceneResources sr{};
   if (m_data->instancesGpuBuffer) {
-    const uint64_t addr = [m_data->instancesGpuBuffer gpuAddress];
-    std::memcpy(&sr.instances, &addr, sizeof(addr));
+    sr.instances = m_data->instancesGpuBuffer.gpuAddress;
   }
   if (m_data->meshPrimitivesGpuBuffer) {
-    const uint64_t addr = [m_data->meshPrimitivesGpuBuffer gpuAddress];
-    std::memcpy(&sr.meshes, &addr, sizeof(addr));
+    sr.meshes = m_data->meshPrimitivesGpuBuffer.gpuAddress;
   }
   if (m_data->materialsGpuBuffer) {
     const uint64_t addr = [m_data->materialsGpuBuffer gpuAddress];
     std::memcpy(&sr.materials, &addr, sizeof(addr));
   }
+
   m_data->sceneResourcesGpuBuffer =
       [device newBufferWithBytes:&sr
                           length:sizeof(shaderio::SceneResources)
@@ -400,27 +339,7 @@ void *MetalDeviceAssets::getRawMetalBuffer(BufferID id) const
   return (__bridge void *)it->second;
 }
 
-/**********************************************************/
-void *MetalDeviceAssets::getIndexMetalBuffer(MeshID meshId) const
-/**********************************************************/
-{
-  auto it = m_data->meshBuffers.find(meshId);
-  if (it == m_data->meshBuffers.end()) {
-    return nullptr;
-  }
-  return (__bridge void *)it->second.indexBuffer;
-}
 
-/**********************************************************/
-uint32_t MetalDeviceAssets::getIndexCount(MeshID meshId) const
-/**********************************************************/
-{
-  auto it = m_data->meshBuffers.find(meshId);
-  if (it == m_data->meshBuffers.end()) {
-    return 0;
-  }
-  return it->second.indexCount;
-}
 
 /**********************************************************/
 bool MetalDeviceAssets::is32BitIndex(MeshID meshId) const
@@ -515,30 +434,33 @@ void MetalDeviceAssets::useResources(void *renderCommandEncoderHandle) const
   id<MTLRenderCommandEncoder> enc =
       (__bridge id<MTLRenderCommandEncoder>)renderCommandEncoderHandle;
 
-  // Helper: call useResource only when the buffer is non-nil.
   const MTLRenderStages vsfs = MTLRenderStageVertex | MTLRenderStageFragment;
   const MTLRenderStages vs = MTLRenderStageVertex;
 
-  auto use = [&](id<MTLBuffer> buf, MTLRenderStages stages) {
+  auto use = [&](int i, id<MTLBuffer> buf, MTLRenderStages stages) {
     if (buf) {
       [enc useResource:buf usage:MTLResourceUsageRead stages:stages];
+      printf("%d: Use %d %lld\n", i, buf.allocatedSize, buf.gpuAddress);
     }
   };
 
-  // Buffers directly addressed from PushConstant pointer fields.
-  use(m_data->sceneInfoGpuBuffer, vsfs);
-  use(m_data->sceneResourcesGpuBuffer, vsfs);
 
+
+  // Buffers directly addressed from PushConstant pointer fields.
+  use(0, m_data->sceneInfoGpuBuffer, vsfs);
+  use(1, m_data->sceneResourcesGpuBuffer, vsfs);
   // Buffers indirectly addressed via SceneResources pointer fields.
-  use(m_data->instancesGpuBuffer, vsfs);
-  use(m_data->meshPrimitivesGpuBuffer, vsfs);
-  use(m_data->materialsGpuBuffer, vsfs);
+  use(2, m_data->instancesGpuBuffer, vsfs);
+  use(3, m_data->meshPrimitivesGpuBuffer, vsfs);
+  use(4, m_data->materialsGpuBuffer, vsfs);
+
+
 
   // Raw mesh-data buffers addressed via MeshPrimitive.buffer.
   // These are the leaf nodes of the pointer chain; the vertex shader reads
   // positions, normals and UVs from them.
   for (auto &[bufferId, buf] : m_data->rawBuffers) {
-    use(buf, vs);
+    use(5, buf, vs);
   }
 }
 

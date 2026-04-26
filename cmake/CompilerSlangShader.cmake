@@ -70,6 +70,7 @@ function(compile_slang_to_metal SHADER_FILES OUTPUT_DIR SHADER_HEADERS_VAR)
   set(_METAL_FLAGS
     -profile sm_6_6  # Modern features that map to Metal 3.0+
     -target metal
+    -force-glsl-scalar-layout 
   )
   _compile_slang_internal("${SHADER_FILES}" "${OUTPUT_DIR}" ${SHADER_HEADERS_VAR} "metal" SLANG_FLAGS ${_METAL_FLAGS} ${ARGN})
   set(${SHADER_HEADERS_VAR} ${${SHADER_HEADERS_VAR}} PARENT_SCOPE)

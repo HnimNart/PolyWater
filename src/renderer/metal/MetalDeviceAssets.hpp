@@ -48,9 +48,6 @@ public:
   // given buffer ID, or nullptr when not found.  Used internally by
   // uploadSceneResoures().
   void *getRawMetalBuffer(BufferID id) const;
-
-  // Metal-specific: returns the index buffer for a mesh.
-  void *getIndexMetalBuffer(MeshID meshId) const;
   // Returns the number of indices for the given mesh.
   uint32_t getIndexCount(MeshID meshId) const;
   // Returns true when the index buffer contains 32-bit indices.

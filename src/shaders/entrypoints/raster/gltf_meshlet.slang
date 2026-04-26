@@ -36,8 +36,8 @@ void meshMain(
     out indices uint3 triangles[124],
     out vertices FragmentInput outVertices[64]
 ) {
-    SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-    SceneResources *sceneResources = pushConst.resourcesAddress;
+    SceneInfo *sceneInfo = (SceneInfo*)pushConst.sceneInfoAddress;
+    SceneResources *sceneResources = (SceneResources*)pushConst.resourcesAddress;
 
     // --- CRITICAL UPDATE ---
     // Read BOTH the instance index and the meshlet index from the payload!
@@ -45,8 +45,9 @@ void meshMain(
     uint globalMeshletIndex = taskPayload.meshletIndices[groupId];
 
     // Now fetch the correct instance and mesh using the dynamically retrieved index
-    Instance instance = sceneResources.instances[instanceIndex];
-    MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
+    Instance instance =
+        ((Instance *)(sceneResources->instances))[instanceIndex];
+    MeshPrimitive meshIo = ((MeshPrimitive*)(sceneResources->meshes))[instance.meshIndex];
 
     // Transpose of the inverse of the upper-left 3x3 of the transform matrix
     float3x3 normalMatrix = safe_transpose(inverse3x3(float3x3(instance.transform)));

@@ -26,9 +26,7 @@ public:
 
     // Optional: helper to check if valid
     bool isValid() const { return address != nullptr; }
-    template <typename T> T *as() const {
-      return reinterpret_cast<T *>(address);
-    }
+    template <typename T> T as() const { return reinterpret_cast<T>(address); }
   };
 
   virtual ~IDeviceAssets() = default;

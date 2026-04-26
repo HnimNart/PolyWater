@@ -19,6 +19,8 @@
 
 #include "core/path_utils.hpp"
 
+#include <iostream>
+
 namespace {
 
 /**********************************************************/
@@ -299,8 +301,12 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
                                               std::string name)
 /**********************************************************/
 {
-  instance.transform = math::composeTransform(
-      instance.translation, instance.rotation, instance.scale);
+  instance.transform =
+      math::composeTransform(glm::vec3(instance.translation), instance.rotation,
+                             glm::vec3(instance.scale));
+  std::cout << glm::to_string(instance.scale) << std::endl;
+  std::cout << glm::to_string(instance.translation) << std::endl;
+  std::cout << glm::to_string(instance.transform) << std::endl;
   name = core::trim(name);
   auto it = m_instanceMap.find(name);
   if (it != m_instanceMap.end()) {
@@ -378,7 +384,7 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 
   for (auto mesh : payload.primitives) {
     mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
-    mesh.buffer = bufferHandle.as<uint8_t>();
+    mesh.buffer = bufferHandle.as<uint64_t>();
     m_device_resources->linkMeshToBuffer(m_scene_resources.meshes.size(),
                                          bufferHandle.id);
     m_scene_resources.meshes.emplace_back(mesh);
