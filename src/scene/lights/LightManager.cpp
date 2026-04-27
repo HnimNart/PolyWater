@@ -15,7 +15,9 @@ namespace
 /**
  * Helper to convert RGB to Luminance based on BT.709
  */
+/**********************************************************/
 inline float getLuminance(const glm::vec3& color)
+/**********************************************************/
 {
   return shaderio::bt709Luminance(color);
 }

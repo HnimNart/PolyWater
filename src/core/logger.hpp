@@ -109,7 +109,9 @@ public:
   using LogCallback = std::function<void(LogLevel, const std::string&)>;
 
   // Get the logger instance
+  /**********************************************************/
   static Logger& getInstance() noexcept
+  /**********************************************************/
   {
     static Logger instance;
     return instance;
@@ -168,7 +170,11 @@ private:
   ShowFlags m_show = eSHOW_NONE;        // Default shows no extra information
   bool m_breakOnError = true;           // Break on errors by default
 
-  Logger() {}
+  /**********************************************************/
+  Logger()
+  /**********************************************************/
+  {
+  }
   ~Logger();
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;

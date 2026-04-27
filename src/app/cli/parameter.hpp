@@ -125,7 +125,9 @@ public:
 
   // basic type string
   // e.g. `float[3]` or `bool`
+  /**********************************************************/
   std::string getTypeString() const
+  /**********************************************************/
   {
     const char* typeString = toString(type);
     return argCount ? fmt::format("{}[{}]", typeString, argCount)

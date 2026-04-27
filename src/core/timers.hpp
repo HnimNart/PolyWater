@@ -35,14 +35,26 @@ namespace core
 class PerformanceTimer
 {
 public:
-  PerformanceTimer() { reset(); }
+  /**********************************************************/
+  PerformanceTimer()
+  /**********************************************************/
+  {
+    reset();
+  }
 
   // Starts or re-starts counting from the current time.
-  void reset() { m_start = now(); }
+  /**********************************************************/
+  void reset()
+  /**********************************************************/
+  {
+    m_start = now();
+  }
 
   // Returns the number of seconds since the clock was initialized.
   // Always non-negative even if the underlying timer is non-monotonic.
+  /**********************************************************/
   double getSeconds() const
+  /**********************************************************/
   {
 #if defined(__unix__) || defined(__APPLE__)
     const TimeValue t = now();
@@ -66,8 +78,18 @@ public:
 #endif
   }
   // Convenience functions returning total time in different units
-  double getMilliseconds() const { return getSeconds() * 1e3; }
-  double getMicroseconds() const { return getSeconds() * 1e6; }
+  /**********************************************************/
+  double getMilliseconds() const
+  /**********************************************************/
+  {
+    return getSeconds() * 1e3;
+  }
+  /**********************************************************/
+  double getMicroseconds() const
+  /**********************************************************/
+  {
+    return getSeconds() * 1e6;
+  }
 
 private:
   struct TimeValue
@@ -106,7 +128,9 @@ public:
   ScopedTimer(const char* fmt, ...);
   void init_(const std::string& str);
   ~ScopedTimer();
+  /**********************************************************/
   static std::string indent()
+  /**********************************************************/
   {
     std::string result(static_cast<size_t>(s_nesting * 2), ' ');
     for (int i = 0; i < s_nesting * 2; i += 2)

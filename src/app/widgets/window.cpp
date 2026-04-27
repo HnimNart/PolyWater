@@ -22,7 +22,9 @@
 namespace core
 {
 
+/**********************************************************/
 bool isWindowHovered(ImGuiWindow* refWindow)
+/**********************************************************/
 {
   if (!refWindow)
     return false;

@@ -59,7 +59,9 @@ public:
   using OnFileSelectedCallback =
       std::function<void(const std::filesystem::path& path)>;
 
+  /**********************************************************/
   void addFileSelectedCallback(OnFileSelectedCallback callback)
+  /**********************************************************/
   {
     m_onSelect.emplace_back(std::move(callback));
   }

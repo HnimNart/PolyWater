@@ -29,12 +29,16 @@ public:
   void submitBarriers(const std::vector<BarrierInfo>& barriers) const override;
 
   // Static helper to cast from the interface
+  /**********************************************************/
   static const VulkanRenderContext& get(const IRenderContext& ctx)
+  /**********************************************************/
   {
     return static_cast<const VulkanRenderContext&>(ctx);
   }
 
+  /**********************************************************/
   static VulkanRenderContext& get(IRenderContext& ctx)
+  /**********************************************************/
   {
     return static_cast<VulkanRenderContext&>(ctx);
   }

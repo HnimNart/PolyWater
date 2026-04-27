@@ -36,7 +36,9 @@ ImFont* g_iconicFont = nullptr;
 ImFont* g_monospaceFont = nullptr;
 }  // namespace app
 
+/**********************************************************/
 static ImFontConfig getDefaultConfig()
+/**********************************************************/
 {
   ImFontConfig config{};
   config.OversampleH = 3;
@@ -46,8 +48,10 @@ static ImFontConfig getDefaultConfig()
 
 // Helper function to append a font with embedded Material Symbols icons
 // Icon fonts: https://fonts.google.com/icons?icon.set=Material+Symbols
+/**********************************************************/
 static ImFont* appendFontWithMaterialSymbols(const void* fontData,
                                              int fontDataSize, float fontSize)
+/**********************************************************/
 {
   // Configure Material Symbols icon font for merging
   ImFontConfig iconConfig = getDefaultConfig();
@@ -72,7 +76,9 @@ static ImFont* appendFontWithMaterialSymbols(const void* fontData,
 }
 
 // Add default Roboto fonts with the option to merge Material Symbols (icons)
+/**********************************************************/
 void app::addDefaultFont(float fontSize, bool appendIcons)
+/**********************************************************/
 {
   if (g_defaultFont == nullptr)
   {
@@ -90,12 +96,16 @@ void app::addDefaultFont(float fontSize, bool appendIcons)
   }
 }
 
+/**********************************************************/
 ImFont* app::getDefaultFont()
+/**********************************************************/
 {
   return g_defaultFont;
 }
 
+/**********************************************************/
 void app::addMonospaceFont(float fontSize)
+/**********************************************************/
 {
   if (g_monospaceFont == nullptr)
   {
@@ -106,7 +116,9 @@ void app::addMonospaceFont(float fontSize)
   }
 }
 
+/**********************************************************/
 ImFont* app::getMonospaceFont()
+/**********************************************************/
 {
   return g_monospaceFont;
 }

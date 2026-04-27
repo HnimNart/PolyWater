@@ -22,8 +22,16 @@ public:
   UIPass(RenderCallback callback);
   virtual ~UIPass() = default;
 
-  void init() override {}
-  void deinit() override {}
+  /**********************************************************/
+  void init() override
+  /**********************************************************/
+  {
+  }
+  /**********************************************************/
+  void deinit() override
+  /**********************************************************/
+  {
+  }
 
   void setup(PassBuilder& builder) override;
   void execute(const IRenderContext& ctx) override;

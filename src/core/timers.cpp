@@ -24,7 +24,9 @@ namespace core
 //-------------------------------------------------------------------------------------------------
 // PerformanceTimer
 
+/**********************************************************/
 PerformanceTimer::TimeValue PerformanceTimer::now() const
+/**********************************************************/
 {
 #if defined(_WIN32)
   // Windows implementation
@@ -70,7 +72,9 @@ PerformanceTimer::TimeValue PerformanceTimer::now() const
 //-------------------------------------------------------------------------------------------------
 // ScopedTimer
 
+/**********************************************************/
 ScopedTimer::ScopedTimer(const char* fmt, ...)
+/**********************************************************/
 {
   std::string str(256, '\0');  // initial guess. ideally the first try fits
   va_list args1, args2;
@@ -88,12 +92,16 @@ ScopedTimer::ScopedTimer(const char* fmt, ...)
   init_(str);
 }
 
+/**********************************************************/
 ScopedTimer::ScopedTimer(const std::string& str)
+/**********************************************************/
 {
   init_(str);
 }
 
+/**********************************************************/
 void ScopedTimer::init_(const std::string& str)
+/**********************************************************/
 {
   // If nesting timers, break the newline of the previous one
   if (s_openNewline)
@@ -116,7 +124,9 @@ void ScopedTimer::init_(const std::string& str)
   ++s_nesting;
 }
 
+/**********************************************************/
 ScopedTimer::~ScopedTimer()
+/**********************************************************/
 {
   --s_nesting;
   // If nesting timers and this is the second destructor in a row, indent and

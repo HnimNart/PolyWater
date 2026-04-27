@@ -26,8 +26,10 @@
 namespace app
 {
 
+/**********************************************************/
 inline bool azimuthElevationSliders(glm::vec3& direction, bool negative,
                                     bool yIsUp /*=true*/)
+/**********************************************************/
 {
   glm::vec3 normalized_dir = normalize(direction);
   if (negative)

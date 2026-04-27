@@ -11,7 +11,9 @@ struct ResourceUsage
   PipelineStage stage;
 
   // Helper: Is this a write operation?
+  /**********************************************************/
   bool isWrite() const
+  /**********************************************************/
   {
     return state == ResourceState::RenderTarget ||
            state == ResourceState::DepthWrite ||
@@ -24,26 +26,42 @@ class PassBuilder
 {
 public:
   // What resources do i need to read?
+  /**********************************************************/
   void read(RenderOutput name, PipelineStage stage, ResourceState state)
+  /**********************************************************/
   {
     m_usages.push_back({name, state, stage});
   }
 
   // "I need to write to this Render Target"
+  /**********************************************************/
   void write(RenderOutput name, PipelineStage stage, ResourceState state)
+  /**********************************************************/
   {
     m_usages.push_back({name, state, stage});
   }
   // Allow a pass to declare what state a resource must be in after the
   // pass
+  /**********************************************************/
   void setFinalState(RenderOutput resource, ResourceState state,
                      PipelineStage stage = PipelineStage::BottomOfPipe)
+  /**********************************************************/
   {
     m_finalStates[resource] = {state, stage};
   }
-  const auto& getFinalStates() const { return m_finalStates; }
+  /**********************************************************/
+  const auto& getFinalStates() const
+  /**********************************************************/
+  {
+    return m_finalStates;
+  }
 
-  const std::vector<ResourceUsage>& getUsages() const { return m_usages; }
+  /**********************************************************/
+  const std::vector<ResourceUsage>& getUsages() const
+  /**********************************************************/
+  {
+    return m_usages;
+  }
 
 private:
   std::vector<ResourceUsage> m_usages;

@@ -25,24 +25,32 @@ namespace core
 {
 
 //---- Hash Combination ----
+/**********************************************************/
 template <typename T> void hashCombine(std::size_t& seed, const T& val)
+/**********************************************************/
 {
   boost::hash_combine(seed, val);
 }
 // Auxiliary generic functions to create a hash value using a seed
+/**********************************************************/
 template <typename T, typename... Types>
 void hashCombine(std::size_t& seed, const T& val, const Types&... args)
+/**********************************************************/
 {
   hashCombine(seed, val);
   hashCombine(seed, args...);
 }
 // Optional auxiliary generic functions to support hash_val() without arguments
+/**********************************************************/
 inline void hashCombine(std::size_t& /*seed*/)
+/**********************************************************/
 {
 }
 // Generic function to create a hash value out of a heterogeneous list of
 // arguments
+/**********************************************************/
 template <typename... Types> std::size_t hashVal(const Types&... args)
+/**********************************************************/
 {
   std::size_t seed = 0;
   hashCombine(seed, args...);

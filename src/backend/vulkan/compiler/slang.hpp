@@ -49,34 +49,72 @@ public:
   void defaultOptions();  // Default options are EmitSpirvDirectly,
                           // VulkanUseEntryPointName
 
+  /**********************************************************/
   void addOption(const slang::CompilerOptionEntry& option)
+  /**********************************************************/
   {
     m_options.push_back(option);
   }
-  void clearOptions() { m_options.clear(); }
-  std::vector<slang::CompilerOptionEntry>& options() { return m_options; }
+  /**********************************************************/
+  void clearOptions()
+  /**********************************************************/
+  {
+    m_options.clear();
+  }
+  /**********************************************************/
+  std::vector<slang::CompilerOptionEntry>& options()
+  /**********************************************************/
+  {
+    return m_options;
+  }
 
+  /**********************************************************/
   void addTarget(const slang::TargetDesc& target)
+  /**********************************************************/
   {
     m_targets.push_back(target);
   }
-  void clearTargets() { m_targets.clear(); }
-  std::vector<slang::TargetDesc>& targets() { return m_targets; }
+  /**********************************************************/
+  void clearTargets()
+  /**********************************************************/
+  {
+    m_targets.clear();
+  }
+  /**********************************************************/
+  std::vector<slang::TargetDesc>& targets()
+  /**********************************************************/
+  {
+    return m_targets;
+  }
 
   void addSearchPaths(const std::vector<std::filesystem::path>& searchPaths);
   void clearSearchPaths();
   // This is const because modifiying the search paths requires extra work.
+  /**********************************************************/
   const std::vector<std::filesystem::path>& searchPaths() const
+  /**********************************************************/
   {
     return m_searchPaths;
   }
 
+  /**********************************************************/
   void addMacro(const slang::PreprocessorMacroDesc& macro)
+  /**********************************************************/
   {
     m_macros.push_back(macro);
   }
-  void clearMacros() { m_macros.clear(); }
-  std::vector<slang::PreprocessorMacroDesc>& macros() { return m_macros; }
+  /**********************************************************/
+  void clearMacros()
+  /**********************************************************/
+  {
+    m_macros.clear();
+  }
+  /**********************************************************/
+  std::vector<slang::PreprocessorMacroDesc>& macros()
+  /**********************************************************/
+  {
+    return m_macros;
+  }
 
   // Compile a file or source
   bool compileFile(const std::filesystem::path& filename);
@@ -95,17 +133,21 @@ public:
   slang::IModule* getSlangModule() const;
 
   // Use for Dump or Aftermath
+  /**********************************************************/
   void setCompileCallback(
       std::function<void(const std::filesystem::path& sourceFile,
                          const uint32_t* spirvCode, size_t spirvSize)>
           callback)
+  /**********************************************************/
   {
     m_callback = callback;
   }
 
   // Get the last diagnostic message (error or warning).
   // Multiple diagnostics are each separated by a single newline.
+  /**********************************************************/
   const std::string& getLastDiagnosticMessage() const
+  /**********************************************************/
   {
     return m_lastDiagnosticMessage;
   }
@@ -140,7 +182,9 @@ class SlangCompiler
 {
 public:
   // 1. Singleton Accessor
+  /**********************************************************/
   static SlangCompiler& instance()
+  /**********************************************************/
   {
     static SlangCompiler s_instance;
     return s_instance;
@@ -151,7 +195,12 @@ public:
                                    const std::span<const uint32_t>& spirv = {},
                                    bool useCache = true);
 
-  void clearCache() { m_binaryCacheMap.clear(); }
+  /**********************************************************/
+  void clearCache()
+  /**********************************************************/
+  {
+    m_binaryCacheMap.clear();
+  }
 
   // Delete Copy/Move to enforce Singleton uniqueness
   SlangCompiler(const SlangCompiler&) = delete;
@@ -164,7 +213,9 @@ private:
 
   // Internal Helper
   inline VkShaderModuleCreateInfo
+  /**********************************************************/
   getShaderModuleCreateInfo(const std::span<const uint32_t>& spirv) const
+  /**********************************************************/
   {
     return VkShaderModuleCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

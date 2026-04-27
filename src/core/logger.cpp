@@ -51,7 +51,9 @@
 #include "logger.hpp"
 #include "timers.hpp"
 
+/**********************************************************/
 core::Logger::~Logger()
+/**********************************************************/
 {
   try  // Destructors in C++ are noexcept; catch just in case
   {
@@ -67,19 +69,25 @@ core::Logger::~Logger()
   }
 }
 
+/**********************************************************/
 void core::Logger::setMinimumLogLevel(LogLevel level) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_minLogLevel = level;
 }
 
+/**********************************************************/
 void core::Logger::setShowFlags(ShowFlags flags) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_show = flags;
 }
 
+/**********************************************************/
 void core::Logger::setOutputFile(const std::filesystem::path& filename) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   try
@@ -107,30 +115,38 @@ void core::Logger::setOutputFile(const std::filesystem::path& filename) noexcept
   }
 }
 
+/**********************************************************/
 void core::Logger::enableFileOutput(bool enable) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logToFile = enable;
 }
 
+/**********************************************************/
 void core::Logger::setFileFlush(bool enable) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_fileFlush = enable;
 }
 
+/**********************************************************/
 void core::Logger::setLogCallback(LogCallback&& callback) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logCallback = std::move(callback);
 }
 
+/**********************************************************/
 void core::Logger::log(LogLevel level,
 #ifdef _MSC_VER
                        _Printf_format_string_
 #endif
                        const char* format,
                        ...) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   if (level < m_minLogLevel)
@@ -162,14 +178,18 @@ void core::Logger::log(LogLevel level,
   breakOnErrors(level, message);
 }
 
+/**********************************************************/
 void core::Logger::breakOnError(bool enable) noexcept
+/**********************************************************/
 {
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_breakOnError = enable;
 }
 
+/**********************************************************/
 void core::Logger::breakOnErrors(LogLevel level,
                                  const std::string& message) noexcept
+/**********************************************************/
 {
   if (!m_breakOnError)
     return;
@@ -193,7 +213,9 @@ void core::Logger::breakOnErrors(LogLevel level,
   }
 }
 
+/**********************************************************/
 void core::Logger::ensureLogFileIsOpen() noexcept
+/**********************************************************/
 {
   static bool firstLog = true;
   if (firstLog && m_logToFile && !m_logFile.is_open())
@@ -216,7 +238,9 @@ void core::Logger::ensureLogFileIsOpen() noexcept
   }
 }
 
+/**********************************************************/
 std::string core::Logger::formatString(const char* format, va_list args)
+/**********************************************************/
 {
   // Initial buffer size
   int bufferSize = 1024;
@@ -240,7 +264,9 @@ std::string core::Logger::formatString(const char* format, va_list args)
   return std::string(buffer.data());
 }
 
+/**********************************************************/
 static std::string currentDateTime()
+/**********************************************************/
 {
   // 1. Get the current wall-clock time
   auto now = std::chrono::system_clock::now();
@@ -259,7 +285,9 @@ static std::string currentDateTime()
                      hms.subseconds().count());
 }
 
+/**********************************************************/
 static std::string currentTime()
+/**********************************************************/
 {
   static core::PerformanceTimer startTimer;
 
@@ -275,7 +303,9 @@ static std::string currentTime()
   return fmt::format("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, ms);
 }
 
+/**********************************************************/
 static const char* logLevelToString(core::Logger::LogLevel level)
+/**********************************************************/
 {
   switch (level)
   {
@@ -302,7 +332,9 @@ static const char* logLevelToString(core::Logger::LogLevel level)
   return "";
 }
 
+/**********************************************************/
 void core::Logger::addPrefixes(LogLevel level, std::string& message)
+/**********************************************************/
 {
   static bool suppressPrefixes = false;
   if (!suppressPrefixes && m_show != 0)
@@ -318,8 +350,10 @@ void core::Logger::addPrefixes(LogLevel level, std::string& message)
   suppressPrefixes = message.empty() || message.back() != '\n';
 }
 
+/**********************************************************/
 void core::Logger::outputToConsoles(LogLevel level,
                                     const std::string& message) noexcept
+/**********************************************************/
 {
   std::ostream* stdConsole =
       (level == LogLevel::eERROR ? &std::cerr : &std::cout);
@@ -389,7 +423,9 @@ void core::Logger::outputToConsoles(LogLevel level,
 #endif
 }
 
+/**********************************************************/
 void core::Logger::outputToFile(const std::string& message) noexcept
+/**********************************************************/
 {
   if (m_logToFile && m_logFile.is_open())
   {
@@ -401,8 +437,10 @@ void core::Logger::outputToFile(const std::string& message) noexcept
   }
 }
 
+/**********************************************************/
 void core::Logger::outputToCallback(LogLevel level,
                                     const std::string& message) noexcept
+/**********************************************************/
 {
   if (m_logCallback)
   {
@@ -410,7 +448,9 @@ void core::Logger::outputToCallback(LogLevel level,
   }
 }
 
+/**********************************************************/
 [[maybe_unused]] static void usage_Logger()
+/**********************************************************/
 {
   // Get the logger instance
   core::Logger& logger = core::Logger::getInstance();

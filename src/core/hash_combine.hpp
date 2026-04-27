@@ -111,14 +111,18 @@ template <> struct hash_mix_impl<32>
   }
 };
 
+/**********************************************************/
 inline std::size_t hash_mix(std::size_t v)
+/**********************************************************/
 {
   return hash_mix_impl<sizeof(std::size_t) * CHAR_BIT>::fn(v);
 }
 
 }  // namespace hash_detail
 
+/**********************************************************/
 template <class T> inline void hash_combine(std::size_t& seed, T const& v)
+/**********************************************************/
 {
   seed = boost::hash_detail::hash_mix(seed + 0x9e3779b9 + std::hash<T>()(v));
 }

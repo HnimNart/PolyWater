@@ -77,14 +77,26 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  GLFWwindow* getWindowHandle() const { return m_windowHandle; }
+  /**********************************************************/
+  GLFWwindow* getWindowHandle() const
+  /**********************************************************/
+  {
+    return m_windowHandle;
+  }
+  /**********************************************************/
   const WindowSize& getViewportSize() const
+  /**********************************************************/
   {
     return m_backend->getViewportSize();
   }
 
 #ifdef PROFILE_APP
-  core::ProfilerManager* getProfiler() const { return m_profilerManager.get(); }
+  /**********************************************************/
+  core::ProfilerManager* getProfiler() const
+  /**********************************************************/
+  {
+    return m_profilerManager.get();
+  }
 #endif
 
 private:

@@ -8,7 +8,9 @@ class PointLight : public Light
   glm::vec3 position;
   glm::vec3 intensity;  // Watts/Steradian
 
+  /**********************************************************/
   LightSample SampleLi(const glm::vec3& ref, const glm::vec2& u) const override
+  /**********************************************************/
   {
     LightSample ls;
     ls.wi = normalize(position - ref);
@@ -19,13 +21,22 @@ class PointLight : public Light
     return ls;
   }
 
+  /**********************************************************/
   float PdfLi(const glm::vec3& ref, const glm::vec3& wi) const override
+  /**********************************************************/
   {
     return 0.0f;
   }
+  /**********************************************************/
   float Power() const override
+  /**********************************************************/
   {
     return 4.0f * M_PI * shaderio::bt709Luminance(intensity);
   }
-  bool IsDelta() const override { return true; }
+  /**********************************************************/
+  bool IsDelta() const override
+  /**********************************************************/
+  {
+    return true;
+  }
 };

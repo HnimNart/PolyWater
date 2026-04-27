@@ -28,9 +28,11 @@
 // and also to expose to sample code (like hiding views for benchmark through
 // parameter change) some default settings are created internally if not
 // provided
+/**********************************************************/
 app::ElementProfiler::ElementProfiler(
     core::ProfilerManager* profiler,
     std::shared_ptr<ViewSettings> defaultViewSettings) : m_profiler(profiler)
+/**********************************************************/
 {
   m_views.push_back(
       {.state = defaultViewSettings
@@ -38,7 +40,9 @@ app::ElementProfiler::ElementProfiler(
                     : std::make_shared<ElementProfiler::ViewSettings>()});
 };
 
+/**********************************************************/
 void app::ElementProfiler::onAttach(Application* app)
+/**********************************************************/
 {
   m_app = app;
   //
@@ -46,7 +50,9 @@ void app::ElementProfiler::onAttach(Application* app)
 }
 
 // add a new view, view name in the state parameter must be unique
+/**********************************************************/
 void app::ElementProfiler::addView(std::shared_ptr<ViewSettings> state)
+/**********************************************************/
 {
   // check if a view with same name already exists
   for (const auto& existingView : m_views)
@@ -61,7 +67,9 @@ void app::ElementProfiler::addView(std::shared_ptr<ViewSettings> state)
   m_views.push_back({.state = std::move(state)});
 }
 
+/**********************************************************/
 void app::ElementProfiler::onUIMenu()
+/**********************************************************/
 {
   if (ImGui::BeginMenu("View"))
   {
@@ -74,7 +82,9 @@ void app::ElementProfiler::onUIMenu()
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::onUIRender()
+/**********************************************************/
 {
   constexpr float deltaTime = (1.0f / 60.0f);  // Frequency 60Hz
   static float s_timeElapsed = 0;
@@ -155,7 +165,9 @@ void app::ElementProfiler::onUIRender()
 /////////////////
 // Private methods
 
+/**********************************************************/
 void app::ElementProfiler::updateData()
+/**********************************************************/
 {
 
   // retrieve statistics, thread safe
@@ -191,10 +203,12 @@ void app::ElementProfiler::updateData()
   }
 }
 
+/**********************************************************/
 uint32_t app::ElementProfiler::addEntries(
     const core::ProfilerTimeline::Snapshot& snapshot,
     std::vector<EntryNode>& nodes, uint32_t startIndex, uint32_t endIndex,
     uint32_t currentLevel)
+/**********************************************************/
 {
   for (uint32_t curIndex = startIndex; curIndex < endIndex; curIndex++)
   {
@@ -233,10 +247,12 @@ uint32_t app::ElementProfiler::addEntries(
   return endIndex;
 }
 
+/**********************************************************/
 void app::ElementProfiler::displayTableNode(const EntryNode& node,
                                             bool detailed,
                                             uint32_t defaultOpenLevels,
                                             uint32_t depth)
+/**********************************************************/
 {
   ImGuiTableFlags flags =
       ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_SpanAllColumns;
@@ -299,7 +315,9 @@ void app::ElementProfiler::displayTableNode(const EntryNode& node,
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::drawVsyncCheckbox()
+/**********************************************************/
 {
   bool vsync = m_app->isVsync();
   const bool showRed = vsync;
@@ -319,7 +337,9 @@ void app::ElementProfiler::drawVsyncCheckbox()
     m_app->setVsync(vsync);
 }
 
+/**********************************************************/
 void app::ElementProfiler::renderTable(View& view)
+/**********************************************************/
 {
   bool copy = false;
 
@@ -419,7 +439,9 @@ void app::ElementProfiler::renderTable(View& view)
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::renderPieChart(View& view)
+/**********************************************************/
 {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
@@ -491,9 +513,11 @@ void app::ElementProfiler::renderPieChart(View& view)
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::renderPieChartNode(const EntryNode& node, int level,
                                               int numLevels, double plotRadius,
                                               double angle0, double totalTime)
+/**********************************************************/
 {
   // Gather data
   std::vector<const char*> labels(node.child.size());
@@ -529,7 +553,9 @@ void app::ElementProfiler::renderPieChartNode(const EntryNode& node, int level,
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::renderBarChart(View& view)
+/**********************************************************/
 {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
@@ -603,7 +629,9 @@ void app::ElementProfiler::renderBarChart(View& view)
 }
 
 //
+/**********************************************************/
 void app::ElementProfiler::renderLineChart(View& view)
+/**********************************************************/
 {
   const bool gridMode =
       ImGui::GetContentRegionAvail().x >= 600 && m_frameNodes.size() > 1;
@@ -795,7 +823,9 @@ void app::ElementProfiler::renderLineChart(View& view)
   }
 }
 
+/**********************************************************/
 void app::ElementProfiler::addSettingsHandler()
+/**********************************************************/
 {
 
   // finds the wubsection in wich we are

@@ -27,9 +27,15 @@
 class NVAPIManager
 {
 public:
-  NVAPIManager() : hSession(nullptr), hProfile(nullptr) {}
+  /**********************************************************/
+  NVAPIManager() : hSession(nullptr), hProfile(nullptr)
+  /**********************************************************/
+  {
+  }
 
+  /**********************************************************/
   void init()
+  /**********************************************************/
   {
     NvAPI_Status status = NvAPI_Initialize();
     checkNvapiStatus(status);
@@ -44,7 +50,9 @@ public:
     checkNvapiStatus(status);
   }
 
+  /**********************************************************/
   void pushSetting(const NVDRS_SETTING& setting)
+  /**********************************************************/
   {
     NVDRS_SETTING oldSetting = setting;
     NvAPI_Status status = NvAPI_DRS_GetSetting(hSession, hProfile,
@@ -55,7 +63,9 @@ public:
     setSetting(setting);
   }
 
+  /**********************************************************/
   void popSettings()
+  /**********************************************************/
   {
     for (auto& setting : oldSettings)
     {
@@ -63,7 +73,9 @@ public:
     }
   }
 
+  /**********************************************************/
   void setSetting(const NVDRS_SETTING& setting)
+  /**********************************************************/
   {
     NVDRS_SETTING nonConstSetting = setting;
     NvAPI_Status status =
@@ -74,7 +86,9 @@ public:
     checkNvapiStatus(status);
   }
 
+  /**********************************************************/
   void deinit()
+  /**********************************************************/
   {
     NvAPI_Status status = NvAPI_DRS_DestroySession(hSession);
     checkNvapiStatus(status);
@@ -83,7 +97,9 @@ public:
   }
 
 private:
+  /**********************************************************/
   void checkNvapiStatus(NvAPI_Status status)
+  /**********************************************************/
   {
     if (status != NVAPI_OK)
     {

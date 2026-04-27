@@ -22,14 +22,23 @@ class RenderGraph
 {
 public:
   RenderGraph(std::string name) : m_name(std::move(name)){};
-  const std::string& name() const { return m_name; }
+  /**********************************************************/
+  const std::string& name() const
+  /**********************************************************/
+  {
+    return m_name;
+  }
 
+  /**********************************************************/
   void addPass(std::unique_ptr<IRenderPass> pass)
+  /**********************************************************/
   {
     m_passes.push_back(std::move(pass));
   }
 
+  /**********************************************************/
   void init()
+  /**********************************************************/
   {
     for (auto& p : m_passes)
     {
@@ -37,7 +46,9 @@ public:
     }
   }
 
+  /**********************************************************/
   void deinit()
+  /**********************************************************/
   {
     for (auto& p : m_passes)
     {
@@ -50,7 +61,9 @@ public:
    * @brief Finds the first pass of type T in the graph.
    * @return Pointer to the pass of type T, or nullptr if not found.
    */
+  /**********************************************************/
   template <typename T> T* findPass()
+  /**********************************************************/
   {
     for (const auto& pass : m_passes)
     {
@@ -64,7 +77,9 @@ public:
     return nullptr;
   }
 
+  /**********************************************************/
   void compile()
+  /**********************************************************/
   {
     m_barriers.clear();
     m_barriers.resize(m_passes.size());
@@ -162,7 +177,9 @@ public:
   // -----------------------------------------------------------------------
   // EXECUTE: Delegates to the Context
   // -----------------------------------------------------------------------
+  /**********************************************************/
   void execute(IRenderContext& ctx) const
+  /**********************************************************/
   {
     for (size_t i = 0; i < m_passes.size(); ++i)
     {

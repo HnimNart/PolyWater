@@ -36,8 +36,14 @@ And it returns information, like its volume, its center, the min, max, etc..
 struct Bbox
 {
   Bbox() = default;
-  Bbox(glm::vec3 _min, glm::vec3 _max) : m_min(_min), m_max(_max) {}
+  /**********************************************************/
+  Bbox(glm::vec3 _min, glm::vec3 _max) : m_min(_min), m_max(_max)
+  /**********************************************************/
+  {
+  }
+  /**********************************************************/
   Bbox(const std::vector<glm::vec3>& corners)
+  /**********************************************************/
   {
     for (auto& c : corners)
     {
@@ -45,7 +51,9 @@ struct Bbox
     }
   }
 
+  /**********************************************************/
   void insert(const glm::vec3& v)
+  /**********************************************************/
   {
     m_min = {std::min(m_min.x, v.x), std::min(m_min.y, v.y),
              std::min(m_min.z, v.z)};
@@ -53,7 +61,9 @@ struct Bbox
              std::max(m_max.z, v.z)};
   }
 
+  /**********************************************************/
   void insert(const Bbox& b)
+  /**********************************************************/
   {
     insert(b.m_min);
     insert(b.m_max);
@@ -66,13 +76,17 @@ struct Bbox
     return *this;
   }
 
+  /**********************************************************/
   inline bool isEmpty() const
+  /**********************************************************/
   {
     return m_min == glm::vec3{std::numeric_limits<float>::max()} ||
            m_max == glm::vec3{std::numeric_limits<float>::lowest()};
   }
 
+  /**********************************************************/
   inline uint32_t rank() const
+  /**********************************************************/
   {
     uint32_t result{0};
     result += m_min.x < m_max.x;
@@ -80,17 +94,64 @@ struct Bbox
     result += m_min.z < m_max.z;
     return result;
   }
-  inline bool isPoint() const { return m_min == m_max; }
-  inline bool isLine() const { return rank() == 1u; }
-  inline bool isPlane() const { return rank() == 2u; }
-  inline bool isVolume() const { return rank() == 3u; }
-  inline glm::vec3 min() const { return m_min; }
-  inline glm::vec3 max() const { return m_max; }
-  inline glm::vec3 extents() { return m_max - m_min; }
-  inline glm::vec3 center() const { return (m_min + m_max) * 0.5f; }
-  inline float radius() const { return glm::length(m_max - m_min) * 0.5f; }
+  /**********************************************************/
+  inline bool isPoint() const
+  /**********************************************************/
+  {
+    return m_min == m_max;
+  }
+  /**********************************************************/
+  inline bool isLine() const
+  /**********************************************************/
+  {
+    return rank() == 1u;
+  }
+  /**********************************************************/
+  inline bool isPlane() const
+  /**********************************************************/
+  {
+    return rank() == 2u;
+  }
+  /**********************************************************/
+  inline bool isVolume() const
+  /**********************************************************/
+  {
+    return rank() == 3u;
+  }
+  /**********************************************************/
+  inline glm::vec3 min() const
+  /**********************************************************/
+  {
+    return m_min;
+  }
+  /**********************************************************/
+  inline glm::vec3 max() const
+  /**********************************************************/
+  {
+    return m_max;
+  }
+  /**********************************************************/
+  inline glm::vec3 extents()
+  /**********************************************************/
+  {
+    return m_max - m_min;
+  }
+  /**********************************************************/
+  inline glm::vec3 center() const
+  /**********************************************************/
+  {
+    return (m_min + m_max) * 0.5f;
+  }
+  /**********************************************************/
+  inline float radius() const
+  /**********************************************************/
+  {
+    return glm::length(m_max - m_min) * 0.5f;
+  }
 
+  /**********************************************************/
   Bbox transform(glm::mat4 mat)
+  /**********************************************************/
   {
     // Make sure this is a 3D transformation + translation:
     auto r = glm::row(mat, 3);
@@ -117,7 +178,9 @@ private:
   glm::vec3 m_max{-std::numeric_limits<float>::max()};
 };
 
+/**********************************************************/
 template <typename T, typename TFlag> inline bool hasFlag(T a, TFlag flag)
+/**********************************************************/
 {
   return (a & flag) == flag;
 }

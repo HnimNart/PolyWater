@@ -33,9 +33,11 @@
 namespace app::cli
 {
 
+/**********************************************************/
 ParameterParser::ParameterParser(
     const std::string& description,
     const std::vector<std::string>& configFileExtensions)
+/**********************************************************/
 {
   m_helpDescription = description;
 
@@ -103,7 +105,9 @@ ParameterParser::ParameterParser(
       0, fnHelp));
 }
 
+/**********************************************************/
 void ParameterParser::printHelp() const
+/**********************************************************/
 {
   static constexpr int MAX_LINE_WIDTH = 60;
 
@@ -182,7 +186,9 @@ void ParameterParser::printHelp() const
   }
 }
 
+/**********************************************************/
 void ParameterParser::add(const ParameterBase* parameter)
+/**********************************************************/
 {
   if (m_parsedParameterSet.find(parameter) != m_parsedParameterSet.end())
   {
@@ -207,8 +213,10 @@ void ParameterParser::add(const ParameterBase* parameter)
   m_parsedParameterSet.insert(parameter);
 }
 
+/**********************************************************/
 void ParameterParser::add(const ParameterRegistry& registry,
                           uint32_t visibilityMask)
+/**********************************************************/
 {
   auto parameters = registry.getParameters();
   for (const auto& param : parameters)
@@ -219,8 +227,10 @@ void ParameterParser::add(const ParameterRegistry& registry,
 }
 
 // internal safe parsing of string to int, exit(1) on error
+/**********************************************************/
 int ParameterParser::parseInt(const ParameterBase& parameter, const char* str,
                               size_t a)
+/**********************************************************/
 {
   try
   {
@@ -252,8 +262,10 @@ int ParameterParser::parseInt(const ParameterBase& parameter, const char* str,
 }
 
 // internal safe parsing of string to int, exit(1) on error
+/**********************************************************/
 float ParameterParser::parseFloat(const ParameterBase& parameter,
                                   const char* str, size_t a)
+/**********************************************************/
 {
   try
   {
@@ -283,10 +295,12 @@ float ParameterParser::parseFloat(const ParameterBase& parameter,
   exit(1);
 }
 
+/**********************************************************/
 size_t ParameterParser::parse(std::span<const char* const> args, bool skipExe,
                               const std::filesystem::path& filenameBasePathIn,
                               const std::string& stopKeyword,
                               bool silentUnknown)
+/**********************************************************/
 {
   std::filesystem::path filenameBasePath = filenameBasePathIn;
 
@@ -506,8 +520,10 @@ size_t ParameterParser::parse(std::span<const char* const> args, bool skipExe,
 }
 
 std::filesystem::path
+/**********************************************************/
 ParameterParser::getFilename(const std::filesystem::path& filenameBasePath,
                              const std::filesystem::path& arg)
+/**********************************************************/
 {
   if (arg.is_relative())
   {
@@ -519,14 +535,18 @@ ParameterParser::getFilename(const std::filesystem::path& filenameBasePath,
   }
 }
 
+/**********************************************************/
 static bool endsWith(const std::string& str, const std::string& suffix)
+/**********************************************************/
 {
   return str.size() >= suffix.size() &&
          str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
 const ParameterBase*
+/**********************************************************/
 ParameterParser::findViaExtension(const std::string& argin) const
+/**********************************************************/
 {
   std::string arg = argin;
 
@@ -547,8 +567,10 @@ ParameterParser::findViaExtension(const std::string& argin) const
   return nullptr;
 }
 
+/**********************************************************/
 void ParameterParser::Tokenized::initFromString(
     const std::string& content, const std::filesystem::path& filenameBasePath)
+/**********************************************************/
 {
   m_args = {};
   m_content = content;
@@ -557,8 +579,10 @@ void ParameterParser::Tokenized::initFromString(
   processContent();
 }
 
+/**********************************************************/
 bool ParameterParser::Tokenized::initFromFile(
     const std::filesystem::path& filename)
+/**********************************************************/
 {
   m_content = {};
   m_args = {};
@@ -589,7 +613,9 @@ bool ParameterParser::Tokenized::initFromFile(
   return true;
 }
 
+/**********************************************************/
 void ParameterParser::Tokenized::processContent()
+/**********************************************************/
 {
   bool wasSpace = true;
   bool inQuotes = false;

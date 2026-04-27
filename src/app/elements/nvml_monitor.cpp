@@ -61,7 +61,9 @@
       }                                                                        \
     }
 
+/**********************************************************/
 static const std::string brandToString(nvmlBrandType_t brand)
+/**********************************************************/
 {
   switch (brand)
   {
@@ -105,7 +107,9 @@ static const std::string brandToString(nvmlBrandType_t brand)
   return "Unknown";
 }
 
+/**********************************************************/
 static const std::string computeModeToString(nvmlComputeMode_t computeMode)
+/**********************************************************/
 {
   switch (computeMode)
   {
@@ -128,11 +132,13 @@ using namespace app;
 //-------------------------------------------------------------------------------------------------
 //
 //
+/**********************************************************/
 NvmlMonitor::NvmlMonitor(uint32_t interval /*= 100*/,
                          uint32_t limit /*= 100*/) :
     m_maxElements(limit)  // limit : number of measures
     ,
     m_minInterval(interval)  // interval : ms between sampling
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
 
@@ -180,7 +186,9 @@ NvmlMonitor::NvmlMonitor(uint32_t interval /*= 100*/,
 //-------------------------------------------------------------------------------------------------
 // Destructor: shutting down NVML
 //
+/**********************************************************/
 NvmlMonitor::~NvmlMonitor()
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlShutdown();
@@ -191,7 +199,9 @@ NvmlMonitor::~NvmlMonitor()
 
 //-------------------------------------------------------------------------------------------------
 // Returning the current amount of memory is used by the device
+/**********************************************************/
 static uint64_t getMemory(nvmlDevice_t device)
+/**********************************************************/
 {
   try
   {
@@ -205,7 +215,9 @@ static uint64_t getMemory(nvmlDevice_t device)
   }
 }
 
+/**********************************************************/
 static float getLoad(nvmlDevice_t device)
+/**********************************************************/
 {
   nvmlUtilization_t utilization{};
   nvmlReturn_t result = nvmlDeviceGetUtilizationRates(device, &utilization);
@@ -214,7 +226,9 @@ static float getLoad(nvmlDevice_t device)
   return static_cast<float>(utilization.gpu);
 }
 
+/**********************************************************/
 static float getCpuLoad()
+/**********************************************************/
 {
 #  ifdef _WIN32
   static uint64_t s_previousTotalTicks = 0;
@@ -256,7 +270,9 @@ static float getCpuLoad()
 // Pulling the information from NVML and storing the data
 // Note: the interval is important, as it cannot be query too quickly
 //
+/**********************************************************/
 void NvmlMonitor::refresh()
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
 
@@ -291,7 +307,9 @@ void NvmlMonitor::refresh()
 #endif  //  NVML_SUPPORTED
 }
 
+/**********************************************************/
 void NvmlMonitor::DeviceInfo::refresh(void* dev)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlDevice_t device = reinterpret_cast<nvmlDevice_t>(dev);
@@ -514,7 +532,9 @@ void NvmlMonitor::DeviceInfo::refresh(void* dev)
 #endif
 }
 
+/**********************************************************/
 void NvmlMonitor::DeviceMemory::init(uint32_t maxElements)
+/**********************************************************/
 {
   memoryFree.get().resize(maxElements);
   memoryUsed.get().resize(maxElements);
@@ -523,7 +543,9 @@ void NvmlMonitor::DeviceMemory::init(uint32_t maxElements)
   bar1Used.get().resize(maxElements);
 }
 
+/**********************************************************/
 void NvmlMonitor::DeviceMemory::refresh(void* dev, uint32_t offset)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlDevice_t device = reinterpret_cast<nvmlDevice_t>(dev);
@@ -549,7 +571,9 @@ void NvmlMonitor::DeviceMemory::refresh(void* dev, uint32_t offset)
 #endif
 }
 
+/**********************************************************/
 void NvmlMonitor::DeviceUtilization::init(uint32_t maxElements)
+/**********************************************************/
 {
   gpuUtilization.get().resize(maxElements);
   memUtilization.get().resize(maxElements);
@@ -560,7 +584,9 @@ void NvmlMonitor::DeviceUtilization::init(uint32_t maxElements)
   ;
 }
 
+/**********************************************************/
 void NvmlMonitor::DeviceUtilization::refresh(void* dev, uint32_t offset)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlDevice_t device = reinterpret_cast<nvmlDevice_t>(dev);
@@ -583,7 +609,9 @@ void NvmlMonitor::DeviceUtilization::refresh(void* dev, uint32_t offset)
 #endif
 }
 
+/**********************************************************/
 void NvmlMonitor::DevicePerformanceState::init(uint32_t maxElements)
+/**********************************************************/
 {
   clockGraphics.get().resize(maxElements);
   clockSM.get().resize(maxElements);
@@ -592,7 +620,9 @@ void NvmlMonitor::DevicePerformanceState::init(uint32_t maxElements)
   throttleReasons.get().resize(maxElements);
 }
 
+/**********************************************************/
 void NvmlMonitor::DevicePerformanceState::refresh(void* dev, uint32_t offset)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlDevice_t device = reinterpret_cast<nvmlDevice_t>(dev);
@@ -618,7 +648,9 @@ void NvmlMonitor::DevicePerformanceState::refresh(void* dev, uint32_t offset)
 }
 
 std::vector<std::string>
+/**********************************************************/
 NvmlMonitor::DevicePerformanceState::getThrottleReasonStrings(uint64_t reason)
+/**********************************************************/
 {
   std::vector<std::string> reasonStrings;
 #if defined(NVML_SUPPORTED)
@@ -665,7 +697,9 @@ NvmlMonitor::DevicePerformanceState::getThrottleReasonStrings(uint64_t reason)
 }
 
 const std::vector<uint64_t>&
+/**********************************************************/
 NvmlMonitor::DevicePerformanceState::getAllThrottleReasonList()
+/**********************************************************/
 {
   static std::vector<uint64_t> s_reasonList =
 #if defined(NVML_SUPPORTED)
@@ -685,14 +719,18 @@ NvmlMonitor::DevicePerformanceState::getAllThrottleReasonList()
   return s_reasonList;
 }
 
+/**********************************************************/
 void NvmlMonitor::DevicePowerState::init(uint32_t maxElements)
+/**********************************************************/
 {
   power.get().resize(maxElements);
   temperature.get().resize(maxElements);
   fanSpeed.get().resize(maxElements);
 }
 
+/**********************************************************/
 void NvmlMonitor::DevicePowerState::refresh(void* dev, uint32_t offset)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   nvmlDevice_t device = reinterpret_cast<nvmlDevice_t>(dev);

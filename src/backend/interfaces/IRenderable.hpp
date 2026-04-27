@@ -18,12 +18,16 @@ public:
 class RenderRegistry
 {
 public:
+  /**********************************************************/
   void registerElement(std::shared_ptr<IRenderable> element)
+  /**********************************************************/
   {
     m_elements.push_back(std::move(element));
   }
 
+  /**********************************************************/
   const std::vector<std::shared_ptr<IRenderable>>& getElements() const
+  /**********************************************************/
   {
     return m_elements;
   }

@@ -43,8 +43,10 @@ Frustum extractFrustumPlanes(const glm::mat4& vpMatrix)
   return f;
 }
 
+/**********************************************************/
 bool isAABBInsideFrustum(const Frustum& frustum, const glm::vec3& minBounds,
                          const glm::vec3& maxBounds, const glm::mat4& transform)
+/**********************************************************/
 {
   // Transform the 8 corners of the AABB to world space
   glm::vec3 corners[8] = {{minBounds.x, minBounds.y, minBounds.z},
