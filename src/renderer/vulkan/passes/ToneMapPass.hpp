@@ -29,7 +29,6 @@ public:
 
   VkResult init(nvvk::ResourceAllocator *alloc,
                 std::span<const uint32_t> spirv);
-  void deinit();
 
   void runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
                   const shaderio::TonemapperData &tonemapper,

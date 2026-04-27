@@ -20,20 +20,22 @@
 #ifndef SLANG_TYPES_H
 #define SLANG_TYPES_H
 
-// This header provides type definitions and aliases to bridge between Slang shader types, C++ GLM types, and GLSL types.
-// It enables seamless data sharing between shader code and host code while maintaining type safety.
+// This header provides type definitions and aliases to bridge between Slang
+// shader types, C++ GLM types, and GLSL types. It enables seamless data sharing
+// between shader code and host code while maintaining type safety.
 
 #ifdef __cplusplus
 #include <glm/glm.hpp>
 
-// In C++, we put all of the shared types and functions into the 'shaderio' namespace.
-// We provide the below macros to deal with the fact that not all languages #include'ing this header actually support namespaces.
+// In C++, we put all of the shared types and functions into the 'shaderio'
+// namespace. We provide the below macros to deal with the fact that not all
+// languages #include'ing this header actually support namespaces.
 #define NAMESPACE_SHADERIO_BEGIN() namespace shaderio {
-#define NAMESPACE_SHADERIO_END() }  // namespace shaderio
+#define NAMESPACE_SHADERIO_END() } // namespace shaderio
 
 NAMESPACE_SHADERIO_BEGIN()
 
-using namespace glm;  // import all of glm into the shaderio namespace
+using namespace glm; // import all of glm into the shaderio namespace
 
 // GPU device address: a 64-bit integer holding a Vulkan buffer device address.
 // On the C++ side this is a plain uint64_t (matches VkDeviceAddress).
@@ -58,7 +60,7 @@ using int2 = glm::ivec2;
 using int3 = glm::ivec3;
 using int4 = glm::ivec4;
 
-using uint  = unsigned int;
+using uint = unsigned int;
 using uint2 = glm::uvec2;
 using uint3 = glm::uvec3;
 using uint4 = glm::uvec4;
@@ -72,42 +74,40 @@ using bool4 = glm::bvec4;
 //--------------------------------
 
 // Linear interpolation between two values a and b using parameter t in [0,1]
-template <typename T>
-T lerp(T a, T b, T t)
-{
-  return glm::mix(a, b, t);
-}
+template <typename T> T lerp(T a, T b, T t) { return glm::mix(a, b, t); }
 
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
-glm::vec<N, ScalarType, Precision> mul(glm::vec<N, ScalarType, Precision> v, glm::mat<N, N, ScalarType, Precision> M)
-{
+glm::vec<N, ScalarType, Precision>
+mul(glm::vec<N, ScalarType, Precision> v,
+    glm::mat<N, N, ScalarType, Precision> M) {
   return M * v;
 }
 
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
-glm::vec<N, ScalarType, Precision> mul(glm::mat<N, N, ScalarType, Precision> M, glm::vec<N, ScalarType, Precision> v)
-{
+glm::vec<N, ScalarType, Precision> mul(glm::mat<N, N, ScalarType, Precision> M,
+                                       glm::vec<N, ScalarType, Precision> v) {
   return v * M;
 }
 
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
-glm::mat<N, N, ScalarType, Precision> mul(glm::mat<N, N, ScalarType, Precision> A, glm::mat<N, N, ScalarType, Precision> B)
-{
+glm::mat<N, N, ScalarType, Precision>
+mul(glm::mat<N, N, ScalarType, Precision> A,
+    glm::mat<N, N, ScalarType, Precision> B) {
   return B * A;
 }
 
 #define SLANG_DEFAULT(x) = (x)
 
 #ifndef NVSHADERS_OUT_TYPE
-#define NVSHADERS_OUT_TYPE(T) T&
+#define NVSHADERS_OUT_TYPE(T) T &
 #endif
 #ifndef NVSHADERS_INOUT_TYPE
-#define NVSHADERS_INOUT_TYPE(T) T&
+#define NVSHADERS_INOUT_TYPE(T) T &
 #endif
 
 NAMESPACE_SHADERIO_END()
 
-#elif defined(GL_core_profile)  // GLSL
+#elif defined(GL_core_profile) // GLSL
 
 #define NAMESPACE_SHADERIO_BEGIN()
 #define NAMESPACE_SHADERIO_END()
@@ -156,15 +156,9 @@ NAMESPACE_SHADERIO_END()
 #define NVSHADERS_INOUT_TYPE(T) inout T
 #endif
 
-vec3 mul(vec3 a, mat3 b)
-{
-  return b * a;
-}
+vec3 mul(vec3 a, mat3 b) { return b * a; }
 
-mat3 mul(mat3 a, mat3 b)
-{
-  return b * a;
-}
+mat3 mul(mat3 a, mat3 b) { return b * a; }
 
 #elif __SLANG__
 
@@ -173,10 +167,13 @@ mat3 mul(mat3 a, mat3 b)
 
 // GPU device address: a byte pointer on the Slang side so that arithmetic and
 // casts to typed pointers (e.g. (float*)(addr + offset)) work naturally.
-typealias DevicePointer = uint8_t*;
+typealias DevicePointer = uint64_t;
 
 #define SLANG_DEFAULT(x) = (x)
-__intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(vector<T, N> x, vector<T, N> y);
+__intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(
+    vector<T, N> x, vector<T, N> y);
+
+T *castAddress<T>(uint64_t addr) { return reinterpret<T *>(addr); }
 
 #ifndef NVSHADERS_OUT_TYPE
 #define NVSHADERS_OUT_TYPE(T) out T
@@ -186,11 +183,10 @@ __intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(vector<
 #define NVSHADERS_INOUT_TYPE(T) inout T
 #endif
 
-
-#else  // No language specified
+#else // No language specified
 
 #error "Unknown language environment"
 
-#endif  // __cplusplus
+#endif // __cplusplus
 
-#endif  // SLANG_TYPES_H
+#endif // SLANG_TYPES_H

@@ -47,14 +47,6 @@ void ToneMapPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void ToneMapPass::deinit()
-/**********************************************************/
-{
-  deinit();
-  m_initialized = false;
-}
-
-/**********************************************************/
 void ToneMapPass::execute(const IRenderContext &ctx)
 /**********************************************************/
 {
@@ -187,6 +179,8 @@ void ToneMapPass::deinit()
   m_pipelineLayout = VK_NULL_HANDLE;
   m_tonemapPipeline = VK_NULL_HANDLE;
   m_device = VK_NULL_HANDLE;
+
+  m_initialized = false;
 }
 
 //----------------------------------

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "renderer/interfaces/IRenderGraph.hpp"
 #include <nvvk/descriptors.hpp>
 #include <vulkan/vulkan_core.h>
+
+#include "backend/vulkan/core/ContextManager.hpp"
+#include "renderer/interfaces/IRenderGraph.hpp"
 
 class DenoisePass : public IRenderPass {
 public:
