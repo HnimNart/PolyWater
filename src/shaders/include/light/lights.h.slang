@@ -17,7 +17,10 @@ struct LightSample {
   float3 color; // Light Color (RGB)
 };
 
-uint selectLightIndex(float randomValue, float *cdfBuffer, uint count) {
+/**********************************************************/
+uint selectLightIndex(float randomValue, float *cdfBuffer, uint count)
+/**********************************************************/
+{
   uint first = 0;
   uint len = count;
 
@@ -38,9 +41,11 @@ uint selectLightIndex(float randomValue, float *cdfBuffer, uint count) {
 //-----------------------------------------------------------------------
 // HELPER: LIGHT SAMPLING FUNCTION
 //-----------------------------------------------------------------------
+/**********************************************************/
 LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
                         float3 worldPos,      // Surface position being shaded
                         int lightIndex = 0)   // Index of light to sample
+/**********************************************************/
 {
   LightSample result;
 
@@ -120,8 +125,11 @@ LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
 // ------------------------------------------------------------------
 // Main Sampling Function
 // ------------------------------------------------------------------
+/**********************************************************/
 LightSample sampleAreaLight(SceneInfo *sceneInfo, float3 refPoint,
-                            inout int seed) {
+                            inout int seed)
+/**********************************************************/
+{
   LightSample ls;
 
   // Initialize defaults (invalid sample)
@@ -135,17 +143,17 @@ LightSample sampleAreaLight(SceneInfo *sceneInfo, float3 refPoint,
   AreaLight areaLight = sceneInfo->areaLight;
   if (areaLight.nTriangles == 0)
     return ls;
-  TriangleLight *areaLightTriangles = areaLight.triangles;
-  float *areaLightCdf = areaLight.cdf;
+  DevicePtr<TriangleLight> areaLightTriangles = areaLight.triangles;
+  DevicePtr<float> areaLightCdf = areaLight.cdf;
 
   // 1. Select the specific triangle using the CDF (Discrete sampling)
-  uint index = selectLightIndex(rnd(seed), areaLightCdf, areaLight.nTriangles);
-  TriangleLight tri = areaLightTriangles[index];
+  uint index = selectLightIndex(rnd(seed), areaLightCdf.get(), areaLight.nTriangles);
+  TriangleLight tri = areaLightTriangles.readAt(index);
 
   // Calculate probability of choosing this specific triangle
   // P(tri) = CDF[i] - CDF[i-1]
-  float prevCdf = (index == 0) ? 0.0f : areaLightCdf[index - 1];
-  float currentCdf = areaLightCdf[index];
+  float prevCdf = (index == 0) ? 0.0f : areaLightCdf.readAt(index - 1);
+  float currentCdf = areaLightCdf.readAt(index);
   float triSelectionPdf = currentCdf - prevCdf;
 
   // 2. Sample a random point on the triangle (Continuous sampling)
@@ -202,8 +210,11 @@ struct LightRaySample {
 }
 
 LightRaySample
+/**********************************************************/
 sampleDirectLightingPowerCDF(SceneInfo *sceneInfo, float3 worldPos,
-                             float3 worldNormal, IBSDF bsdf, inout int seed) {
+                             float3 worldNormal, IBSDF bsdf, inout int seed)
+/**********************************************************/
+{
   LightRaySample sample;
   sample.light = float3(0.0f);
   sample.valid = false;
@@ -334,8 +345,11 @@ sampleDirectLightingPowerCDF(SceneInfo *sceneInfo, float3 worldPos,
   return sample;
 }
 
+/**********************************************************/
 float3 sampleDirectLighting(SceneInfo *sceneInfo, float3 worldPos,
-                            float3 worldNormal, IBSDF bsdf) {
+                            float3 worldNormal, IBSDF bsdf)
+/**********************************************************/
+{
   float3 color = float3(0);
   // Loop over all lights
   for (int i = 0; i < sceneInfo->numLights; i++) {
@@ -357,8 +371,11 @@ float3 sampleDirectLighting(SceneInfo *sceneInfo, float3 worldPos,
   return color;
 }
 
+/**********************************************************/
 float3 sampleAreaLight(SceneInfo *sceneInfo, float3 worldPos,
-                       float3 worldNormal, IBSDF bsdf, inout int seed) {
+                       float3 worldNormal, IBSDF bsdf, inout int seed)
+/**********************************************************/
+{
 
   float3 directLighting = float3(0.0f);
   if (sceneInfo->areaLight.nTriangles > 0) {

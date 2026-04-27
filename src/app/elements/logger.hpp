@@ -29,7 +29,8 @@
 #include "app/IAppElement.hpp"
 #include "app/widgets/settings_handler.hpp"
 
-namespace app {
+namespace app
+{
 
 /*-------------------------------------------------------------------------------------------------
 # class core::ElementLogger
@@ -57,9 +58,11 @@ Add logger window
 -------------------------------------------------------------------------------------------------*/
 
 // Helper class to show the log in the application
-class ElementLogger : public IAppElement {
+class ElementLogger : public IAppElement
+{
 public:
-  enum LogLevelBit {
+  enum LogLevelBit
+  {
     eBitDEBUG = 1 << core::Logger::LogLevel::eDEBUG,
     eBitINFO = 1 << core::Logger::LogLevel::eINFO,
     eBitWARNING = 1 << core::Logger::LogLevel::eWARNING,
@@ -73,30 +76,30 @@ public:
   explicit ElementLogger(bool show = false);
   virtual ~ElementLogger() = default;
 
-  void onAttach(Application *app) override;
-  void onUIRender() override; // Called for anything related to UI
-  void onUIMenu() override;   // This is the menubar to create
+  void onAttach(Application* app) override;
+  void onUIRender() override;  // Called for anything related to UI
+  void onUIMenu() override;    // This is the menubar to create
 
   void setLevelFilter(uint32_t levelFilter);
-  void addLog(uint32_t level, const char *fmt, ...);
+  void addLog(uint32_t level, const char* fmt, ...);
 
 private:
   SettingsHandler m_settingsHandler;
 
   void clear();
   void initColors();
-  void draw(const char *title, bool *p_open = nullptr);
+  void draw(const char* title, bool* p_open = nullptr);
 
   uint32_t m_levelFilter = eBitERROR | eBitWARNING | eBitINFO;
   ImGuiTextBuffer m_buf{};
   ImGuiTextFilter m_filter{};
-  ImVector<int> m_lineOffsets; // Index to lines offset. We maintain this with
-                               // AddLog() calls.
-  ImVector<int> m_lineLevels;  // Log level per line.
-  ImVector<ImVec4> m_colors;   // Line color based on log level
-  bool m_autoScroll{true};     // Keep scrolling if already at the bottom.
+  ImVector<int> m_lineOffsets;  // Index to lines offset. We maintain this with
+                                // AddLog() calls.
+  ImVector<int> m_lineLevels;   // Log level per line.
+  ImVector<ImVec4> m_colors;    // Line color based on log level
+  bool m_autoScroll{true};      // Keep scrolling if already at the bottom.
   bool m_showLog{false};
-  std::mutex m_modificationMutex; // To protect from concurrent access
+  std::mutex m_modificationMutex;  // To protect from concurrent access
 };
 
-} // namespace app
+}  // namespace app

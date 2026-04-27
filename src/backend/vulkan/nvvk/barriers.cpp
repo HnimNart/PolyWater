@@ -21,56 +21,62 @@
 
 #include <volk.h>
 
-namespace nvvk {
+namespace nvvk
+{
 
 //-----------------------------------------------------------------------------
 // Non-constexpr functions
 // This separation also allows us to avoid including volk.h in the header.
 
-void cmdImageMemoryBarrier(VkCommandBuffer cmd, const ImageMemoryBarrierParams& params)
+void cmdImageMemoryBarrier(VkCommandBuffer cmd,
+                           const ImageMemoryBarrierParams& params)
 {
   VkImageMemoryBarrier2 barrier = makeImageMemoryBarrier(params);
 
-  const VkDependencyInfo depInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier};
+  const VkDependencyInfo depInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                 .imageMemoryBarrierCount = 1,
+                                 .pImageMemoryBarriers = &barrier};
 
   vkCmdPipelineBarrier2(cmd, &depInfo);
 }
 
-void cmdImageMemoryBarrier(VkCommandBuffer cmd, nvvk::Image& image, const ImageMemoryBarrierParams& params)
+void cmdImageMemoryBarrier(VkCommandBuffer cmd, nvvk::Image& image,
+                           const ImageMemoryBarrierParams& params)
 {
   ImageMemoryBarrierParams localParams = params;
-  localParams.image                    = image.image;
-  localParams.oldLayout                = image.descriptor.imageLayout;
+  localParams.image = image.image;
+  localParams.oldLayout = image.descriptor.imageLayout;
 
   cmdImageMemoryBarrier(cmd, localParams);
 
   image.descriptor.imageLayout = params.newLayout;
 }
 
-void cmdBufferMemoryBarrier(VkCommandBuffer commandBuffer, const BufferMemoryBarrierParams& params)
+void cmdBufferMemoryBarrier(VkCommandBuffer commandBuffer,
+                            const BufferMemoryBarrierParams& params)
 {
   VkBufferMemoryBarrier2 bufferBarrier = makeBufferMemoryBarrier(params);
   const VkDependencyInfo depInfo{
-      .sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
       .bufferMemoryBarrierCount = 1,
-      .pBufferMemoryBarriers    = &bufferBarrier,
+      .pBufferMemoryBarriers = &bufferBarrier,
   };
 
   vkCmdPipelineBarrier2(commandBuffer, &depInfo);
 }
 
-void cmdMemoryBarrier(VkCommandBuffer       cmd,
-                      VkPipelineStageFlags2 srcStageMask,
+void cmdMemoryBarrier(VkCommandBuffer cmd, VkPipelineStageFlags2 srcStageMask,
                       VkPipelineStageFlags2 dstStageMask,
-                      VkAccessFlags2        srcAccessMask /* = INFER_BARRIER_PARAMS */,
-                      VkAccessFlags2        dstAccessMask /* = INFER_BARRIER_PARAMS */)
+                      VkAccessFlags2 srcAccessMask /* = INFER_BARRIER_PARAMS */,
+                      VkAccessFlags2 dstAccessMask /* = INFER_BARRIER_PARAMS */)
 {
-  const VkMemoryBarrier2 memoryBarrier = makeMemoryBarrier(srcStageMask, dstStageMask, srcAccessMask, dstAccessMask);
+  const VkMemoryBarrier2 memoryBarrier = makeMemoryBarrier(
+      srcStageMask, dstStageMask, srcAccessMask, dstAccessMask);
 
   const VkDependencyInfo depInfo{
-      .sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
       .memoryBarrierCount = 1,
-      .pMemoryBarriers    = &memoryBarrier,
+      .pMemoryBarriers = &memoryBarrier,
   };
 
   vkCmdPipelineBarrier2(cmd, &depInfo);
@@ -79,27 +85,29 @@ void cmdMemoryBarrier(VkCommandBuffer       cmd,
 //-----------------------------------------------------------------------------
 // BarrierContainer implementation
 
-void BarrierContainer::cmdPipelineBarrier(VkCommandBuffer cmd, VkDependencyFlags dependencyFlags)
+void BarrierContainer::cmdPipelineBarrier(VkCommandBuffer cmd,
+                                          VkDependencyFlags dependencyFlags)
 {
-  if(memoryBarriers.empty() && bufferBarriers.empty() && imageBarriers.empty())
+  if (memoryBarriers.empty() && bufferBarriers.empty() && imageBarriers.empty())
     return;
 
   const VkDependencyInfo depInfo{
-      .sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .dependencyFlags          = dependencyFlags,
-      .memoryBarrierCount       = static_cast<uint32_t>(memoryBarriers.size()),
-      .pMemoryBarriers          = memoryBarriers.data(),
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .dependencyFlags = dependencyFlags,
+      .memoryBarrierCount = static_cast<uint32_t>(memoryBarriers.size()),
+      .pMemoryBarriers = memoryBarriers.data(),
       .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-      .pBufferMemoryBarriers    = bufferBarriers.data(),
-      .imageMemoryBarrierCount  = static_cast<uint32_t>(imageBarriers.size()),
-      .pImageMemoryBarriers     = imageBarriers.data(),
+      .pBufferMemoryBarriers = bufferBarriers.data(),
+      .imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size()),
+      .pImageMemoryBarriers = imageBarriers.data(),
   };
   vkCmdPipelineBarrier2(cmd, &depInfo);
 }
 
-void BarrierContainer::appendOptionalLayoutTransition(nvvk::Image& image, VkImageMemoryBarrier2 imageBarrier)
+void BarrierContainer::appendOptionalLayoutTransition(
+    nvvk::Image& image, VkImageMemoryBarrier2 imageBarrier)
 {
-  if(image.descriptor.imageLayout == imageBarrier.newLayout)
+  if (image.descriptor.imageLayout == imageBarrier.newLayout)
   {
     return;
   }

@@ -9,26 +9,28 @@
 #include "scene/SceneResources.hpp"
 #include "shaders/shared/structs.h"
 
-namespace app {
+namespace app
+{
 /**********************************************************/
-bool instanceEditor(SceneResourcesManager &resources,
-                    const std::map<MaterialType, MaterialEntry> &shaderRegistry)
+bool instanceEditor(SceneResourcesManager& resources,
+                    const std::map<MaterialType, MaterialEntry>& shaderRegistry)
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
-  auto &instances = resources.getInstances();
-  const auto &materials = resources.getMaterials();
-  const auto &instanceMap = resources.instanceMap();
-  const auto &meshes = resources.getMeshes();
-  const auto &meshMap = resources.meshMap();
-  const auto &materialMap = resources.materialMap();
+  auto& instances = resources.getInstances();
+  const auto& materials = resources.getMaterials();
+  const auto& instanceMap = resources.instanceMap();
+  const auto& meshes = resources.getMeshes();
+  const auto& meshMap = resources.meshMap();
+  const auto& materialMap = resources.materialMap();
 
   std::string m_matNamesList;
   std::vector<MaterialID> m_matIDs;
-  std::unordered_map<uint32_t, int> m_matIDToIndex; // <MaterialID, ComboIndex>
+  std::unordered_map<uint32_t, int> m_matIDToIndex;  // <MaterialID, ComboIndex>
 
   int counter = 0;
-  for (auto const &[matName, mId] : materialMap) {
+  for (auto const& [matName, mId] : materialMap)
+  {
     m_matNamesList += matName + '\0';
     m_matIDs.push_back(mId);
     m_matIDToIndex[mId] = counter++;
@@ -37,12 +39,14 @@ bool instanceEditor(SceneResourcesManager &resources,
 
   bool changed = false;
   static char instanceSearch[128] = "";
-  if (ImGui::CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen))
+  {
     ImGui::InputTextWithHint("##InstSearch", "Search instances...",
                              instanceSearch, IM_ARRAYSIZE(instanceSearch));
 
     ImGui::SameLine();
-    if (ImGui::Button("+ Add")) { // Add new instance
+    if (ImGui::Button("+ Add"))
+    {  // Add new instance
       shaderio::Instance newInst;
 
       newInst.transform = math::composeTransform(
@@ -61,7 +65,8 @@ bool instanceEditor(SceneResourcesManager &resources,
                    ::tolower);
 
     // Iterate through the map
-    for (const auto &[name, id] : instanceMap) {
+    for (const auto& [name, id] : instanceMap)
+    {
       if (id >= instances.size())
         continue;
 
@@ -73,29 +78,33 @@ bool instanceEditor(SceneResourcesManager &resources,
         continue;
 
       std::string label = fmt::format("{}[{}]##{}", name, id, id);
-      if (ImGui::TreeNode(label.c_str())) {
-        auto &inst = instances[id];
+      if (ImGui::TreeNode(label.c_str()))
+      {
+        auto& inst = instances[id];
         int matIdx = static_cast<int>(inst.materialIndex);
         PE::begin();
 
         // Find current id of the selected material
         int currentComboItem = -1;
         if (auto it = m_matIDToIndex.find(inst.materialIndex);
-            it != m_matIDToIndex.end()) {
+            it != m_matIDToIndex.end())
+        {
           currentComboItem = it->second;
         }
 
         // Draw the Dropdown
         if (PE::Combo("Material Select", &currentComboItem,
-                      m_matNamesList.c_str(), (int)m_matIDs.size())) {
+                      m_matNamesList.c_str(), (int) m_matIDs.size()))
+        {
           inst.materialIndex = m_matIDs[currentComboItem];
-          matIdx = (int)inst.materialIndex; // Sync slider
+          matIdx = (int) inst.materialIndex;  // Sync slider
           changed = true;
         }
         // Draw the Slider
         if (PE::SliderInt("Material ID", &matIdx, 0,
-                          (int)materials.size() - 1)) {
-          inst.materialIndex = (uint32_t)matIdx;
+                          (int) materials.size() - 1))
+        {
+          inst.materialIndex = (uint32_t) matIdx;
           changed = true;
         }
 
@@ -104,7 +113,8 @@ bool instanceEditor(SceneResourcesManager &resources,
         std::string shaderNames;
         int currentTypeIdx = -1;
         int count = 0;
-        for (auto const &[type, entry] : shaderRegistry) {
+        for (auto const& [type, entry] : shaderRegistry)
+        {
           if (type == inst.hit_group)
             currentTypeIdx = count;
           shaderNames += entry.prettyName + '\0';
@@ -114,7 +124,8 @@ bool instanceEditor(SceneResourcesManager &resources,
         shaderNames += '\0';
 
         if (PE::Combo("Shader Type", &currentTypeIdx, shaderNames.c_str(),
-                      (int)types.size())) {
+                      (int) types.size()))
+        {
           inst.hit_group = types[currentTypeIdx];
           changed = true;
         }
@@ -122,8 +133,10 @@ bool instanceEditor(SceneResourcesManager &resources,
         // Mesh index
         std::string currentMeshName = "Unknown";
         // Reverse lookup: Find the string key that matches our current ID
-        for (const auto &[name, id] : meshMap) {
-          if (id == inst.meshIndex) {
+        for (const auto& [name, id] : meshMap)
+        {
+          if (id == inst.meshIndex)
+          {
             currentMeshName = name;
             break;
           }
@@ -131,7 +144,8 @@ bool instanceEditor(SceneResourcesManager &resources,
         PE::Text("Mesh Name", currentMeshName.c_str());
         int currentMeshIdx = static_cast<int>(inst.meshIndex);
         if (PE::SliderInt("Mesh ID", &currentMeshIdx, 0,
-                          std::max(0, (int)meshes.size() - 1))) {
+                          std::max(0, (int) meshes.size() - 1)))
+        {
           inst.meshIndex = static_cast<uint32_t>(currentMeshIdx);
           changed = true;
         }
@@ -146,7 +160,8 @@ bool instanceEditor(SceneResourcesManager &resources,
         bool sChanged =
             PE::DragFloat3("Scale", glm::value_ptr(inst.scale), 0.05f);
 
-        if (tChanged || rChanged || sChanged) {
+        if (tChanged || rChanged || sChanged)
+        {
           glm::quat quat = glm::quat(glm::radians(rotationEuler));
           inst.rotation = math::fromQuat(quat);
           inst.transform = math::composeTransform(inst.translation,
@@ -163,4 +178,4 @@ bool instanceEditor(SceneResourcesManager &resources,
   return changed;
 }
 
-} // namespace app
+}  // namespace app

@@ -21,9 +21,12 @@
 
 #include <app/widgets/fonts.hpp>
 
-app::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show) {}
+app::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show)
+{
+}
 
-void app::ElementLogger::onAttach(Application * /*app*/) {
+void app::ElementLogger::onAttach(Application* /*app*/)
+{
   LOGI("Adding Logger UI\n");
 
   m_settingsHandler.setHandlerName("ElementLogger");
@@ -32,13 +35,15 @@ void app::ElementLogger::onAttach(Application * /*app*/) {
   m_settingsHandler.addImGuiHandler();
 }
 
-void app::ElementLogger::onUIRender() {
-  if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_ModShift |
-                               ImGuiKey_L)) {
+void app::ElementLogger::onUIRender()
+{
+  if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_ModShift | ImGuiKey_L))
+  {
     m_showLog = !m_showLog;
   }
 
-  if (!m_showLog) {
+  if (!m_showLog)
+  {
     return;
   }
 
@@ -48,26 +53,31 @@ void app::ElementLogger::onUIRender() {
   draw("Log", &m_showLog);
 }
 
-void app::ElementLogger::onUIMenu() {
-  if (ImGui::BeginMenu("View")) {
+void app::ElementLogger::onUIMenu()
+{
+  if (ImGui::BeginMenu("View"))
+  {
     ImGui::MenuItem(ICON_MS_TEXT_AD " Log Window", "Ctrl+Shift+L", &m_showLog);
     ImGui::EndMenu();
   }
 }
 
-void app::ElementLogger::setLevelFilter(uint32_t levelFilter) {
+void app::ElementLogger::setLevelFilter(uint32_t levelFilter)
+{
   std::lock_guard<std::mutex> lock(m_modificationMutex);
   m_levelFilter = levelFilter;
 }
 
-void app::ElementLogger::clear() {
+void app::ElementLogger::clear()
+{
   m_buf.clear();
   m_lineOffsets.clear();
   m_lineOffsets.push_back(0);
   m_lineLevels.clear();
 }
 
-void app::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
+void app::ElementLogger::addLog(uint32_t level, const char* fmt, ...)
+{
   std::lock_guard<std::mutex> lock(m_modificationMutex);
 
   if ((m_levelFilter & (1 << level)) == 0)
@@ -78,49 +88,56 @@ void app::ElementLogger::addLog(uint32_t level, const char *fmt, ...) {
   va_start(args, fmt);
   m_buf.appendfv(fmt, args);
   va_end(args);
-  for (int new_size = m_buf.size(); old_size < new_size; old_size++) {
-    if (m_buf[old_size] == '\n') {
+  for (int new_size = m_buf.size(); old_size < new_size; old_size++)
+  {
+    if (m_buf[old_size] == '\n')
+    {
       m_lineOffsets.push_back(old_size + 1);
       m_lineLevels.push_back(level);
     }
   }
 }
 
-void app::ElementLogger::initColors() {
-  ImGuiContext &g = *GImGui;
+void app::ElementLogger::initColors()
+{
+  ImGuiContext& g = *GImGui;
   m_colors.resize(8);
   m_colors[core::Logger::LogLevel::eINFO] =
-      g.Style.Colors[ImGuiCol_Text]; // Default text color
+      g.Style.Colors[ImGuiCol_Text];  // Default text color
   m_colors[core::Logger::LogLevel::eWARNING] =
-      ImVec4(1.0, 0.5, 0.0, 1.0); // Orange
+      ImVec4(1.0, 0.5, 0.0, 1.0);  // Orange
   m_colors[core::Logger::LogLevel::eERROR] =
-      ImVec4(1.0, 0.0, 0.0, 1.0); // Bright Red
+      ImVec4(1.0, 0.0, 0.0, 1.0);  // Bright Red
   m_colors[core::Logger::LogLevel::eDEBUG] =
-      ImVec4(0.5, 0.5, 1.0, 1.0); // Light Blue
+      ImVec4(0.5, 0.5, 1.0, 1.0);  // Light Blue
   m_colors[core::Logger::LogLevel::eSTATS] =
-      ImVec4(0.0, 0.75, 0.0, 1.0); // Light Green
-  m_colors[core::Logger::LogLevel::eOK] = ImVec4(0.0, 1.0, 0.0, 1.0); // Green
+      ImVec4(0.0, 0.75, 0.0, 1.0);  // Light Green
+  m_colors[core::Logger::LogLevel::eOK] = ImVec4(0.0, 1.0, 0.0, 1.0);  // Green
 }
 
-void app::ElementLogger::draw(const char *title, bool *p_open /*= nullptr*/) {
+void app::ElementLogger::draw(const char* title, bool* p_open /*= nullptr*/)
+{
   if (ImGui::GetCurrentContext() == nullptr)
     return;
-  if (m_colors.empty()) // Initialize colors late, as we need the ImGui context
+  if (m_colors.empty())  // Initialize colors late, as we need the ImGui context
     initColors();
 
-  if (!ImGui::Begin(title, p_open)) {
+  if (!ImGui::Begin(title, p_open))
+  {
     ImGui::End();
     return;
   }
 
   // Options menu
-  if (ImGui::BeginPopup("Options")) {
+  if (ImGui::BeginPopup("Options"))
+  {
     ImGui::Checkbox("Auto-scroll", &m_autoScroll);
     ImGui::EndPopup();
   }
 
   // Main window
-  if (ImGui::Button("Options")) {
+  if (ImGui::Button("Options"))
+  {
     ImGui::OpenPopup("Options");
   }
   ImGui::SameLine();
@@ -150,72 +167,83 @@ void app::ElementLogger::draw(const char *title, bool *p_open /*= nullptr*/) {
   ImGui::BeginChild("scrolling", ImVec2(0, 0), false,
                     ImGuiWindowFlags_HorizontalScrollbar);
 
-  if (do_clear) {
+  if (do_clear)
+  {
     clear();
   }
-  if (copy) {
+  if (copy)
+  {
     ImGui::SetClipboardText(m_buf.c_str());
   }
-  if (clear_filter) {
+  if (clear_filter)
+  {
     m_filter.Clear();
   }
 
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-  const char *buf = m_buf.begin();
-  const char *buf_end = m_buf.end();
-  if (m_filter.IsActive()) {
+  const char* buf = m_buf.begin();
+  const char* buf_end = m_buf.end();
+  if (m_filter.IsActive())
+  {
     // In this example we don't use the clipper when Filter is enabled.
     // This is because we don't have a random access on the result on our
     // filter. A real application processing logs with ten of thousands of
     // entries may want to store the result of search/filter.. especially if the
     // filtering function is not trivial (e.g. reg-exp).
-    for (int line_no = 0; line_no < m_lineOffsets.Size; line_no++) {
-      const char *line_start = buf + m_lineOffsets[line_no];
-      const char *line_end = (line_no + 1 < m_lineOffsets.Size)
+    for (int line_no = 0; line_no < m_lineOffsets.Size; line_no++)
+    {
+      const char* line_start = buf + m_lineOffsets[line_no];
+      const char* line_end = (line_no + 1 < m_lineOffsets.Size)
                                  ? (buf + m_lineOffsets[line_no + 1] - 1)
                                  : buf_end;
       const int32_t level =
           line_no < m_lineLevels.Size ? m_lineLevels[line_no] : 0;
-      if (m_filter.PassFilter(line_start, line_end)) {
+      if (m_filter.PassFilter(line_start, line_end))
+      {
         // Setting the color of the line
-        ImGuiContext &g = *GImGui;
+        ImGuiContext& g = *GImGui;
         ImVec4 backupTextColor = g.Style.Colors[ImGuiCol_Text];
         g.Style.Colors[ImGuiCol_Text] = m_colors[level];
 
         ImGui::TextUnformatted(line_start, line_end);
 
-        g.Style.Colors[ImGuiCol_Text] = backupTextColor; // restore color
+        g.Style.Colors[ImGuiCol_Text] = backupTextColor;  // restore color
       }
     }
-  } else {
+  }
+  else
+  {
     // This is from ImGui::demo, check for details in the ImGui::demo
     ImGuiListClipper clipper;
     clipper.Begin(m_lineOffsets.Size);
-    while (clipper.Step()) {
+    while (clipper.Step())
+    {
       for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd;
-           line_no++) {
-        const char *line_start = buf + m_lineOffsets[line_no];
-        const char *line_end = (line_no + 1 < m_lineOffsets.Size)
+           line_no++)
+      {
+        const char* line_start = buf + m_lineOffsets[line_no];
+        const char* line_end = (line_no + 1 < m_lineOffsets.Size)
                                    ? (buf + m_lineOffsets[line_no + 1] - 1)
                                    : buf_end;
         const int32_t level =
             line_no < m_lineLevels.Size ? m_lineLevels[line_no] : 0;
 
         // Setting the color of the line
-        ImGuiContext &g = *GImGui;
+        ImGuiContext& g = *GImGui;
         ImVec4 backupTextColor = g.Style.Colors[ImGuiCol_Text];
         g.Style.Colors[ImGuiCol_Text] = m_colors[level];
 
         ImGui::TextUnformatted(line_start, line_end);
 
-        g.Style.Colors[ImGuiCol_Text] = backupTextColor; // restore color
+        g.Style.Colors[ImGuiCol_Text] = backupTextColor;  // restore color
       }
     }
     clipper.End();
   }
   ImGui::PopStyleVar();
 
-  if (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+  if (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+  {
     ImGui::SetScrollHereY(1.0F);
   }
 

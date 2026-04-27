@@ -54,7 +54,9 @@ struct PbrBaseMaterial
 
 You must provide `data.k1` and `data.k2`, but do not need to provide `data.xi`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfEvaluateSimple(inout BsdfEvaluateData data, PbrBaseMaterial mat)
+/**********************************************************/
 {
   // Specular reflection
   float3 H     = normalize(data.k1 + data.k2);
@@ -111,7 +113,9 @@ surface, and the light path ends here (it should be treated as a reflectance of 
 This code cannot currently return a PDF of `DIRAC`, but that might change in
 the future.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfSampleSimple(inout BsdfSampleData data, PbrBaseMaterial mat)
+/**********************************************************/
 {
   float3 tint        = mat.baseColor;
   data.bsdf_over_pdf = float3(0.0F);
@@ -153,7 +157,9 @@ void bsdfSampleSimple(inout BsdfSampleData data, PbrBaseMaterial mat)
   }
 }
 
+/**********************************************************/
 PbrBaseMaterial initPbrBaseMaterial(float3 baseColor, float metallic, float roughness, float3 N, float3 Ng)
+/**********************************************************/
 {
   PbrBaseMaterial mat = {};
   mat.baseColor       = baseColor;
@@ -167,7 +173,9 @@ PbrBaseMaterial initPbrBaseMaterial(float3 baseColor, float metallic, float roug
 }
 
 
+/**********************************************************/
 float3 pbrMetallicRoughness(float3 albedo, float metallic, float roughness, float3 N, float3 V, float3 L)
+/**********************************************************/
 {
   BsdfEvaluateData data;
   data.k1 = V;
@@ -191,7 +199,10 @@ struct PbrEvaluator : IBSDF {
   float metallic;
 
   // Slang Constructor (Initializer)
-  __init(float3 _V, float3 _albedo, float _roughness, float _metallic) {
+  /**********************************************************/
+  __init(float3 _V, float3 _albedo, float _roughness, float _metallic)
+  /**********************************************************/
+  {
     this.V = _V;
     this.albedo = _albedo;
     this.roughness = _roughness;
@@ -199,13 +210,19 @@ struct PbrEvaluator : IBSDF {
   }
 
   // The required function from IBSDF interface
-  float3 eval(float3 L, float3 N) {
+  /**********************************************************/
+  float3 eval(float3 L, float3 N)
+  /**********************************************************/
+  {
     // Calls your existing PBR math function
     return pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
   }
 
+  /**********************************************************/
   float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
-                inout float3 bounceDir) {
+                inout float3 bounceDir)
+  /**********************************************************/
+  {
 
 
     // Deciding where to go next (Specular vs Diffuse)

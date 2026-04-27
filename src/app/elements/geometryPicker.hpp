@@ -1,40 +1,46 @@
 #pragma once
 
-#include <functional>
-#include <glm/glm.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <functional>
+
+#include <glm/glm.hpp>
+
 #include "app/IAppElement.hpp"
 #include "core/Math.hpp"
+#include "scene/ScenePicker.hpp"
 #include "scene/SceneResources.hpp"
 
-#include "scene/ScenePicker.hpp"
-
 // Forward Declarations
-namespace shaderio {
+namespace shaderio
+{
 struct Instance;
 }
-namespace core {
+namespace core
+{
 class CameraManipulator;
 }
 
-namespace app {
+namespace app
+{
 
-class GeometryPickerElement : public IAppElement {
+class GeometryPickerElement : public IAppElement
+{
 public:
   using SelectionCallback = std::function<void(InstanceID)>;
 
-  GeometryPickerElement(const SceneResourcesManager &sceneResources,
+  GeometryPickerElement(const SceneResourcesManager& sceneResources,
                         std::shared_ptr<core::CameraManipulator> camera);
 
-  void onSceneUpdate(const SceneResourcesManager &sceneResources);
+  void onSceneUpdate(const SceneResourcesManager& sceneResources);
 
-  void onAttach(Application *app) override;
+  void onAttach(Application* app) override;
   void onUIRender() override;
 
   // Set the function to call when an object is clicked
-  void setSelectionCallback(SelectionCallback callback) {
+  void setSelectionCallback(SelectionCallback callback)
+  {
     m_onSelect = std::move(callback);
   }
 
@@ -45,20 +51,26 @@ private:
                             float height);
   InstanceID pickObject(float mouseX, float mouseY, float width, float height);
   void drawGeometryModifier();
-  void drawRotationBall(const glm::vec3 &center, float radius);
+  void drawRotationBall(const glm::vec3& center, float radius);
 
   // References
-  const SceneResourcesManager &m_sceneResources;
+  const SceneResourcesManager& m_sceneResources;
   std::shared_ptr<core::CameraManipulator> m_camera;
-  Application *m_app = nullptr;
+  Application* m_app = nullptr;
   InstanceAccelerator m_accel;
 
   SelectionCallback m_onSelect{};
   InstanceID m_instanceSelected = -1;
   bool m_showModifier = true;
-  enum class Axis { Undefined, X, Y, Z };
+  enum class Axis
+  {
+    Undefined,
+    X,
+    Y,
+    Z
+  };
   Axis m_activeAxis = Axis::Undefined;
   ImVec2 m_lastMousePos;
 };
 
-} // namespace app
+}  // namespace app

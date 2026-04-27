@@ -27,7 +27,9 @@
 # Function `evalSimpleSky`
 > Returns the radiance of the simple sky model in a given view direction.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 evalSimpleSky(SkySimpleParameters params, float3 direction)
+/**********************************************************/
 {
   float3 skyColor     = params.skyColor * params.brightness;
   float3 horizonColor = params.horizonColor * params.brightness;
@@ -55,7 +57,9 @@ inline float3 evalSimpleSky(SkySimpleParameters params, float3 direction)
 # Function `sampleSimpleSky`
 > Samples the simple sky model using two random values, returning a `SkySamplingResult`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline SkySamplingResult sampleSimpleSky(SkySimpleParameters params, float2 randVal)
+/**********************************************************/
 {
   SkySamplingResult result;
 
@@ -126,13 +130,17 @@ inline SkySamplingResult sampleSimpleSky(SkySimpleParameters params, float2 rand
 /*helper functions for sun_and_sky*/
 
 // Function to calculate the luminance of an RGB color
+/**********************************************************/
 inline float rgbLuminance(float3 rgb)
+/**********************************************************/
 {
   return 0.2126f * rgb.x + 0.7152f * rgb.y + 0.0722f * rgb.z;  // Rec. 709 luminance coefficients
 }
 
 // Function to transform local coordinates (x, y, z) to a direction vector aligned with in_main
+/**********************************************************/
 inline float3 localCoordsToDir(float3 mainVec, float x, float y, float z)
+/**********************************************************/
 {
   float3 u =
       normalize(abs(mainVec.x) < abs(mainVec.y) ? float3(0.0f, -mainVec.z, mainVec.y) : float3(mainVec.z, 0.0f, -mainVec.x));
@@ -142,7 +150,9 @@ inline float3 localCoordsToDir(float3 mainVec, float x, float y, float z)
 
 // Equal-area transformation of the square [0,1]^2 to the disk
 // {(x, y) | x^2 + y^2 <= 1}.
+/**********************************************************/
 inline float2 squareToDisk(float inX, float inY)
+/**********************************************************/
 {
   float localX = 2.0f * inX - 1.0f;
   float localY = 2.0f * inY - 1.0f;
@@ -180,7 +190,9 @@ inline float2 squareToDisk(float inX, float inY)
 }
 
 // Function to calculate a diffuse reflection direction based on an input normal and sample
+/**********************************************************/
 inline float3 reflectionDirDiffuseX(float3 inNormal, float2 inSample)
+/**********************************************************/
 {
   float2 rPhi = squareToDisk(inSample.x, inSample.y);   // Map the 2D sample point to a disk
   float  x    = rPhi.x * cos(rPhi.y);                   // Calculate the x component of the reflection direction
@@ -190,7 +202,9 @@ inline float3 reflectionDirDiffuseX(float3 inNormal, float2 inSample)
 }
 
 // Function to calculate the color of the sun based on its direction and atmospheric turbidity
+/**********************************************************/
 inline float3 calcSunColor(float3 sunDir, float turbidity)
+/**********************************************************/
 {
   if(sunDir.z <= 0.0f)
     return float3(0.0f);
@@ -209,7 +223,9 @@ inline float3 calcSunColor(float3 sunDir, float turbidity)
 }
 
 // Function to calculate the color of the sky based on the sun's direction and atmospheric turbidity
+/**********************************************************/
 inline float3 skyColorXyz(float3 inDir, float3 inSunPos, float inTurbidity, float inLuminance)
+/**********************************************************/
 {
   float3 xyz;
   float  A, B, C, D, E;
@@ -279,7 +295,9 @@ inline float3 skyColorXyz(float3 inDir, float3 inSunPos, float inTurbidity, floa
   return xyz;
 }
 
+/**********************************************************/
 inline float skyLuminance(float3 inDir, float3 inSunPos, float inTurbidity)
+/**********************************************************/
 {
   float cosGamma    = clamp(dot(inSunPos, inDir), 0.0f, 1.0f);
   float gamma       = acos(cosGamma);
@@ -304,7 +322,9 @@ inline float skyLuminance(float3 inDir, float3 inSunPos, float inTurbidity)
           / ((1 + A * expB) * (1 + C * expDThetaSun + E * cosThetaSun * cosThetaSun)));
 }
 
+/**********************************************************/
 inline float3 calcSkyColor(float3 inSunDir, float3 inDir, float inTurbidity)
+/**********************************************************/
 {
   float thetaSun  = acos(inSunDir.z);
   float chi       = (4.0f / 9.0f - inTurbidity / 120.0f) * (M_PI - 2.0f * thetaSun);
@@ -317,7 +337,9 @@ inline float3 calcSkyColor(float3 inSunDir, float3 inDir, float inTurbidity)
   return envColor * M_PI;
 }
 
+/**********************************************************/
 inline float3 calcSkyIrradiance(float3 inDataSunDir, float inDataSunDirHaze)
+/**********************************************************/
 {
   float3 colSum        = float3(0.0f);
   float3 nuStateNormal = float3(0.0f, 0.0f, 1.0f);
@@ -333,7 +355,9 @@ inline float3 calcSkyIrradiance(float3 inDataSunDir, float inDataSunDirHaze)
   return colSum / 16.0f;
 }
 
+/**********************************************************/
 inline float tweakSaturation(float inSaturation, float inHaze)
+/**********************************************************/
 {
   if(inSaturation > 1.0f)
     return 1.0f;
@@ -345,7 +369,9 @@ inline float tweakSaturation(float inSaturation, float inHaze)
 }
 
 
+/**********************************************************/
 inline float3 tweakVector(float3 dir, int yIsUp, float horizHeight)
+/**********************************************************/
 {
   float3 outDir = dir;
   if(yIsUp == 1)
@@ -360,7 +386,9 @@ inline float3 tweakVector(float3 dir, int yIsUp, float horizHeight)
   return outDir;
 }
 
+/**********************************************************/
 inline float3 tweakColor(float3 tint, float saturation, float redness)
+/**********************************************************/
 {
   float  intensity = rgbLuminance(tint);
   float3 outTint   = (saturation <= 0.0f) ? float3(intensity) : lerp(float3(intensity), tint, saturation);
@@ -368,7 +396,9 @@ inline float3 tweakColor(float3 tint, float saturation, float redness)
   return max(outTint, float3(0.0f));
 }
 
+/**********************************************************/
 inline float2 calcPhysicalScale(float sunDiskScale, float sunGlowIntensity, float sunDiskIntensity)
+/**********************************************************/
 {
   float sunAngularRadius = 0.00465f;
   float sunDiskRadius    = sunAngularRadius * sunDiskScale;
@@ -413,7 +443,9 @@ inline float2 calcPhysicalScale(float sunDiskScale, float sunGlowIntensity, floa
   return float2((targetSundiskIntensity == 0.0f) ? 0.0f : targetSundiskIntensity / actualSundiskIntensity, skySunglowScale);
 }
 
+/**********************************************************/
 inline float nightBrightnessAdjustment(float3 sunDir)
+/**********************************************************/
 {
   float lmt = 0.30901699437494742410229341718282f;  // ~ cos(72°) or 18° below the horizon
   if(sunDir.z <= -lmt)
@@ -428,7 +460,9 @@ inline float nightBrightnessAdjustment(float3 sunDir)
 # Function `evalPhysicalSky`
 > Returns the radiance of the physical sky model in a given direction.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 evalPhysicalSky(SkyPhysicalParameters ss, float3 inDirection)
+/**********************************************************/
 {
   if(ss.multiplier <= 0.0f)
     return float3(0.0f);
@@ -529,7 +563,9 @@ inline float3 evalPhysicalSky(SkyPhysicalParameters ss, float3 inDirection)
 // interval [0,1], this samples z in [z_min, 1] and a closed cap will be sampled;
 // if randomSample.y is sampled in the half-open interval [0,1), then z is in
 // (z_min, 1] and an open cap will be sampled.
+/**********************************************************/
 inline float3 sampleSphericalCap(float z_min, float2 xi)
+/**********************************************************/
 {
   float z   = lerp(1.F, z_min, xi.y);
   float r   = sqrt(max(0.F, 1.F - z * z));
@@ -541,7 +577,9 @@ inline float3 sampleSphericalCap(float z_min, float2 xi)
 
 // Probability that samplePhysicalSky samples the sun.
 // If the sun is too small, we never sample it.
+/**********************************************************/
 inline float physicalSkySunProbability(SkyPhysicalParameters ss)
+/**********************************************************/
 {
   float sunElevation = ss.sunDirection.z;
   return (ss.sunDiskScale > 1e-5f) ? clamp(ss.sunDiskIntensity * sunElevation * 0.5f + 0.5f, 0.1f, 0.9f) : 0.0f;
@@ -551,7 +589,9 @@ inline float physicalSkySunProbability(SkyPhysicalParameters ss)
 # Function `samplePhysicalSkyPDF`
 > Returns the probability that `samplePhysicalSky` samples a certain direction.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float samplePhysicalSkyPDF(SkyPhysicalParameters ss, float3 inDirection)
+/**********************************************************/
 {
   const float sunAngularRadius = 0.00465f * ss.sunDiskScale;
   // If we choose the sky, this is the probability of choosing a given direction:
@@ -573,7 +613,9 @@ inline float samplePhysicalSkyPDF(SkyPhysicalParameters ss, float3 inDirection)
 # Function `samplePhysicalSky`
 > Samples the physical sky model using two random values, returning a `SkySamplingResult`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline SkySamplingResult samplePhysicalSky(SkyPhysicalParameters ss, float2 randomSample)
+/**********************************************************/
 {
   SkySamplingResult result;
 

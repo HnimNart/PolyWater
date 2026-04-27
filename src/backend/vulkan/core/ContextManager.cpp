@@ -9,7 +9,7 @@
 #include <nvvk/validation_settings.hpp>
 
 /**********************************************************/
-bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo)
+bool VulkanContextManager::init(const app::ApplicationCreateInfo& appInfo)
 /**********************************************************/
 {
   // Do not set the pNext pointers manually. Let nvvk handle the chaining.
@@ -86,14 +86,16 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo &appInfo)
   vkSetup.instanceCreateInfoExt = validationSettings.buildPNextChain();
   vkSetup.instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
 
-  if (!appInfo.headless) {
+  if (!appInfo.headless)
+  {
     nvvk::addSurfaceExtensions(vkSetup.instanceExtensions,
                                &vkSetup.deviceExtensions);
   }
 
   // Initialize
   VkResult result = m_vkContext.init(vkSetup);
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     LOGE("Vulkan Initialization Failed: %s\n", string_VkResult(result));
     return false;
   }
@@ -111,7 +113,7 @@ void VulkanContextManager::setupTransientCommandPool()
 /**********************************************************/
 {
   VkDevice device = m_vkContext.getDevice();
-  const nvvk::QueueInfo &graphicsQueue = m_vkContext.getQueueInfo(0);
+  const nvvk::QueueInfo& graphicsQueue = m_vkContext.getQueueInfo(0);
 
   const VkCommandPoolCreateInfo cmdPoolInfo{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <fmt/format.h>
+
 #include <filesystem>
 #include <functional>
 #include <limits>
@@ -26,18 +28,19 @@
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
-
-namespace app::cli {
+namespace app::cli
+{
 
 // Parameters store information about tweakable values within an application.
 // A Parameter contains a pointer to the destination variable that must be valid
 // while the Parameter is used. Parameters can only be constructed through the
 // `ParameterRegistry`
 
-class ParameterBase {
+class ParameterBase
+{
 public:
-  enum class Type {
+  enum class Type
+  {
     BOOL8,
     BOOL8_TRIGGER,
     FLOAT32,
@@ -54,25 +57,26 @@ public:
   };
 
   // this basic callback is triggered after successful parsing
-  using CallbackSuccess = std::function<void(const ParameterBase *const)>;
+  using CallbackSuccess = std::function<void(const ParameterBase* const)>;
 
   // custom parameter callback
   // `filenameBasePath` is provided through the parser and typically the working
   // directory or a file being parsed
   using CallbackCustom = std::function<bool(
-      const ParameterBase *const, std::span<char const *const> args,
-      const std::filesystem::path &filenameBasePath)>;
+      const ParameterBase* const, std::span<char const* const> args,
+      const std::filesystem::path& filenameBasePath)>;
 
-  struct Info {
-    std::string name;      // required, parser prefixes "--"
-    std::string help;      // optional
-    std::string shortName; // optional, parser prefixes "-"
-    std::string guiName;   // optional, defaults to regular help
-    std::string guiHelp;   // optional, defaults to regular name
+  struct Info
+  {
+    std::string name;       // required, parser prefixes "--"
+    std::string help;       // optional
+    std::string shortName;  // optional, parser prefixes "-"
+    std::string guiName;    // optional, defaults to regular help
+    std::string guiHelp;    // optional, defaults to regular name
     uint32_t visibility =
-        ~0u; // optional, allows custom filtering for parameters (TBD)
-    CallbackSuccess callbackSuccess; // optional, triggers after parsing was
-                                     // completed successfully
+        ~0u;  // optional, allows custom filtering for parameters (TBD)
+    CallbackSuccess callbackSuccess;  // optional, triggers after parsing was
+                                      // completed successfully
   };
 
   static constexpr size_t MAX_ARRAY_LENGTH = 16;
@@ -92,22 +96,24 @@ public:
   std::vector<std::string> extensions;
 
   // for all others pointers are used during parsing
-  union {
-    bool *b8;
-    float *f32;
-    int8_t *i8;
-    int16_t *i16;
-    int32_t *i32;
-    uint8_t *u8;
-    uint16_t *u16;
-    uint32_t *u32;
-    void *raw;
-    std::string *string;
-    std::filesystem::path *filename;
+  union
+  {
+    bool* b8;
+    float* f32;
+    int8_t* i8;
+    int16_t* i16;
+    int32_t* i32;
+    uint8_t* u8;
+    uint16_t* u16;
+    uint32_t* u32;
+    void* raw;
+    std::string* string;
+    std::filesystem::path* filename;
   } destination;
 
   // parsing can enforce a per-component min/max logic
-  union MinMaxData {
+  union MinMaxData
+  {
     float f32[MAX_ARRAY_LENGTH];
     int8_t i8[MAX_ARRAY_LENGTH];
     int16_t i16[MAX_ARRAY_LENGTH];
@@ -119,13 +125,14 @@ public:
 
   // basic type string
   // e.g. `float[3]` or `bool`
-  std::string getTypeString() const {
-    const char *typeString = toString(type);
+  std::string getTypeString() const
+  {
+    const char* typeString = toString(type);
     return argCount ? fmt::format("{}[{}]", typeString, argCount)
                     : fmt::format("{}", typeString);
   }
 
-  static const char *toString(Type type);
+  static const char* toString(Type type);
 
 private:
   ParameterBase() = default;
@@ -135,10 +142,11 @@ private:
 
 // template wrapper class to access the destination pointer in a type-safe
 // fashion
-template <class T> class Parameter : public ParameterBase {
-  T *data() const { return (T *)destination.raw; }
-  T min() const { return *(const T *)&minMaxValues[0].u32[0]; }
-  T max() const { return *(const T *)&minMaxValues[1].u32[0]; }
+template <class T> class Parameter : public ParameterBase
+{
+  T* data() const { return (T*) destination.raw; }
+  T min() const { return *(const T*) &minMaxValues[0].u32[0]; }
+  T max() const { return *(const T*) &minMaxValues[1].u32[0]; }
 };
 
-} // namespace app::cli
+}  // namespace app::cli

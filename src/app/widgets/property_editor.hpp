@@ -18,10 +18,10 @@
  */
 
 #pragma once
+#include <imgui/imgui.h>
+
 #include <functional>
 #include <string>
-
-#include <imgui/imgui.h>
 
 // clang-format off
 namespace app {

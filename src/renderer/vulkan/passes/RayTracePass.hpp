@@ -4,7 +4,6 @@
 
 #include "nvvk/descriptors.hpp"
 #include "nvvk/sbt_generator.hpp"
-
 #include "renderer/interfaces/IRenderGraph.hpp"
 #include "renderer/vulkan/Acceleration.hpp"
 
@@ -12,25 +11,29 @@
 class SceneResourcesManager;
 class VulkanContextManager;
 
-namespace nvvk {
+namespace nvvk
+{
 class GBuffer;
 }
-namespace shaderio {
+namespace shaderio
+{
 struct PushConstant;
 }
 
-class RayTracePass : public IRenderPass {
+class RayTracePass : public IRenderPass
+{
 public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  RayTracePass(const nvvk::DescriptorPack &descPack,
-               ShaderManager *materialManager, AccelerationStructures *accel);
+  RayTracePass(VulkanContextManager* contextManager,
+               const nvvk::DescriptorPack& descPack,
+               ShaderManager* materialManager, AccelerationStructures* accel);
   ~RayTracePass() = default;
 
-  void init(VulkanContextManager *coreManager) override;
-  void setup(PassBuilder &builder) override;
-  void deinit(VulkanContextManager *coreManager) override;
+  void init() override;
+  void setup(PassBuilder& builder) override;
+  void deinit() override;
 
   // -------------------------------------------------------------------------
   // Setup & Configuration
@@ -46,20 +49,20 @@ public:
   // -------------------------------------------------------------------------
   // Execution
   // -------------------------------------------------------------------------
-  void execute(const IRenderContext &ctx) override;
+  void execute(const IRenderContext& ctx) override;
 
 private:
   // -------------------------------------------------------------------------
   // Internal Helpers
   // -------------------------------------------------------------------------
   void createShaderBindingTable(
-      const VkRayTracingPipelineCreateInfoKHR &rtPipelineInfo);
+      const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo);
 
   // -------------------------------------------------------------------------
   // Member Variables
   // -------------------------------------------------------------------------
-  VulkanContextManager *m_context_manager = nullptr;
-  const nvvk::DescriptorPack &m_sharedDescPack;
+  VulkanContextManager* m_context_manager = nullptr;
+  const nvvk::DescriptorPack& m_sharedDescPack;
 
   // Pipeline State
   nvvk::DescriptorPack m_RayTraceDescPack{};
@@ -75,6 +78,6 @@ private:
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_properties{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
-  ShaderManager *m_shaderManager = nullptr;
-  AccelerationStructures *m_accel{};
+  ShaderManager* m_shaderManager = nullptr;
+  AccelerationStructures* m_accel{};
 };

@@ -27,7 +27,8 @@
 
 #include "parameter_registry.hpp"
 
-namespace app::cli {
+namespace app::cli
+{
 
 // This class parses arguments for parameters provided from the
 // ParameterRegistry and updates the destination pointers accordingly.
@@ -55,7 +56,8 @@ namespace app::cli {
 //
 //    ```
 
-class ParameterParser {
+class ParameterParser
+{
 public:
   // There are always two internal parameters provided by the parser:
   // --configfile -cf "filename": loads parameters from another file, filename
@@ -63,10 +65,11 @@ public:
   //   Optionally associate the configfile with extensions, then it can be
   //   triggered without lead parameter name.
   // --help -h: prints the description and then all registered parameters
-  ParameterParser(const std::string &helpDescription = {},
-                  const std::vector<std::string> &configFileExtensions = {});
+  ParameterParser(const std::string& helpDescription = {},
+                  const std::vector<std::string>& configFileExtensions = {});
 
-  void setHelpDescription(const std::string &helpDescription) {
+  void setHelpDescription(const std::string& helpDescription)
+  {
     m_helpDescription = helpDescription;
   }
 
@@ -80,52 +83,57 @@ public:
   // Add a parameter from a registry to be included in the parsing.
   // Pointer must be kept alive
   // Silently ignores adding the same pointer again.
-  void add(const ParameterBase *parameter);
+  void add(const ParameterBase* parameter);
 
   // Add all parameters from a registry which pass `(parmeter.info.visibility &
   // visibilityMask) != 0` Pointer must be kept alive Silently ignores adding
   // the same pointer again.
-  void add(const ParameterRegistry &registry, uint32_t visibilityMask = ~0u);
+  void add(const ParameterRegistry& registry, uint32_t visibilityMask = ~0u);
 
   // Parses inputs and writes parameter destination values, returns how many
   // arguments were processed. Terminates early when hitting the `stopKeyword`
   // and then returns the next index after stopKeyword. `filenameBasePath` is
   // prepended to filename parameters that contained relative file names. If
   // `silentUnknown == true` then no errors are printed for unknown arguments.
-  size_t parse(std::span<const char *const> args, bool skipExe,
-               const std::filesystem::path &filenameBasePath = {},
-               const std::string &stopKeyword = {}, bool silentUnknown = false);
+  size_t parse(std::span<const char* const> args, bool skipExe,
+               const std::filesystem::path& filenameBasePath = {},
+               const std::string& stopKeyword = {}, bool silentUnknown = false);
 
-  int parse(int argc, const char **argv, bool skipExe = true,
-            const std::filesystem::path &filenameBasePath = {}) {
+  int parse(int argc, const char** argv, bool skipExe = true,
+            const std::filesystem::path& filenameBasePath = {})
+  {
     return int(parse(std::span(argv, argc), skipExe, filenameBasePath));
   }
 
-  int parse(int argc, char **argv, bool skipExe = true,
-            const std::filesystem::path &filenameBasePath = {}) {
+  int parse(int argc, char** argv, bool skipExe = true,
+            const std::filesystem::path& filenameBasePath = {})
+  {
     return int(
-        parse(std::span((const char **)argv, argc), skipExe, filenameBasePath));
+        parse(std::span((const char**) argv, argc), skipExe, filenameBasePath));
   }
 
   static std::filesystem::path
-  getFilename(const std::filesystem::path &filenameBasePath,
-              const std::filesystem::path &arg);
+  getFilename(const std::filesystem::path& filenameBasePath,
+              const std::filesystem::path& arg);
 
   // Utility class to load a text file into a tokenized list of arguments that
   // can be parsed. Can also tokenize a provided string. It allows usage of '#'
   // to skip lines when parsing as described for the main class.
-  class Tokenized {
+  class Tokenized
+  {
   public:
-    void initFromString(const std::string &content,
-                        const std::filesystem::path &filenameBasePath = {});
+    void initFromString(const std::string& content,
+                        const std::filesystem::path& filenameBasePath = {});
 
-    bool initFromFile(const std::filesystem::path &filename);
+    bool initFromFile(const std::filesystem::path& filename);
 
-    std::span<const char *const> getArgs(size_t offset = 0) const {
+    std::span<const char* const> getArgs(size_t offset = 0) const
+    {
       assert(offset < m_args.size());
       return std::span(m_args.data() + offset, m_args.size() - offset);
     }
-    std::filesystem::path getFilenameBasePath() const {
+    std::filesystem::path getFilenameBasePath() const
+    {
       return m_filenameBasePath;
     }
 
@@ -134,27 +142,27 @@ public:
 
     std::filesystem::path m_filenameBasePath;
     std::string m_content;
-    std::vector<const char *> m_args;
+    std::vector<const char*> m_args;
   };
 
 private:
-  int parseInt(const ParameterBase &parameter, const char *str, size_t a);
-  float parseFloat(const ParameterBase &parameter, const char *str, size_t a);
+  int parseInt(const ParameterBase& parameter, const char* str, size_t a);
+  float parseFloat(const ParameterBase& parameter, const char* str, size_t a);
 
-  const ParameterBase *findViaExtension(const std::string &arg) const;
+  const ParameterBase* findViaExtension(const std::string& arg) const;
 
   // verbose logging
   bool m_verbose{};
   // map with keywords from parameters
-  std::unordered_map<std::string, const ParameterBase *> m_keywordMap;
+  std::unordered_map<std::string, const ParameterBase*> m_keywordMap;
 
   // vector of FILENAME_EXTENSION parameters
-  std::vector<const ParameterBase *> m_parsedExtensions;
+  std::vector<const ParameterBase*> m_parsedExtensions;
 
   // unique set of pointers added for parsing
-  std::unordered_set<const ParameterBase *> m_parsedParameterSet;
+  std::unordered_set<const ParameterBase*> m_parsedParameterSet;
   // linear list of added parameters used for printing the help in order
-  std::vector<const ParameterBase *> m_parsedParameters;
+  std::vector<const ParameterBase*> m_parsedParameters;
 
   // used for the built-in parameters (configfile,help)
   ParameterRegistry m_builtinRegistry;
@@ -163,4 +171,4 @@ private:
   std::string m_helpDescription;
 };
 
-} // namespace app::cli
+}  // namespace app::cli

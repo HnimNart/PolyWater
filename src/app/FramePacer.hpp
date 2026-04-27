@@ -20,7 +20,8 @@
 #pragma once
 
 #include <core/timers.hpp>
-namespace app {
+namespace app
+{
 
 // Get the minimum refresh rate of the monitors
 double getMonitorsMinRefreshRate();
@@ -33,7 +34,8 @@ double getMonitorsMinRefreshRate();
 // For now, we aim for an easier goal: submit a frame once VSync. Since the
 // compositor consumes one frame per VSync, we should render at most one frame
 // per VSync; any faster and we'd get swapchain backpressure and thus latency.
-class FramePacer {
+class FramePacer
+{
 public:
   // Call this just before glfwPollEvents() to sleep.
   void pace(double refreshRate = getMonitorsMinRefreshRate());
@@ -43,4 +45,4 @@ private:
   core::PerformanceTimer m_cpuTimer;
 };
 
-} // namespace app
+}  // namespace app

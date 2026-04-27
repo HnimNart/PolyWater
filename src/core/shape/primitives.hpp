@@ -19,10 +19,11 @@
 
 #pragma once
 #include <cstdint>
+#include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/hash.hpp>
-#include <vector>
 
 /*-------------------------------------------------------------------------------------------------
 # struct `nvh::PrimitiveMesh`
@@ -55,34 +56,41 @@ Other utilities
 
 -------------------------------------------------------------------------------------------------*/
 
-namespace core {
-struct PrimitiveVertex {
-  glm::vec3 pos; // Position
-  glm::vec3 nrm; // Normal
-  glm::vec2 tex; // Texture Coordinates
-  bool operator==(const PrimitiveVertex &other) const {
+namespace core
+{
+struct PrimitiveVertex
+{
+  glm::vec3 pos;  // Position
+  glm::vec3 nrm;  // Normal
+  glm::vec2 tex;  // Texture Coordinates
+  bool operator==(const PrimitiveVertex& other) const
+  {
     return pos == other.pos && nrm == other.nrm && tex == other.tex;
   }
 };
 
-struct PrimitiveTriangle {
-  glm::uvec3 indices; // vertex indices
+struct PrimitiveTriangle
+{
+  glm::uvec3 indices;  // vertex indices
 };
 
-struct PrimitiveMesh {
-  std::vector<PrimitiveVertex> vertices;    // Array of all vertex
-  std::vector<PrimitiveTriangle> triangles; // Indices forming triangles
+struct PrimitiveMesh
+{
+  std::vector<PrimitiveVertex> vertices;     // Array of all vertex
+  std::vector<PrimitiveTriangle> triangles;  // Indices forming triangles
 };
 
-struct Node {
-  glm::vec3 translation{}; //
-  glm::quat rotation{};    //
-  glm::vec3 scale{1.0F};   //
-  glm::mat4 matrix{1};     // Added with the above transformations
+struct Node
+{
+  glm::vec3 translation{};  //
+  glm::quat rotation{};     //
+  glm::vec3 scale{1.0F};    //
+  glm::mat4 matrix{1};      // Added with the above transformations
   int material{0};
   int mesh{-1};
 
-  glm::mat4 localMatrix() const {
+  glm::mat4 localMatrix() const
+  {
     glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
     glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
     glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
@@ -113,20 +121,23 @@ std::vector<Node> mengerSpongeNodes(int level = 3, float probability = -1.f,
 std::vector<Node> sunflower(int seeds = 3000);
 
 // Utilities
-PrimitiveMesh mergeNodes(const std::vector<Node> &nodes,
+PrimitiveMesh mergeNodes(const std::vector<Node>& nodes,
                          const std::vector<PrimitiveMesh> meshes);
-PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh &mesh,
+PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
                                       bool testNormal = true,
                                       bool testUv = true);
-PrimitiveMesh wobblePrimitive(const PrimitiveMesh &mesh,
+PrimitiveMesh wobblePrimitive(const PrimitiveMesh& mesh,
                               float amplitude = 0.05F);
 
-} // namespace core
+}  // namespace core
 
 // 2. Hash Specialization (Must be in namespace std)
-namespace std {
-template <> struct hash<core::PrimitiveVertex> {
-  size_t operator()(core::PrimitiveVertex const &vertex) const {
+namespace std
+{
+template <> struct hash<core::PrimitiveVertex>
+{
+  size_t operator()(core::PrimitiveVertex const& vertex) const
+  {
     // Start with a seed
     size_t seed = 0;
 
@@ -142,4 +153,4 @@ template <> struct hash<core::PrimitiveVertex> {
     return seed;
   }
 };
-} // namespace std
+}  // namespace std

@@ -13,13 +13,17 @@
 [[vk::push_constant]]
 ConstantBuffer<PushConstant> pc;
 
+/**********************************************************/
 float getLuminance(float3 color)
+/**********************************************************/
 {
     return dot(color, float3(0.2126, 0.7152, 0.0722));
 }
 
+/**********************************************************/
 [numthreads(16, 16, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
+/**********************************************************/
 {
     int2 pixelCoord = int2(dispatchThreadID.xy);
 

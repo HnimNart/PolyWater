@@ -12,8 +12,9 @@
 
 #pragma once
 
-#include <map>
 #include <stdint.h>
+
+#include <map>
 #include <string>
 #include <vector>
 
@@ -39,29 +40,34 @@ Measurements:
 
 -------------------------------------------------------------------------------------------------*/
 
-namespace app {
+namespace app
+{
 
-class NvmlMonitor {
+class NvmlMonitor
+{
 public:
   NvmlMonitor(uint32_t interval = 100, uint32_t limit = 100);
   ~NvmlMonitor();
 
-  template <typename T> struct NVMLField {
+  template <typename T> struct NVMLField
+  {
     T data{};
     bool isSupported = false;
 
-    operator T &() { return data; }
-    T &get() { return data; }
-    const T &get() const { return data; }
+    operator T&() { return data; }
+    T& get() { return data; }
+    const T& get() const { return data; }
 
-    T &operator=(const T &rhs) {
+    T& operator=(const T& rhs)
+    {
       data = rhs;
       return data;
     }
   };
 
   // Static device information
-  struct DeviceInfo {
+  struct DeviceInfo
+  {
     NVMLField<std::string> currentDriverModel;
     NVMLField<std::string> pendingDriverModel;
 
@@ -121,11 +127,12 @@ public:
     NVMLField<std::map<uint32_t, std::vector<uint32_t>>>
         supportedGraphicsClocks;
 
-    void refresh(void *device);
+    void refresh(void* device);
   };
 
   // Device memory usage
-  struct DeviceMemory {
+  struct DeviceMemory
+  {
     NVMLField<uint64_t> bar1Total;
     NVMLField<std::vector<uint64_t>> bar1Used;
     NVMLField<std::vector<uint64_t>> bar1Free;
@@ -135,22 +142,24 @@ public:
     NVMLField<std::vector<uint64_t>> memoryFree;
 
     void init(uint32_t maxElements);
-    void refresh(void *device, uint32_t offset);
+    void refresh(void* device, uint32_t offset);
   };
 
   // Device utilization ratios
-  struct DeviceUtilization {
+  struct DeviceUtilization
+  {
     NVMLField<std::vector<uint32_t>> gpuUtilization;
     NVMLField<std::vector<uint32_t>> memUtilization;
     NVMLField<std::vector<uint32_t>> computeProcesses;
     NVMLField<std::vector<uint32_t>> graphicsProcesses;
 
     void init(uint32_t maxElements);
-    void refresh(void *device, uint32_t offset);
+    void refresh(void* device, uint32_t offset);
   };
 
   // Device performance state: clocks and throttling
-  struct DevicePerformanceState {
+  struct DevicePerformanceState
+  {
     NVMLField<std::vector<uint32_t>> clockGraphics;
     NVMLField<std::vector<uint32_t>> clockSM;
     NVMLField<std::vector<uint32_t>> clockMem;
@@ -158,43 +167,48 @@ public:
     NVMLField<std::vector<uint64_t>> throttleReasons;
 
     void init(uint32_t maxElements);
-    void refresh(void *device, uint32_t offset);
+    void refresh(void* device, uint32_t offset);
     static std::vector<std::string> getThrottleReasonStrings(uint64_t reason);
 
-    static const std::vector<uint64_t> &getAllThrottleReasonList();
+    static const std::vector<uint64_t>& getAllThrottleReasonList();
   };
 
   // Device power and temperature
-  struct DevicePowerState {
+  struct DevicePowerState
+  {
     NVMLField<std::vector<uint32_t>> power;
     NVMLField<std::vector<uint32_t>> temperature;
     NVMLField<std::vector<uint32_t>> fanSpeed;
 
     void init(uint32_t maxElements);
-    void refresh(void *device, uint32_t offset);
+    void refresh(void* device, uint32_t offset);
   };
 
   // Other information
-  struct SysInfo {
-    std::vector<float> cpu; // Load measurement [0, 100]
+  struct SysInfo
+  {
+    std::vector<float> cpu;  // Load measurement [0, 100]
     std::string driverVersion;
   };
 
-  void refresh(); // Take measurement
+  void refresh();  // Take measurement
   bool isValid() { return m_valid; }
   uint32_t getGpuCount() { return m_physicalGpuCount; }
-  const DeviceInfo &getDeviceInfo(int gpu) { return m_deviceInfo[gpu]; }
-  const DeviceMemory &getDeviceMemory(int gpu) { return m_deviceMemory[gpu]; }
-  const DeviceUtilization &getDeviceUtilization(int gpu) {
+  const DeviceInfo& getDeviceInfo(int gpu) { return m_deviceInfo[gpu]; }
+  const DeviceMemory& getDeviceMemory(int gpu) { return m_deviceMemory[gpu]; }
+  const DeviceUtilization& getDeviceUtilization(int gpu)
+  {
     return m_deviceUtilization[gpu];
   }
-  const DevicePerformanceState &getDevicePerformanceState(int gpu) {
+  const DevicePerformanceState& getDevicePerformanceState(int gpu)
+  {
     return m_devicePerformanceState[gpu];
   }
-  const DevicePowerState &getDevicePowerState(int gpu) {
+  const DevicePowerState& getDevicePowerState(int gpu)
+  {
     return m_devicePowerState[gpu];
   }
-  const SysInfo &getSysInfo() { return m_sysInfo; }
+  const SysInfo& getSysInfo() { return m_sysInfo; }
   int getOffset() { return m_offset; }
 
 private:
@@ -203,12 +217,12 @@ private:
   std::vector<DeviceUtilization> m_deviceUtilization;
   std::vector<DevicePerformanceState> m_devicePerformanceState;
   std::vector<DevicePowerState> m_devicePowerState;
-  SysInfo m_sysInfo; // CPU and driver information
+  SysInfo m_sysInfo;  // CPU and driver information
   bool m_valid = false;
-  uint32_t m_physicalGpuCount = 0; // Number of NVIDIA GPU
-  uint32_t m_offset = 0;           // Index of the most recent cpu load sample
-  uint32_t m_maxElements = 100;    // Number of max stored measurements
-  uint32_t m_minInterval = 100;    // Minimum interval lapse, in milliseconds
+  uint32_t m_physicalGpuCount = 0;  // Number of NVIDIA GPU
+  uint32_t m_offset = 0;            // Index of the most recent cpu load sample
+  uint32_t m_maxElements = 100;     // Number of max stored measurements
+  uint32_t m_minInterval = 100;     // Minimum interval lapse, in milliseconds
 };
 
-} // namespace app
+}  // namespace app

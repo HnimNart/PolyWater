@@ -20,9 +20,11 @@
 #pragma once
 #include <span>
 #include <vector>
+
 #include "vulkan/vulkan_core.h"
 
-namespace nvvk {
+namespace nvvk
+{
 
 /*--------------------------------------------------------------------------------------------------
 # class nvvk::Specialization
@@ -52,14 +54,15 @@ public:
     m_specValues.push_back(value);
     VkSpecializationMapEntry entry{};
     entry.constantID = constantID;
-    entry.size       = sizeof(int32_t);
-    entry.offset     = static_cast<uint32_t>(m_specEntries.size() * sizeof(int32_t));
+    entry.size = sizeof(int32_t);
+    entry.offset =
+        static_cast<uint32_t>(m_specEntries.size() * sizeof(int32_t));
     m_specEntries.emplace_back(entry);
   }
 
   void add(const std::span<std::pair<uint32_t, int32_t>>& const_values)
   {
-    for(const auto& v : const_values)
+    for (const auto& v : const_values)
     {
       add(v.first, v.second);
     }
@@ -67,10 +70,11 @@ public:
 
   const VkSpecializationInfo* getSpecializationInfo()
   {
-    m_specInfo.dataSize      = static_cast<size_t>(m_specValues.size() * sizeof(int32_t));
-    m_specInfo.pData         = m_specValues.data();
+    m_specInfo.dataSize =
+        static_cast<size_t>(m_specValues.size() * sizeof(int32_t));
+    m_specInfo.pData = m_specValues.data();
     m_specInfo.mapEntryCount = static_cast<uint32_t>(m_specEntries.size());
-    m_specInfo.pMapEntries   = m_specEntries.data();
+    m_specInfo.pMapEntries = m_specEntries.data();
     return &m_specInfo;
   }
 
@@ -82,8 +86,8 @@ public:
   }
 
 private:
-  std::vector<int32_t>                  m_specValues;
+  std::vector<int32_t> m_specValues;
   std::vector<VkSpecializationMapEntry> m_specEntries;
-  VkSpecializationInfo                  m_specInfo{};
+  VkSpecializationInfo m_specInfo{};
 };
 }  // namespace nvvk

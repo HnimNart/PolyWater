@@ -17,35 +17,38 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "axis.hpp"
+
 #include <array>
 #include <vector>
 
 #include <glm/ext/scalar_constants.hpp>
-
-#include "axis.hpp"
 
 //////////////////////////////////////////////////////////////////////////
 // This IMGUI widget draw axis in red, green and blue at the position
 // defined.
 //
 
-struct AxisGeom {
-  AxisGeom() {
-    const float asize = 1.0f;    // length of arrow
-    const float aradius = 0.11f; // width of arrow tip
-    const float abase = 0.6f;    // 1/3 of arrow length
+struct AxisGeom
+{
+  AxisGeom()
+  {
+    const float asize = 1.0f;     // length of arrow
+    const float aradius = 0.11f;  // width of arrow tip
+    const float abase = 0.6f;     // 1/3 of arrow length
     const int asubdiv = 8;
 
     // Cone
-    red.emplace_back(asize, 0, 0); // 0 Tip
-    for (int i = 0; i <= asubdiv; ++i) {
+    red.emplace_back(asize, 0, 0);  // 0 Tip
+    for (int i = 0; i <= asubdiv; ++i)
+    {
       float a0 =
-          2.0F * glm::pi<float>() * (float(i)) / asubdiv; // Counter-clockwise
+          2.0F * glm::pi<float>() * (float(i)) / asubdiv;  // Counter-clockwise
       float y0 = cosf(a0) * aradius;
       float z0 = sinf(a0) * aradius;
       red.emplace_back(abase, y0, z0);
     }
-    for (int i = 0; i <= asubdiv - 1; ++i) // Triangle fan
+    for (int i = 0; i <= asubdiv - 1; ++i)  // Triangle fan
     {
       indices.push_back(0);
       indices.push_back(i + 1);
@@ -54,14 +57,16 @@ struct AxisGeom {
 
     // Under Cap
     int center = static_cast<int>(red.size());
-    red.emplace_back(abase, 0, 0); // Center of cap
-    for (int i = 0; i <= asubdiv; ++i) {
-      float a0 = -2.0F * glm::pi<float>() * (float(i)) / asubdiv; // Clockwise
+    red.emplace_back(abase, 0, 0);  // Center of cap
+    for (int i = 0; i <= asubdiv; ++i)
+    {
+      float a0 = -2.0F * glm::pi<float>() * (float(i)) / asubdiv;  // Clockwise
       float y0 = cosf(a0) * aradius;
       float z0 = sinf(a0) * aradius;
       red.emplace_back(abase, y0, z0);
     }
-    for (int i = 0; i <= asubdiv - 1; ++i) {
+    for (int i = 0; i <= asubdiv - 1; ++i)
+    {
       indices.push_back(center);
       indices.push_back(center + i + 1);
       indices.push_back(center + i + 2);
@@ -71,7 +76,8 @@ struct AxisGeom {
     red.emplace_back(0, 0, 0);
 
     // Other arrows are permutations of the Red arrow
-    for (const auto &v : red) {
+    for (const auto& v : red)
+    {
       green.emplace_back(v.z, v.x, v.y);
       blue.emplace_back(v.y, v.z, v.x);
     }
@@ -83,33 +89,36 @@ struct AxisGeom {
   std::vector<int> indices;
 
   // Return the transformed arrow
-  std::vector<glm::vec3> transform(const std::vector<glm::vec3> &in_vec,
-                                   const ImVec2 &pos,
-                                   const glm::mat4 &modelView, float size) {
+  std::vector<glm::vec3> transform(const std::vector<glm::vec3>& in_vec,
+                                   const ImVec2& pos,
+                                   const glm::mat4& modelView, float size)
+  {
     std::vector<glm::vec3> temp(in_vec.size());
 
-    for (size_t i = 0; i < in_vec.size(); ++i) {
-      temp[i] = glm::vec3(modelView * glm::vec4(in_vec[i], 0.F)); // Rotate
-      temp[i].x *= size;                                          // Scale
-      temp[i].y *= -size;                                         // - invert Y
-      temp[i].x += pos.x;                                         // Translate
+    for (size_t i = 0; i < in_vec.size(); ++i)
+    {
+      temp[i] = glm::vec3(modelView * glm::vec4(in_vec[i], 0.F));  // Rotate
+      temp[i].x *= size;                                           // Scale
+      temp[i].y *= -size;                                          // - invert Y
+      temp[i].x += pos.x;                                          // Translate
       temp[i].y += pos.y;
     }
     return temp;
   }
 
-  void drawTriangle(ImVec2 v0, ImVec2 v1, ImVec2 v2, const ImVec2 &uv,
-                    ImU32 col) {
+  void drawTriangle(ImVec2 v0, ImVec2 v1, ImVec2 v2, const ImVec2& uv,
+                    ImU32 col)
+  {
     auto draw_list = ImGui::GetWindowDrawList();
 
     ImVec2 d0 = ImVec2(v1.x - v0.x, v1.y - v0.y);
     ImVec2 d1 = ImVec2(v2.x - v0.x, v2.y - v0.y);
-    float c = (d0.x * d1.y) - (d0.y * d1.x); // Cross
+    float c = (d0.x * d1.y) - (d0.y * d1.x);  // Cross
 
-    if (c > 0.0f) // Culling to avoid z-fighting
+    if (c > 0.0f)  // Culling to avoid z-fighting
     {
-      v1 = v0; // Culled triangles are degenerated to
-      v2 = v0; // avoid displaying them
+      v1 = v0;  // Culled triangles are degenerated to
+      v2 = v0;  // avoid displaying them
     }
 
     draw_list->PrimVtx(v0, uv, col);
@@ -118,15 +127,17 @@ struct AxisGeom {
   }
 
   // Draw the arrow
-  void draw(const std::vector<glm::vec3> &vertex, ImU32 col) {
+  void draw(const std::vector<glm::vec3>& vertex, ImU32 col)
+  {
     auto draw_list = ImGui::GetWindowDrawList();
     const ImVec2 uv = ImGui::GetFontTexUvWhitePixel();
 
     int num_indices = static_cast<int>(indices.size());
-    draw_list->PrimReserve(num_indices, num_indices); // num vert/indices
+    draw_list->PrimReserve(num_indices, num_indices);  // num vert/indices
 
     // Draw all triangles
-    for (int i = 0; i < num_indices; i += 3) {
+    for (int i = 0; i < num_indices; i += 3)
+    {
       int i0 = indices[i];
       int i1 = indices[i + 1];
       int i2 = indices[i + 2];
@@ -143,10 +154,12 @@ struct AxisGeom {
   }
 };
 
-void app::Axis(ImVec2 pos, const glm::mat4 &modelView, float size /*= 20.f*/) {
+void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
+{
   static AxisGeom a;
 
-  struct Arrow {
+  struct Arrow
+  {
     std::vector<glm::vec3> v;
     ImU32 c{0};
   };
@@ -164,7 +177,8 @@ void app::Axis(ImVec2 pos, const glm::mat4 &modelView, float size /*= 20.f*/) {
   // Sort from smallest Z to nearest (Painter algorithm)
   if (arrow[1].v[0].z < arrow[0].v[0].z)
     std::swap(arrow[0], arrow[1]);
-  if (arrow[2].v[0].z < arrow[1].v[0].z) {
+  if (arrow[2].v[0].z < arrow[1].v[0].z)
+  {
     std::swap(arrow[1], arrow[2]);
     if (arrow[1].v[0].z < arrow[0].v[0].z)
       std::swap(arrow[1], arrow[0]);

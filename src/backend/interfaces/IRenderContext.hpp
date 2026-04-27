@@ -15,21 +15,22 @@ struct Scene;
 //
 // Concrete backends (Vulkan, D3D12, Metal, etc.) must derive from
 // this and expose API-specific data through the derived type.
-class IRenderContext {
+class IRenderContext
+{
 public:
   virtual ~IRenderContext() = default;
   IRenderContext() = default;
 
-  IRenderContext(IRenderContext const &) = delete;
-  IRenderContext &operator=(IRenderContext const &) = delete;
-  IRenderContext(IRenderContext &&) = delete;
-  IRenderContext &operator=(IRenderContext &&) = delete;
+  IRenderContext(IRenderContext const&) = delete;
+  IRenderContext& operator=(IRenderContext const&) = delete;
+  IRenderContext(IRenderContext&&) = delete;
+  IRenderContext& operator=(IRenderContext&&) = delete;
 
   virtual void
-  submitBarriers(const std::vector<BarrierInfo> &barriers) const = 0;
+  submitBarriers(const std::vector<BarrierInfo>& barriers) const = 0;
 
 public:
-  uint64_t frameNumber{0}; // Timeline value for synchronization
-  Scene *sceneResources = nullptr;
+  uint64_t frameNumber{0};  // Timeline value for synchronization
+  Scene* sceneResources = nullptr;
   shaderio::PushConstant pushValues;
 };

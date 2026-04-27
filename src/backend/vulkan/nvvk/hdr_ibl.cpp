@@ -22,40 +22,42 @@
  * for sampling the environment.
  */
 
+#include "hdr_ibl.hpp"
+
+#include <stb/stb_image.h>
+
 #include <array>
 #include <limits>
 #include <numeric>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
-
-#include "shaders/shared/hdr_io.h.slang"
-#include "shaders/shared/slang_types.h"
-
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
 #include <core/timers.hpp>
-#include <stb/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include "check_error.hpp"
 #include "debug_util.hpp"
 #include "default_structs.hpp"
 #include "descriptors.hpp"
-#include "hdr_ibl.hpp"
 #include "mipmaps.hpp"
+#include "shaders/shared/hdr_io.h.slang"
+#include "shaders/shared/slang_types.h"
 #include "staging.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 // Forward declaration
 std::vector<shaderio::EnvAccel>
-createEnvironmentAccel(float *&pixels, const uint32_t &width,
-                       const uint32_t &height, float &average, float &integral);
+createEnvironmentAccel(float*& pixels, const uint32_t& width,
+                       const uint32_t& height, float& average, float& integral);
 
 //--------------------------------------------------------------------------------------------------
 //
 //
-void HdrIbl::init(nvvk::ResourceAllocator *allocator,
-                  nvvk::SamplerPool *samplerPool) {
+void HdrIbl::init(nvvk::ResourceAllocator* allocator,
+                  nvvk::SamplerPool* samplerPool)
+{
   m_device = allocator->getDevice();
   m_alloc = allocator;
   m_samplerPool = samplerPool;
@@ -64,7 +66,8 @@ void HdrIbl::init(nvvk::ResourceAllocator *allocator,
 //--------------------------------------------------------------------------------------------------
 //
 //
-void HdrIbl::deinit() {
+void HdrIbl::deinit()
+{
   destroyEnvironment();
   m_device = {};
   m_alloc = nullptr;
@@ -79,9 +82,10 @@ void HdrIbl::deinit() {
 // but does not generate the
 //       mipmaps
 void HdrIbl::loadEnvironment(VkCommandBuffer cmd,
-                             nvvk::StagingUploader &staging,
-                             const std::filesystem::path &hdrImage,
-                             bool enableMipmaps) {
+                             nvvk::StagingUploader& staging,
+                             const std::filesystem::path& hdrImage,
+                             bool enableMipmaps)
+{
   core::ScopedTimer st(__FUNCTION__);
 
   m_valid = !hdrImage.empty();
@@ -90,35 +94,44 @@ void HdrIbl::loadEnvironment(VkCommandBuffer cmd,
   int32_t height{0};
   int32_t component{0};
   std::string fileContents;
-  float *pixels = nullptr;
-  if (m_valid) {
+  float* pixels = nullptr;
+  if (m_valid)
+  {
     // Read the contents into memory so that we don't have to worry about text
     // encoding in the stbi filename API
     fileContents = core::loadFile(hdrImage);
-    if (fileContents.empty()) {
+    if (fileContents.empty())
+    {
       LOGW("File does not exist or is empty: %s\n",
            core::utf8FromPath(hdrImage).c_str());
       m_valid = false;
-    } else if (fileContents.size() > std::numeric_limits<int>::max()) {
+    }
+    else if (fileContents.size() > std::numeric_limits<int>::max())
+    {
       LOGW("File is too large for stb_image to load: %s\n",
            core::utf8FromPath(hdrImage).c_str());
       m_valid = false;
     }
   }
 
-  if (m_valid) {
-    const stbi_uc *fileData =
-        reinterpret_cast<const stbi_uc *>(fileContents.data());
+  if (m_valid)
+  {
+    const stbi_uc* fileData =
+        reinterpret_cast<const stbi_uc*>(fileContents.data());
     const int fileSize = static_cast<int>(fileContents.size());
 
-    if (!stbi_is_hdr_from_memory(fileData, fileSize)) {
+    if (!stbi_is_hdr_from_memory(fileData, fileSize))
+    {
       LOGW("File is not HDR: %s\n", core::utf8FromPath(hdrImage).c_str());
       m_valid = false;
-    } else {
+    }
+    else
+    {
       core::ScopedTimer st("Load image");
       pixels = stbi_loadf_from_memory(fileData, fileSize, &width, &height,
                                       &component, STBI_rgb_alpha);
-      if (!pixels) {
+      if (!pixels)
+      {
         LOGW("stbi_loadf_from_memory failed: %s\n",
              core::utf8FromPath(hdrImage).c_str());
         m_valid = false;
@@ -126,7 +139,8 @@ void HdrIbl::loadEnvironment(VkCommandBuffer cmd,
     }
   }
 
-  if (m_valid) {
+  if (m_valid)
+  {
     assert(pixels);
     VkDeviceSize buffer_size = width * height * 4 * sizeof(float);
     VkExtent2D imgSize{static_cast<uint32_t>(width),
@@ -167,7 +181,9 @@ void HdrIbl::loadEnvironment(VkCommandBuffer cmd,
     }
 
     stbi_image_free(pixels);
-  } else { // Create a Dummy image and buffer, such that the code can still run
+  }
+  else
+  {  // Create a Dummy image and buffer, such that the code can still run
     VkImageCreateInfo imageInfo = DEFAULT_VkImageCreateInfo;
     imageInfo.extent = {1, 1, 1};
     imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -209,10 +225,12 @@ void HdrIbl::loadEnvironment(VkCommandBuffer cmd,
 }
 
 // Destroy the resources for the environment
-void HdrIbl::destroyEnvironment() {
+void HdrIbl::destroyEnvironment()
+{
   m_descPack.deinit();
 
-  if (m_alloc != nullptr) {
+  if (m_alloc != nullptr)
+  {
     m_samplerPool->releaseSampler(m_texHdr.descriptor.sampler);
     m_alloc->destroyImage(m_texHdr);
     m_alloc->destroyBuffer(m_accelImpSmpl);
@@ -222,14 +240,15 @@ void HdrIbl::destroyEnvironment() {
 //--------------------------------------------------------------------------------------------------
 // Descriptors of the HDR and the acceleration structure
 //
-void HdrIbl::createDescriptorSetLayout() {
+void HdrIbl::createDescriptorSetLayout()
+{
   nvvk::DescriptorBindings bindings;
   bindings.addBinding(shaderio::EnvBindings::eHdr,
                       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                      VK_SHADER_STAGE_ALL); // HDR image
+                      VK_SHADER_STAGE_ALL);  // HDR image
   bindings.addBinding(shaderio::EnvBindings::eImpSamples,
                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
-                      VK_SHADER_STAGE_ALL); // importance sampling
+                      VK_SHADER_STAGE_ALL);  // importance sampling
   NVVK_CHECK(m_descPack.init(bindings, m_device, 1));
   NVVK_DBG_NAME(m_descPack.getLayout());
   NVVK_DBG_NAME(m_descPack.getPool());
@@ -257,15 +276,17 @@ void HdrIbl::createDescriptorSetLayout() {
 // sampling shader to uniformly select a texel in the environment, and select
 // either that texel or its alias depending on their relative intensities
 //
-inline static float buildAliasmap(const std::vector<float> &data,
-                                  std::vector<shaderio::EnvAccel> &accel) {
+inline static float buildAliasmap(const std::vector<float>& data,
+                                  std::vector<shaderio::EnvAccel>& accel)
+{
   auto size = static_cast<uint32_t>(data.size());
 
   // Compute the integral of the emitted radiance of the environment map
   // Since each element in data is already weighted by its solid angle
   // the integral is a simple sum
   float sum = std::accumulate(data.begin(), data.end(), 0.F);
-  if (sum == 0.0f) {
+  if (sum == 0.0f)
+  {
     sum = 1.0f;
   }
 
@@ -274,7 +295,8 @@ inline static float buildAliasmap(const std::vector<float> &data,
   // initialize the aliases to identity, ie. each texel is its own alias
   auto f_size = static_cast<float>(size);
   float inverse_average = f_size / sum;
-  for (uint32_t i = 0; i < size; ++i) {
+  for (uint32_t i = 0; i < size; ++i)
+  {
     accel[i].q = data[i] * inverse_average;
     accel[i].alias = i;
   }
@@ -286,7 +308,8 @@ inline static float buildAliasmap(const std::vector<float> &data,
   std::vector<uint32_t> partition_table(size);
   uint32_t s = 0U;
   uint32_t large = size;
-  for (uint32_t i = 0; i < size; ++i) {
+  for (uint32_t i = 0; i < size; ++i)
+  {
     if (accel[i].q < 1.F)
       partition_table[s++] = i;
     else
@@ -295,7 +318,8 @@ inline static float buildAliasmap(const std::vector<float> &data,
 
   // Associate the lower-energy texels to higher-energy ones. Since the emission
   // of a high-energy texel may be vastly superior to the average,
-  for (s = 0; s < large && large < size; ++s) {
+  for (s = 0; s < large && large < size; ++s)
+  {
     // Index of the smaller energy texel
     const uint32_t small_energy_index = partition_table[s];
 
@@ -333,7 +357,8 @@ inline static float buildAliasmap(const std::vector<float> &data,
 }
 
 // CIE luminance
-inline static float luminance(const float *color) {
+inline static float luminance(const float* color)
+{
   return color[0] * 0.2126F + color[1] * 0.7152F + color[2] * 0.0722F;
 }
 
@@ -343,9 +368,9 @@ inline static float luminance(const float *color) {
 // And store the PDF into the ALPHA channel of pixels
 //
 inline std::vector<shaderio::EnvAccel>
-createEnvironmentAccel(float *&pixels, const uint32_t &width,
-                       const uint32_t &height, float &average,
-                       float &integral) {
+createEnvironmentAccel(float*& pixels, const uint32_t& width,
+                       const uint32_t& height, float& average, float& integral)
+{
   const uint32_t rx = width;
   const uint32_t ry = height;
 
@@ -362,13 +387,15 @@ createEnvironmentAccel(float *&pixels, const uint32_t &width,
   // importance_data, representing the amount of energy emitted through each
   // texel. Also compute the average CIE luminance to drive the tonemapping of
   // the final image
-  for (uint32_t y = 0; y < ry; ++y) {
+  for (uint32_t y = 0; y < ry; ++y)
+  {
     const float theta1 = static_cast<float>(y + 1) * step_theta;
     const float cos_theta1 = std::cos(theta1);
-    const float area = (cos_theta0 - cos_theta1) * step_phi; // solid angle
+    const float area = (cos_theta0 - cos_theta1) * step_phi;  // solid angle
     cos_theta0 = cos_theta1;
 
-    for (uint32_t x = 0; x < rx; ++x) {
+    for (uint32_t x = 0; x < rx; ++x)
+    {
       const uint32_t idx = y * rx + x;
       const uint32_t idx4 = idx * 4;
       float cie_luminance = luminance(&pixels[idx4]);
@@ -387,14 +414,16 @@ createEnvironmentAccel(float *&pixels, const uint32_t &width,
   // radiance As a byproduct this function also returns the integral of the
   // radiance emitted by the environment
   integral = buildAliasmap(importance_data, env_accel);
-  if (integral == 0.0f) {
+  if (integral == 0.0f)
+  {
     integral = 1.0f;
   }
 
   // We deduce the PDF of each texel by normalizing its emitted radiance by the
   // radiance integral
   const float inv_env_integral = 1.0F / integral;
-  for (uint32_t i = 0; i < rx * ry; ++i) {
+  for (uint32_t i = 0; i < rx * ry; ++i)
+  {
     const uint32_t idx4 = i * 4;
     pixels[idx4 + 3] =
         std::max(pixels[idx4], std::max(pixels[idx4 + 1], pixels[idx4 + 2])) *
@@ -404,4 +433,4 @@ createEnvironmentAccel(float *&pixels, const uint32_t &width,
   return env_accel;
 }
 
-} // namespace nvvk
+}  // namespace nvvk

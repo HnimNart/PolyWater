@@ -84,7 +84,9 @@ struct TonemapperData
 #define EXPOSURE_HISTOGRAM_SIZE 256
 
 // Converts a color from linear RGB to sRGB.
+/**********************************************************/
 inline float3 toSrgb(float3 rgb)
+/**********************************************************/
 {
   float3 low  = rgb * 12.92f;
   float3 high = fma(pow(rgb, float3(1.0F / 2.4F)), float3(1.055F), float3(-0.055F));
@@ -92,7 +94,9 @@ inline float3 toSrgb(float3 rgb)
 }
 
 // Converts a color from sRGB to linear RGB.
+/**********************************************************/
 inline float3 toLinear(float3 srgb)
+/**********************************************************/
 {
   float3 low  = srgb / 12.92F;
   float3 high = pow((srgb + float3(0.055F)) / 1.055F, float3(2.4F));
@@ -101,7 +105,9 @@ inline float3 toLinear(float3 srgb)
 
 // Converts from logarithmic photographer's EV100 ("exposure in stops") to
 // linear scene luminance in candela-seconds/m^2.
+/**********************************************************/
 inline float ev100Luminance(float ev100)
+/**********************************************************/
 {
   // The constant factor doesn't really matter; the auto-exposure code only needs
   // a logarithmic scale, and using EV100 here gives values photographers are familiar with.
@@ -112,13 +118,17 @@ inline float ev100Luminance(float ev100)
 
 // Converts from linear scene luminance to photographer's EV100 ("exposure in stops").
 // See ev100Luminance().
+/**********************************************************/
 inline float luminanceEv100(float luminance)
+/**********************************************************/
 {
   return log2(luminance * float(100.0f / 12.5f));
 }
 
 // Returns the luminance of a linear color in the BT.709 standard.
+/**********************************************************/
 inline float bt709Luminance(float3 linearColor)
+/**********************************************************/
 {
   return dot(linearColor, float3(0.2126, 0.7152, 0.0722));
 }
@@ -132,7 +142,9 @@ inline float bt709Luminance(float3 linearColor)
 
 http://filmicworlds.com/blog/filmic-tonemapping-operators/
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 tonemapFilmic(float3 color)
+/**********************************************************/
 {
   float3 temp = max(float3(0.0F), color - float3(0.004F));
   float3 result = (temp * (float3(6.2F) * temp + float3(0.5F))) / (temp * (float3(6.2F) * temp + float3(1.7F)) + float3(0.06F));
@@ -146,7 +158,9 @@ inline float3 tonemapFilmic(float3 color)
 See: http://filmicworlds.com/blog/filmic-tonemapping-operators/
 -------------------------------------------------------------------------------------------------*/
 
+/**********************************************************/
 inline float3 tonemapUncharted2Impl(float3 color)
+/**********************************************************/
 {
   const float a = 0.15F;
   const float b = 0.50F;
@@ -157,7 +171,9 @@ inline float3 tonemapUncharted2Impl(float3 color)
   return ((color * (a * color + c * b) + d * e) / (color * (a * color + b) + d * f)) - e / f;
 }
 
+/**********************************************************/
 inline float3 tonemapUncharted2(float3 color)
+/**********************************************************/
 {
   const float W             = 11.2F;
   const float exposure_bias = 2.0F;
@@ -176,7 +192,9 @@ inline float3 tonemapUncharted2(float3 color)
 From https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl,
 via https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 tonemapACES(float3 color)
+/**********************************************************/
 {
   // Input transform
   const float3x3 ACESInputMat = float3x3(0.59719F, 0.07600F, 0.02840F,   // Row 1
@@ -202,7 +220,9 @@ inline float3 tonemapACES(float3 color)
 
 From https://iolite-engine.com/blog_posts/minimal_agx_implementation
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 tonemapAgX(float3 color)
+/**********************************************************/
 {
   // Input transform
   const float3x3 agx_mat = float3x3(0.842479062253094F, 0.0423282422610123F, 0.0423756549057051F,  //
@@ -240,7 +260,9 @@ inline float3 tonemapAgX(float3 color)
 
 Adapted from https://github.com/KhronosGroup/ToneMapping/blob/main/PBR_Neutral/pbrNeutral.glsl
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float3 tonemapKhronosPBR(float3 color)
+/**********************************************************/
 {
   const float startCompression = 0.8F - 0.04F;
   const float desaturation     = 0.15F;
@@ -283,7 +305,9 @@ inline float3 tonemapKhronosPBR(float3 color)
 // This parameterization of white balance/tint is rather physically based, but
 // might not be the best for artists -- in your own apps, you may wish to
 // provide RGB white balance parameters instead.
+/**********************************************************/
 inline float2 cie1960LightColor(float t, float duv)
+/**********************************************************/
 {
   // The approximation for the locus we use here is from Michael P.Krystek,
   // "An algorithm to calculate correlated colour temperature"(1985),
@@ -310,7 +334,9 @@ inline float2 cie1960LightColor(float t, float duv)
 
 // Converts from CIE 1960 (u, v) chromaticity to CIE 1931 XYZ, normalizing
 // to a brightness of Y=1.
+/**********************************************************/
 inline float3 cie1931XyzFromCie1960UV(float2 uv)
+/**********************************************************/
 {
   // From https://en.wikipedia.org/wiki/CIE_1960_color_space#Relation_to_CIE_XYZ
   float2 xy = uv * float2(3.f, 2.f) / (2.f * uv.x - 8.f * uv.y + 4.f);
@@ -327,7 +353,9 @@ inline float3 cie1931XyzFromCie1960UV(float2 uv)
 // Returns a matrix that corrects a light source with the given Kelvin
 // temperature and Duv tint to RGB (1,1,1), then multiplies by exposure.
 // Use it like mul(inputMatrix, color).
+/**********************************************************/
 inline float3x3 getColorCorrectionMatrix(float exposure, float temperature, float tint)
+/**********************************************************/
 {
   // Suesstrunk, Holm, and Finlayson's paper "Chromatic Adaptation
   // Performance of Different RGB Sensors" (2001,
@@ -373,7 +401,9 @@ inline float3x3 getColorCorrectionMatrix(float exposure, float temperature, floa
 // Applies the given tone mapper and color grading settings to a given color.
 // Requires the pixel index so it can dither,
 // and the screen size so that it can apply vignetting.
+/**********************************************************/
 inline float3 applyTonemap(TonemapperData tm, float3 color, float2 pixel, float2 imageSize)
+/**********************************************************/
 {
   // Exposure and white balance.
   // These are combined into a matrix and applied together before tonemapping

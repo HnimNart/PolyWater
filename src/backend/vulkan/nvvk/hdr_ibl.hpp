@@ -17,35 +17,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
 //////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
+#include <vulkan/vulkan_core.h>
 
 #include <array>
-#include <vector>
-#include <assert.h>
 #include <filesystem>
-
-#include <vulkan/vulkan_core.h>
+#include <vector>
 
 #include "descriptors.hpp"
 #include "resource_allocator.hpp"
 #include "sampler_pool.hpp"
 #include "staging.hpp"
 
-
-namespace nvvk {
+namespace nvvk
+{
 class Context;
-
 
 /*-------------------------------------------------------------------------------------------------
 # class nvvkhl::HdrEnv
 
 High-Dynamic-Range (HDR) environment map used for Image-Based Lighting (IBL).
 
->  Load an environment image (HDR) and create an acceleration structure for important light sampling.
-  
+>  Load an environment image (HDR) and create an acceleration structure for
+important light sampling.
+
 -------------------------------------------------------------------------------------------------*/
 class HdrIbl
 {
@@ -56,35 +54,45 @@ public:
   void init(nvvk::ResourceAllocator* allocator, nvvk::SamplerPool* samplerPool);
   void deinit();
 
-  void loadEnvironment(VkCommandBuffer cmd, nvvk::StagingUploader& staging, const std::filesystem::path& hdrImage, bool enableMipmaps = false);
+  void loadEnvironment(VkCommandBuffer cmd, nvvk::StagingUploader& staging,
+                       const std::filesystem::path& hdrImage,
+                       bool enableMipmaps = false);
   void destroyEnvironment();
 
-  float              getIntegral() const { return m_integral; }
-  float              getAverage() const { return m_average; }
-  bool               isValid() const { return m_valid; }
+  float getIntegral() const { return m_integral; }
+  float getAverage() const { return m_average; }
+  bool isValid() const { return m_valid; }
   const nvvk::Buffer getEnvAccel() const { return m_accelImpSmpl; }
 
   // HDR + importance sampling
-  inline VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descPack.getLayout(); }
-  inline VkDescriptorSet       getDescriptorSet() const { return m_descPack.getSet(0); }
-  const nvvk::Image&           getHdrImage() { return m_texHdr; }  // The loaded HDR texture
-  VkExtent2D                   getHdrImageSize() const { return m_hdrImageSize; }
+  inline VkDescriptorSetLayout getDescriptorSetLayout() const
+  {
+    return m_descPack.getLayout();
+  }
+  inline VkDescriptorSet getDescriptorSet() const
+  {
+    return m_descPack.getSet(0);
+  }
+  const nvvk::Image& getHdrImage()
+  {
+    return m_texHdr;
+  }  // The loaded HDR texture
+  VkExtent2D getHdrImageSize() const { return m_hdrImageSize; }
 
 private:
-  VkDevice                 m_device{VK_NULL_HANDLE};
+  VkDevice m_device{VK_NULL_HANDLE};
   nvvk::ResourceAllocator* m_alloc{nullptr};
-  nvvk::SamplerPool*       m_samplerPool{};
+  nvvk::SamplerPool* m_samplerPool{};
 
-  float      m_integral{1.F};
-  float      m_average{1.F};
-  bool       m_valid{false};
+  float m_integral{1.F};
+  float m_average{1.F};
+  bool m_valid{false};
   VkExtent2D m_hdrImageSize{1, 1};
 
   // Resources
-  nvvk::Image          m_texHdr;
-  nvvk::Buffer         m_accelImpSmpl;
+  nvvk::Image m_texHdr;
+  nvvk::Buffer m_accelImpSmpl;
   nvvk::DescriptorPack m_descPack;
-
 
   void createDescriptorSetLayout();
 };

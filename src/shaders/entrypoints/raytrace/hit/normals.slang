@@ -3,9 +3,11 @@
 //-----------------------------------------------------------------------
 // NORMAL VISUALIZER CLOSEST HIT SHADER
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("closesthit")]
 void rchit_normals(inout HitPayload payload,
                    in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
 {
     HitState hit = getHitState(attr);
 

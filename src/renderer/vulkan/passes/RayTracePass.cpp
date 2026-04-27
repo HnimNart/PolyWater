@@ -7,36 +7,36 @@
 #include <array>
 #include <vector>
 
-#include "nvvk/check_error.hpp"
-#include "nvvk/debug_util.hpp"
-#include "nvvk/gbuffers.hpp"
-
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
+#include "nvvk/check_error.hpp"
+#include "nvvk/debug_util.hpp"
+#include "nvvk/gbuffers.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 
 /**********************************************************/
-RayTracePass::RayTracePass(const nvvk::DescriptorPack &descPack,
-                           ShaderManager *shaderManager,
-                           AccelerationStructures *accel)
-    : m_sharedDescPack(descPack), m_accel(accel)
+RayTracePass::RayTracePass(VulkanContextManager* contextManager,
+                           const nvvk::DescriptorPack& descPack,
+                           ShaderManager* shaderManager,
+                           AccelerationStructures* accel) :
+    m_context_manager(contextManager), m_sharedDescPack(descPack),
+    m_accel(accel)
 /**********************************************************/
 {
   m_shaderManager = shaderManager;
 }
 
 /**********************************************************/
-void RayTracePass::init(VulkanContextManager *contextManager)
+void RayTracePass::init()
 /**********************************************************/
 {
-  m_context_manager = contextManager;
   createPipeline();
 }
 
 /**********************************************************/
-void RayTracePass::deinit(VulkanContextManager * /* coreManager */)
+void RayTracePass::deinit()
 /**********************************************************/
 {
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
@@ -48,7 +48,7 @@ void RayTracePass::deinit(VulkanContextManager * /* coreManager */)
 }
 
 /**********************************************************/
-void RayTracePass::setup(PassBuilder &builder)
+void RayTracePass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   // Ray tracing output: writing to the Linear Color buffer
@@ -82,8 +82,8 @@ void RayTracePass::createRayTracingPipeline()
 /**********************************************************/
 {
   // Set up ray tracing pipeline infrastructure
-  createDescriptorLayout(); // Create descriptor layout
-  createPipelineSBT();      // Create pipeline structure and SBT
+  createDescriptorLayout();  // Create descriptor layout
+  createPipelineSBT();       // Create pipeline structure and SBT
 }
 
 /**********************************************************/
@@ -130,7 +130,7 @@ void RayTracePass::createPipelineSBT()
   std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_groups;
 
   // --- 1. RAYGEN STAGE (Index 0) ---
-  const RaygenEntry &raygen = m_shaderManager->getRaygen();
+  const RaygenEntry& raygen = m_shaderManager->getRaygen();
   m_shaderCode.push_back(
       SlangCompiler::instance().compile(raygen.filename, raygen.spirv));
   stages.push_back(
@@ -142,7 +142,7 @@ void RayTracePass::createPipelineSBT()
   shader_groups.push_back(
       {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
        .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-       .generalShader = 0, // Points to Raygen stage
+       .generalShader = 0,  // Points to Raygen stage
        .closestHitShader = VK_SHADER_UNUSED_KHR,
        .anyHitShader = VK_SHADER_UNUSED_KHR,
        .intersectionShader = VK_SHADER_UNUSED_KHR});
@@ -150,7 +150,7 @@ void RayTracePass::createPipelineSBT()
   // --- 2. MISS STAGES ---
 
   // Miss Stage 0: Radiance/Sky (Index 1)
-  const MissEntry &miss = m_shaderManager->getMiss();
+  const MissEntry& miss = m_shaderManager->getMiss();
   m_shaderCode.push_back(
       SlangCompiler::instance().compile(miss.filename, miss.spirv));
   stages.push_back(
@@ -162,13 +162,13 @@ void RayTracePass::createPipelineSBT()
   shader_groups.push_back(
       {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
        .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-       .generalShader = 1, // Points to Radiance Miss stage
+       .generalShader = 1,  // Points to Radiance Miss stage
        .closestHitShader = VK_SHADER_UNUSED_KHR,
        .anyHitShader = VK_SHADER_UNUSED_KHR,
        .intersectionShader = VK_SHADER_UNUSED_KHR});
 
   // Miss Stage 1: Shadow (Index 2)
-  const MissEntry &missShadow = m_shaderManager->getShadowMiss();
+  const MissEntry& missShadow = m_shaderManager->getShadowMiss();
   m_shaderCode.push_back(
       SlangCompiler::instance().compile(missShadow.filename, missShadow.spirv));
 
@@ -181,13 +181,14 @@ void RayTracePass::createPipelineSBT()
   shader_groups.push_back(
       {.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
        .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-       .generalShader = 2, // Points to Shadow Miss stage
+       .generalShader = 2,  // Points to Shadow Miss stage
        .closestHitShader = VK_SHADER_UNUSED_KHR,
        .anyHitShader = VK_SHADER_UNUSED_KHR,
        .intersectionShader = VK_SHADER_UNUSED_KHR});
 
   // --- 3. HIT GROUPS ---
-  for (auto &[type, entry] : m_shaderManager->getRegistry()) {
+  for (auto& [type, entry] : m_shaderManager->getRegistry())
+  {
     uint32_t currentStageIndex = static_cast<uint32_t>(stages.size());
     m_shaderCode.push_back(SlangCompiler::instance().compile(entry.filename));
 
@@ -245,13 +246,13 @@ void RayTracePass::createPipelineSBT()
 
 /**********************************************************/
 void RayTracePass::createShaderBindingTable(
-    const VkRayTracingPipelineCreateInfoKHR &rtPipelineInfo)
+    const VkRayTracingPipelineCreateInfoKHR& rtPipelineInfo)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
   m_context_manager->getAllocator().destroyBuffer(
-      m_sbtBuffer); // Cleanup when re-creating
+      m_sbtBuffer);  // Cleanup when re-creating
 
   // Calculate required SBT buffer size
   size_t bufferSize =
@@ -272,11 +273,11 @@ void RayTracePass::createShaderBindingTable(
 }
 
 /**********************************************************/
-void RayTracePass::execute(const IRenderContext &ctx)
+void RayTracePass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
-  const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
 
@@ -319,8 +320,8 @@ void RayTracePass::execute(const IRenderContext &ctx)
   vkCmdPushConstants2(cmd, &pushInfo);
 
   // Ray trace
-  const nvvk::SBTGenerator::Regions &regions = m_sbtGenerator.getSBTRegions();
-  const VkExtent2D &size = gBuffers->getSize();
+  const nvvk::SBTGenerator::Regions& regions = m_sbtGenerator.getSBTRegions();
+  const VkExtent2D& size = gBuffers->getSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
                     &regions.callable, size.width, size.height, 1);
 }

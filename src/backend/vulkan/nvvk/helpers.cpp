@@ -26,33 +26,35 @@
 #define STBIW_WINDOWS_UTF8
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_STATIC
-#pragma warning(disable : 4996) // sprintf warning
+#pragma warning(disable : 4996)  // sprintf warning
 #include <stb/stb_image_write.h>
 #include <volk.h>
 
-#include "core/file_operations.hpp"
-#include "core/logger.hpp"
-
 #include "barriers.hpp"
 #include "check_error.hpp"
+#include "core/file_operations.hpp"
+#include "core/logger.hpp"
 #include "helpers.hpp"
 
 // Convert a tiled image to RGBA8 linear
 VkResult nvvk::imageToLinear(VkCommandBuffer cmd, VkDevice device,
                              VkPhysicalDevice physicalDevice, VkImage srcImage,
-                             VkExtent2D size, VkImage &dstImage,
-                             VkDeviceMemory &dstImageMemory, VkFormat format) {
+                             VkExtent2D size, VkImage& dstImage,
+                             VkDeviceMemory& dstImageMemory, VkFormat format)
+{
   // Find the memory type index for the memory
-  auto getMemoryType = [&](uint32_t typeBits,
-                           const VkMemoryPropertyFlags &properties) {
+  auto getMemoryType =
+      [&](uint32_t typeBits, const VkMemoryPropertyFlags& properties)
+  {
     VkPhysicalDeviceMemoryProperties prop;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &prop);
-    for (uint32_t i = 0; i < prop.memoryTypeCount; i++) {
+    for (uint32_t i = 0; i < prop.memoryTypeCount; i++)
+    {
       if (((typeBits & (1 << i)) > 0) &&
           (prop.memoryTypes[i].propertyFlags & properties) == properties)
         return i;
     }
-    return ~0u; // Unable to find memoryType
+    return ~0u;  // Unable to find memoryType
   };
 
   // Create the linear tiled destination image to copy to and to read the memory
@@ -118,8 +120,9 @@ VkResult nvvk::imageToLinear(VkCommandBuffer cmd, VkDevice device,
 // The image should be in Rgba8 (linear) format
 void nvvk::saveImageToFile(VkDevice device, VkImage dstImage,
                            VkDeviceMemory dstImageMemory, VkExtent2D size,
-                           const std::filesystem::path &filename,
-                           int quality /*= 100*/) {
+                           const std::filesystem::path& filename,
+                           int quality /*= 100*/)
+{
   // Get layout of the image (including offset and row pitch)
   VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
   VkSubresourceLayout subResourceLayout;
@@ -127,15 +130,17 @@ void nvvk::saveImageToFile(VkDevice device, VkImage dstImage,
                               &subResourceLayout);
 
   // Map image memory so we can start copying from it
-  const char *data = nullptr;
-  vkMapMemory(device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void **)&data);
+  const char* data = nullptr;
+  vkMapMemory(device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**) &data);
   data += subResourceLayout.offset;
 
   std::string filenameUtf8 = core::utf8FromPath(filename);
 
   // Lambda to copy image data with proper type handling
-  auto copyImageData = [&](auto &pixels, size_t bytesPerPixel) {
-    for (uint32_t y = 0; y < size.height; y++) {
+  auto copyImageData = [&](auto& pixels, size_t bytesPerPixel)
+  {
+    for (uint32_t y = 0; y < size.height; y++)
+    {
       memcpy(pixels.data() + y * size.width * 4, data,
              static_cast<size_t>(size.width) * bytesPerPixel);
       data += subResourceLayout.rowPitch;
@@ -143,28 +148,37 @@ void nvvk::saveImageToFile(VkDevice device, VkImage dstImage,
   };
 
   // Check the extension and perform actions accordingly
-  if (core::extensionMatches(filename, ".png")) {
+  if (core::extensionMatches(filename, ".png"))
+  {
     std::vector<uint8_t> pixels8(size.width * size.height * 4);
     copyImageData(pixels8, 4 * sizeof(uint8_t));
     stbi_write_png(filenameUtf8.c_str(), size.width, size.height, 4,
                    pixels8.data(), size.width * 4);
-  } else if (core::extensionMatches(filename, ".jpg") ||
-             core::extensionMatches(filename, ".jpeg")) {
+  }
+  else if (core::extensionMatches(filename, ".jpg") ||
+           core::extensionMatches(filename, ".jpeg"))
+  {
     std::vector<uint8_t> pixels8(size.width * size.height * 4);
     copyImageData(pixels8, 4 * sizeof(uint8_t));
     stbi_write_jpg(filenameUtf8.c_str(), size.width, size.height, 4,
                    pixels8.data(), quality);
-  } else if (core::extensionMatches(filename, ".bmp")) {
+  }
+  else if (core::extensionMatches(filename, ".bmp"))
+  {
     std::vector<uint8_t> pixels8(size.width * size.height * 4);
     copyImageData(pixels8, 4 * sizeof(uint8_t));
     stbi_write_bmp(filenameUtf8.c_str(), size.width, size.height, 4,
                    pixels8.data());
-  } else if (core::extensionMatches(filename, ".hdr")) {
+  }
+  else if (core::extensionMatches(filename, ".hdr"))
+  {
     std::vector<float> pixels(size.width * size.height * 4);
     copyImageData(pixels, 4 * sizeof(float));
     stbi_write_hdr(filenameUtf8.c_str(), size.width, size.height, 4,
                    pixels.data());
-  } else {
+  }
+  else
+  {
     LOGW("Screenshot: unknown file extension, saving as PNG\n");
     std::filesystem::path path = filename;
     path.replace_extension(".png");

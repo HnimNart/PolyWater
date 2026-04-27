@@ -1,11 +1,10 @@
 #pragma once
 
-#include <nvvk/profiler_vk.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include <memory>
 
-#include "nvvk/queue.hpp"
+#include <nvvk/profiler_vk.hpp>
 
 #include "ContextManager.hpp"
 #include "FrameSynchronizationManager.hpp"
@@ -13,24 +12,26 @@
 #include "IRenderable.hpp"
 #include "SwapchainRenderManager.hpp"
 #include "app/IGUISystem.hpp"
+#include "nvvk/queue.hpp"
 
 class ImGuiVulkanSystem;
 
-class VulkanBackend : public IRenderBackend {
+class VulkanBackend : public IRenderBackend
+{
 public:
   static std::unique_ptr<VulkanBackend>
-  create(const app::ApplicationCreateInfo &appInfo);
+  create(const app::ApplicationCreateInfo& appInfo);
 
-  void initPresentation(GLFWwindow *window, app::IGUISystemPtr gui) override;
-  void initProfiler(core::ProfilerTimeline *timeline) override;
+  void initPresentation(GLFWwindow* window, app::IGUISystemPtr gui) override;
+  void initProfiler(core::ProfilerTimeline* timeline) override;
   void deinit() override;
 
   // Frame lifecycle
-  IRenderContext &getCurrentContext() override;
-  IRenderContext *beginFrame() override;
-  void renderFrame(const std::vector<app::IAppElementPtr> &elements,
-                   IRenderContext const &ctx) override;
-  void endFrame(IRenderContext const &ctx) override;
+  IRenderContext& getCurrentContext() override;
+  IRenderContext* beginFrame() override;
+  void renderFrame(const std::vector<app::IAppElementPtr>& elements,
+                   IRenderContext const& ctx) override;
+  void endFrame(IRenderContext const& ctx) override;
   void present() override;
   void advance() override;
 
@@ -38,19 +39,19 @@ public:
   void setVsync(bool enabled) override;
 
   // Manager accessors
-  VulkanContextManager *getContextManager() const;
-  FrameSynchronizationManager *getFrameSyncManager() const;
-  SwapchainRenderManager *getSwapchainManager() const;
-  RenderRegistry &getRegistry();
+  VulkanContextManager* getContextManager() const;
+  FrameSynchronizationManager* getFrameSyncManager() const;
+  SwapchainRenderManager* getSwapchainManager() const;
+  RenderRegistry& getRegistry();
 
 private:
-  void recordRegistryCommands(IRenderContext const &frame);
-  IRenderContext *getRenderContext();
+  void recordRegistryCommands(IRenderContext const& frame);
+  IRenderContext* getRenderContext();
   // Utility
   VkDevice getDevice() const;
   VkPhysicalDevice getPhysicalDevice() const;
   VkInstance getInstance() const;
-  const nvvk::QueueInfo &getQueueInfo(uint32_t index) const;
+  const nvvk::QueueInfo& getQueueInfo(uint32_t index) const;
 
   VulkanBackend() = default;
 
@@ -59,11 +60,11 @@ private:
   std::unique_ptr<SwapchainRenderManager> m_swapchainManager;
 
   RenderRegistry m_renderRegistry{};
-  bool initVulkan(const app::ApplicationCreateInfo &appInfo);
+  bool initVulkan(const app::ApplicationCreateInfo& appInfo);
 
   // Profiling
 #ifdef PROFILE_APP
-  core::ProfilerTimeline *m_profileTimeline = nullptr;
+  core::ProfilerTimeline* m_profileTimeline = nullptr;
   nvvk::ProfilerGpuTimer m_gpuTimer;
 #endif
 };

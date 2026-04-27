@@ -18,54 +18,58 @@
  */
 
 #ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <libloaderapi.h> // GetModuleFileNameA
-#include <stringapiset.h> // WideChartoMultiByte
-#include <windows.h>
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <libloaderapi.h>  // GetModuleFileNameA
+#  include <stringapiset.h>  // WideChartoMultiByte
+#  include <windows.h>
 #else
-#include <limits.h>    // PATH_MAX
-#include <strings.h>   // strcasecmp
-#include <sys/types.h> // ssize_t
-#include <unistd.h>    // readlink
+#  include <limits.h>     // PATH_MAX
+#  include <strings.h>    // strcasecmp
+#  include <sys/types.h>  // ssize_t
+#  include <unistd.h>     // readlink
 #endif
+
+#include <fstream>
 
 #include "file_operations.hpp"
 #include "logger.hpp"
 
-#include <fstream>
-
 /**********************************************************/
 std::filesystem::path
-core::findFile(const std::filesystem::path &filename,
-               const std::vector<std::filesystem::path> &searchPaths,
+core::findFile(const std::filesystem::path& filename,
+               const std::vector<std::filesystem::path>& searchPaths,
                bool reportError)
 /**********************************************************/
 {
-  for (const auto &path : searchPaths) {
+  for (const auto& path : searchPaths)
+  {
     const std::filesystem::path filePath = path / filename;
-    if (std::filesystem::exists(filePath)) {
+    if (std::filesystem::exists(filePath))
+    {
       return filePath;
     }
   }
   LOGE("File not found: %s\n", utf8FromPath(filename).c_str());
   LOGE("Searched under: \n");
-  for (const auto &path : searchPaths) {
+  for (const auto& path : searchPaths)
+  {
     LOGE("  %s\n", utf8FromPath(path).c_str());
   }
   return std::filesystem::path();
 }
 
 /**********************************************************/
-std::string core::loadFile(const std::filesystem::path &filePath)
+std::string core::loadFile(const std::filesystem::path& filePath)
 /**********************************************************/
 {
   std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-  if (!file) {
+  if (!file)
+  {
     LOGW("Could not open file: %s\n", utf8FromPath(filePath).c_str());
     return "";
   }
@@ -74,7 +78,8 @@ std::string core::loadFile(const std::filesystem::path &filePath)
   file.seekg(0, std::ios::beg);
 
   std::vector<char> buffer(size);
-  if (!file.read(buffer.data(), size)) {
+  if (!file.read(buffer.data(), size))
+  {
     LOGW("Error reading file: %s\n", utf8FromPath(filePath).c_str());
     return "";
   }
@@ -101,10 +106,11 @@ std::filesystem::path core::getExecutablePath()
 }
 
 /**********************************************************/
-std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
+std::string core::utf8FromPath(const std::filesystem::path& path) noexcept
 /**********************************************************/
 {
-  try {
+  try
+  {
 #ifdef _WIN32
     // On Windows, paths are UTF-16, possibly with unpaired surrogates.
     // There's several possible routes to convert to UTF-8; we use
@@ -114,14 +120,15 @@ std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
     // -  _wcstombs_s_l requires a locale object
     // We choose to reject unpaired surrogates using WC_ERR_INVALID_CHARS,
     // in case downstream code expects fully valid UTF-8.
-    if (path.empty()) // Convert empty strings without producing errors
+    if (path.empty())  // Convert empty strings without producing errors
     {
       return "";
     }
-    const wchar_t *utf16Str = path.c_str();
+    const wchar_t* utf16Str = path.c_str();
     const size_t utf16Characters = wcslen(utf16Str);
     // Cast to int for WideCharToMultiByte
-    if (utf16Characters > std::numeric_limits<int>::max()) {
+    if (utf16Characters > std::numeric_limits<int>::max())
+    {
       LOGE("%s: Input had too many characters to store in an int.\n", __func__);
       return "";
     }
@@ -129,15 +136,16 @@ std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
     // Get output size (does not include terminating null since we specify
     // cchWideChar)
     const int utf8Bytes = WideCharToMultiByte(
-        CP_UTF8,              // CodePage
-        WC_ERR_INVALID_CHARS, // dwFlags
-        utf16Str,             // lpWideCharStr
-        utf16CharactersI,     // cchWideChar
-        nullptr, 0,           // Output
-        nullptr, nullptr);    // lpDefaultChar, lpUsedDefaultChar
+        CP_UTF8,               // CodePage
+        WC_ERR_INVALID_CHARS,  // dwFlags
+        utf16Str,              // lpWideCharStr
+        utf16CharactersI,      // cchWideChar
+        nullptr, 0,            // Output
+        nullptr, nullptr);     // lpDefaultChar, lpUsedDefaultChar
     // WideCharToMultiByte returns 0 on failure. Check for that plus negative
     // values (which chould never happen):
-    if (utf8Bytes <= 0) {
+    if (utf8Bytes <= 0)
+    {
       LOGE("%s: WideCharToMultiByte failed. The path is probably not valid "
            "UTF-16.\n",
            __func__);
@@ -155,7 +163,8 @@ std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
         std::is_same_v<std::filesystem::path::string_type::value_type, char>);
     return path.string();
 #endif
-  } catch (const std::exception &e) // E.g. out of memory
+  }
+  catch (const std::exception& e)  // E.g. out of memory
   {
     LOGE("%s threw an exception: %s\n", __func__, e.what());
     return "";
@@ -163,25 +172,29 @@ std::string core::utf8FromPath(const std::filesystem::path &path) noexcept
 }
 
 /**********************************************************/
-std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept
+std::filesystem::path core::pathFromUtf8(const char* utf8) noexcept
 /**********************************************************/
 {
   // Since this is the inverse of pathToUtf8, see pathToUtf8 for implementation
   // notes.
-  try {
+  try
+  {
 #ifdef _WIN32
     const size_t utf8Bytes = strlen(utf8);
-    if (utf8Bytes == 0) {
+    if (utf8Bytes == 0)
+    {
       return L"";
     }
-    if (utf8Bytes > std::numeric_limits<int>::max()) {
+    if (utf8Bytes > std::numeric_limits<int>::max())
+    {
       LOGE("%s: Input had too many characters to store in an int.\n", __func__);
       return L"";
     }
     const int utf8BytesI = static_cast<int>(utf8Bytes);
     const int utf16Characters = MultiByteToWideChar(
         CP_UTF8, MB_ERR_INVALID_CHARS, utf8, utf8BytesI, nullptr, 0);
-    if (utf16Characters <= 0) {
+    if (utf16Characters <= 0)
+    {
       LOGE("%s: MultiByteToWideChar failed. The input is probably not valid "
            "UTF-8.\n",
            __func__);
@@ -197,9 +210,11 @@ std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept
 #else
     return std::filesystem::path(utf8);
 #endif
-  } catch (const std::exception &e) {
+  }
+  catch (const std::exception& e)
+  {
     LOGE("%s threw an exception: %s\n", __func__, e.what());
-#ifdef _WIN32 // Avoid _convert_narrow_to_wide, just in case
+#ifdef _WIN32  // Avoid _convert_narrow_to_wide, just in case
     return L"";
 #else
     return "";
@@ -208,8 +223,8 @@ std::filesystem::path core::pathFromUtf8(const char *utf8) noexcept
 }
 
 /**********************************************************/
-bool core::extensionMatches(const std::filesystem::path &path,
-                            const char *extension)
+bool core::extensionMatches(const std::filesystem::path& path,
+                            const char* extension)
 /**********************************************************/
 {
   // The standard implementation of this, tolower(path.extension()) ==
@@ -221,11 +236,11 @@ bool core::extensionMatches(const std::filesystem::path &path,
   // First, find the character where the extension starts.
   // Because we're just testing whether the extension matches, we don't need
   // to handle things like Windows' NTFS Alternate Data Streams.
-  const std::filesystem::path::string_type &native = path.native();
+  const std::filesystem::path::string_type& native = path.native();
   constexpr std::filesystem::path::value_type dot =
-      '.'; // Same value in UTF-8 and UTF-16
+      '.';  // Same value in UTF-8 and UTF-16
   const auto dotPos = native.rfind(dot);
-  if (dotPos == native.npos) // No extension?
+  if (dotPos == native.npos)  // No extension?
   {
     return extension == nullptr || extension[0] == '\0';
   }
@@ -233,7 +248,7 @@ bool core::extensionMatches(const std::filesystem::path &path,
 #ifdef _WIN32
   // UTF-8 to UTF-16 copy
   const std::filesystem::path extensionUTF16 = pathFromUtf8(extension);
-  const std::filesystem::path::value_type *extensionBytes =
+  const std::filesystem::path::value_type* extensionBytes =
       extensionUTF16.native().c_str();
   return 0 == _wcsicmp(native.c_str() + dotPos, extensionBytes);
 #else

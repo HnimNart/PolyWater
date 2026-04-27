@@ -23,8 +23,9 @@
 
 #pragma once
 
-#include "app/IAppElement.hpp"
 #include <functional>
+
+#include "app/IAppElement.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
@@ -34,7 +35,8 @@
 //   app->addEngine(std::make_shared<nvapp::ElementDefaultMenu>());
 //
 
-namespace app {
+namespace app
+{
 
 /*-------------------------------------------------------------------------------------------------
 # class nvapp::ElementDefaultMenu
@@ -48,21 +50,23 @@ To use this class, you need to add it to the `nvapp::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultMenu : public IAppElement {
+class ElementDefaultMenu : public IAppElement
+{
 public:
-  void onAttach(Application *app) override;
+  void onAttach(Application* app) override;
   void onUIMenu() override;
 
   using OnFileSelectedCallback =
-      std::function<void(const std::filesystem::path &path)>;
+      std::function<void(const std::filesystem::path& path)>;
 
-  void addFileSelectedCallback(OnFileSelectedCallback callback) {
+  void addFileSelectedCallback(OnFileSelectedCallback callback)
+  {
     m_onSelect.emplace_back(std::move(callback));
   }
 
 private:
-  Application *m_app{nullptr};
+  Application* m_app{nullptr};
   std::vector<OnFileSelectedCallback> m_onSelect{};
 };
 
-} // namespace app
+}  // namespace app

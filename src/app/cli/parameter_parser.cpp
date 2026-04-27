@@ -17,35 +17,41 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "parameter_parser.hpp"
+
+#include <fmt/ranges.h>
+
 #include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-#include <fmt/ranges.h>
-
 #include "core/file_operations.hpp"
 #include "core/logger.hpp"
-#include "parameter_parser.hpp"
 
-namespace app::cli {
+namespace app::cli
+{
 
 ParameterParser::ParameterParser(
-    const std::string &description,
-    const std::vector<std::string> &configFileExtensions) {
+    const std::string& description,
+    const std::vector<std::string>& configFileExtensions)
+{
   m_helpDescription = description;
 
-  auto fnConfigLoad = [&](const ParameterBase *const,
-                          std::span<const char *const> args,
-                          const std::filesystem::path &filenameBasePath) {
+  auto fnConfigLoad = [&](const ParameterBase* const,
+                          std::span<const char* const> args,
+                          const std::filesystem::path& filenameBasePath)
+  {
     Tokenized tokenized;
 
     const std::filesystem::path configFile =
         getFilename(filenameBasePath, args[0]);
 
-    if (tokenized.initFromFile(configFile)) {
-      if (m_verbose) {
+    if (tokenized.initFromFile(configFile))
+    {
+      if (m_verbose)
+      {
         core::Logger::getInstance().log(core::Logger::eINFO,
                                         "parser: configfile %s - start\n",
                                         core::utf8FromPath(configFile).c_str());
@@ -55,21 +61,25 @@ ParameterParser::ParameterParser(
       size_t parsed =
           parse(tokenized.getArgs(), false, tokenized.getFilenameBasePath());
 
-      if (m_verbose) {
+      if (m_verbose)
+      {
         core::Logger::getInstance().log(
             core::Logger::eINFO, "parser: configfile %s - completed %d of %d\n",
             core::utf8FromPath(configFile).c_str(), uint32_t(parsed),
             uint32_t(maxArgs));
       }
       return true;
-    } else {
+    }
+    else
+    {
       return false;
     }
   };
 
-  auto fnHelp = [&](const ParameterBase *const,
-                    std::span<const char *const> args,
-                    const std::filesystem::path &filenameBasePath) {
+  auto fnHelp = [&](const ParameterBase* const,
+                    std::span<const char* const> args,
+                    const std::filesystem::path& filenameBasePath)
+  {
     printHelp();
     exit(1);
     return true;
@@ -93,7 +103,8 @@ ParameterParser::ParameterParser(
       0, fnHelp));
 }
 
-void ParameterParser::printHelp() const {
+void ParameterParser::printHelp() const
+{
   static constexpr int MAX_LINE_WIDTH = 60;
 
   // Print the general description.
@@ -105,19 +116,21 @@ void ParameterParser::printHelp() const {
   // the help messages).
   uint32_t maxFlagLength = 0;
 
-  for (const ParameterBase *parameter : m_parsedParameters) {
+  for (const ParameterBase* parameter : m_parsedParameters)
+  {
     uint32_t flagLength =
-        static_cast<uint32_t>(parameter->info.name.size() + 2); // +2 for "--"
+        static_cast<uint32_t>(parameter->info.name.size() + 2);  // +2 for "--"
     if (!parameter->info.shortName.empty())
       flagLength +=
           +2 + static_cast<uint32_t>(parameter->info.shortName.size() +
-                                     1); // 2 + for ", " and +1 for "-"
+                                     1);  // 2 + for ", " and +1 for "-"
 
     maxFlagLength = std::max(maxFlagLength, flagLength);
   }
 
   // Now print each argument.
-  for (const ParameterBase *parameter : m_parsedParameters) {
+  for (const ParameterBase* parameter : m_parsedParameters)
+  {
 
     std::string flags = "--" + parameter->info.name;
     if (!parameter->info.shortName.empty())
@@ -127,11 +140,13 @@ void ParameterParser::printHelp() const {
     sstr << std::left << std::setw(maxFlagLength) << flags;
 
     std::string help = parameter->getTypeString();
-    if (parameter->extensions.size()) {
+    if (parameter->extensions.size())
+    {
       help += fmt::format("[{}]", parameter->extensions);
     }
 
-    if (parameter->info.help.size()) {
+    if (parameter->info.help.size())
+    {
       help += ": " + parameter->info.help;
     }
 
@@ -139,21 +154,26 @@ void ParameterParser::printHelp() const {
     // line wrapping for long descriptions.
     size_t spacePos = 0;
     size_t lineWidth = 0;
-    while (spacePos != std::string::npos) {
+    while (spacePos != std::string::npos)
+    {
       size_t nextspacePos = help.find_first_of(' ', spacePos + 1);
       sstr << help.substr(spacePos, nextspacePos - spacePos);
       lineWidth += nextspacePos - spacePos;
       spacePos = nextspacePos;
 
-      if (lineWidth > MAX_LINE_WIDTH) {
+      if (lineWidth > MAX_LINE_WIDTH)
+      {
         core::Logger::getInstance().log(core::Logger::eINFO, "%s\n",
                                         sstr.str().c_str());
         sstr = std::stringstream();
-        if (maxFlagLength > 0) {
+        if (maxFlagLength > 0)
+        {
           sstr << std::left
                << std::setw(static_cast<std::streamsize>(maxFlagLength) - 1)
                << " ";
-        } else {
+        }
+        else
+        {
           sstr << " ";
         }
         lineWidth = 0;
@@ -162,20 +182,24 @@ void ParameterParser::printHelp() const {
   }
 }
 
-void ParameterParser::add(const ParameterBase *parameter) {
-  if (m_parsedParameterSet.find(parameter) != m_parsedParameterSet.end()) {
+void ParameterParser::add(const ParameterBase* parameter)
+{
+  if (m_parsedParameterSet.find(parameter) != m_parsedParameterSet.end())
+  {
     return;
   }
 
   auto inserted = m_keywordMap.insert({"--" + parameter->info.name, parameter});
   assert(inserted.second);
-  if (!parameter->info.shortName.empty()) {
+  if (!parameter->info.shortName.empty())
+  {
     inserted =
         m_keywordMap.insert({"-" + parameter->info.shortName, parameter});
     assert(inserted.second);
   }
 
-  if (parameter->extensions.size()) {
+  if (parameter->extensions.size())
+  {
     m_parsedExtensions.push_back(parameter);
   }
 
@@ -183,29 +207,37 @@ void ParameterParser::add(const ParameterBase *parameter) {
   m_parsedParameterSet.insert(parameter);
 }
 
-void ParameterParser::add(const ParameterRegistry &registry,
-                          uint32_t visibilityMask) {
+void ParameterParser::add(const ParameterRegistry& registry,
+                          uint32_t visibilityMask)
+{
   auto parameters = registry.getParameters();
-  for (const auto &param : parameters) {
+  for (const auto& param : parameters)
+  {
     if (param->info.visibility & visibilityMask)
       add(param);
   }
 }
 
 // internal safe parsing of string to int, exit(1) on error
-int ParameterParser::parseInt(const ParameterBase &parameter, const char *str,
-                              size_t a) {
-  try {
+int ParameterParser::parseInt(const ParameterBase& parameter, const char* str,
+                              size_t a)
+{
+  try
+  {
     int value = std::stoi(std::string(str));
     return value;
-  } catch (const std::invalid_argument &) {
+  }
+  catch (const std::invalid_argument&)
+  {
     core::Logger::getInstance().log(
         core::Logger::eERROR,
         "parser: %2d-%2d: --%s invalid parameter value "
         "\"%s\", not an integer \n",
         uint32_t(a), uint32_t(a + parameter.argCount),
         parameter.info.name.c_str(), str);
-  } catch (const std::out_of_range &) {
+  }
+  catch (const std::out_of_range&)
+  {
     std::cerr << "Input is out of range for int" << std::endl;
     core::Logger::getInstance().log(
         core::Logger::eERROR,
@@ -220,18 +252,24 @@ int ParameterParser::parseInt(const ParameterBase &parameter, const char *str,
 }
 
 // internal safe parsing of string to int, exit(1) on error
-float ParameterParser::parseFloat(const ParameterBase &parameter,
-                                  const char *str, size_t a) {
-  try {
+float ParameterParser::parseFloat(const ParameterBase& parameter,
+                                  const char* str, size_t a)
+{
+  try
+  {
     float value = std::stof(std::string(str));
     return value;
-  } catch (const std::invalid_argument &) {
+  }
+  catch (const std::invalid_argument&)
+  {
     core::Logger::getInstance().log(
         core::Logger::eERROR,
         "parser: %2d-%2d: --%s invalid parameter value \"%s\", not a float \n",
         uint32_t(a), uint32_t(a + parameter.argCount),
         parameter.info.name.c_str(), str);
-  } catch (const std::out_of_range &) {
+  }
+  catch (const std::out_of_range&)
+  {
     std::cerr << "Input is out of range for int" << std::endl;
     core::Logger::getInstance().log(
         core::Logger::eERROR,
@@ -245,126 +283,146 @@ float ParameterParser::parseFloat(const ParameterBase &parameter,
   exit(1);
 }
 
-size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
-                              const std::filesystem::path &filenameBasePathIn,
-                              const std::string &stopKeyword,
-                              bool silentUnknown) {
+size_t ParameterParser::parse(std::span<const char* const> args, bool skipExe,
+                              const std::filesystem::path& filenameBasePathIn,
+                              const std::string& stopKeyword,
+                              bool silentUnknown)
+{
   std::filesystem::path filenameBasePath = filenameBasePathIn;
 
-  if (filenameBasePath.has_extension()) {
+  if (filenameBasePath.has_extension())
+  {
     filenameBasePath = filenameBasePath.parent_path();
   }
 
-  for (size_t a = skipExe ? 1 : 0; a < args.size(); a++) {
+  for (size_t a = skipExe ? 1 : 0; a < args.size(); a++)
+  {
     // inclusive
     size_t argsLeft = args.size() - a;
 
     std::string arg(args[a]);
     auto it = m_keywordMap.find(arg);
-    if (it != m_keywordMap.end()) {
-      const ParameterBase &parameter = *it->second;
+    if (it != m_keywordMap.end())
+    {
+      const ParameterBase& parameter = *it->second;
 
       // argCount is exclusive of keyword
-      if (argsLeft > parameter.argCount) {
+      if (argsLeft > parameter.argCount)
+      {
         bool success = true;
 
-        switch (parameter.type) {
-        case ParameterBase::Type::BOOL8:
-          parameter.destination.b8[0] =
-              parseInt(parameter, args[1 + a], a) ? true : false;
-          break;
-        case ParameterBase::Type::BOOL8_TRIGGER:
-          parameter.destination.b8[0] =
-              parameter.minMaxValues[0].u32[0] ? true : false;
-          break;
-        case ParameterBase::Type::FLOAT32:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.f32[i] =
-                std::max(std::min(parseFloat(parameter, args[i + 1 + a], a),
-                                  parameter.minMaxValues[1].f32[i]),
-                         parameter.minMaxValues[0].f32[i]);
-          }
-          break;
-        case ParameterBase::Type::INT8:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.i8[i] = std::max(
-                std::min(int8_t(parseInt(parameter, args[i + 1 + a], a)),
-                         parameter.minMaxValues[1].i8[i]),
-                parameter.minMaxValues[0].i8[i]);
-          }
-          break;
-        case ParameterBase::Type::INT16:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.i16[i] = std::max(
-                std::min(int16_t(parseInt(parameter, args[i + 1 + a], a)),
-                         parameter.minMaxValues[1].i16[i]),
-                parameter.minMaxValues[0].i16[i]);
-          }
-          break;
-        case ParameterBase::Type::INT32:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.i32[i] =
-                std::max(std::min(parseInt(parameter, args[i + 1 + a], a),
-                                  parameter.minMaxValues[1].i32[i]),
-                         parameter.minMaxValues[0].i32[i]);
-          }
-          break;
-        case ParameterBase::Type::UINT8:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.u8[i] = std::max(
-                std::min(uint8_t(parseInt(parameter, args[i + 1 + a], a)),
-                         parameter.minMaxValues[1].u8[i]),
-                parameter.minMaxValues[0].u8[i]);
-          }
-          break;
-        case ParameterBase::Type::UINT16:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.u16[i] = std::max(
-                std::min(uint16_t(parseInt(parameter, args[i + 1 + a], a)),
-                         parameter.minMaxValues[1].u16[i]),
-                parameter.minMaxValues[0].u16[i]);
-          }
-          break;
-        case ParameterBase::Type::UINT32:
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
-            parameter.destination.u32[i] = std::max(
-                std::min(uint32_t(parseInt(parameter, args[i + 1 + a], a)),
-                         parameter.minMaxValues[1].u32[i]),
-                parameter.minMaxValues[0].u32[i]);
-          }
-          break;
-        case ParameterBase::Type::STRING:
-          *parameter.destination.string = args[1 + a];
-          break;
-        case ParameterBase::Type::FILENAME:
-          *parameter.destination.filename =
-              getFilename(filenameBasePath, args[1 + a]);
-          break;
-        case ParameterBase::Type::CUSTOM:
-          if (parameter.argCount) {
-            success = parameter.callbackCustom(
-                &parameter,
-                std::span<const char *const>(&args[1 + a], parameter.argCount),
-                filenameBasePath);
-          } else {
-            success =
-                parameter.callbackCustom(&parameter, {}, filenameBasePath);
-          }
-          break;
-        default:
-          assert(false && "invalid parameter type");
-          break;
+        switch (parameter.type)
+        {
+          case ParameterBase::Type::BOOL8:
+            parameter.destination.b8[0] =
+                parseInt(parameter, args[1 + a], a) ? true : false;
+            break;
+          case ParameterBase::Type::BOOL8_TRIGGER:
+            parameter.destination.b8[0] =
+                parameter.minMaxValues[0].u32[0] ? true : false;
+            break;
+          case ParameterBase::Type::FLOAT32:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.f32[i] =
+                  std::max(std::min(parseFloat(parameter, args[i + 1 + a], a),
+                                    parameter.minMaxValues[1].f32[i]),
+                           parameter.minMaxValues[0].f32[i]);
+            }
+            break;
+          case ParameterBase::Type::INT8:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.i8[i] = std::max(
+                  std::min(int8_t(parseInt(parameter, args[i + 1 + a], a)),
+                           parameter.minMaxValues[1].i8[i]),
+                  parameter.minMaxValues[0].i8[i]);
+            }
+            break;
+          case ParameterBase::Type::INT16:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.i16[i] = std::max(
+                  std::min(int16_t(parseInt(parameter, args[i + 1 + a], a)),
+                           parameter.minMaxValues[1].i16[i]),
+                  parameter.minMaxValues[0].i16[i]);
+            }
+            break;
+          case ParameterBase::Type::INT32:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.i32[i] =
+                  std::max(std::min(parseInt(parameter, args[i + 1 + a], a),
+                                    parameter.minMaxValues[1].i32[i]),
+                           parameter.minMaxValues[0].i32[i]);
+            }
+            break;
+          case ParameterBase::Type::UINT8:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.u8[i] = std::max(
+                  std::min(uint8_t(parseInt(parameter, args[i + 1 + a], a)),
+                           parameter.minMaxValues[1].u8[i]),
+                  parameter.minMaxValues[0].u8[i]);
+            }
+            break;
+          case ParameterBase::Type::UINT16:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.u16[i] = std::max(
+                  std::min(uint16_t(parseInt(parameter, args[i + 1 + a], a)),
+                           parameter.minMaxValues[1].u16[i]),
+                  parameter.minMaxValues[0].u16[i]);
+            }
+            break;
+          case ParameterBase::Type::UINT32:
+            for (uint32_t i = 0; i < parameter.argCount; i++)
+            {
+              parameter.destination.u32[i] = std::max(
+                  std::min(uint32_t(parseInt(parameter, args[i + 1 + a], a)),
+                           parameter.minMaxValues[1].u32[i]),
+                  parameter.minMaxValues[0].u32[i]);
+            }
+            break;
+          case ParameterBase::Type::STRING:
+            *parameter.destination.string = args[1 + a];
+            break;
+          case ParameterBase::Type::FILENAME:
+            *parameter.destination.filename =
+                getFilename(filenameBasePath, args[1 + a]);
+            break;
+          case ParameterBase::Type::CUSTOM:
+            if (parameter.argCount)
+            {
+              success = parameter.callbackCustom(
+                  &parameter,
+                  std::span<const char* const>(&args[1 + a],
+                                               parameter.argCount),
+                  filenameBasePath);
+            }
+            else
+            {
+              success =
+                  parameter.callbackCustom(&parameter, {}, filenameBasePath);
+            }
+            break;
+          default:
+            assert(false && "invalid parameter type");
+            break;
         }
 
-        if (success && parameter.info.callbackSuccess) {
+        if (success && parameter.info.callbackSuccess)
+        {
           parameter.info.callbackSuccess(&parameter);
         }
 
-        if (m_verbose && success) {
+        if (m_verbose && success)
+        {
           core::Logger::getInstance().log(
               core::Logger::eINFO, "parser: %2d-%2d: --%s", uint32_t(a),
               uint32_t(a + parameter.argCount), parameter.info.name.c_str());
-          for (uint32_t i = 0; i < parameter.argCount; i++) {
+          for (uint32_t i = 0; i < parameter.argCount; i++)
+          {
             core::Logger::getInstance().log(core::Logger::eINFO, " %s",
                                             args[i + 1 + a]);
           }
@@ -372,7 +430,9 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
         }
 
         a += parameter.argCount;
-      } else {
+      }
+      else
+      {
         core::Logger::getInstance().log(
             core::Logger::eERROR,
             "parser: %d - %d: %s - not enough arguments left\n", uint32_t(a),
@@ -382,32 +442,47 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
 
         return args.size();
       }
-    } else if (arg == stopKeyword) {
+    }
+    else if (arg == stopKeyword)
+    {
       return a + 1;
-    } else {
-      const ParameterBase *parameter = findViaExtension(arg);
-      if (parameter) {
+    }
+    else
+    {
+      const ParameterBase* parameter = findViaExtension(arg);
+      if (parameter)
+      {
         bool success = true;
 
-        if (parameter->type == ParameterBase::Type::FILENAME) {
+        if (parameter->type == ParameterBase::Type::FILENAME)
+        {
           *parameter->destination.filename = getFilename(filenameBasePath, arg);
-        } else if (parameter->type == ParameterBase::Type::CUSTOM) {
+        }
+        else if (parameter->type == ParameterBase::Type::CUSTOM)
+        {
           success = parameter->callbackCustom(
-              parameter, std::span<const char *const>(&args[a], 1),
+              parameter, std::span<const char* const>(&args[a], 1),
               filenameBasePath);
-        } else {
+        }
+        else
+        {
           assert(0 && "invalid parameter type for extension case");
         }
 
-        if (success && parameter->info.callbackSuccess) {
+        if (success && parameter->info.callbackSuccess)
+        {
           parameter->info.callbackSuccess(parameter);
         }
-        if (m_verbose) {
-          if (success) {
+        if (m_verbose)
+        {
+          if (success)
+          {
             core::Logger::getInstance().log(
                 core::Logger::eINFO, "parser: %2d-%2d: --%s", uint32_t(a),
                 uint32_t(a), parameter->info.name.c_str());
-          } else {
+          }
+          else
+          {
             core::Logger::getInstance().log(
                 core::Logger::eERROR, "parser: %2d-%2d: --%s failed\n",
                 uint32_t(a), uint32_t(a), parameter->info.name.c_str());
@@ -415,7 +490,9 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
             exit(1);
           }
         }
-      } else if (!silentUnknown) {
+      }
+      else if (!silentUnknown)
+      {
         core::Logger::getInstance().log(core::Logger::eERROR,
                                         "parser: %d: %s - unknown parameter\n",
                                         uint32_t(a), arg.c_str());
@@ -429,30 +506,39 @@ size_t ParameterParser::parse(std::span<const char *const> args, bool skipExe,
 }
 
 std::filesystem::path
-ParameterParser::getFilename(const std::filesystem::path &filenameBasePath,
-                             const std::filesystem::path &arg) {
-  if (arg.is_relative()) {
+ParameterParser::getFilename(const std::filesystem::path& filenameBasePath,
+                             const std::filesystem::path& arg)
+{
+  if (arg.is_relative())
+  {
     return filenameBasePath / arg;
-  } else {
+  }
+  else
+  {
     return arg;
   }
 }
 
-static bool endsWith(const std::string &str, const std::string &suffix) {
+static bool endsWith(const std::string& str, const std::string& suffix)
+{
   return str.size() >= suffix.size() &&
          str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-const ParameterBase *
-ParameterParser::findViaExtension(const std::string &argin) const {
+const ParameterBase*
+ParameterParser::findViaExtension(const std::string& argin) const
+{
   std::string arg = argin;
 
   std::transform(arg.begin(), arg.end(), arg.begin(),
                  [](unsigned char c) { return std::tolower(c); });
 
-  for (const ParameterBase *parameter : m_parsedExtensions) {
-    for (const std::string &ext : parameter->extensions) {
-      if (endsWith(arg, ext)) {
+  for (const ParameterBase* parameter : m_parsedExtensions)
+  {
+    for (const std::string& ext : parameter->extensions)
+    {
+      if (endsWith(arg, ext))
+      {
         return parameter;
       }
     }
@@ -462,7 +548,8 @@ ParameterParser::findViaExtension(const std::string &argin) const {
 }
 
 void ParameterParser::Tokenized::initFromString(
-    const std::string &content, const std::filesystem::path &filenameBasePath) {
+    const std::string& content, const std::filesystem::path& filenameBasePath)
+{
   m_args = {};
   m_content = content;
   m_filenameBasePath = filenameBasePath;
@@ -471,18 +558,21 @@ void ParameterParser::Tokenized::initFromString(
 }
 
 bool ParameterParser::Tokenized::initFromFile(
-    const std::filesystem::path &filename) {
+    const std::filesystem::path& filename)
+{
   m_content = {};
   m_args = {};
 
   std::ifstream fileStream(filename);
-  if (!fileStream) {
+  if (!fileStream)
+  {
     LOGW("Parameter parser could not open file %s",
          core::utf8FromPath(filename).c_str());
     return false;
   }
 
-  if (filename.has_parent_path()) {
+  if (filename.has_parent_path())
+  {
     m_filenameBasePath = filename.parent_path();
   }
 
@@ -499,15 +589,17 @@ bool ParameterParser::Tokenized::initFromFile(
   return true;
 }
 
-void ParameterParser::Tokenized::processContent() {
+void ParameterParser::Tokenized::processContent()
+{
   bool wasSpace = true;
   bool inQuotes = false;
   bool inComment = false;
   bool wasQuote = false;
   bool wasEscape = false;
 
-  for (size_t i = 0; i < m_content.size(); i++) {
-    char *token = &m_content[i];
+  for (size_t i = 0; i < m_content.size(); i++)
+  {
+    char* token = &m_content[i];
     char current = m_content[i];
     bool isEndline = current == '\n';
     bool isSpace = (current == ' ' || current == '\t' || current == '\n');
@@ -515,10 +607,12 @@ void ParameterParser::Tokenized::processContent() {
     bool isComment = current == '#';
     bool isEscape = current == '\\';
 
-    if (isEndline && inComment) {
+    if (isEndline && inComment)
+    {
       inComment = false;
     }
-    if (isComment && !inQuotes) {
+    if (isComment && !inQuotes)
+    {
       m_content[i] = 0;
       inComment = true;
     }
@@ -526,24 +620,32 @@ void ParameterParser::Tokenized::processContent() {
     if (inComment)
       continue;
 
-    if (inQuotes) {
-      if (wasEscape && (current == 'n' || current == 't')) {
+    if (inQuotes)
+    {
+      if (wasEscape && (current == 'n' || current == 't'))
+      {
         m_content[i] = current == 'n' ? '\n' : '\t';
         m_content[i - 1] = ' ';
       }
     }
 
-    if (isQuote) {
+    if (isQuote)
+    {
       inQuotes = !inQuotes;
       // treat as space
       m_content[i] = 0;
       isSpace = true;
-    } else if (isSpace) {
+    }
+    else if (isSpace)
+    {
       // turn space to a terminator
-      if (!inQuotes) {
+      if (!inQuotes)
+      {
         m_content[i] = 0;
       }
-    } else if (wasSpace && (!inQuotes || wasQuote)) {
+    }
+    else if (wasSpace && (!inQuotes || wasQuote))
+    {
       // start a new arg unless comment
       m_args.push_back(token);
     }
@@ -554,4 +656,4 @@ void ParameterParser::Tokenized::processContent() {
   }
 }
 
-} // namespace app::cli
+}  // namespace app::cli

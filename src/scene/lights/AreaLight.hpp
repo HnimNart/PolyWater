@@ -1,15 +1,15 @@
 #pragma once
 
 #include "ILights.hpp"
-
 #include "shaders/include/tonemapper_io.h.slang"
 
-class AreaLight : public Light {
-  Triangle *tri; // Reference to the actual geometry
+class AreaLight : public Light
+{
+  Triangle* tri;  // Reference to the actual geometry
   glm::vec3 emission;
 
-  LightSample SampleLi(const glm::vec3 &ref,
-                       const glm::vec2 &u) const override {
+  LightSample SampleLi(const glm::vec3& ref, const glm::vec2& u) const override
+  {
     // 1. Pick a point on the triangle using barycentric coordinates
     SurfacePoint p = tri->Sample(u);
 
@@ -32,7 +32,8 @@ class AreaLight : public Light {
     return ls;
   }
 
-  float Power() const override {
+  float Power() const override
+  {
     return tri->Area() * shaderio::bt709Luminance(emission) * PI;
   }
   bool IsDelta() const override { return false; }

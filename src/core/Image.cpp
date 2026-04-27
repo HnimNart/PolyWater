@@ -3,10 +3,11 @@
 #include "file_operations.hpp"
 #include "logger.hpp"
 
-namespace core {
+namespace core
+{
 
 /**********************************************************/
-core::Image loadRawImage(const std::filesystem::path &filename)
+core::Image loadRawImage(const std::filesystem::path& filename)
 /**********************************************************/
 {
   core::Image img;
@@ -17,9 +18,11 @@ core::Image loadRawImage(const std::filesystem::path &filename)
   std::string pathStr = core::utf8FromPath(filename);
 
   // 1. Check if the file is HDR (for EnvMaps) or Standard (for Textures)
-  if (stbi_is_hdr(pathStr.c_str())) {
-    float *data = stbi_loadf(pathStr.c_str(), &w, &h, &comp, req_comp);
-    if (data) {
+  if (stbi_is_hdr(pathStr.c_str()))
+  {
+    float* data = stbi_loadf(pathStr.c_str(), &w, &h, &comp, req_comp);
+    if (data)
+    {
       img.width = static_cast<uint32_t>(w);
       img.height = static_cast<uint32_t>(h);
       img.format = core::ImageFormat::RGBA32_SFLOAT;
@@ -31,9 +34,12 @@ core::Image loadRawImage(const std::filesystem::path &filename)
 
       stbi_image_free(data);
     }
-  } else {
-    stbi_uc *data = stbi_load(pathStr.c_str(), &w, &h, &comp, req_comp);
-    if (data) {
+  }
+  else
+  {
+    stbi_uc* data = stbi_load(pathStr.c_str(), &w, &h, &comp, req_comp);
+    if (data)
+    {
       img.width = static_cast<uint32_t>(w);
       img.height = static_cast<uint32_t>(h);
       img.format = core::ImageFormat::RGBA8_UNORM;
@@ -47,9 +53,12 @@ core::Image loadRawImage(const std::filesystem::path &filename)
     }
   }
 
-  if (!img.isValid()) {
+  if (!img.isValid())
+  {
     LOGE("STB failed to load image: %s", pathStr.c_str());
-  } else {
+  }
+  else
+  {
     LOGD("Loaded %s", filename.string().c_str());
   }
 
@@ -57,7 +66,7 @@ core::Image loadRawImage(const std::filesystem::path &filename)
 }
 
 /**********************************************************/
-void releaseImageMemory(core::Image &img)
+void releaseImageMemory(core::Image& img)
 /**********************************************************/
 {
   img.pixels.clear();
@@ -66,4 +75,4 @@ void releaseImageMemory(core::Image &img)
   img.height = 0;
 }
 
-} // namespace core
+}  // namespace core

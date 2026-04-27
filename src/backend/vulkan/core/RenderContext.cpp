@@ -9,25 +9,26 @@
 VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 /**********************************************************/
 {
-  switch (resource) {
-  case RenderOutput::Linear:
-  case RenderOutput::ToneMapped:
-    return gBuffers->getColorImage(resource);
+  switch (resource)
+  {
+    case RenderOutput::Linear:
+    case RenderOutput::ToneMapped:
+      return gBuffers->getColorImage(resource);
 
-  case RenderOutput::DepthBuffer:
-    return gBuffers->getDepthImage();
-  case RenderOutput::Swapchain:
-    return this->swapchainImage;
+    case RenderOutput::DepthBuffer:
+      return gBuffers->getDepthImage();
+    case RenderOutput::Swapchain:
+      return this->swapchainImage;
 
-  default:
-    // Log warning: "Unknown RenderOutput resource requested"
-    return VK_NULL_HANDLE;
+    default:
+      // Log warning: "Unknown RenderOutput resource requested"
+      return VK_NULL_HANDLE;
   }
 }
 
 /**********************************************************/
 void VulkanRenderContext::submitBarriers(
-    const std::vector<BarrierInfo> &barriers) const
+    const std::vector<BarrierInfo>& barriers) const
 /**********************************************************/
 {
   if (barriers.empty())
@@ -36,7 +37,8 @@ void VulkanRenderContext::submitBarriers(
   std::vector<VkImageMemoryBarrier2> vkBarriers;
   vkBarriers.reserve(barriers.size());
 
-  for (const auto &b : barriers) {
+  for (const auto& b : barriers)
+  {
     VkImage imageHandle = getResourceImage(b.resource);
     if (imageHandle == VK_NULL_HANDLE)
       continue;
@@ -58,7 +60,8 @@ void VulkanRenderContext::submitBarriers(
 
     // --- Aspect Mask Logic ---
     VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-    if (b.resource == RenderOutput::DepthBuffer) {
+    if (b.resource == RenderOutput::DepthBuffer)
+    {
       aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
       // If your depth format has stencil, you might need:
       // aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -77,7 +80,7 @@ void VulkanRenderContext::submitBarriers(
     return;
 
   VkDependencyInfo depInfo = {VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
-  depInfo.imageMemoryBarrierCount = (uint32_t)vkBarriers.size();
+  depInfo.imageMemoryBarrierCount = (uint32_t) vkBarriers.size();
   depInfo.pImageMemoryBarriers = vkBarriers.data();
 
   vkCmdPipelineBarrier2(cmdBuffer, &depInfo);

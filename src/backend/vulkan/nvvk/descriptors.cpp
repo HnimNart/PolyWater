@@ -21,7 +21,8 @@
 
 #include "check_error.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 
 constexpr uint32_t NO_BINDING_INDEX = ~0u;
 
@@ -29,8 +30,9 @@ void DescriptorBindings::addBinding(uint32_t binding,
                                     VkDescriptorType descriptorType,
                                     uint32_t descriptorCount,
                                     VkShaderStageFlags stageFlags,
-                                    const VkSampler *pImmutableSamplers,
-                                    VkDescriptorBindingFlags bindingFlags) {
+                                    const VkSampler* pImmutableSamplers,
+                                    VkDescriptorBindingFlags bindingFlags)
+{
   addBinding(
       VkDescriptorSetLayoutBinding{.binding = binding,
                                    .descriptorType = descriptorType,
@@ -41,10 +43,12 @@ void DescriptorBindings::addBinding(uint32_t binding,
 }
 
 void DescriptorBindings::addBinding(
-    const VkDescriptorSetLayoutBinding &layoutBinding,
-    VkDescriptorBindingFlags bindingFlags) {
+    const VkDescriptorSetLayoutBinding& layoutBinding,
+    VkDescriptorBindingFlags bindingFlags)
+{
   // Update m_bindingToIndex.
-  if (m_bindingToIndex.size() <= layoutBinding.binding) {
+  if (m_bindingToIndex.size() <= layoutBinding.binding)
+  {
     m_bindingToIndex.resize(layoutBinding.binding + 1, NO_BINDING_INDEX);
   }
   m_bindingToIndex[layoutBinding.binding] =
@@ -56,16 +60,20 @@ void DescriptorBindings::addBinding(
 
 void DescriptorBindings::addBindings(
     std::span<const VkDescriptorSetLayoutBinding> layoutBindings,
-    VkDescriptorBindingFlags bindingFlags) {
-  for (auto &b : layoutBindings) {
+    VkDescriptorBindingFlags bindingFlags)
+{
+  for (auto& b : layoutBindings)
+  {
     addBinding(b, bindingFlags);
   }
 }
 
 void DescriptorBindings::addBindings(
     std::initializer_list<const VkDescriptorSetLayoutBinding> layoutBindings,
-    VkDescriptorBindingFlags bindingFlags) {
-  for (auto &b : layoutBindings) {
+    VkDescriptorBindingFlags bindingFlags)
+{
+  for (auto& b : layoutBindings)
+  {
     addBinding(b, bindingFlags);
   }
 }
@@ -73,20 +81,23 @@ void DescriptorBindings::addBindings(
 VkWriteDescriptorSet
 DescriptorBindings::getWriteSet(uint32_t binding, VkDescriptorSet dstSet,
                                 uint32_t dstArrayElement,
-                                uint32_t descriptorCount) const {
+                                uint32_t descriptorCount) const
+{
   VkWriteDescriptorSet writeSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
   writeSet.descriptorType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 
-  if (binding >= m_bindingToIndex.size()) {
+  if (binding >= m_bindingToIndex.size())
+  {
     assert(!"`binding` was out of range!");
     return writeSet;
   }
   const uint32_t i = m_bindingToIndex[binding];
-  if (i == NO_BINDING_INDEX) {
+  if (i == NO_BINDING_INDEX)
+  {
     assert(!"`binding` was never added!");
     return writeSet;
   }
-  const VkDescriptorSetLayoutBinding &b = m_bindings[i];
+  const VkDescriptorSetLayoutBinding& b = m_bindings[i];
 
   writeSet.descriptorCount =
       dstArrayElement == ~0 ? b.descriptorCount : descriptorCount;
@@ -103,7 +114,8 @@ DescriptorBindings::getWriteSet(uint32_t binding, VkDescriptorSet dstSet,
 
 VkResult DescriptorBindings::createDescriptorSetLayout(
     VkDevice device, VkDescriptorSetLayoutCreateFlags flags,
-    VkDescriptorSetLayout *pDescriptorSetLayout) const {
+    VkDescriptorSetLayout* pDescriptorSetLayout) const
+{
   VkResult result;
   VkDescriptorSetLayoutBindingFlagsCreateInfo bindingsInfo = {
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
@@ -125,34 +137,41 @@ VkResult DescriptorBindings::createDescriptorSetLayout(
 }
 
 void DescriptorBindings::appendPoolSizes(
-    std::vector<VkDescriptorPoolSize> &poolSizes, uint32_t numSets,
-    uint32_t totalVariableCount) const {
+    std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t numSets,
+    uint32_t totalVariableCount) const
+{
 
-  for (size_t i = 0; i < m_bindings.size(); i++) {
-    const VkDescriptorSetLayoutBinding &it = m_bindings[i];
+  for (size_t i = 0; i < m_bindings.size(); i++)
+  {
+    const VkDescriptorSetLayoutBinding& it = m_bindings[i];
     const VkDescriptorBindingFlags bindingFlags = m_bindingFlags[i];
 
     // Bindings can have a zero descriptor count, used for the layout, but don't
     // reserve storage for them.
-    if (it.descriptorCount == 0) {
+    if (it.descriptorCount == 0)
+    {
       continue;
     }
 
     uint32_t count = it.descriptorCount * numSets;
     if (totalVariableCount &&
-        bindingFlags & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT) {
+        bindingFlags & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT)
+    {
       count = totalVariableCount;
     }
 
     bool found = false;
-    for (VkDescriptorPoolSize &itpool : poolSizes) {
-      if (itpool.type == it.descriptorType) {
+    for (VkDescriptorPoolSize& itpool : poolSizes)
+    {
+      if (itpool.type == it.descriptorType)
+      {
         itpool.descriptorCount += count;
         found = true;
         break;
       }
     }
-    if (!found) {
+    if (!found)
+    {
       VkDescriptorPoolSize poolSize{};
       poolSize.type = it.descriptorType;
       poolSize.descriptorCount = count;
@@ -163,7 +182,8 @@ void DescriptorBindings::appendPoolSizes(
 
 std::vector<VkDescriptorPoolSize>
 DescriptorBindings::calculatePoolSizes(uint32_t numSets,
-                                       uint32_t totalVariableCount) const {
+                                       uint32_t totalVariableCount) const
+{
   std::vector<VkDescriptorPoolSize> poolSizes;
   appendPoolSizes(poolSizes, numSets, totalVariableCount);
   return poolSizes;
@@ -171,12 +191,13 @@ DescriptorBindings::calculatePoolSizes(uint32_t numSets,
 
 //////////////////////////////////////////////////////////////////////////
 
-VkResult DescriptorPack::init(const DescriptorBindings &bindings,
+VkResult DescriptorPack::init(const DescriptorBindings& bindings,
                               VkDevice device, uint32_t numSets,
                               VkDescriptorSetLayoutCreateFlags layoutFlags,
                               VkDescriptorPoolCreateFlags poolFlags,
                               uint32_t totalVariableCount,
-                              const uint32_t *descriptorVariableCounts) {
+                              const uint32_t* descriptorVariableCounts)
+{
   assert(nullptr == m_device &&
          "initFromBindings must not be called twice in a row!");
   m_device = device;
@@ -186,7 +207,8 @@ VkResult DescriptorPack::init(const DescriptorBindings &bindings,
   NVVK_FAIL_RETURN(
       bindings.createDescriptorSetLayout(device, layoutFlags, &m_layout));
 
-  if (numSets > 0) {
+  if (numSets > 0)
+  {
     // Pool
     const std::vector<VkDescriptorPoolSize> poolSizes =
         bindings.calculatePoolSizes(numSets, totalVariableCount);
@@ -214,7 +236,8 @@ VkResult DescriptorPack::init(const DescriptorBindings &bindings,
         .descriptorSetCount = numSets,
         .pDescriptorCounts = descriptorVariableCounts,
     };
-    if (totalVariableCount > 0 && descriptorVariableCounts) {
+    if (totalVariableCount > 0 && descriptorVariableCounts)
+    {
       allocInfo.pNext = &varInfo;
     }
 
@@ -225,11 +248,12 @@ VkResult DescriptorPack::init(const DescriptorBindings &bindings,
   return VK_SUCCESS;
 }
 
-void DescriptorPack::deinit() {
+void DescriptorPack::deinit()
+{
   m_bindings.clear();
   m_sets.clear();
 
-  if (m_device) // Only run if ever initialized
+  if (m_device)  // Only run if ever initialized
   {
     vkDestroyDescriptorSetLayout(m_device, m_layout, nullptr);
     m_layout = VK_NULL_HANDLE;
@@ -241,11 +265,13 @@ void DescriptorPack::deinit() {
   }
 }
 
-DescriptorPack::DescriptorPack(DescriptorPack &&other) noexcept {
+DescriptorPack::DescriptorPack(DescriptorPack&& other) noexcept
+{
   this->operator=(std::move(other));
 }
 
-DescriptorPack &DescriptorPack::operator=(DescriptorPack &&other) noexcept {
+DescriptorPack& DescriptorPack::operator=(DescriptorPack&& other) noexcept
+{
   assert(!m_device && "can't move into non-empty object");
 
   m_sets = std::move(other.m_sets);
@@ -261,19 +287,23 @@ DescriptorPack &DescriptorPack::operator=(DescriptorPack &&other) noexcept {
   return *this;
 }
 
-DescriptorPack::~DescriptorPack() { assert(!m_device && "deinit() missing"); }
+DescriptorPack::~DescriptorPack()
+{
+  assert(!m_device && "deinit() missing");
+}
 
 //////////////////////////////////////////////////////////////////////////
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
                                VkBuffer buffer, VkDeviceSize offset,
-                               VkDeviceSize range) {
+                               VkDeviceSize range)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.descriptorCount == 1);
 
   m_writeSets.emplace_back(writeSet).pBufferInfo =
-      (const VkDescriptorBufferInfo *)1;
+      (const VkDescriptorBufferInfo*) 1;
 
   BufferOrImageData basics;
   basics.buffer.buffer = buffer;
@@ -284,14 +314,15 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkDescriptorBufferInfo &bufferInfo) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkDescriptorBufferInfo& bufferInfo)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.descriptorCount == 1);
 
   m_writeSets.emplace_back(writeSet).pBufferInfo =
-      (const VkDescriptorBufferInfo *)1;
+      (const VkDescriptorBufferInfo*) 1;
 
   BufferOrImageData basics;
   basics.buffer = bufferInfo;
@@ -300,15 +331,16 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::Buffer &buffer, VkDeviceSize offset,
-                               VkDeviceSize range) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::Buffer& buffer, VkDeviceSize offset,
+                               VkDeviceSize range)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.descriptorCount == 1);
 
   m_writeSets.emplace_back(writeSet).pBufferInfo =
-      (const VkDescriptorBufferInfo *)1;
+      (const VkDescriptorBufferInfo*) 1;
 
   BufferOrImageData basics;
   basics.buffer.buffer = buffer.buffer;
@@ -319,15 +351,17 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::Buffer *buffers) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::Buffer* buffers)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
 
   m_writeSets.emplace_back(writeSet).pBufferInfo =
-      (const VkDescriptorBufferInfo *)1;
+      (const VkDescriptorBufferInfo*) 1;
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     BufferOrImageData basics;
     basics.buffer.buffer = buffers[i].buffer;
     basics.buffer.offset = 0;
@@ -338,15 +372,17 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkDescriptorBufferInfo *bufferInfos) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkDescriptorBufferInfo* bufferInfos)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
 
   m_writeSets.emplace_back(writeSet).pBufferInfo =
-      (const VkDescriptorBufferInfo *)1;
+      (const VkDescriptorBufferInfo*) 1;
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     BufferOrImageData basics;
     basics.buffer = bufferInfos[i];
     m_bufferOrImageDatas.emplace_back(basics);
@@ -355,13 +391,14 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               VkBufferView bufferView) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               VkBufferView bufferView)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
   assert(writeSet.descriptorCount == 1);
 
-  m_writeSets.emplace_back(writeSet).pTexelBufferView = (const VkBufferView *)1;
+  m_writeSets.emplace_back(writeSet).pTexelBufferView = (const VkBufferView*) 1;
 
   AccelOrViewData basics;
   basics.texelBufferView = bufferView;
@@ -370,14 +407,16 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkBufferView *bufferViews) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkBufferView* bufferViews)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
 
-  m_writeSets.emplace_back(writeSet).pTexelBufferView = (const VkBufferView *)1;
+  m_writeSets.emplace_back(writeSet).pTexelBufferView = (const VkBufferView*) 1;
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     AccelOrViewData basics;
     basics.texelBufferView = bufferViews[i];
     m_accelOrViewDatas.emplace_back(basics);
@@ -386,14 +425,15 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkDescriptorImageInfo &imageInfo) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkDescriptorImageInfo& imageInfo)
+{
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
   assert(writeSet.descriptorCount == 1);
 
   m_writeSets.emplace_back(writeSet).pImageInfo =
-      (const VkDescriptorImageInfo *)1;
+      (const VkDescriptorImageInfo*) 1;
 
   BufferOrImageData basics;
   basics.image = imageInfo;
@@ -402,15 +442,16 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::Image &image) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::Image& image)
+{
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
   assert(writeSet.descriptorCount == 1);
   assert(image.descriptor.imageView);
 
   m_writeSets.emplace_back(writeSet).pImageInfo =
-      (const VkDescriptorImageInfo *)1;
+      (const VkDescriptorImageInfo*) 1;
 
   BufferOrImageData basics;
   basics.image = image.descriptor;
@@ -419,15 +460,16 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
                                VkImageView imageView, VkImageLayout imageLayout,
-                               VkSampler sampler) {
+                               VkSampler sampler)
+{
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
   assert(writeSet.descriptorCount == 1);
 
   m_writeSets.emplace_back(writeSet).pImageInfo =
-      (const VkDescriptorImageInfo *)1;
+      (const VkDescriptorImageInfo*) 1;
 
   BufferOrImageData basics;
   basics.image.imageView = imageView;
@@ -438,15 +480,17 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::Image *images) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::Image* images)
+{
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
 
   m_writeSets.emplace_back(writeSet).pImageInfo =
-      (const VkDescriptorImageInfo *)1;
+      (const VkDescriptorImageInfo*) 1;
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     assert(images[i].descriptor.imageView);
     BufferOrImageData basics;
     basics.image = images[i].descriptor;
@@ -455,15 +499,17 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
 
   m_needPointerUpdate = true;
 }
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkDescriptorImageInfo *imageInfos) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkDescriptorImageInfo* imageInfos)
+{
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
 
   m_writeSets.emplace_back(writeSet).pImageInfo =
-      (const VkDescriptorImageInfo *)1;
+      (const VkDescriptorImageInfo*) 1;
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     BufferOrImageData basics;
     basics.image = imageInfos[i];
     m_bufferOrImageDatas.emplace_back(basics);
@@ -472,8 +518,9 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               VkAccelerationStructureKHR accel) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               VkAccelerationStructureKHR accel)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
@@ -492,8 +539,9 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::AccelerationStructure &accel) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::AccelerationStructure& accel)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
@@ -512,15 +560,17 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const nvvk::AccelerationStructure *accels) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const nvvk::AccelerationStructure* accels)
+{
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
   assert(writeSet.pBufferInfo == nullptr);
 
   m_writeSets.emplace_back(writeSet);
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     AccelOrViewData basics;
     basics.accel = accels[i].accel;
     m_accelOrViewDatas.emplace_back(basics);
@@ -534,8 +584,9 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
-                               const VkAccelerationStructureKHR *accels) {
+void WriteSetContainer::append(const VkWriteDescriptorSet& writeSet,
+                               const VkAccelerationStructureKHR* accels)
+{
 
   assert(writeSet.pImageInfo == nullptr);
   assert(writeSet.pTexelBufferView == nullptr);
@@ -543,7 +594,8 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
 
   m_writeSets.emplace_back(writeSet);
 
-  for (uint32_t i = 0; i < writeSet.descriptorCount; i++) {
+  for (uint32_t i = 0; i < writeSet.descriptorCount; i++)
+  {
     AccelOrViewData basics;
     basics.accel = accels[i];
     m_accelOrViewDatas.emplace_back(basics);
@@ -557,7 +609,8 @@ void WriteSetContainer::append(const VkWriteDescriptorSet &writeSet,
   m_needPointerUpdate = true;
 }
 
-void WriteSetContainer::clear() {
+void WriteSetContainer::clear()
+{
   m_writeSets.clear();
   m_writeAccels.clear();
   m_bufferOrImageDatas.clear();
@@ -566,27 +619,37 @@ void WriteSetContainer::clear() {
   m_needPointerUpdate = true;
 }
 
-const VkWriteDescriptorSet *WriteSetContainer::data() {
-  if (m_needPointerUpdate) {
+const VkWriteDescriptorSet* WriteSetContainer::data()
+{
+  if (m_needPointerUpdate)
+  {
     size_t accelWriteIndex = 0;
     size_t bufferOrImageIndex = 0;
     size_t accelOrViewIndex = 0;
 
-    for (size_t i = 0; i < m_writeSets.size(); i++) {
-      if (m_writeSets[i].pBufferInfo) {
+    for (size_t i = 0; i < m_writeSets.size(); i++)
+    {
+      if (m_writeSets[i].pBufferInfo)
+      {
         m_writeSets[i].pBufferInfo =
             &m_bufferOrImageDatas[bufferOrImageIndex].buffer;
         bufferOrImageIndex += m_writeSets[i].descriptorCount;
-      } else if (m_writeSets[i].pImageInfo) {
+      }
+      else if (m_writeSets[i].pImageInfo)
+      {
         m_writeSets[i].pImageInfo =
             &m_bufferOrImageDatas[bufferOrImageIndex].image;
         bufferOrImageIndex += m_writeSets[i].descriptorCount;
-      } else if (m_writeSets[i].pTexelBufferView) {
+      }
+      else if (m_writeSets[i].pTexelBufferView)
+      {
         m_writeSets[i].pTexelBufferView =
             &m_accelOrViewDatas[accelOrViewIndex].texelBufferView;
         accelOrViewIndex += m_writeSets[i].descriptorCount;
-      } else if (m_writeSets[i].descriptorType ==
-                 VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
+      }
+      else if (m_writeSets[i].descriptorType ==
+               VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+      {
         m_writeAccels[accelWriteIndex].pAccelerationStructures =
             &m_accelOrViewDatas[accelOrViewIndex].accel;
         accelOrViewIndex += m_writeSets[i].descriptorCount;
@@ -599,17 +662,19 @@ const VkWriteDescriptorSet *WriteSetContainer::data() {
 
   return m_writeSets.empty() ? nullptr : m_writeSets.data();
 }
-} // namespace nvvk
+}  // namespace nvvk
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
-[[maybe_unused]] static void usage_DescriptorBindings() {
+[[maybe_unused]] static void usage_DescriptorBindings()
+{
   VkDevice device = nullptr;
   nvvk::Buffer myBufferA;
   nvvk::Buffer myBufferB;
   uint32_t SHADERIO_BINDING = 0;
-  struct PushConstants {
+  struct PushConstants
+  {
     float iResolution[2];
   };
 

@@ -1,21 +1,28 @@
 #include "DenoisePass.hpp"
+
+#include <backend/vulkan/core/ContextManager.hpp>
+
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
-#include <backend/vulkan/core/ContextManager.hpp>
 
 /**********************************************************/
-void DenoisePass::init(VulkanContextManager *contextManager)
+DenoisePass::DenoisePass(VulkanContextManager* contextManager) :
+    m_context_manager(contextManager)
+{
+}
+
+/**********************************************************/
+void DenoisePass::init()
 /**********************************************************/
 {
-  m_context_manager = contextManager;
   createDescriptorLayout();
   createComputePipeline();
 }
 
 /**********************************************************/
-void DenoisePass::deinit(VulkanContextManager * /*contextManager*/)
+void DenoisePass::deinit()
 /**********************************************************/
 {
   VkDevice device = m_context_manager->getDevice();
@@ -26,7 +33,7 @@ void DenoisePass::deinit(VulkanContextManager * /*contextManager*/)
 }
 
 /**********************************************************/
-void DenoisePass::setup(PassBuilder &builder)
+void DenoisePass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   builder.read(RenderOutput::Linear, PipelineStage::Compute,
@@ -42,9 +49,9 @@ void DenoisePass::createDescriptorLayout()
 {
   nvvk::DescriptorBindings bindings;
   bindings.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
-                      VK_SHADER_STAGE_COMPUTE_BIT); // In: Noisy
+                      VK_SHADER_STAGE_COMPUTE_BIT);  // In: Noisy
   bindings.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
-                      VK_SHADER_STAGE_COMPUTE_BIT); // Out: Denoised
+                      VK_SHADER_STAGE_COMPUTE_BIT);  // Out: Denoised
 
   // (Add bindings for Normal/Depth here if using an edge-aware filter)
 
@@ -64,7 +71,7 @@ void DenoisePass::createComputePipeline()
   // --- FIX 2: Define your Push Constants for the pipeline ---
   VkPushConstantRange pcRange{};
   pcRange.stageFlags =
-      VK_SHADER_STAGE_ALL; // Make sure this matches what you use in execute()
+      VK_SHADER_STAGE_ALL;  // Make sure this matches what you use in execute()
   pcRange.offset = 0;
   pcRange.size = sizeof(shaderio::PushConstant);
 
@@ -72,7 +79,7 @@ void DenoisePass::createComputePipeline()
   VkPipelineLayoutCreateInfo layoutInfo{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
   layoutInfo.setLayoutCount = 1;
-  layoutInfo.pSetLayouts = &dsetLayout; // Use the valid layout here!
+  layoutInfo.pSetLayouts = &dsetLayout;  // Use the valid layout here!
   layoutInfo.pushConstantRangeCount = 1;
   layoutInfo.pPushConstantRanges = &pcRange;
 
@@ -100,12 +107,12 @@ void DenoisePass::createComputePipeline()
 }
 
 /**********************************************************/
-void DenoisePass::execute(const IRenderContext &ctx)
+void DenoisePass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
-  const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   NVVK_DBG_SCOPE(cmd);
 
@@ -133,7 +140,7 @@ void DenoisePass::execute(const IRenderContext &ctx)
 
   // Dispatch Compute Shader
   // Assuming a standard 16x16 local workgroup size in your shader
-  const VkExtent2D &size = gBuffers->getSize();
+  const VkExtent2D& size = gBuffers->getSize();
   uint32_t groupCountX = (size.width + 15) / 16;
   uint32_t groupCountY = (size.height + 15) / 16;
 

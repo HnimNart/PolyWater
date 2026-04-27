@@ -26,16 +26,20 @@ struct VSin {
 };
 
 // Vertex  Shader
+/**********************************************************/
 [shader("vertex")] FragmentInput vertexMain(VSin input, uint vertexIndex
-                                            : SV_VertexID) {
+                                            : SV_VertexID)
+/**********************************************************/
+{
   int instanceIndex = pushConst.instanceIndex;
 
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *sceneResources = pushConst.resourcesAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
+  SceneResources *sceneResources =
+      pushConst.resourcesAddress.get();
 
-  Instance instance = sceneResources.instances[instanceIndex];
-  MeshPrimitive meshIo = sceneResources.meshes[instance.meshIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
+  Instance instance = sceneResources->instances[instanceIndex];
+  MeshPrimitive meshIo = sceneResources->meshes[instance.meshIndex];
+  Material material = sceneResources->materials[instance.materialIndex];
 
   // Retrieve the data
   float3 posMesh = getAttribute<float3>(meshIo.buffer, meshIo.triMesh.positions,

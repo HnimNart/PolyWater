@@ -4,9 +4,12 @@
 //-----------------------------------------------------------------------
 // DIFFUSE CLOSEST HIT SHADER - Path Tracing + NEE
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("closesthit")] void
 rchit_diffuse(inout HitPayload payload,
-              in BuiltInTriangleIntersectionAttributes attr) {
+              in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;
@@ -25,7 +28,7 @@ rchit_diffuse(inout HitPayload payload,
   payload.color += emissive * payload.weight;
 
   // --- Direct Lighting ---
-  const SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
   DiffuseEvaluator bsdf = DiffuseEvaluator(albedo);
   LightRaySample sample = sampleDirectLightingPowerCDF(
       sceneInfo, worldPos, worldNormal, bsdf, payload.seed);

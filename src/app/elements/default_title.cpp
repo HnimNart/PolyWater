@@ -21,21 +21,23 @@
 
 #include <GLFW/glfw3.h>
 #undef APIENTRY
+#include <fmt/format.h>
+
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
-#include <fmt/format.h>
 
 #include "app/Application.hpp"
 
 /**********************************************************/
 app::ElementDefaultWindowTitle::ElementDefaultWindowTitle(
-    std::string prefix /*= ""*/, std::string suffix /*= ""*/)
-    : m_prefix(std::move(prefix)), m_suffix(std::move(suffix))
+    std::string prefix /*= ""*/, std::string suffix /*= ""*/) :
+    m_prefix(std::move(prefix)), m_suffix(std::move(suffix))
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
-void app::ElementDefaultWindowTitle::onAttach(Application *app)
+void app::ElementDefaultWindowTitle::onAttach(Application* app)
 /**********************************************************/
 {
   LOGI("Adding DefaultWindowTitle\n");
@@ -46,27 +48,29 @@ void app::ElementDefaultWindowTitle::onAttach(Application *app)
 void app::ElementDefaultWindowTitle::onUIRender()
 /**********************************************************/
 {
-  GLFWwindow *window = m_app->getWindowHandle();
-  if (window == nullptr) // This can happen in headless mode
+  GLFWwindow* window = m_app->getWindowHandle();
+  if (window == nullptr)  // This can happen in headless mode
   {
     return;
   }
 
   // 1. Get the frame count
   uint32_t frameIndex = 0;
-  if (m_renderer) {
+  if (m_renderer)
+  {
     frameIndex = m_renderer->getFrameCount();
   }
 
   // Window Title Logic
   m_dirtyTimer += ImGui::GetIO().DeltaTime;
 
-  if (m_dirtyTimer > 0.1F) // Refresh 0.1 seconds
+  if (m_dirtyTimer > 0.1F)  // Refresh 0.1 seconds
   {
-    const auto &size = m_app->getViewportSize();
+    const auto& size = m_app->getViewportSize();
     std::string title;
 
-    if (!m_prefix.empty()) {
+    if (!m_prefix.empty())
+    {
       title += fmt::format("{} | ", m_prefix.c_str());
     }
 
@@ -78,9 +82,10 @@ void app::ElementDefaultWindowTitle::onUIRender()
         fmt::format("{} | {}x{} | {:.0f} FPS / {:.3f}ms | Frame {}", exeName,
                     size.width, size.height, ImGui::GetIO().Framerate,
                     1000.F / ImGui::GetIO().Framerate,
-                    frameIndex); // <--- Pass frameIndex here
+                    frameIndex);  // <--- Pass frameIndex here
 
-    if (!m_suffix.empty()) {
+    if (!m_suffix.empty())
+    {
       title += fmt::format(" | {}", m_suffix.c_str());
     }
 
@@ -90,21 +95,21 @@ void app::ElementDefaultWindowTitle::onUIRender()
 }
 
 /**********************************************************/
-void app::ElementDefaultWindowTitle::setPrefix(const std::string &str)
+void app::ElementDefaultWindowTitle::setPrefix(const std::string& str)
 /**********************************************************/
 {
   m_prefix = str;
 }
 
 /**********************************************************/
-void app::ElementDefaultWindowTitle::setSuffix(const std::string &str)
+void app::ElementDefaultWindowTitle::setSuffix(const std::string& str)
 /**********************************************************/
 {
   m_suffix = str;
 }
 
 /**********************************************************/
-void app::ElementDefaultWindowTitle::setRenderer(const IRenderer *renderer)
+void app::ElementDefaultWindowTitle::setRenderer(const IRenderer* renderer)
 /**********************************************************/
 {
   m_renderer = renderer;

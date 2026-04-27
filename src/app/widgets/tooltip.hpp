@@ -19,9 +19,10 @@
 
 #pragma once
 
-namespace app {
+namespace app
+{
 
-void tooltip(const char *description, bool questionMark = false,
+void tooltip(const char* description, bool questionMark = false,
              float timerThreshold = 0.5f);
 
-} // namespace app
+}  // namespace app

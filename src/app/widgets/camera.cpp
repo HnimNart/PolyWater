@@ -17,7 +17,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "camera.hpp"
+
 #include <fmt/format.h>
+#include <imgui/imgui.h>
+
 #include <fstream>
 #include <sstream>
 
@@ -27,15 +31,12 @@
 #include <core/Camera.hpp>
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
-#include <imgui/imgui.h>
 #include <tinygltf/json.hpp>
 
-#include "camera.hpp"
-
 #ifdef _MSC_VER
-#define SAFE_SSCANF sscanf_s
+#  define SAFE_SSCANF sscanf_s
 #else
-#define SAFE_SSCANF sscanf
+#  define SAFE_SSCANF sscanf
 #endif
 
 using nlohmann::json;
@@ -54,19 +55,23 @@ namespace PE = app::PropertyEditor;
 // - load/save Setting will load next to the executable, the "jsonFilename" +
 // ".json"
 //
-struct CameraPresetManager {
+struct CameraPresetManager
+{
   CameraPresetManager() {}
   ~CameraPresetManager(){};
 
-  static CameraPresetManager &getInstance() {
+  static CameraPresetManager& getInstance()
+  {
     static CameraPresetManager instance;
     return instance;
   }
 
   // update setting, load or save
-  void update(std::shared_ptr<core::CameraManipulator> cameraManip) {
+  void update(std::shared_ptr<core::CameraManipulator> cameraManip)
+  {
     // Push the HOME camera and load default setting
-    if (m_cameras.empty()) {
+    if (m_cameras.empty())
+    {
       m_cameras.emplace_back(cameraManip->getCamera());
     }
     if (m_doLoadSetting)
@@ -74,10 +79,12 @@ struct CameraPresetManager {
 
     // Save settings (with a delay after the last modification, so we don't spam
     // disk too much)
-    auto &IO = ImGui::GetIO();
-    if (m_settingsDirtyTimer > 0.0f) {
+    auto& IO = ImGui::GetIO();
+    if (m_settingsDirtyTimer > 0.0f)
+    {
       m_settingsDirtyTimer -= IO.DeltaTime;
-      if (m_settingsDirtyTimer <= 0.0f) {
+      if (m_settingsDirtyTimer <= 0.0f)
+      {
         saveSetting(cameraManip);
         m_settingsDirtyTimer = 0.0f;
       }
@@ -85,12 +92,14 @@ struct CameraPresetManager {
   }
 
   // Clear all cameras except the HOME
-  void removedSavedCameras() {
+  void removedSavedCameras()
+  {
     if (m_cameras.size() > 1)
       m_cameras.erase(m_cameras.begin() + 1, m_cameras.end());
   }
 
-  void setCameraJsonFile(const std::filesystem::path &filename) {
+  void setCameraJsonFile(const std::filesystem::path& filename)
+  {
     std::filesystem::path jsonFile =
         core::getExecutablePath().parent_path() / filename.filename();
     jsonFile.replace_extension(".json");
@@ -99,42 +108,51 @@ struct CameraPresetManager {
     removedSavedCameras();
   }
 
-  void setHomeCamera(const core::CameraManipulator::Camera &camera) {
+  void setHomeCamera(const core::CameraManipulator::Camera& camera)
+  {
     if (m_cameras.empty())
       m_cameras.resize(1);
     m_cameras[0] = camera;
   }
 
   // Adding a camera only if it different from all the saved ones
-  void addCamera(const core::CameraManipulator::Camera &camera) {
+  void addCamera(const core::CameraManipulator::Camera& camera)
+  {
     bool unique = true;
-    for (const core::CameraManipulator::Camera &c : m_cameras) {
-      if (c == camera) {
+    for (const core::CameraManipulator::Camera& c : m_cameras)
+    {
+      if (c == camera)
+      {
         unique = false;
         break;
       }
     }
-    if (unique) {
+    if (unique)
+    {
       m_cameras.emplace_back(camera);
       markJsonSettingsDirty();
     }
   }
 
   // Removing a camera
-  void removeCamera(int delete_item) {
+  void removeCamera(int delete_item)
+  {
     m_cameras.erase(m_cameras.begin() + delete_item);
     markJsonSettingsDirty();
   }
 
-  void markJsonSettingsDirty() {
+  void markJsonSettingsDirty()
+  {
     if (m_settingsDirtyTimer <= 0.0f)
       m_settingsDirtyTimer = 0.1f;
   }
 
   template <typename T>
-  bool getJsonValue(const json &j, const std::string &name, T &value) {
+  bool getJsonValue(const json& j, const std::string& name, T& value)
+  {
     auto fieldIt = j.find(name);
-    if (fieldIt != j.end()) {
+    if (fieldIt != j.end())
+    {
       value = (*fieldIt);
       return true;
     }
@@ -143,9 +161,11 @@ struct CameraPresetManager {
   }
 
   template <typename T>
-  bool getJsonArray(const json &j, const std::string &name, T &value) {
+  bool getJsonArray(const json& j, const std::string& name, T& value)
+  {
     auto fieldIt = j.find(name);
-    if (fieldIt != j.end()) {
+    if (fieldIt != j.end())
+    {
       value = T((*fieldIt).begin(), (*fieldIt).end());
       return true;
     }
@@ -153,8 +173,10 @@ struct CameraPresetManager {
     return false;
   }
 
-  void loadSetting(std::shared_ptr<core::CameraManipulator> cameraM) {
-    if (m_jsonFilename.empty()) {
+  void loadSetting(std::shared_ptr<core::CameraManipulator> cameraM)
+  {
+    if (m_jsonFilename.empty())
+    {
       // Default name
       m_jsonFilename = core::getExecutablePath().replace_extension(".json");
     }
@@ -162,8 +184,9 @@ struct CameraPresetManager {
     if (m_cameras.empty() || m_doLoadSetting == false)
       return;
 
-    const glm::vec2 &currentClipPlanes = cameraM->getClipPlanes();
-    try {
+    const glm::vec2& currentClipPlanes = cameraM->getClipPlanes();
+    try
+    {
       m_doLoadSetting = false;
 
       std::ifstream i(m_jsonFilename);
@@ -190,7 +213,8 @@ struct CameraPresetManager {
       // All cameras
       std::vector<json> cc;
       getJsonArray(j, "cameras", cc);
-      for (auto &c : cc) {
+      for (auto& c : cc)
+      {
         core::CameraManipulator::Camera camera;
         if (getJsonArray(c, "eye", vfVal))
           camera.eye = {vfVal[0], vfVal[1], vfVal[2]};
@@ -203,21 +227,25 @@ struct CameraPresetManager {
         if (getJsonArray(c, "clip", vfVal))
           camera.clip = {vfVal[0], vfVal[1]};
         else
-          camera.clip = currentClipPlanes; // For old JSON files that didn't
-                                           // have clip planes saved
+          camera.clip = currentClipPlanes;  // For old JSON files that didn't
+                                            // have clip planes saved
         addCamera(camera);
       }
       i.close();
-    } catch (...) {
+    }
+    catch (...)
+    {
       return;
     }
   }
 
-  void saveSetting(std::shared_ptr<core::CameraManipulator> &cameraManip) {
+  void saveSetting(std::shared_ptr<core::CameraManipulator>& cameraManip)
+  {
     if (m_jsonFilename.empty())
       return;
 
-    try {
+    try
+    {
       json j;
       j["mode"] = cameraManip->getMode();
       j["speed"] = cameraManip->getSpeed();
@@ -225,8 +253,9 @@ struct CameraPresetManager {
 
       // Save all extra cameras
       json cc = json::array();
-      for (size_t n = 1; n < m_cameras.size(); n++) {
-        auto &c = m_cameras[n];
+      for (size_t n = 1; n < m_cameras.size(); n++)
+      {
+        auto& c = m_cameras[n];
         json jo = json::object();
         jo["eye"] = std::vector<float>{c.eye.x, c.eye.y, c.eye.z};
         jo["up"] = std::vector<float>{c.up.x, c.up.y, c.up.z};
@@ -238,11 +267,14 @@ struct CameraPresetManager {
       j["cameras"] = cc;
 
       std::ofstream o(m_jsonFilename);
-      if (o.is_open()) {
+      if (o.is_open())
+      {
         o << j.dump(2) << std::endl;
         o.close();
       }
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
       LOGE("Could not save camera settings to %s: %s\n",
            core::utf8FromPath(m_jsonFilename).c_str(), e.what());
     }
@@ -259,7 +291,8 @@ struct CameraPresetManager {
 static float s_buttonSpacing = 4.0f;
 
 // Calls PropertyEditor::begin() and sets the second column to auto-stretch.
-static bool PeBeginAutostretch(const char *label) {
+static bool PeBeginAutostretch(const char* label)
+{
   if (!PE::begin(label, ImGuiTableFlags_SizingFixedFit))
     return false;
   ImGui::TableSetupColumn("Property");
@@ -271,7 +304,8 @@ static bool PeBeginAutostretch(const char *label) {
 // Quick Actions Bar with icon buttons
 //
 static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
-                            core::CameraManipulator::Camera &camera) {
+                            core::CameraManipulator::Camera& camera)
+{
   bool changed = false;
 
   // We make the default button color match the background here so that it
@@ -280,7 +314,8 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
                         ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
 
   // Home button
-  if (ImGui::Button(ICON_MS_HOME)) {
+  if (ImGui::Button(ICON_MS_HOME))
+  {
     camera = CameraPresetManager::getInstance().m_cameras[0];
     changed = true;
   }
@@ -288,24 +323,27 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
 
   // Add/Save camera button
   ImGui::SameLine(0, s_buttonSpacing);
-  if (ImGui::Button(ICON_MS_ADD_A_PHOTO)) {
+  if (ImGui::Button(ICON_MS_ADD_A_PHOTO))
+  {
     CameraPresetManager::getInstance().addCamera(cameraM->getCamera());
   }
   app::tooltip("Save current camera position");
 
   // Copy button
   ImGui::SameLine(0, s_buttonSpacing);
-  if (ImGui::Button(ICON_MS_CONTENT_COPY)) {
+  if (ImGui::Button(ICON_MS_CONTENT_COPY))
+  {
     std::string text = camera.getString();
     ImGui::SetClipboardText(text.c_str());
   }
   app::tooltip("Copy camera state to clipboard");
 
   // Paste button
-  const char *pPastedString;
+  const char* pPastedString;
   ImGui::SameLine(0, s_buttonSpacing);
   if (ImGui::Button(ICON_MS_CONTENT_PASTE) &&
-      (pPastedString = ImGui::GetClipboardText())) {
+      (pPastedString = ImGui::GetClipboardText()))
+  {
     std::string text(pPastedString);
     changed = camera.setFromString(text);
   }
@@ -315,7 +353,8 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
   const float button_size = ImGui::CalcTextSize(ICON_MS_HELP).x +
                             ImGui::GetStyle().FramePadding.x * 2.f;
   ImGui::SameLine(ImGui::GetContentRegionMax().x - button_size, 0.0f);
-  if (ImGui::Button(ICON_MS_HELP)) {
+  if (ImGui::Button(ICON_MS_HELP))
+  {
     ImGui::OpenPopup("Camera Help");
   }
   app::tooltip("Show camera controls help");
@@ -324,7 +363,8 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
 
   // Help popup
   if (ImGui::BeginPopupModal("Camera Help", nullptr,
-                             ImGuiWindowFlags_AlwaysAutoResize)) {
+                             ImGuiWindowFlags_AlwaysAutoResize))
+  {
     ImGui::Text("Camera Controls:");
     ImGui::BulletText("Left Mouse: Orbit/Pan/Dolly (depends on mode)");
     ImGui::BulletText("Right Mouse: Look around");
@@ -350,11 +390,12 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
 // Camera Presets Grid with icons
 //
 static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
-                           core::CameraManipulator::Camera &camera) {
+                           core::CameraManipulator::Camera& camera)
+{
   bool changed = false;
 
-  auto &presetManager = CameraPresetManager::getInstance();
-  int buttonsCount = (int)presetManager.m_cameras.size();
+  auto& presetManager = CameraPresetManager::getInstance();
+  int buttonsCount = (int) presetManager.m_cameras.size();
   float windowVisibleX2 =
       ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
@@ -365,10 +406,12 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
   int delete_item = -1;
   std::string thisLabel = "#1";
   std::string nextLabel;
-  for (int n = 1; n < buttonsCount; n++) {
+  for (int n = 1; n < buttonsCount; n++)
+  {
     nextLabel = fmt::format("#{}", n + 1);
     ImGui::PushID(n);
-    if (ImGui::Button(thisLabel.c_str())) {
+    if (ImGui::Button(thisLabel.c_str()))
+    {
       camera = presetManager.m_cameras[n];
       changed = true;
     }
@@ -379,7 +422,7 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
       delete_item = n;
 
     // Hover tooltip with position info and deletion instruction
-    const auto &cam = presetManager.m_cameras[n];
+    const auto& cam = presetManager.m_cameras[n];
     std::string tooltip = fmt::format(
         "Camera #{}\n({:.1f}, {:.1f}, {:.1f})\nMiddle click to delete", n,
         cam.eye.x, cam.eye.y, cam.eye.z);
@@ -399,7 +442,8 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
   }
 
   // Delete camera if requested
-  if (delete_item > 0) {
+  if (delete_item > 0)
+  {
     presetManager.removeCamera(delete_item);
   }
 
@@ -410,7 +454,8 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 // Navigation Settings Section: Mode (examine, fly, walk), Speed
 //
 static bool
-NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
+NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM)
+{
   bool changed = false;
 
   ImGui::Separator();
@@ -427,7 +472,8 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
   ImGui::PushStyleColor(ImGuiCol_Button,
                         ImGui::GetStyle().Colors[ImGuiCol_Button]);
 
-  auto setColor = [&](bool selected) {
+  auto setColor = [&](bool selected)
+  {
     ImGui::GetStyle().Colors[ImGuiCol_Button] =
         selected ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]
                  : ImGui::GetStyle().Colors[ImGuiCol_ChildBg];
@@ -435,21 +481,24 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
 
   // Left-aligned navigation buttons
   setColor(mode == core::CameraManipulator::Examine);
-  if (ImGui::Button(ICON_MS_ORBIT)) {
+  if (ImGui::Button(ICON_MS_ORBIT))
+  {
     cameraM->setMode(core::CameraManipulator::Examine);
     changed = true;
   }
   app::tooltip("Orbit around a point of interest");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == core::CameraManipulator::Fly);
-  if (ImGui::Button(ICON_MS_FLIGHT)) {
+  if (ImGui::Button(ICON_MS_FLIGHT))
+  {
     cameraM->setMode(core::CameraManipulator::Fly);
     changed = true;
   }
   app::tooltip("Fly: Free camera movement");
   ImGui::SameLine(0, s_buttonSpacing);
   setColor(mode == core::CameraManipulator::Walk);
-  if (ImGui::Button(ICON_MS_DIRECTIONS_WALK)) {
+  if (ImGui::Button(ICON_MS_DIRECTIONS_WALK))
+  {
     cameraM->setMode(core::CameraManipulator::Walk);
     changed = true;
   }
@@ -459,8 +508,10 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
   const bool showSettings = (mode == core::CameraManipulator::Fly ||
                              mode == core::CameraManipulator::Walk);
   // Speed and transition controls (only shown when fly or walk is selected)
-  if (showSettings) {
-    if (PeBeginAutostretch("##Speed")) {
+  if (showSettings)
+  {
+    if (PeBeginAutostretch("##Speed"))
+    {
       // ImGuiSliderFlags_Logarithmic requires a value range for its scaling to
       // work.
       const float speedMin = 1e-3f;
@@ -480,8 +531,9 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM) {
 // Camera Position Section : Eye, Center, Up vectors
 //
 static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
-                            core::CameraManipulator::Camera &camera,
-                            ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None) {
+                            core::CameraManipulator::Camera& camera,
+                            ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+{
   bool changed = false;
 
   // We'll ignore changes during animation (but don't want to ignore other
@@ -489,8 +541,10 @@ static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
   // at the end:
   bool myChanged = false;
 
-  if (ImGui::TreeNodeEx("Position", flag)) {
-    if (PeBeginAutostretch("##Position")) {
+  if (ImGui::TreeNodeEx("Position", flag))
+  {
+    if (PeBeginAutostretch("##Position"))
+    {
       myChanged |= PE::InputFloat3("Eye", &camera.eye.x);
       myChanged |= PE::InputFloat3("Center", &camera.ctr.x);
       myChanged |= PE::InputFloat3("Up", &camera.up.x);
@@ -499,7 +553,7 @@ static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
     ImGui::TreePop();
   }
 
-  if (!cameraM->isAnimated()) // Ignore changes during animation
+  if (!cameraM->isAnimated())  // Ignore changes during animation
   {
     changed |= myChanged;
   }
@@ -512,11 +566,14 @@ static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //
 static bool
 ProjectionSettingsSection(std::shared_ptr<core::CameraManipulator> cameraManip,
-                          core::CameraManipulator::Camera &camera,
-                          ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None) {
+                          core::CameraManipulator::Camera& camera,
+                          ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+{
   bool changed = false;
-  if (ImGui::TreeNodeEx("Projection", flag)) {
-    if (PeBeginAutostretch("##Projection")) {
+  if (ImGui::TreeNodeEx("Projection", flag))
+  {
+    if (PeBeginAutostretch("##Projection"))
+    {
       changed |= PE::SliderFloat("FOV", &camera.fov, 1.F, 179.F, "%.1f°",
                                  ImGuiSliderFlags_Logarithmic,
                                  "Field of view of the camera (degrees)");
@@ -543,28 +600,36 @@ ProjectionSettingsSection(std::shared_ptr<core::CameraManipulator> cameraManip,
 //
 static bool
 OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
-                     core::CameraManipulator::Camera &camera,
-                     ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None) {
+                     core::CameraManipulator::Camera& camera,
+                     ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+{
   bool changed = false;
-  if (ImGui::TreeNodeEx("Other", flag)) {
-    if (PeBeginAutostretch("##Other")) {
-      PE::entry("Up vector", [&] {
-        const bool yIsUp = camera.up.y == 1;
-        if (ImGui::RadioButton("Y-up", yIsUp)) {
-          camera.up = glm::vec3(0, 1, 0);
-          changed = true;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Z-up", !yIsUp)) {
-          camera.up = glm::vec3(0, 0, 1);
-          changed = true;
-        }
-        if (glm::length(camera.up) < 0.0001f) {
-          camera.up = yIsUp ? glm::vec3(0, 1, 0) : glm::vec3(0, 0, 1);
-          changed = true;
-        }
-        return changed;
-      });
+  if (ImGui::TreeNodeEx("Other", flag))
+  {
+    if (PeBeginAutostretch("##Other"))
+    {
+      PE::entry("Up vector",
+                [&]
+                {
+                  const bool yIsUp = camera.up.y == 1;
+                  if (ImGui::RadioButton("Y-up", yIsUp))
+                  {
+                    camera.up = glm::vec3(0, 1, 0);
+                    changed = true;
+                  }
+                  ImGui::SameLine();
+                  if (ImGui::RadioButton("Z-up", !yIsUp))
+                  {
+                    camera.up = glm::vec3(0, 0, 1);
+                    changed = true;
+                  }
+                  if (glm::length(camera.up) < 0.0001f)
+                  {
+                    camera.up = yIsUp ? glm::vec3(0, 1, 0) : glm::vec3(0, 0, 1);
+                    changed = true;
+                  }
+                  return changed;
+                });
 
       auto duration = static_cast<float>(cameraM->getAnimationDuration());
       changed |= PE::SliderFloat("Transition", &duration, 0.0F, 10.0F, "%.2fs",
@@ -583,8 +648,9 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
-bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
-                       bool embed, CameraWidgetSections openSections) {
+bool app::cameraWidget(std::shared_ptr<core::CameraManipulator>& cameraManip,
+                       bool embed, CameraWidgetSections openSections)
+{
   assert(cameraManip && "CameraManipulator is not set");
 
   bool changed{false};
@@ -595,11 +661,13 @@ bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
   // Updating the camera manager
   CameraPresetManager::getInstance().update(cameraManip);
 
-  if (embed) {
+  if (embed)
+  {
     ImGui::Text("Camera Settings");
     if (!ImGui::BeginChild("CameraPanel", ImVec2(0, 0),
                            ImGuiChildFlags_Borders |
-                               ImGuiChildFlags_AutoResizeY)) {
+                               ImGuiChildFlags_AutoResizeY))
+    {
       return false;
     }
   }
@@ -632,13 +700,15 @@ bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
                                         ? ImGuiTreeNodeFlags_DefaultOpen
                                         : ImGuiTreeNodeFlags_None);
 
-    if (embed) {
+    if (embed)
+    {
       ImGui::EndChild();
     }
   }
 
   // Apply the change back to the camera
-  if (changed || instantChanged) {
+  if (changed || instantChanged)
+  {
     CameraPresetManager::getInstance().markJsonSettingsDirty();
     cameraManip->setCamera(camera, instantChanged);
   }
@@ -646,14 +716,17 @@ bool app::cameraWidget(std::shared_ptr<core::CameraManipulator> &cameraManip,
   return changed || instantChanged;
 }
 
-void app::setCameraJsonFile(const std::filesystem::path &filename) {
+void app::setCameraJsonFile(const std::filesystem::path& filename)
+{
   CameraPresetManager::getInstance().setCameraJsonFile(filename);
 }
 
-void app::setHomeCamera(const core::CameraManipulator::Camera &camera) {
+void app::setHomeCamera(const core::CameraManipulator::Camera& camera)
+{
   CameraPresetManager::getInstance().setHomeCamera(camera);
 }
 
-void app::addCamera(const core::CameraManipulator::Camera &camera) {
+void app::addCamera(const core::CameraManipulator::Camera& camera)
+{
   CameraPresetManager::getInstance().addCamera(camera);
 }

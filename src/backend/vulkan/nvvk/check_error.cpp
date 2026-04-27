@@ -19,20 +19,25 @@
 
 #include "check_error.hpp"
 
-#include "core/logger.hpp"
+#include <vulkan/vk_enum_string_helper.h>  // For string_VkResult
 
 #include <cassert>
 #include <cstdlib>
-#include <vulkan/vk_enum_string_helper.h> // For string_VkResult
 
-namespace nvvk {
+#include "core/logger.hpp"
 
-void CheckError::check(VkResult result, const char *expression,
-                       const char *file, int line) {
-  if (result < 0) {
-    const char *errMsg = string_VkResult(result);
+namespace nvvk
+{
+
+void CheckError::check(VkResult result, const char* expression,
+                       const char* file, int line)
+{
+  if (result < 0)
+  {
+    const char* errMsg = string_VkResult(result);
     LOGE("Vulkan error: %s from %s:%d\n", errMsg, file, line);
-    if (m_callback) {
+    if (m_callback)
+    {
       m_callback(result);
     }
     assert((result >= 0) && errMsg);
@@ -40,13 +45,15 @@ void CheckError::check(VkResult result, const char *expression,
   }
 }
 
-VkResult CheckError::report(VkResult result, const char *expression,
-                            const char *file, int line) {
-  if (result < 0) {
-    const char *errMsg = string_VkResult(result);
+VkResult CheckError::report(VkResult result, const char* expression,
+                            const char* file, int line)
+{
+  if (result < 0)
+  {
+    const char* errMsg = string_VkResult(result);
     LOGE("Vulkan error: %s from %s, %s:%d\n", errMsg, expression, file, line);
   }
   return result;
 }
 
-} // namespace nvvk
+}  // namespace nvvk

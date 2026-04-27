@@ -7,26 +7,29 @@
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/
-ToneMapPass::ToneMapPass(RenderOutput input)
-    : m_input(input)
+ToneMapPass::ToneMapPass(VulkanContextManager* core, RenderOutput input) :
+    m_core(core), m_input(input)
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
 ToneMapPass::~ToneMapPass()
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
-void ToneMapPass::init(VulkanContextManager *core)
+void ToneMapPass::init()
 /**********************************************************/
 {
-  if (m_initialized) {
+  if (m_initialized)
+  {
     return;
   }
 
   // Initialize the tonemapper using the shader bytecode from the autogen header
-  init(&core->getAllocator(),
+  init(&m_core->getAllocator(),
        std::span<const uint32_t>(tonemapper_slang,
                                  sizeof(tonemapper_slang) / sizeof(uint32_t)));
 
@@ -34,7 +37,7 @@ void ToneMapPass::init(VulkanContextManager *core)
 }
 
 /**********************************************************/
-void ToneMapPass::setup(PassBuilder &builder)
+void ToneMapPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   // 1. Read the HDR "Linear" color buffer produced by Raster/RayTrace
@@ -47,20 +50,13 @@ void ToneMapPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void ToneMapPass::deinit(VulkanContextManager * /* core */)
+void ToneMapPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  deinit();
-  m_initialized = false;
-}
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
 
-/**********************************************************/
-void ToneMapPass::execute(const IRenderContext &ctx)
-/**********************************************************/
-{
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
-
-  if (!m_initialized) {
+  if (!m_initialized)
+  {
     return;
   }
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
@@ -75,7 +71,7 @@ void ToneMapPass::execute(const IRenderContext &ctx)
 }
 
 /**********************************************************/
-VkResult ToneMapPass::init(nvvk::ResourceAllocator *alloc,
+VkResult ToneMapPass::init(nvvk::ResourceAllocator* alloc,
                            std::span<const uint32_t> spirv)
 /**********************************************************/
 {
@@ -145,7 +141,7 @@ VkResult ToneMapPass::init(nvvk::ResourceAllocator *alloc,
   compInfo.layout = m_pipelineLayout;
 
   shaderInfo.codeSize =
-      uint32_t(spirv.size_bytes()); // All shaders are in the same spirv
+      uint32_t(spirv.size_bytes());  // All shaders are in the same spirv
   shaderInfo.pCode = spirv.data();
 
   // Tonemap Pipelines
@@ -187,6 +183,8 @@ void ToneMapPass::deinit()
   m_pipelineLayout = VK_NULL_HANDLE;
   m_tonemapPipeline = VK_NULL_HANDLE;
   m_device = VK_NULL_HANDLE;
+
+  m_initialized = false;
 }
 
 //----------------------------------
@@ -194,13 +192,13 @@ void ToneMapPass::deinit()
 //
 
 /**********************************************************/
-void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
-                             const shaderio::TonemapperData &tonemapper,
-                             const VkDescriptorImageInfo &inImage,
-                             const VkDescriptorImageInfo &outImage)
+void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D& size,
+                             const shaderio::TonemapperData& tonemapper,
+                             const VkDescriptorImageInfo& inImage,
+                             const VkDescriptorImageInfo& outImage)
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
+  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   // Push constant
   shaderio::TonemapperData tonemapperData = tonemapper;
@@ -230,9 +228,11 @@ void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
                             writeSetContainer.data());
 
   // Run auto-exposure histogram/exposure if enabled
-  if (tonemapper.isActive && tonemapper.autoExposure) {
+  if (tonemapper.isActive && tonemapper.autoExposure)
+  {
     static bool firstRun = true;
-    if (firstRun) {
+    if (firstRun)
+    {
       clearHistogram(cmd);
       firstRun = false;
     }
@@ -250,11 +250,11 @@ void ToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
 
 /**********************************************************/
 void ToneMapPass::runAutoExposureHistogram(VkCommandBuffer cmd,
-                                           const VkExtent2D &size,
-                                           const VkDescriptorImageInfo &inImage)
+                                           const VkExtent2D& size,
+                                           const VkDescriptorImageInfo& inImage)
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
+  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
 
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_histogramPipeline);
   VkExtent2D groupSize = nvvk::getGroupCounts(size, TONEMAP_WORKGROUP_SIZE);
@@ -271,7 +271,7 @@ void ToneMapPass::runAutoExposureHistogram(VkCommandBuffer cmd,
 void ToneMapPass::runAutoExposure(VkCommandBuffer cmd)
 /**********************************************************/
 {
-  NVVK_DBG_SCOPE(cmd); // <-- Helps to debug in NSight
+  NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipeline);
   vkCmdDispatch(cmd, 1, 1, 1);
   nvvk::cmdBufferMemoryBarrier(

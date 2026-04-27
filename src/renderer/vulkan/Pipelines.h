@@ -11,25 +11,26 @@
 #include "Acceleration.hpp"
 #include "SceneAssetManager.hpp"
 #include "ShaderManager.hpp"
-#include "interfaces/IRenderGraph.hpp"
-
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/SwapchainRenderManager.hpp"
+#include "interfaces/IRenderGraph.hpp"
 
-class PipelineManager {
+class PipelineManager
+{
 public:
-  struct BuildSettings {
-    VulkanContextManager *context;
-    VulkanSceneAssetManager *assetManager;
-    SwapchainRenderManager *swapchainManager;
-    ShaderManager *shaderManager;
-    nvvk::Image *hiZTexture;
-    AccelerationStructures *accel;
+  struct BuildSettings
+  {
+    VulkanContextManager* context;
+    VulkanSceneAssetManager* assetManager;
+    SwapchainRenderManager* swapchainManager;
+    ShaderManager* shaderManager;
+    nvvk::Image* hiZTexture;
+    AccelerationStructures* accel;
   };
 
   // Define the signature for functions that build render graphs
   using PipelineFactoryFunc =
-      std::function<std::unique_ptr<RenderGraph>(const BuildSettings &)>;
+      std::function<std::unique_ptr<RenderGraph>(const BuildSettings&)>;
 
   PipelineManager();
 
@@ -38,19 +39,19 @@ public:
    * @param mode The string identifier (e.g., "Raster")
    * @param factory The lambda or function that constructs the graph
    */
-  void registerPipeline(const std::string &mode, PipelineFactoryFunc factory);
+  void registerPipeline(const std::string& mode, PipelineFactoryFunc factory);
 
   /**
    * @brief Factory method to create a fully configured RenderGraph
    * @param mode The string identifier (e.g., "Raster", "Meshlet", "Raytrace")
    */
-  std::unique_ptr<RenderGraph> buildGraph(const BuildSettings &settings,
-                                          const std::string &mode) const;
+  std::unique_ptr<RenderGraph> buildGraph(const BuildSettings& settings,
+                                          const std::string& mode) const;
 
   /**
    * @brief Returns a list of all currently registered pipeline names.
    */
-  const std::vector<std::string> &getAvailableGraphs() const;
+  const std::vector<std::string>& getAvailableGraphs() const;
 
 private:
   std::unordered_map<std::string, PipelineFactoryFunc> m_registry;

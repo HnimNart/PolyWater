@@ -4,7 +4,9 @@
 groupshared MeshTaskPayload sharedPayload;
 
 
+/**********************************************************/
 bool hiZCullSphere(float3 localCenter, float localRadius, float4x4 transform, SceneInfo* sceneInfo) 
+/**********************************************************/
 {
     // 1. World Transform (Using the exact working math from Frustum pass)
     float4 worldCenter = float4(mul(float4(localCenter, 1.0), transform).xyz, 1.0);
@@ -65,12 +67,14 @@ bool hiZCullSphere(float3 localCenter, float localRadius, float4x4 transform, Sc
 
 
 
+/**********************************************************/
 [shader("task")]
 [numthreads(TASK_WORKGROUP_SIZE, 1, 1)] 
 void taskMain(uint threadId : SV_GroupIndex, uint groupId : SV_GroupID) 
+/**********************************************************/
 {
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *sceneResources = pushConst.resourcesAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
+  SceneResources *sceneResources = pushConst.resourcesAddress.get();
 
   // Calculate the absolute global thread ID across the entire scene
   uint globalThreadId = (groupId * TASK_WORKGROUP_SIZE) + threadId;

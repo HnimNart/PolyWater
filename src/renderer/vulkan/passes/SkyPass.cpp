@@ -1,20 +1,25 @@
 #include "SkyPass.hpp"
 
+#include <shaders/shared/structs.h>
+
 #include <backend/vulkan/core/RenderContext.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
-#include <shaders/shared/structs.h>
 
 // Shader bytecode
 #include "_autogen/sky_simple.slang.h"
 #include "scene/Scene.h"
 
 /**********************************************************/
-void SkyPass::init(VulkanContextManager *core)
+SkyPass::SkyPass(VulkanContextManager* context) : m_core(context)
+{
+}
+
+/**********************************************************/
+void SkyPass::init()
 /**********************************************************/
 {
-  m_core = core;
-  m_device = core->getDevice();
+  m_device = m_core->getDevice();
 
   // 1. Descriptor Set Layout (Push Descriptors)
   const auto layoutBindings = std::to_array<VkDescriptorSetLayoutBinding>({
@@ -68,7 +73,7 @@ void SkyPass::init(VulkanContextManager *core)
 }
 
 /**********************************************************/
-void SkyPass::setup(PassBuilder &builder)
+void SkyPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   builder.write(RenderOutput::Linear, PipelineStage::Compute,
@@ -76,11 +81,11 @@ void SkyPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void SkyPass::execute(const IRenderContext &ctx)
+void SkyPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
-  const auto &sceneInfo = vkCtx.sceneResources->sceneInfo;
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const auto& sceneInfo = vkCtx.sceneResources->sceneInfo;
 
   if (!sceneInfo.useSky)
     return;
@@ -123,7 +128,7 @@ void SkyPass::execute(const IRenderContext &ctx)
 }
 
 /**********************************************************/
-void SkyPass::deinit(VulkanContextManager *core)
+void SkyPass::deinit()
 /**********************************************************/
 {
   vkDestroyShaderEXT(m_device, m_shader, nullptr);

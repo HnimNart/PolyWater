@@ -17,25 +17,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "tooltip.hpp"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include "tooltip.hpp"
-
-void app::tooltip(const char* description, bool questionMark /*= false*/, float timerThreshold /*= 0.5f*/)
+void app::tooltip(const char* description, bool questionMark /*= false*/,
+                  float timerThreshold /*= 0.5f*/)
 {
   ImGuiContext* GImGui = ImGui::GetCurrentContext();
 
-  bool passTimer = GImGui->HoveredIdTimer >= timerThreshold && GImGui->ActiveIdTimer == 0.0f;
-  if(questionMark)
+  bool passTimer =
+      GImGui->HoveredIdTimer >= timerThreshold && GImGui->ActiveIdTimer == 0.0f;
+  if (questionMark)
   {
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
     passTimer = true;
   }
 
-  if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && passTimer)
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && passTimer)
   {
     ImGui::BeginTooltip();
     ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);

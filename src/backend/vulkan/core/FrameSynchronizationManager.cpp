@@ -10,11 +10,11 @@
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/
-void FrameSynchronizationManager::init(VulkanContextManager &coreManager,
+void FrameSynchronizationManager::init(VulkanContextManager& coreManager,
                                        uint32_t numFrames)
 /**********************************************************/
 {
-  assert(numFrames >= 2); // Must have at least 2 frames in flight
+  assert(numFrames >= 2);  // Must have at least 2 frames in flight
   VkDevice device = coreManager.getDevice();
 
   // Initialize timeline semaphore with (numFrames - 1) to allow concurrent
@@ -39,7 +39,7 @@ void FrameSynchronizationManager::init(VulkanContextManager &coreManager,
 
 /**********************************************************/
 void FrameSynchronizationManager::createFrameData(
-    VulkanContextManager &coreManager, uint32_t numFrames)
+    VulkanContextManager& coreManager, uint32_t numFrames)
 /**********************************************************/
 {
   VkDevice device = coreManager.getDevice();
@@ -49,7 +49,8 @@ void FrameSynchronizationManager::createFrameData(
   };
 
   m_frameData.resize(numFrames);
-  for (uint32_t i = 0; i < numFrames; i++) {
+  for (uint32_t i = 0; i < numFrames; i++)
+  {
     m_frameData[i] = std::make_unique<VulkanRenderContext>();
     m_frameData[i]->frameNumber = i;
     m_frameData[i]->device = coreManager.getDevice();
@@ -85,10 +86,10 @@ void FrameSynchronizationManager::waitForFrameCompletion() const
 }
 
 /**********************************************************/
-VulkanRenderContext *FrameSynchronizationManager::beginFrame()
+VulkanRenderContext* FrameSynchronizationManager::beginFrame()
 /**********************************************************/
 {
-  auto &frame = m_frameData[m_frameRingCurrent];
+  auto& frame = m_frameData[m_frameRingCurrent];
   frame->frameNumber += m_frameData.size();
   VkDevice device = frame->device;
 
@@ -104,7 +105,7 @@ VulkanRenderContext *FrameSynchronizationManager::beginFrame()
 }
 
 /**********************************************************/
-void FrameSynchronizationManager::endFrame(const VulkanRenderContext &frameCtx)
+void FrameSynchronizationManager::endFrame(const VulkanRenderContext& frameCtx)
 /**********************************************************/
 {
   VkCommandBuffer cmd = frameCtx.cmdBuffer;
@@ -139,14 +140,14 @@ VkCommandBuffer FrameSynchronizationManager::getActiveCommandBuffer() const
 }
 
 /**********************************************************/
-VulkanRenderContext *FrameSynchronizationManager::getActiveFrameContext()
+VulkanRenderContext* FrameSynchronizationManager::getActiveFrameContext()
 /**********************************************************/
 {
   return m_frameData[m_frameRingCurrent].get();
 }
 
 /**********************************************************/
-const VulkanRenderContext *
+const VulkanRenderContext*
 FrameSynchronizationManager::getActiveFrameContext() const
 /**********************************************************/
 {
@@ -155,7 +156,7 @@ FrameSynchronizationManager::getActiveFrameContext() const
 
 /**********************************************************/
 void FrameSynchronizationManager::addWaitSemaphore(
-    const VkSemaphoreSubmitInfo &semaphore)
+    const VkSemaphoreSubmitInfo& semaphore)
 /**********************************************************/
 {
   m_waitSemaphores.push_back(semaphore);
@@ -163,7 +164,7 @@ void FrameSynchronizationManager::addWaitSemaphore(
 
 /**********************************************************/
 void FrameSynchronizationManager::addSignalSemaphore(
-    const VkSemaphoreSubmitInfo &semaphore)
+    const VkSemaphoreSubmitInfo& semaphore)
 /**********************************************************/
 {
   m_signalSemaphores.push_back(semaphore);
@@ -171,7 +172,7 @@ void FrameSynchronizationManager::addSignalSemaphore(
 
 /**********************************************************/
 void FrameSynchronizationManager::addCommandBuffer(
-    const VkCommandBufferSubmitInfo &cmdBuffer)
+    const VkCommandBufferSubmitInfo& cmdBuffer)
 /**********************************************************/
 {
   m_commandBuffers.push_back(cmdBuffer);
@@ -187,13 +188,14 @@ void FrameSynchronizationManager::clearSemaphoresAndBuffers()
 }
 
 /**********************************************************/
-void FrameSynchronizationManager::deinit(VulkanContextManager &coreManager)
+void FrameSynchronizationManager::deinit(VulkanContextManager& coreManager)
 /**********************************************************/
 {
   VkDevice device = coreManager.getDevice();
   NVVK_CHECK(vkDeviceWaitIdle(device));
 
-  for (auto &data : m_frameData) {
+  for (auto& data : m_frameData)
+  {
     vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
     vkDestroyCommandPool(device, data->cmdPool, nullptr);
   }

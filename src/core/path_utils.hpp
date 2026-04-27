@@ -29,7 +29,8 @@
 // that have the proper CMake target definitions (i.e., from tutorial sample
 // .cpp files, not from other header files)
 
-namespace common {
+namespace common
+{
 
 /**********************************************************/
 inline static std::filesystem::path getCacheDir()
@@ -95,4 +96,4 @@ inline static std::vector<std::filesystem::path> getShaderDirs()
   };
 }
 
-} // namespace common
+}  // namespace common

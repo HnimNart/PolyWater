@@ -6,19 +6,21 @@
 #include "scene/SceneResources.hpp"
 #include "shaders/shared/structs.h"
 
-namespace app {
+namespace app
+{
 
 /**********************************************************/
-inline bool meshEditor(SceneResourcesManager &resources)
+inline bool meshEditor(SceneResourcesManager& resources)
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
-  auto &meshes = resources.getMeshes();
-  const auto &meshMap = resources.meshMap();
+  auto& meshes = resources.getMeshes();
+  const auto& meshMap = resources.meshMap();
 
   static char meshSearch[128] = "";
 
-  if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen))
+  {
     ImGui::InputTextWithHint("##MeshSearch", "Search meshes...", meshSearch,
                              IM_ARRAYSIZE(meshSearch));
     ImGui::Separator();
@@ -27,7 +29,8 @@ inline bool meshEditor(SceneResourcesManager &resources)
     std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
                    ::tolower);
 
-    for (const auto &[name, id] : meshMap) {
+    for (const auto& [name, id] : meshMap)
+    {
       if (id >= meshes.size())
         continue;
 
@@ -41,15 +44,16 @@ inline bool meshEditor(SceneResourcesManager &resources)
       std::string label = fmt::format("{}##mesh_{}", name, id);
 
       // 1. Root Mesh Node
-      if (ImGui::TreeNode(label.c_str())) {
-        const auto &mesh = meshes[id];
+      if (ImGui::TreeNode(label.c_str()))
+      {
+        const auto& mesh = meshes[id];
         PE::begin();
         PE::Text("Mesh ID", fmt::format("{}", id).c_str());
         PE::Text("Vertices",
                  fmt::format("{}", mesh.triMesh.positions.count).c_str());
         PE::Text("Indices",
                  fmt::format("{}", mesh.triMesh.indices.count).c_str());
-        const shaderio::BoundingBox &bbox = mesh.bbox;
+        const shaderio::BoundingBox& bbox = mesh.bbox;
         PE::Text("BBox Min", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.min.x,
                                          bbox.min.y, bbox.min.z)
                                  .c_str());
@@ -65,4 +69,4 @@ inline bool meshEditor(SceneResourcesManager &resources)
   return false;
 }
 
-} // namespace app
+}  // namespace app

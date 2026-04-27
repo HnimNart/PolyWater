@@ -33,9 +33,11 @@ struct PushConstants
 [[vk::binding(SkyBindings::eSkyOutImage)]]  RWTexture2D<float4>             outImage;
 // clang-format on
 
+/**********************************************************/
 [shader("compute")]
 [numthreads(WORKGROUP_SIZE, WORKGROUP_SIZE, 1)]
 void main(uint3 globalThreadID: SV_DispatchThreadID)
+/**********************************************************/
 {
     uint2 imageSize;
     outImage.GetDimensions(imageSize.x, imageSize.y);

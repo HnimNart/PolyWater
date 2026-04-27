@@ -17,12 +17,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <fmt/format.h>
+
 #include <chrono>
 #include <csignal>
 #include <cstdarg>
 #include <ctime>
 #include <filesystem>
-#include <fmt/format.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -31,11 +32,11 @@
 #include <string>
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <debugapi.h>
+#  define WIN32_LEAN_AND_MEAN
+#  include <Windows.h>
+#  include <debugapi.h>
 #elif defined(__unix__)
-#include <signal.h>
+#  include <signal.h>
 #endif
 
 #include <fmt/format.h>
@@ -44,60 +45,76 @@
 #include "logger.hpp"
 #include "timers.hpp"
 
-core::Logger::~Logger() {
-  try // Destructors in C++ are noexcept; catch just in case
+core::Logger::~Logger()
+{
+  try  // Destructors in C++ are noexcept; catch just in case
   {
-    if (m_logFile.is_open()) {
+    if (m_logFile.is_open())
+    {
       m_logFile.close();
     }
-  } catch (const std::exception &e) {
+  }
+  catch (const std::exception& e)
+  {
     // Log it as best we can; not much we can do here
     std::cerr << "Caught exception while closing file: " << e.what() << "\n";
   }
 }
 
-void core::Logger::setMinimumLogLevel(LogLevel level) noexcept {
+void core::Logger::setMinimumLogLevel(LogLevel level) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_minLogLevel = level;
 }
 
-void core::Logger::setShowFlags(ShowFlags flags) noexcept {
+void core::Logger::setShowFlags(ShowFlags flags) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_show = flags;
 }
 
-void core::Logger::setOutputFile(
-    const std::filesystem::path &filename) noexcept {
+void core::Logger::setOutputFile(const std::filesystem::path& filename) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
-  try {
-    if (m_logFile.is_open()) {
+  try
+  {
+    if (m_logFile.is_open())
+    {
       m_logFile.close();
     }
     m_logFile.open(filename, std::ios::out);
-  } catch (const std::exception & /* unused */) {
+  }
+  catch (const std::exception& /* unused */)
+  {
     // m_logFile.operator bool() will be false and we'll handle the error below
   }
 
-  if (!m_logFile) {
+  if (!m_logFile)
+  {
     std::cerr << "Failed to open log file: " << core::utf8FromPath(filename)
               << std::endl;
     m_logToFile = false;
-  } else {
+  }
+  else
+  {
     m_logToFile = true;
   }
 }
 
-void core::Logger::enableFileOutput(bool enable) noexcept {
+void core::Logger::enableFileOutput(bool enable) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logToFile = enable;
 }
 
-void core::Logger::setFileFlush(bool enable) noexcept {
+void core::Logger::setFileFlush(bool enable) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_fileFlush = enable;
 }
 
-void core::Logger::setLogCallback(LogCallback &&callback) noexcept {
+void core::Logger::setLogCallback(LogCallback&& callback) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_logCallback = std::move(callback);
 }
@@ -106,8 +123,9 @@ void core::Logger::log(LogLevel level,
 #ifdef _MSC_VER
                        _Printf_format_string_
 #endif
-                       const char *format,
-                       ...) noexcept {
+                       const char* format,
+                       ...) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   if (level < m_minLogLevel)
     return;
@@ -118,10 +136,13 @@ void core::Logger::log(LogLevel level,
   std::string message;
   va_list args;
   va_start(args, format);
-  try {
+  try
+  {
     message = formatString(format, args);
     addPrefixes(level, message);
-  } catch (const std::exception &e) {
+  }
+  catch (const std::exception& e)
+  {
     std::cerr << "Could not format string: " << e.what() << "\n";
     va_end(args);
     return;
@@ -135,21 +156,25 @@ void core::Logger::log(LogLevel level,
   breakOnErrors(level, message);
 }
 
-void core::Logger::breakOnError(bool enable) noexcept {
+void core::Logger::breakOnError(bool enable) noexcept
+{
   std::lock_guard<std::recursive_mutex> lock(m_logMutex);
   m_breakOnError = enable;
 }
 
 void core::Logger::breakOnErrors(LogLevel level,
-                                 const std::string &message) noexcept {
+                                 const std::string& message) noexcept
+{
   if (!m_breakOnError)
     return;
-  if (level == LogLevel::eERROR) {
+  if (level == LogLevel::eERROR)
+  {
 #ifdef _WIN32
     // Suppress a Coverity warning about debugger functions here -- this is
     // intentional.
     // coverity[dont_call]
-    if (IsDebuggerPresent()) {
+    if (IsDebuggerPresent())
+    {
       // If you've reached this breakpoint, your sample has just printed an
       // error. Look at the console or debug output to see what it is.
       // coverity[dont_call]
@@ -162,47 +187,55 @@ void core::Logger::breakOnErrors(LogLevel level,
   }
 }
 
-void core::Logger::ensureLogFileIsOpen() noexcept {
+void core::Logger::ensureLogFileIsOpen() noexcept
+{
   static bool firstLog = true;
-  if (firstLog && m_logToFile && !m_logFile.is_open()) {
+  if (firstLog && m_logToFile && !m_logFile.is_open())
+  {
     firstLog = false;
-    try {
+    try
+    {
       std::filesystem::path exePath = core::getExecutablePath();
       std::filesystem::path logName = "log_";
       logName += exePath.stem();
       logName += ".txt";
       const std::filesystem::path logPath = exePath.parent_path() / logName;
       setOutputFile(logPath);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
       std::cerr << "Caught exception while opening log file: " << e.what()
                 << "\n";
     }
   }
 }
 
-std::string core::Logger::formatString(const char *format, va_list args) {
+std::string core::Logger::formatString(const char* format, va_list args)
+{
   // Initial buffer size
   int bufferSize = 1024;
   std::vector<char> buffer(bufferSize);
 
   // Try to format the string into the buffer
   va_list argsCopy;
-  va_copy(argsCopy, args); // Copy args to reuse them for vsnprintf
+  va_copy(argsCopy, args);  // Copy args to reuse them for vsnprintf
   int requiredSize = vsnprintf(buffer.data(), bufferSize, format, argsCopy);
   va_end(argsCopy);
 
   // Check if the buffer was large enough
-  if (requiredSize >= bufferSize) {
-    bufferSize = requiredSize + 1; // Increase buffer size as needed
+  if (requiredSize >= bufferSize)
+  {
+    bufferSize = requiredSize + 1;  // Increase buffer size as needed
     buffer.resize(bufferSize);
     vsnprintf(buffer.data(), bufferSize, format,
-              args); // Format again with correct size
+              args);  // Format again with correct size
   }
 
   return std::string(buffer.data());
 }
 
-static std::string currentDateTime() {
+static std::string currentDateTime()
+{
   // 1. Get the current wall-clock time
   auto now = std::chrono::system_clock::now();
 
@@ -220,7 +253,8 @@ static std::string currentDateTime() {
                      hms.subseconds().count());
 }
 
-static std::string currentTime() {
+static std::string currentTime()
+{
   static core::PerformanceTimer startTimer;
 
   // Get total milliseconds and extract hours, minutes, seconds
@@ -235,23 +269,25 @@ static std::string currentTime() {
   return fmt::format("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, ms);
 }
 
-static const char *logLevelToString(core::Logger::LogLevel level) {
-  switch (level) {
-  case core::Logger::LogLevel::eDEBUG:
-    return "DEBUG";
-  case core::Logger::LogLevel::eSTATS:
-    return "STATS";
-  case core::Logger::LogLevel::eOK:
-    return "OK";
-  case core::Logger::LogLevel::eINFO:
-    return "INFO";
-  case core::Logger::LogLevel::eWARNING:
-    return "WARNING";
-  case core::Logger::LogLevel::eERROR:
-    return "ERROR";
+static const char* logLevelToString(core::Logger::LogLevel level)
+{
+  switch (level)
+  {
+    case core::Logger::LogLevel::eDEBUG:
+      return "DEBUG";
+    case core::Logger::LogLevel::eSTATS:
+      return "STATS";
+    case core::Logger::LogLevel::eOK:
+      return "OK";
+    case core::Logger::LogLevel::eINFO:
+      return "INFO";
+    case core::Logger::LogLevel::eWARNING:
+      return "WARNING";
+    case core::Logger::LogLevel::eERROR:
+      return "ERROR";
   }
-  // This checks that we've handled all enum cases above; it can be replaced
-  // with std::unreachable in C++23.
+    // This checks that we've handled all enum cases above; it can be replaced
+    // with std::unreachable in C++23.
 #ifdef _MSC_VER
   __assume(false);
 #else
@@ -260,9 +296,11 @@ static const char *logLevelToString(core::Logger::LogLevel level) {
   return "";
 }
 
-void core::Logger::addPrefixes(LogLevel level, std::string &message) {
+void core::Logger::addPrefixes(LogLevel level, std::string& message)
+{
   static bool suppressPrefixes = false;
-  if (!suppressPrefixes && m_show != 0) {
+  if (!suppressPrefixes && m_show != 0)
+  {
     std::stringstream logStream;
     if (m_show & eSHOW_LEVEL)
       logStream << logLevelToString(level) << ": ";
@@ -275,8 +313,9 @@ void core::Logger::addPrefixes(LogLevel level, std::string &message) {
 }
 
 void core::Logger::outputToConsoles(LogLevel level,
-                                    const std::string &message) noexcept {
-  std::ostream *stdConsole =
+                                    const std::string& message) noexcept
+{
+  std::ostream* stdConsole =
       (level == LogLevel::eERROR ? &std::cerr : &std::cout);
 #ifdef _WIN32
   // Convert our message to UTF-16, which is the same encoding as in
@@ -295,14 +334,17 @@ void core::Logger::outputToConsoles(LogLevel level,
   HANDLE hConsole = GetStdHandle(level == LogLevel::eERROR ? STD_ERROR_HANDLE
                                                            : STD_OUTPUT_HANDLE);
   BOOL consoleWriteOk = TRUE;
-  if (level == LogLevel::eERROR) {
+  if (level == LogLevel::eERROR)
+  {
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
     consoleWriteOk =
         WriteConsoleW(hConsole, utf16.c_str(), static_cast<DWORD>(utf16.size()),
                       nullptr, nullptr);
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN |
                                           FOREGROUND_BLUE);
-  } else if (level == LogLevel::eWARNING) {
+  }
+  else if (level == LogLevel::eWARNING)
+  {
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN |
                                           FOREGROUND_INTENSITY);
     consoleWriteOk =
@@ -310,48 +352,62 @@ void core::Logger::outputToConsoles(LogLevel level,
                       nullptr, nullptr);
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN |
                                           FOREGROUND_BLUE);
-  } else {
+  }
+  else
+  {
     consoleWriteOk =
         WriteConsoleW(hConsole, utf16.c_str(), static_cast<DWORD>(utf16.size()),
                       nullptr, nullptr);
   }
 
-  if (!consoleWriteOk) {
+  if (!consoleWriteOk)
+  {
     *stdConsole << message;
   }
 
 #else
   const bool supportsColor =
       isatty(fileno(level == LogLevel::eERROR ? stderr : stdout));
-  if (level == LogLevel::eERROR && supportsColor) {
+  if (level == LogLevel::eERROR && supportsColor)
+  {
     *stdConsole << "\033[1;31m" << message << "\033[0m";
-  } else if (level == LogLevel::eWARNING && supportsColor) {
+  }
+  else if (level == LogLevel::eWARNING && supportsColor)
+  {
     *stdConsole << "\033[1;33m" << message << "\033[0m";
-  } else {
+  }
+  else
+  {
     *stdConsole << message;
   }
 #endif
 }
 
-void core::Logger::outputToFile(const std::string &message) noexcept {
-  if (m_logToFile && m_logFile.is_open()) {
+void core::Logger::outputToFile(const std::string& message) noexcept
+{
+  if (m_logToFile && m_logFile.is_open())
+  {
     m_logFile << message << std::endl;
-    if (m_fileFlush) {
+    if (m_fileFlush)
+    {
       m_logFile.flush();
     }
   }
 }
 
 void core::Logger::outputToCallback(LogLevel level,
-                                    const std::string &message) noexcept {
-  if (m_logCallback) {
+                                    const std::string& message) noexcept
+{
+  if (m_logCallback)
+  {
     m_logCallback(level, message);
   }
 }
 
-[[maybe_unused]] static void usage_Logger() {
+[[maybe_unused]] static void usage_Logger()
+{
   // Get the logger instance
-  core::Logger &logger = core::Logger::getInstance();
+  core::Logger& logger = core::Logger::getInstance();
 
   // Set the minimum log level
   logger.setMinimumLogLevel(core::Logger::LogLevel::eINFO);
@@ -368,9 +424,8 @@ void core::Logger::outputToCallback(LogLevel level,
 
   // Set a custom log callback
   logger.setLogCallback(
-      [](core::Logger::LogLevel level, const std::string &message) {
-        std::cout << "Custom Log: " << message << std::endl;
-      });
+      [](core::Logger::LogLevel level, const std::string& message)
+      { std::cout << "Custom Log: " << message << std::endl; });
 
   // Log messages
   LOGD("This is a debug message.");

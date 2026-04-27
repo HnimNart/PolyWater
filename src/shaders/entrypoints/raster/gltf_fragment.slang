@@ -5,11 +5,14 @@
 #include "include/light/lights.h.slang"
 #include "shared/structs.h"
 
-[shader("pixel")] PSout fragmentMain(FragmentInput stage) {
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources sceneResources = pushConst.resourcesAddress[0];
-  Instance instance = sceneResources.instances[stage.instanceIndex];
-  Material material = sceneResources.materials[instance.materialIndex];
+/**********************************************************/
+[shader("pixel")] PSout fragmentMain(FragmentInput stage)
+/**********************************************************/
+{
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
+  SceneResources *sceneResources = pushConst.resourcesAddress.get();
+  Instance instance = sceneResources->instances[stage.instanceIndex];
+  Material material = sceneResources->materials[instance.materialIndex];
 
   PSout output;
   float3 finalColor = float3(0);

@@ -14,18 +14,19 @@
  * Consumes the ToneMapped HDR/SDR result and renders the UI (ImGui)
  * directly onto the Swapchain image.
  */
-class UIPass : public IRenderPass {
+class UIPass : public IRenderPass
+{
 public:
-  using RenderCallback = std::function<void(const IRenderContext &ctx)>;
+  using RenderCallback = std::function<void(const IRenderContext& ctx)>;
 
   UIPass(RenderCallback callback);
   virtual ~UIPass() = default;
 
-  void init(VulkanContextManager * /*core*/) override {};
-  void deinit(VulkanContextManager * /*core*/) override {};
+  void init() override {}
+  void deinit() override {}
 
-  void setup(PassBuilder &builder) override;
-  void execute(const IRenderContext &ctx) override;
+  void setup(PassBuilder& builder) override;
+  void execute(const IRenderContext& ctx) override;
 
 private:
   RenderCallback m_callback;
