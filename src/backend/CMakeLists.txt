@@ -9,6 +9,8 @@ target_include_directories(backend_interfaces INTERFACE
 
 
 
-
-add_subdirectory(vulkan)
-
+if(APPLE)
+    add_subdirectory(metal)
+else()
+    add_subdirectory(vulkan)
+endif()

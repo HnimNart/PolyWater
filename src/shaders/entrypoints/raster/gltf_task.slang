@@ -2,6 +2,8 @@
 
 // 1. Declare the payload as groupshared memory globally
 groupshared MeshTaskPayload sharedPayload;
+groupshared uint groupSurvivorCount; // Move this here!
+
 
 
 /**********************************************************/
@@ -107,9 +109,30 @@ void taskMain(uint threadId : SV_GroupIndex, uint groupId : SV_GroupID)
     }
   }
 
-  // Subgroup compaction (Find out how many survived in this group of 32)
-  uint numSurviving = WaveActiveCountBits(accept);
-  uint emitIndex = WavePrefixCountBits(accept);
+  // 2. Initialize counter
+  if (threadId == 0) groupSurvivorCount = 0;
+  GroupMemoryBarrierWithGroupSync();
+
+  uint numSurviving = 0;
+  uint emitIndex = 0;
+
+
+  // 3. Target-specific compaction
+  __target_switch {
+    case metal: {
+        // Fallback: Atomic compaction for Metal
+        if (accept) {
+            InterlockedAdd(groupSurvivorCount, 1, emitIndex);
+        }
+        GroupMemoryBarrierWithGroupSync();
+        numSurviving = groupSurvivorCount;
+    }
+    default: {
+        // High-performance Subgroup compaction for Vulkan/SPIR-V
+        numSurviving = WaveActiveCountBits(accept);
+        emitIndex = WavePrefixCountBits(accept);
+    }
+  }
 
   // Write surviving global meshlet and instance indices to the payload
   if (accept) {

@@ -44,7 +44,7 @@ public:
   // Always non-negative even if the underlying timer is non-monotonic.
   double getSeconds() const
   {
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
     const TimeValue t = now();
 
     // 1. Calculate integer differences
@@ -72,7 +72,7 @@ public:
 private:
   struct TimeValue
   {
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
     // On Unix platforms, store the full 128-bit time struct; this gets us
     // nanosecond precision and still avoids overflow issues.
     int64_t seconds{};
