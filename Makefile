@@ -4,7 +4,7 @@
 
 # Default preset if not provided
 preset ?= release
-BUILD_DIR := build_tmp
+BUILD_DIR := build
 
 # Preset → CMake config mapping
 MAP_release        := Release

@@ -214,13 +214,13 @@ void MetalDeviceAssets::deinit()
 
 /**********************************************************/
 IDeviceAssets::BufferHandle
-MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
+MetalDeviceAssets::upload(const std::span<const uint8_t>& data)
 /**********************************************************/
 {
-  if (data.empty()) {
+  if (data.empty())
+  {
     return {};
   }
-
 
   id<MTLBuffer> buf =
       [m_data->device newBufferWithBytes:data.data()
@@ -230,7 +230,7 @@ MetalDeviceAssets::upload(const std::span<const uint8_t> &data)
   IDeviceAssets::BufferID id = m_data->nextId++;
   m_data->rawBuffers.insert_or_assign(id, buf);
 
-  return BufferHandle{.address = (uint8_t *)buf.gpuAddress, .id = id};
+  return BufferHandle{.address = buf.gpuAddress, .id = id};
 }
 
 /**********************************************************/
