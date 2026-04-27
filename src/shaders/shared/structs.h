@@ -39,7 +39,6 @@
 #endif
 
 #include "slang_types.h"
-
 #include "sky_io.h.slang"
 
 #define MAX_LIGHTS 2
@@ -75,36 +74,6 @@ struct ShadowPayload {
   bool isHit;
 };
 
-struct BoundingBox {
-  float3 min;
-  float3 max;
-
-#ifdef __cplusplus
-  BoundingBox()
-      : min(std::numeric_limits<float>::max()),
-        max(std::numeric_limits<float>::lowest()) {}
-
-  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
-
-  // Add a point to the bounding box (Encapsulate)
-  void add(const float3 &p) {
-    min = glm::min(min, p);
-    max = glm::max(max, p);
-  }
-
-  // Merge another bounding box into this one
-  void add(const BoundingBox &other) {
-    min = glm::min(min, other.min);
-    max = glm::max(max, other.max);
-  }
-
-  bool isEmpty() const {
-    return min.x > max.x || min.y > max.y || min.z > max.z;
-  }
-
-  float3 center() const { return (min + max) * 0.5f; }
-#endif
-};
 
 struct BufferView {
   uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
@@ -218,9 +187,9 @@ struct TriangleLight {
 CHECK_STRUCT_ALIGNMENT(TriangleLight)
 
 struct AreaLight {
-  TriangleLight *triangles = nullptr;
+  DevicePtr<TriangleLight> triangles = {};
   uint TriangleLightBufferIndex = -1;
-  float *cdf = nullptr;
+  DevicePtr<float> cdf = {};
   uint cdfBufferIndex = -1;
   uint nTriangles = 0;
   float totalSum = 0; // Total sum of light
@@ -228,9 +197,9 @@ struct AreaLight {
 
 struct EnvmapLight {
   // GPU Buffer Addresses for MIS
-  float *cdfRows = nullptr; // Conditional CDF: (width + 1) * height
+  DevicePtr<float> cdfRows = {}; // Conditional CDF: (width + 1) * height
   int cdfRowsBufferIndex = -1;
-  float *cdfCols = nullptr; // Marginal CDF: (height + 1)
+  DevicePtr<float> cdfCols = {}; // Marginal CDF: (height + 1)
   int cdfColsBufferIndex = -1;
 
   // Transformation & Intensity

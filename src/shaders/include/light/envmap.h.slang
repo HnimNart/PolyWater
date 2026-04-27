@@ -22,11 +22,12 @@ struct EnvmapSampler {
               out float pdf, out float3 radiance, Sampler2D envTextures[]) {
 
     // A. Find Row (V) using Marginal CDF
-    int vIdx = findLowerBound(light.cdfCols, light.dims.y + 1, randomSample.y);
+    int vIdx =
+        findLowerBound(light.cdfCols.get(), light.dims.y + 1, randomSample.y);
     float v = (float(vIdx) + 0.5f) / float(light.dims.y);
 
     // B. Find Column (U) using Conditional CDF
-    float *rowCDF = light.cdfRows + (vIdx * (light.dims.x + 1));
+    float *rowCDF = light.cdfRows.at((vIdx * (light.dims.x + 1)));
     int uIdx = findLowerBound(rowCDF, light.dims.x + 1, randomSample.x);
     float u = (float(uIdx) + 0.5f) / float(light.dims.x);
 
@@ -84,14 +85,13 @@ struct EnvmapSampler {
       return 0.0f;
 
     // Importance is luminance (scale is cancelled out in the ratio)
-    float luminance =
-        bt709Luminance(radiance) / light.scale;
+    float luminance = bt709Luminance(radiance) / light.scale;
 
     // Standard PDF for Equirectangular Importance Sampling:
     // pdf = luminance / (totalIntegral * 2 * PI^2)
     // We don't divide by sinTheta here because the sampling logic
     // already accounts for the solid angle Jacobian.
-    return (luminance * width * height) / (light.totalSum * (2.0f * M_PI * M_PI));
+    return (luminance * width * height) /
+           (light.totalSum * (2.0f * M_PI * M_PI));
   }
 };
-

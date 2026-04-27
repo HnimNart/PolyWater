@@ -17,7 +17,7 @@ class IDeviceAssets {
 public:
   using MeshID = uint32_t;
   using TextureID = uint32_t;
-  using BufferAddr = uint64_t; // GPU buffer device address (matches VkDeviceAddress)
+  using BufferAddr = uint64_t;
   using BufferID = uint32_t;
 
   struct BufferHandle {
@@ -29,6 +29,7 @@ public:
     template <typename T> T *as() const {
       return reinterpret_cast<T *>(static_cast<uintptr_t>(address));
     }
+    BufferAddr get() const { return address; }
   };
 
   virtual ~IDeviceAssets() = default;

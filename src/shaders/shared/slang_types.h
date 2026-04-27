@@ -173,17 +173,16 @@ struct DevicePtr<T> {
   __init() { address = 0u; }
   __init(uint64_t addr) { address = addr; }
 
-  // --- GET METHODS ---
   Ptr<T> get() { return reinterpret<Ptr<T>>(address); }
   __generic<U> Ptr<U> get() { return reinterpret<Ptr<U>>(address); }
-
-  // --- AT METHODS ---
   Ptr<T> at(uint64_t byteOffset) {
     return reinterpret<Ptr<T>>(address + byteOffset);
   }
   __generic<U> Ptr<U> at(uint64_t byteOffset) {
     return reinterpret<Ptr<U>>(address + byteOffset);
   }
+  T readAt(uint64_t byteOffset) { return *at(byteOffset); }
+  __generic<U> U readAt(uint64_t byteOffset) { return *at<U>(byteOffset); }
 }
 
 #define SLANG_DEFAULT(x) = (x)
@@ -205,5 +204,38 @@ T *castAddress<T>(uint64_t addr) { return reinterpret<T *>(addr); }
 #error "Unknown language environment"
 
 #endif // __cplusplus
+
+NAMESPACE_SHADERIO_BEGIN()
+struct BoundingBox {
+  float3 min;
+  float3 max;
+
+#ifdef __cplusplus
+  BoundingBox()
+      : min(std::numeric_limits<float>::max()),
+        max(std::numeric_limits<float>::lowest()) {}
+
+  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
+
+  // Add a point to the bounding box (Encapsulate)
+  void add(const float3 &p) {
+    min = glm::min(min, p);
+    max = glm::max(max, p);
+  }
+
+  // Merge another bounding box into this one
+  void add(const BoundingBox &other) {
+    min = glm::min(min, other.min);
+    max = glm::max(max, other.max);
+  }
+
+  bool isEmpty() const {
+    return min.x > max.x || min.y > max.y || min.z > max.z;
+  }
+  float3 center() const { return (min + max) * 0.5f; }
+#endif
+};
+
+NAMESPACE_SHADERIO_END()
 
 #endif // SLANG_TYPES_H

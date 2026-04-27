@@ -135,17 +135,17 @@ LightSample sampleAreaLight(SceneInfo *sceneInfo, float3 refPoint,
   AreaLight areaLight = sceneInfo->areaLight;
   if (areaLight.nTriangles == 0)
     return ls;
-  TriangleLight *areaLightTriangles = areaLight.triangles;
-  float *areaLightCdf = areaLight.cdf;
+  DevicePtr<TriangleLight> areaLightTriangles = areaLight.triangles;
+  DevicePtr<float> areaLightCdf = areaLight.cdf;
 
   // 1. Select the specific triangle using the CDF (Discrete sampling)
-  uint index = selectLightIndex(rnd(seed), areaLightCdf, areaLight.nTriangles);
-  TriangleLight tri = areaLightTriangles[index];
+  uint index = selectLightIndex(rnd(seed), areaLightCdf.get(), areaLight.nTriangles);
+  TriangleLight tri = areaLightTriangles.readAt(index);
 
   // Calculate probability of choosing this specific triangle
   // P(tri) = CDF[i] - CDF[i-1]
-  float prevCdf = (index == 0) ? 0.0f : areaLightCdf[index - 1];
-  float currentCdf = areaLightCdf[index];
+  float prevCdf = (index == 0) ? 0.0f : areaLightCdf.readAt(index - 1);
+  float currentCdf = areaLightCdf.readAt(index);
   float triSelectionPdf = currentCdf - prevCdf;
 
   // 2. Sample a random point on the triangle (Continuous sampling)
