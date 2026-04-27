@@ -29,17 +29,17 @@
 // If there are reported leaks, use `nvvk::ResourceAllocator::setLeakID(uint32_t
 // id)` accordingly to find resource creations that lack an appropriate destroy.
 // VMA will report allocations as "nvvkAllocID: <uint32_t id>"
-#include <core/logger.hpp>
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                       \
-  LOGW(format, __VA_ARGS__);                                                   \
-  LOGW("\n")
+#  include <core/logger.hpp>
+#  define VMA_LEAK_LOG_FORMAT(format, ...)                                     \
+    LOGW(format, __VA_ARGS__);                                                 \
+    LOGW("\n")
 #endif
 
 #ifndef VMA_ASSERT_LEAK
-#define VMA_ASSERT_LEAK(expr)                                                  \
-  VMA_ASSERT(                                                                  \
-      (expr) &&                                                                \
-      "Use nvvk::ResourceAllocator::setLeakID(nvvkAllocID) to find the leak")
+#  define VMA_ASSERT_LEAK(expr)                                                \
+    VMA_ASSERT((expr) &&                                                       \
+               "Use nvvk::ResourceAllocator::setLeakID(nvvkAllocID) to find "  \
+               "the leak")
 #endif
 
 #include <vk_mem_alloc.h>
@@ -82,7 +82,8 @@
 //
 //-----------------------------------------------------------------
 
-namespace nvvk {
+namespace nvvk
+{
 
 //--- Resource Allocator
 //------------------------------------------------------------------------------------------------------------
@@ -91,16 +92,17 @@ namespace nvvk {
 // Vulkan. This should be used to manage the memory of the resources instead of
 // using the Vulkan API directly.
 
-class ResourceAllocator {
+class ResourceAllocator
+{
 public:
   static constexpr VkDeviceSize DEFAULT_LARGE_CHUNK_SIZE =
       VkDeviceSize(2) * 1024ull * 1024ull * 1024ull;
 
   ResourceAllocator() = default;
-  ResourceAllocator(const ResourceAllocator &) = delete;
-  ResourceAllocator &operator=(const ResourceAllocator &) = delete;
-  ResourceAllocator(ResourceAllocator &&other) noexcept;
-  ResourceAllocator &operator=(ResourceAllocator &&other) noexcept;
+  ResourceAllocator(const ResourceAllocator&) = delete;
+  ResourceAllocator& operator=(const ResourceAllocator&) = delete;
+  ResourceAllocator(ResourceAllocator&& other) noexcept;
+  ResourceAllocator& operator=(ResourceAllocator&& other) noexcept;
   ~ResourceAllocator();
 
   operator VmaAllocator() const;
@@ -113,7 +115,8 @@ public:
 
   VkDevice getDevice() const { return m_device; }
   VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
-  VkDeviceSize getMaxMemoryAllocationSize() const {
+  VkDeviceSize getMaxMemoryAllocationSize() const
+  {
     return m_maxMemoryAllocationSize;
   }
 
@@ -131,7 +134,7 @@ public:
   //        CPU will sequentially write to the buffer's memory,
   //        + VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
   //
-  VkResult createBuffer(Buffer &buffer, VkDeviceSize size,
+  VkResult createBuffer(Buffer& buffer, VkDeviceSize size,
                         VkBufferUsageFlags2KHR usage,
                         VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO,
                         VmaAllocationCreateFlags flags = {},
@@ -139,12 +142,12 @@ public:
                         std::span<const uint32_t> queueFamilies = {}) const;
 
   // This allows more fine control
-  VkResult createBuffer(Buffer &buffer, const VkBufferCreateInfo &bufferInfo,
-                        const VmaAllocationCreateInfo &allocInfo,
+  VkResult createBuffer(Buffer& buffer, const VkBufferCreateInfo& bufferInfo,
+                        const VmaAllocationCreateInfo& allocInfo,
                         VkDeviceSize minAlignment = 0) const;
 
   // Destroy the VkBuffer
-  void destroyBuffer(Buffer &buffer) const;
+  void destroyBuffer(Buffer& buffer) const;
 
   // A large buffer allows sizes > maxMemoryAllocationSize (often around 4 GB)
   // by using sparse binding and multiple smaller allocations.
@@ -152,7 +155,7 @@ public:
   // binding operation
 
   VkResult createLargeBuffer(
-      LargeBuffer &buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
+      LargeBuffer& buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
       VkQueue sparseBindingQueue, VkFence sparseBindingFence = VK_NULL_HANDLE,
       VkDeviceSize maxChunkSize = DEFAULT_LARGE_CHUNK_SIZE,
       VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO,
@@ -160,47 +163,47 @@ public:
       std::span<const uint32_t> queueFamilies = {}) const;
 
   VkResult
-  createLargeBuffer(LargeBuffer &buffer, const VkBufferCreateInfo &bufferInfo,
-                    const VmaAllocationCreateInfo &allocInfo,
+  createLargeBuffer(LargeBuffer& buffer, const VkBufferCreateInfo& bufferInfo,
+                    const VmaAllocationCreateInfo& allocInfo,
                     VkQueue sparseBindingQueue,
                     VkFence sparseBindingFence = VK_NULL_HANDLE,
                     VkDeviceSize maxChunkSize = DEFAULT_LARGE_CHUNK_SIZE,
                     VkDeviceSize minAlignment = 0) const;
 
-  void destroyLargeBuffer(LargeBuffer &buffer) const;
+  void destroyLargeBuffer(LargeBuffer& buffer) const;
 
   // Creates VkImage in device memory
-  VkResult createImage(Image &image, const VkImageCreateInfo &imageInfo) const;
+  VkResult createImage(Image& image, const VkImageCreateInfo& imageInfo) const;
 
   // Creates VkImage and VkImageView in device memory
-  VkResult createImage(Image &image, const VkImageCreateInfo &imageInfo,
-                       const VkImageViewCreateInfo &imageViewInfo) const;
+  VkResult createImage(Image& image, const VkImageCreateInfo& imageInfo,
+                       const VkImageViewCreateInfo& imageViewInfo) const;
 
   // Creates VkImage with provided allocation information
-  VkResult createImage(Image &image, const VkImageCreateInfo &imageInfo,
-                       const VmaAllocationCreateInfo &vmaInfo) const;
+  VkResult createImage(Image& image, const VkImageCreateInfo& imageInfo,
+                       const VmaAllocationCreateInfo& vmaInfo) const;
 
   // Creates VkImage and VkImageView with provided allocation information
-  VkResult createImage(Image &image, const VkImageCreateInfo &imageInfo,
-                       const VkImageViewCreateInfo &imageViewInfo,
-                       const VmaAllocationCreateInfo &vmaInfo) const;
+  VkResult createImage(Image& image, const VkImageCreateInfo& imageInfo,
+                       const VkImageViewCreateInfo& imageViewInfo,
+                       const VmaAllocationCreateInfo& vmaInfo) const;
 
   // Destroys VkImage and VkImageView
-  void destroyImage(Image &image) const;
+  void destroyImage(Image& image) const;
 
   // AcclerationStructure
 
   VkResult
-  createAcceleration(AccelerationStructure &accel,
-                     const VkAccelerationStructureCreateInfoKHR &accInfo) const;
+  createAcceleration(AccelerationStructure& accel,
+                     const VkAccelerationStructureCreateInfoKHR& accInfo) const;
 
   VkResult
-  createAcceleration(AccelerationStructure &accel,
-                     const VkAccelerationStructureCreateInfoKHR &accInfo,
-                     const VmaAllocationCreateInfo &vmaInfo,
+  createAcceleration(AccelerationStructure& accel,
+                     const VkAccelerationStructureCreateInfoKHR& accInfo,
+                     const VmaAllocationCreateInfo& vmaInfo,
                      std::span<const uint32_t> queueFamilies = {}) const;
 
-  void destroyAcceleration(AccelerationStructure &accel) const;
+  void destroyAcceleration(AccelerationStructure& accel) const;
 
   // LargeAccelerationStructure
 
@@ -208,21 +211,21 @@ public:
   // binding operation
 
   VkResult createLargeAcceleration(
-      LargeAccelerationStructure &accel,
-      const VkAccelerationStructureCreateInfoKHR &accInfo,
+      LargeAccelerationStructure& accel,
+      const VkAccelerationStructureCreateInfoKHR& accInfo,
       VkQueue sparseBindingQueue, VkFence sparseBindingFence = VK_NULL_HANDLE,
       VkDeviceSize maxChunkSize = DEFAULT_LARGE_CHUNK_SIZE) const;
 
   VkResult
-  createLargeAcceleration(LargeAccelerationStructure &accel,
-                          const VkAccelerationStructureCreateInfoKHR &accInfo,
-                          const VmaAllocationCreateInfo &vmaInfo,
+  createLargeAcceleration(LargeAccelerationStructure& accel,
+                          const VkAccelerationStructureCreateInfoKHR& accInfo,
+                          const VmaAllocationCreateInfo& vmaInfo,
                           VkQueue sparseBindingQueue,
                           VkFence sparseBindingFence = VK_NULL_HANDLE,
                           VkDeviceSize maxChunkSize = DEFAULT_LARGE_CHUNK_SIZE,
                           std::span<const uint32_t> queueFamilies = {}) const;
 
-  void destroyLargeAcceleration(LargeAccelerationStructure &accel) const;
+  void destroyLargeAcceleration(LargeAccelerationStructure& accel) const;
 
   //////////////////////////////////////////////////////////////////////////
 
@@ -236,27 +239,27 @@ public:
 
   // Calls `vkFlushMappedMemoryRanges` via VMA for the provided buffer's memory.
   // Is required for non-coherent mapped memory after it was written by cpu.
-  VkResult flushBuffer(const nvvk::Buffer &buffer, VkDeviceSize offset = 0,
+  VkResult flushBuffer(const nvvk::Buffer& buffer, VkDeviceSize offset = 0,
                        VkDeviceSize size = VK_WHOLE_SIZE);
 
   // Calls `vkInvalidateMappedMemoryRanges` via VMA for the provided buffer's
   // memory Is required for non-coherent mapped memory prior reading it from
   // cpu.
-  VkResult invalidateBuffer(const nvvk::Buffer &buffer, VkDeviceSize offset = 0,
+  VkResult invalidateBuffer(const nvvk::Buffer& buffer, VkDeviceSize offset = 0,
                             VkDeviceSize size = VK_WHOLE_SIZE);
 
   // Calls `vkFlushMappedMemoryRanges` via VMA, if the buffer's memory is
   // non-coherent, otherwise does nothing and always returns VK_SUCCESS. VMA's
   // heuristic for picking memory types, may make it non-trivial to know in
   // advance if a buffer is coherent or not
-  VkResult autoFlushBuffer(const nvvk::Buffer &buffer, VkDeviceSize offset = 0,
+  VkResult autoFlushBuffer(const nvvk::Buffer& buffer, VkDeviceSize offset = 0,
                            VkDeviceSize size = VK_WHOLE_SIZE);
 
   // Calls `vkInvalidateMappedMemoryRanges` via VMA, if the buffer's memory is
   // non-coherent, otherwise does nothing and always returns VK_SUCCESS. VMA's
   // heuristic for picking memory types, may make it non-trivial to know in
   // advance if a buffer is coherent or not
-  VkResult autoInvalidateBuffer(const nvvk::Buffer &buffer,
+  VkResult autoInvalidateBuffer(const nvvk::Buffer& buffer,
                                 VkDeviceSize offset = 0,
                                 VkDeviceSize size = VK_WHOLE_SIZE);
 
@@ -283,22 +286,27 @@ private:
 // allocation, allowing resources to be shared across APIs while maintaining
 // Vulkan-native performance. This is particularly useful for applications that
 // need to process data with CUDA or display results through OpenGL.
-class ResourceAllocatorExport : public ResourceAllocator {
+class ResourceAllocatorExport : public ResourceAllocator
+{
 public:
   // This initialization is the same as the ResourceAllocator, but adds the
   // VMA_ALLOCATOR_CREATE_KHR_EXTERNAL_MEMORY_WIN32_BIT flag
-  VkResult init(VmaAllocatorCreateInfo allocatorInfo) {
+  VkResult init(VmaAllocatorCreateInfo allocatorInfo)
+  {
 #ifdef _WIN32
     allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_EXTERNAL_MEMORY_WIN32_BIT;
-#endif // _WIN32
+#endif  // _WIN32
     return nvvk::ResourceAllocator::init(allocatorInfo);
   }
 
   // The de-initialization is the same as the ResourceAllocator, but destroy all
   // the pools that have been created
-  void deinit() {
-    for (auto &p : m_pools) {
-      if (p != VK_NULL_HANDLE) {
+  void deinit()
+  {
+    for (auto& p : m_pools)
+    {
+      if (p != VK_NULL_HANDLE)
+      {
         vmaDestroyPool(*this, p);
         p = VK_NULL_HANDLE;
       }
@@ -309,33 +317,33 @@ public:
 
   // Same as createBuffer, but with export flag capability
   VkResult createBufferExport(
-      Buffer &buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
+      Buffer& buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
       VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO,
       VmaAllocationCreateFlags flags = {}, VkDeviceSize minAlignment = 0,
       std::span<const uint32_t> queueFamilies = {});
 
   // Same as createImage, but with export flag capability
-  VkResult createImageExport(Image &image, const VkImageCreateInfo &imageInfo,
-                             const VkImageViewCreateInfo &imageViewInfo);
+  VkResult createImageExport(Image& image, const VkImageCreateInfo& imageInfo,
+                             const VkImageViewCreateInfo& imageViewInfo);
 
   // This needs to be called to get the right pool for the allocation (could
   // create a new vmaPool)
-  VkResult getAllocInfo(VmaAllocationCreateInfo &allocCreateInfo,
+  VkResult getAllocInfo(VmaAllocationCreateInfo& allocCreateInfo,
                         VmaAllocationCreateFlags flags, VmaMemoryUsage usage,
-                        const VkBufferCreateInfo &bufferInfo);
+                        const VkBufferCreateInfo& bufferInfo);
 
   // Adding export flag capability to allocation create info (could create a new
   // vmaPool)
-  VkResult getAllocInfo(VmaAllocationCreateInfo &allocCreateInfo,
+  VkResult getAllocInfo(VmaAllocationCreateInfo& allocCreateInfo,
                         VmaAllocationCreateFlags flags, VmaMemoryUsage usage,
-                        const VkImageCreateInfo &imageInfo);
+                        const VkImageCreateInfo& imageInfo);
 
 private:
-  VkResult getPool(uint32_t memoryTypeIndex, VmaPool &pool);
+  VkResult getPool(uint32_t memoryTypeIndex, VmaPool& pool);
 
   // Array of memory pools with the export
   std::array<VmaPool, VK_MAX_MEMORY_TYPES> m_pools{};
   std::mutex m_mutex;
 };
 
-} // namespace nvvk
+}  // namespace nvvk

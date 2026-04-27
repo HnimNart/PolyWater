@@ -38,31 +38,36 @@ To use this class, you need to add it to the `nvvkhl::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-namespace app {
+namespace app
+{
 
-struct ElementCamera : public IAppElement {
-  ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr) {
+struct ElementCamera : public IAppElement
+{
+  ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr)
+  {
     m_cameraManip = std::move(camera);
   }
 
-  void setCameraManipulator(std::shared_ptr<core::CameraManipulator> pCamera) {
+  void setCameraManipulator(std::shared_ptr<core::CameraManipulator> pCamera)
+  {
     m_cameraManip = std::move(pCamera);
   }
-  void onAttach(Application *app) override;
+  void onAttach(Application* app) override;
   void onUIRender() override;
   void onResize(WindowSize size) override;
 
-  std::shared_ptr<core::CameraManipulator> getCameraManipulator() const {
+  std::shared_ptr<core::CameraManipulator> getCameraManipulator() const
+  {
     return m_cameraManip;
   }
 
   // Can be called independently
   static void
   updateCamera(std::shared_ptr<core::CameraManipulator> m_cameraManip,
-               ImGuiWindow *viewportWindow);
+               ImGuiWindow* viewportWindow);
 
 private:
   std::shared_ptr<core::CameraManipulator> m_cameraManip{};
 };
 
-} // namespace app
+}  // namespace app

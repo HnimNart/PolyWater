@@ -307,10 +307,12 @@ void MetalDeviceAssets::uploadSceneResoures(const Scene &resources)
   //    of the arrays uploaded above.
   shaderio::SceneResources sr{};
   if (m_data->instancesGpuBuffer) {
-    sr.instances = m_data->instancesGpuBuffer.gpuAddress;
+    const uint64_t addr = m_data->instancesGpuBuffer.gpuAddress;
+    std::memcpy(&sr.instances, &addr, sizeof(addr));
   }
   if (m_data->meshPrimitivesGpuBuffer) {
-    sr.meshes = m_data->meshPrimitivesGpuBuffer.gpuAddress;
+    const uint64_t addr = m_data->meshPrimitivesGpuBuffer.gpuAddress;
+    std::memcpy(&sr.meshes, &addr, sizeof(addr));
   }
   if (m_data->materialsGpuBuffer) {
     const uint64_t addr = [m_data->materialsGpuBuffer gpuAddress];

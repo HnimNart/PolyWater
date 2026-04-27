@@ -30,7 +30,7 @@
 #include "app/Application.hpp"
 
 /**********************************************************/
-void app::ElementDefaultMenu::onAttach(Application *app)
+void app::ElementDefaultMenu::onAttach(Application* app)
 /**********************************************************/
 {
   LOGI("Adding Default Menu\n");
@@ -46,17 +46,21 @@ void app::ElementDefaultMenu::onUIMenu()
   bool isPaused = m_app->isPaused();
   std::filesystem::path file = "";
 
-  if (ImGui::BeginMenu("File")) {
-    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC")) {
+  if (ImGui::BeginMenu("File"))
+  {
+    if (ImGui::MenuItem(ICON_MS_POWER_SETTINGS_NEW " Exit", "ESC"))
+    {
       close_app = true;
     }
-    if (ImGui::MenuItem(ICON_MS_FOLDER_OPEN " Open File", "Ctrl+O")) {
+    if (ImGui::MenuItem(ICON_MS_FOLDER_OPEN " Open File", "Ctrl+O"))
+    {
       file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
                                   common::getSceneDir()[0]);
     }
     ImGui::EndMenu();
   }
-  if (ImGui::BeginMenu("View")) {
+  if (ImGui::BeginMenu("View"))
+  {
     ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V",
                     &v_sync);
     ImGui::MenuItem(ICON_MS_PAUSE_CIRCLE " Pause", "Ctrl+P", &isPaused);
@@ -64,39 +68,48 @@ void app::ElementDefaultMenu::onUIMenu()
   }
 
   // Shortcuts
-  if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+  if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+  {
     close_app = true;
   }
 
-  if (ImGui::IsKeyPressed(ImGuiKey_P) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+  if (ImGui::IsKeyPressed(ImGuiKey_P) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+  {
     isPaused = !isPaused;
   }
 
-  if (ImGui::IsKeyPressed(ImGuiKey_O) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+  if (ImGui::IsKeyPressed(ImGuiKey_O) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+  {
     file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
                                 common::getSceneDir()[0]);
   }
 
   if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&
-      ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
+      ImGui::IsKeyDown(ImGuiKey_LeftShift))
+  {
     v_sync = !v_sync;
   }
 
-  if (!file.empty()) {
-    for (auto &cb : m_onSelect) {
+  if (!file.empty())
+  {
+    for (auto& cb : m_onSelect)
+    {
       cb(file);
     }
   }
 
-  if (close_app) {
+  if (close_app)
+  {
     m_app->close();
   }
 
-  if (m_app->isVsync() != v_sync) {
+  if (m_app->isVsync() != v_sync)
+  {
     m_app->setVsync(v_sync);
   }
 
-  if (m_app->isPaused() != isPaused) {
+  if (m_app->isPaused() != isPaused)
+  {
     m_app->setPause(isPaused);
   }
 }

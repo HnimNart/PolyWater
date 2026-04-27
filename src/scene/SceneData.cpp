@@ -1,18 +1,20 @@
 #include "SceneData.hpp"
 
-#include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
 #include <iostream>
 
-namespace {
+#include <glm/gtc/type_ptr.hpp>
+
+namespace
+{
 /**********************************************************/
-void printVec(const std::string &label, const glm::vec3 &v)
+void printVec(const std::string& label, const glm::vec3& v)
 /**********************************************************/
 {
   std::cout << "    " << std::left << std::setw(15) << label << ": [" << v.x
             << ", " << v.y << ", " << v.z << "]\n";
 }
-} // namespace
+}  // namespace
 
 /**********************************************************/
 void SceneData::dump() const
@@ -22,17 +24,18 @@ void SceneData::dump() const
   // --- Assets ---
   std::cout << "[Assets]\n";
   std::cout << "  Meshes (" << meshPaths.size() << "):\n";
-  for (const auto &p : meshPaths)
+  for (const auto& p : meshPaths)
     std::cout << "    - " << p.name << ":" << p.path << "\n";
 
   std::cout << "  Textures (" << texturePaths.size() << "):\n";
-  for (const auto &p : texturePaths)
+  for (const auto& p : texturePaths)
     std::cout << "    - " << p.name << ":" << p.path << "\n";
 
   // --- Materials ---
   std::cout << "\n[Materials]\n";
-  for (size_t i = 0; i < materials.size(); ++i) {
-    const auto &m = materials[i];
+  for (size_t i = 0; i < materials.size(); ++i)
+  {
+    const auto& m = materials[i];
     std::cout << "  " << i << ": " << m.name << "\n";
     std::cout << "    BaseColor: [" << m.baseColor.x << ", " << m.baseColor.y
               << ", " << m.baseColor.z << "]\n";
@@ -43,19 +46,21 @@ void SceneData::dump() const
 
   // --- Instances ---
   std::cout << "\n[Instances]\n";
-  for (const auto &inst : instances) {
+  for (const auto& inst : instances)
+  {
     std::cout << "  - Name: " << inst.name << "\n";
     std::cout << "    MeshId: " << inst.meshId
               << " | MatId: " << inst.materialId << "\n";
     printVec("Pos", inst.translation);
     printVec("Scale", inst.scale);
-    std::cout << "    HitGroup: " << (int)inst.hitGroup << "\n";
+    std::cout << "    HitGroup: " << (int) inst.hitGroup << "\n";
   }
 
   // --- Lights ---
   std::cout << "\n[Lights]\n";
-  for (const auto &l : lights) {
-    std::cout << "  Type: " << (int)l.type << " | Intensity: " << l.intensity
+  for (const auto& l : lights)
+  {
+    std::cout << "  Type: " << (int) l.type << " | Intensity: " << l.intensity
               << "\n";
     printVec("Color", l.color);
     printVec("Position", l.position);

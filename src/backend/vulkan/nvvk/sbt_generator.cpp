@@ -17,40 +17,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sbt_generator.hpp"
+
 #include <algorithm>
 
 #include "alignment.hpp"
 #include "check_error.hpp"
 #include "debug_util.hpp"
-#include "sbt_generator.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 //--------------------------------------------------------------------------------------------------
 // Default setup
 //
 void SBTGenerator::init(
     VkDevice device,
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &rayProperties) {
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& rayProperties)
+{
   assert(m_device == nullptr);
 
   m_device = device;
   m_handleSize =
-      rayProperties.shaderGroupHandleSize; // Size of a program identifier
+      rayProperties.shaderGroupHandleSize;  // Size of a program identifier
   m_handleAlignment =
       rayProperties
-          .shaderGroupHandleAlignment; // Alignment in bytes for each SBT entry
+          .shaderGroupHandleAlignment;  // Alignment in bytes for each SBT entry
   m_shaderGroupBaseAlignment = rayProperties.shaderGroupBaseAlignment;
 }
 
 //--------------------------------------------------------------------------------------------------
 // Destroying the allocated buffers and clearing all vectors
 //
-void SBTGenerator::deinit() {
+void SBTGenerator::deinit()
+{
   reset();
   m_device = {};
 }
 
-void SBTGenerator::reset() {
+void SBTGenerator::reset()
+{
   m_data = {};
   m_shaderGroupIndices = {};
   m_stride = {};
@@ -60,9 +65,13 @@ void SBTGenerator::reset() {
   m_pipeline = 0;
 }
 
-void SBTGenerator::resetBuffer() { m_bufferAddresses = {}; }
+void SBTGenerator::resetBuffer()
+{
+  m_bufferAddresses = {};
+}
 
-uint32_t SBTGenerator::getBufferAlignment() const {
+uint32_t SBTGenerator::getBufferAlignment() const
+{
   return std::max(m_shaderGroupBaseAlignment, m_handleAlignment);
 }
 
@@ -73,9 +82,10 @@ uint32_t SBTGenerator::getBufferAlignment() const {
 //
 void SBTGenerator::addIndices(
     VkRayTracingPipelineCreateInfoKHR rayPipelineInfo,
-    const std::span<const VkRayTracingPipelineCreateInfoKHR> &libraries) {
+    const std::span<const VkRayTracingPipelineCreateInfoKHR>& libraries)
+{
   // Clear all shader group indices before adding new ones
-  for (std::vector<uint32_t> &groupIndices : m_shaderGroupIndices)
+  for (std::vector<uint32_t>& groupIndices : m_shaderGroupIndices)
     groupIndices = {};
 
   // Libraries contain stages referencing their internal groups. When those
@@ -84,38 +94,46 @@ void SBTGenerator::addIndices(
   uint32_t groupOffset = 0;
 
   for (size_t pipelineIndex = 0; pipelineIndex < libraries.size() + 1;
-       pipelineIndex++) {
+       pipelineIndex++)
+  {
     // When using libraries, their groups and stages are appended after the
     // groups and stages defined in the main VkRayTracingPipelineCreateInfoKHR
-    const VkRayTracingPipelineCreateInfoKHR &info =
+    const VkRayTracingPipelineCreateInfoKHR& info =
         (pipelineIndex == 0) ? rayPipelineInfo : libraries[pipelineIndex - 1];
 
     // Finding the handle position of each group, splitting by raygen, miss and
     // hit group
-    for (uint32_t g = 0; g < info.groupCount; g++) {
+    for (uint32_t g = 0; g < info.groupCount; g++)
+    {
       // Check if the group is a general shader group (raygen, miss, or
       // callable)
-      if (info.pGroups[g].type ==
-          VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR) {
+      if (info.pGroups[g].type == VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
+      {
         uint32_t genShader = info.pGroups[g].generalShader;
         assert(genShader < info.stageCount);
         // Classify the group by shader stage type
-        if (info.pStages[genShader].stage == VK_SHADER_STAGE_RAYGEN_BIT_KHR) {
+        if (info.pStages[genShader].stage == VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+        {
           m_shaderGroupIndices[eRaygen].push_back(g + groupOffset);
-        } else if (info.pStages[genShader].stage ==
-                   VK_SHADER_STAGE_MISS_BIT_KHR) {
+        }
+        else if (info.pStages[genShader].stage == VK_SHADER_STAGE_MISS_BIT_KHR)
+        {
           m_shaderGroupIndices[eMiss].push_back(g + groupOffset);
-        } else if (info.pStages[genShader].stage ==
-                   VK_SHADER_STAGE_CALLABLE_BIT_KHR) {
+        }
+        else if (info.pStages[genShader].stage ==
+                 VK_SHADER_STAGE_CALLABLE_BIT_KHR)
+        {
           m_shaderGroupIndices[eCallable].push_back(g + groupOffset);
         }
-      } else {
+      }
+      else
+      {
         // Otherwise, it's a hit group
         m_shaderGroupIndices[eHit].push_back(g + groupOffset);
       }
     }
 
-    groupOffset += info.groupCount; // Offset for next library's groups
+    groupOffset += info.groupCount;  // Offset for next library's groups
   }
 }
 
@@ -128,26 +146,32 @@ void SBTGenerator::addIndices(
 //
 size_t SBTGenerator::calculateSBTBufferSize(
     VkPipeline rayPipeline, VkRayTracingPipelineCreateInfoKHR rayPipelineInfo,
-    std::span<const VkRayTracingPipelineCreateInfoKHR> librariesInfo) {
+    std::span<const VkRayTracingPipelineCreateInfoKHR> librariesInfo)
+{
   // Reset group count and store the pipeline handle
   m_totalGroupCount = 0;
   m_pipeline = rayPipeline;
 
   if (rayPipelineInfo.sType ==
-      VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR) {
+      VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)
+  {
     // Populate group indices for all shader group types (raygen, miss, hit,
     // callable)
     addIndices(rayPipelineInfo, librariesInfo);
     // Count all groups in the main pipeline and libraries
     m_totalGroupCount += rayPipelineInfo.groupCount;
-    for (const VkRayTracingPipelineCreateInfoKHR &lib : librariesInfo) {
+    for (const VkRayTracingPipelineCreateInfoKHR& lib : librariesInfo)
+    {
       m_totalGroupCount += lib.groupCount;
     }
-  } else {
+  }
+  else
+  {
     // If not using pipeline create info, determine group count from manually
     // added indices Find the largest index in all group types and add 1 (since
     // indices are zero-based)
-    for (const std::vector<uint32_t> &groupIndices : m_shaderGroupIndices) {
+    for (const std::vector<uint32_t>& groupIndices : m_shaderGroupIndices)
+    {
       if (!groupIndices.empty())
         m_totalGroupCount = std::max(m_totalGroupCount,
                                      *std::max_element(std::begin(groupIndices),
@@ -159,18 +183,20 @@ size_t SBTGenerator::calculateSBTBufferSize(
   // Lambda to compute the stride for each group type
   // Stride is the maximum of (handle size + data size), aligned to handle
   // alignment
-  auto findStride = [&](shaderRecordMap &entries, uint32_t &stride) {
+  auto findStride = [&](shaderRecordMap& entries, uint32_t& stride)
+  {
     stride = nvutils::align_up(
         m_handleSize,
-        m_handleAlignment); // minimum stride is handle size aligned
-    for (const std::pair<uint32_t, std::vector<uint8_t>> &entry : entries) {
+        m_handleAlignment);  // minimum stride is handle size aligned
+    for (const std::pair<uint32_t, std::vector<uint8_t>>& entry : entries)
+    {
       // Compute size for handle + any attached data, aligned
       uint32_t dataHandleSize = nvutils::align_up(
           static_cast<uint32_t>(m_handleSize +
                                 entry.second.size() * sizeof(uint8_t)),
           m_handleAlignment);
       stride =
-          std::max(stride, dataHandleSize); // Use the largest stride needed
+          std::max(stride, dataHandleSize);  // Use the largest stride needed
     }
   };
   // Calculate stride for each group type
@@ -216,14 +242,15 @@ size_t SBTGenerator::calculateSBTBufferSize(
 // appropriate usage flags for SBT and device address access.
 //
 VkResult SBTGenerator::populateSBTBuffer(VkDeviceAddress bufferAddress,
-                                         size_t bufferSize, void *bufferData) {
+                                         size_t bufferSize, void* bufferData)
+{
   assert(m_pipeline && "Missing updatePipeline()");
   assert(bufferSize == m_dataSize);
   assert(m_bufferAddresses[eRaygen] == 0 &&
          "must not call updateBuffer multiple times");
   assert(bufferAddress % getBufferAlignment() == 0);
 
-  uint8_t *dataBytes = static_cast<uint8_t *>(bufferData);
+  uint8_t* dataBytes = static_cast<uint8_t*>(bufferData);
 
   // Fetch all the shader handles used in the pipeline, so that they can be
   // written in the SBT
@@ -236,24 +263,27 @@ VkResult SBTGenerator::populateSBTBuffer(VkDeviceAddress bufferAddress,
       shaderHandleStorage.data()));
 
   // Write the handles in the SBT buffer + data info (if any)
-  auto copyHandles = [&](VkDeviceAddress offset, std::vector<uint32_t> &indices,
-                         uint32_t stride, shaderRecordMap &data) {
-    uint8_t *pBuffer = dataBytes + offset;
+  auto copyHandles = [&](VkDeviceAddress offset, std::vector<uint32_t>& indices,
+                         uint32_t stride, shaderRecordMap& data)
+  {
+    uint8_t* pBuffer = dataBytes + offset;
     for (uint32_t index = 0; index < static_cast<uint32_t>(indices.size());
-         index++) {
-      uint8_t *pStart = pBuffer;
+         index++)
+    {
+      uint8_t* pStart = pBuffer;
       // Copy the handle for this group
       memcpy(pBuffer,
              shaderHandleStorage.data() + (indices[index] * m_handleSize),
              m_handleSize);
       // If there is data for this group index, copy it too
       auto recordIt = data.find(index);
-      if (recordIt != data.end()) {
-        pBuffer += m_handleSize; // Move pointer past handle
+      if (recordIt != data.end())
+      {
+        pBuffer += m_handleSize;  // Move pointer past handle
         memcpy(pBuffer, recordIt->second.data(),
                recordIt->second.size() * sizeof(uint8_t));
       }
-      pBuffer = pStart + stride; // Jumping to next group
+      pBuffer = pStart + stride;  // Jumping to next group
     }
   };
 
@@ -276,20 +306,23 @@ VkResult SBTGenerator::populateSBTBuffer(VkDeviceAddress bufferAddress,
   return VK_SUCCESS;
 }
 
-VkDeviceAddress SBTGenerator::getGroupAddress(GroupType t) const {
+VkDeviceAddress SBTGenerator::getGroupAddress(GroupType t) const
+{
   assert(m_bufferAddresses[t]);
   return m_bufferAddresses[t];
 }
 
 const VkStridedDeviceAddressRegionKHR
-SBTGenerator::getSBTRegion(GroupType t, uint32_t indexOffset) const {
+SBTGenerator::getSBTRegion(GroupType t, uint32_t indexOffset) const
+{
   return VkStridedDeviceAddressRegionKHR{getGroupAddress(t) +
                                              indexOffset * getGroupStride(t),
                                          getGroupStride(t), getSize(t)};
 }
 
 const SBTGenerator::Regions
-SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const {
+SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const
+{
   Regions regions{.raygen = getSBTRegion(eRaygen, rayGenIndexOffset),
                   .miss = getSBTRegion(eMiss),
                   .hit = getSBTRegion(eHit),
@@ -300,7 +333,8 @@ SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const {
 //--------------------------------------------------------------------------------------------------
 // Usage of SBTGenerator
 // This is a simple example of how to use the SBTGenerator class.
-[[maybe_unused]] static void usage_SBTGenerator() {
+[[maybe_unused]] static void usage_SBTGenerator()
+{
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device = VK_NULL_HANDLE;
   nvvk::ResourceAllocator allocator;
@@ -349,7 +383,7 @@ SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const {
 
   // Raytrace
   VkCommandBuffer cmd = {};
-  const VkExtent2D &size = {};
+  const VkExtent2D& size = {};
   vkCmdTraceRaysKHR(cmd, &sbtRegions.raygen, &sbtRegions.miss, &sbtRegions.hit,
                     &sbtRegions.callable, size.width, size.height, 1);
 
@@ -358,7 +392,8 @@ SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const {
   // The SBT can have data attached to each group. This is done by calling
   // addData() for each group.
 
-  struct HitRecordBuffer {
+  struct HitRecordBuffer
+  {
     std::array<float, 4> color;
   };
   std::vector<HitRecordBuffer> m_hitShaderRecord = {{{0.0f, 1.0f, 0.0f, 0.0f}},
@@ -388,14 +423,14 @@ SBTGenerator::getSBTRegions(uint32_t rayGenIndexOffset) const {
 
   // Manually defining group indices
   sbtGenerator.addIndices(
-      rayPipelineInfo); // Add raygen(0), miss(1), miss(2), hit(3), hit(4) from
-                        // the pipeline info
+      rayPipelineInfo);  // Add raygen(0), miss(1), miss(2), hit(3), hit(4) from
+                         // the pipeline info
   sbtGenerator.addIndex(SBTGenerator::eHit,
-                        4); // Adding a 3rd hit, duplicate from the hit:1, which
-                            // make hit:2 available.
+                        4);  // Adding a 3rd hit, duplicate from the hit:1,
+                             // which make hit:2 available.
   sbtGenerator.addData(SBTGenerator::eHit, 2,
-                       m_hitShaderRecord[1]); // Adding data to this hit shader
+                       m_hitShaderRecord[1]);  // Adding data to this hit shader
   sbtGenerator.calculateSBTBufferSize(rtPipeline);
 }
 
-} // namespace nvvk
+}  // namespace nvvk

@@ -17,21 +17,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "profiler_vk.hpp"
+
 #include <cassert>
 
 #include "check_error.hpp"
 #include "debug_util.hpp"
-#include "profiler_vk.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 
-ProfilerGpuTimer::~ProfilerGpuTimer() {
+ProfilerGpuTimer::~ProfilerGpuTimer()
+{
   assert(m_device == nullptr && "Missing deinit()");
 }
 
-void ProfilerGpuTimer::init(core::ProfilerTimeline *profilerTimeline,
+void ProfilerGpuTimer::init(core::ProfilerTimeline* profilerTimeline,
                             VkDevice device, VkPhysicalDevice physicalDevice,
-                            int queueFamilyIndex, bool useLabels) {
+                            int queueFamilyIndex, bool useLabels)
+{
   assert(m_device == nullptr);
 
   m_profilerTimeline = profilerTimeline;
@@ -56,14 +60,16 @@ void ProfilerGpuTimer::init(core::ProfilerTimeline *profilerTimeline,
                           ? uint64_t(-1)
                           : ((uint64_t(1) << validBits) - uint64_t(1));
   m_timeProvider.apiName = "VK";
-  m_timeProvider.frameFunction = [&](core::ProfilerTimeline::FrameSectionID sec,
-                                     double &gpuTime) {
+  m_timeProvider.frameFunction =
+      [&](core::ProfilerTimeline::FrameSectionID sec, double& gpuTime)
+  {
     uint32_t idx =
         core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec);
     return provideTime(m_frame, idx, gpuTime);
   };
-  m_timeProvider.asyncFunction = [&](core::ProfilerTimeline::AsyncSectionID sec,
-                                     double &gpuTime) {
+  m_timeProvider.asyncFunction =
+      [&](core::ProfilerTimeline::AsyncSectionID sec, double& gpuTime)
+  {
     std::lock_guard lock(m_asyncMutex);
     uint32_t idx =
         core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec);
@@ -77,16 +83,19 @@ void ProfilerGpuTimer::init(core::ProfilerTimeline *profilerTimeline,
                 (vkCmdEndDebugUtilsLabelEXT != nullptr);
 }
 
-void ProfilerGpuTimer::deinit() {
+void ProfilerGpuTimer::deinit()
+{
   if (!m_device)
     return;
 
-  for (auto &it : m_frame.queryPools) {
+  for (auto& it : m_frame.queryPools)
+  {
     vkDestroyQueryPool(m_device, it, nullptr);
   }
   m_frame = {};
 
-  for (auto &it : m_async.queryPools) {
+  for (auto& it : m_async.queryPools)
+  {
     vkDestroyQueryPool(m_device, it, nullptr);
   }
   m_async = {};
@@ -96,7 +105,8 @@ void ProfilerGpuTimer::deinit() {
 
 core::ProfilerTimeline::FrameSectionID
 ProfilerGpuTimer::cmdFrameBeginSection(VkCommandBuffer cmd,
-                                       const std::string &name) {
+                                       const std::string& name)
+{
   core::ProfilerTimeline::FrameSectionID sec =
       m_profilerTimeline->frameBeginSection(name, &m_timeProvider);
   uint32_t idx = core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec);
@@ -104,7 +114,8 @@ ProfilerGpuTimer::cmdFrameBeginSection(VkCommandBuffer cmd,
   uint32_t idxInPool;
   VkQueryPool queryPool = getPool(m_frame, idx, idxInPool);
 
-  if (m_useLabels) {
+  if (m_useLabels)
+  {
     VkDebugUtilsLabelEXT label = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
     label.pLabelName = name.c_str();
     label.color[1] = 1.0f;
@@ -123,7 +134,8 @@ ProfilerGpuTimer::cmdFrameBeginSection(VkCommandBuffer cmd,
 }
 
 void ProfilerGpuTimer::cmdFrameEndSection(
-    VkCommandBuffer cmd, core::ProfilerTimeline::FrameSectionID sec) {
+    VkCommandBuffer cmd, core::ProfilerTimeline::FrameSectionID sec)
+{
   uint32_t idx =
       core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec) + 1;
   uint32_t idxInPool;
@@ -131,7 +143,8 @@ void ProfilerGpuTimer::cmdFrameEndSection(
 
   vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool,
                       idxInPool);
-  if (m_useLabels) {
+  if (m_useLabels)
+  {
     vkCmdEndDebugUtilsLabelEXT(cmd);
   }
   m_profilerTimeline->frameEndSection(sec);
@@ -139,7 +152,8 @@ void ProfilerGpuTimer::cmdFrameEndSection(
 
 core::ProfilerTimeline::AsyncSectionID
 ProfilerGpuTimer::cmdAsyncBeginSection(VkCommandBuffer cmd,
-                                       const std::string &name) {
+                                       const std::string& name)
+{
   core::ProfilerTimeline::AsyncSectionID sec =
       m_profilerTimeline->asyncBeginSection(name, &m_timeProvider);
   uint32_t idx = core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec);
@@ -151,7 +165,8 @@ ProfilerGpuTimer::cmdAsyncBeginSection(VkCommandBuffer cmd,
     queryPool = getPool(m_async, idx, idxInPool);
   }
 
-  if (m_useLabels) {
+  if (m_useLabels)
+  {
     VkDebugUtilsLabelEXT label = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
     label.pLabelName = name.c_str();
     label.color[1] = 1.0f;
@@ -170,7 +185,8 @@ ProfilerGpuTimer::cmdAsyncBeginSection(VkCommandBuffer cmd,
 }
 
 void ProfilerGpuTimer::cmdAsyncEndSection(
-    VkCommandBuffer cmd, core::ProfilerTimeline::AsyncSectionID sec) {
+    VkCommandBuffer cmd, core::ProfilerTimeline::AsyncSectionID sec)
+{
   uint32_t idx =
       core::ProfilerTimeline::GpuTimeProvider::getTimerBaseIdx(sec) + 1;
 
@@ -179,14 +195,16 @@ void ProfilerGpuTimer::cmdAsyncEndSection(
 
   vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool,
                       idxInPool);
-  if (m_useLabels) {
+  if (m_useLabels)
+  {
     vkCmdEndDebugUtilsLabelEXT(cmd);
   }
   m_profilerTimeline->asyncEndSection(sec);
 }
 
-bool ProfilerGpuTimer::provideTime(const PoolContainer &container,
-                                   uint32_t idxBegin, double &gpuTime) const {
+bool ProfilerGpuTimer::provideTime(const PoolContainer& container,
+                                   uint32_t idxBegin, double& gpuTime) const
+{
   uint32_t idxInPool;
   VkQueryPool queryPool = getPool(container, idxBegin, idxInPool);
 
@@ -195,23 +213,28 @@ bool ProfilerGpuTimer::provideTime(const PoolContainer &container,
       m_device, queryPool, idxInPool, 2, sizeof(uint64_t) * 2, times,
       sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
 
-  if (result == VK_SUCCESS) {
+  if (result == VK_SUCCESS)
+  {
     uint64_t mask = m_queueFamilyMask;
     gpuTime =
         (double((times[1] & mask) - (times[0] & mask)) * double(m_frequency)) /
         double(1000);
     return true;
-  } else {
+  }
+  else
+  {
     return false;
   }
 }
 
-VkQueryPool ProfilerGpuTimer::getPool(PoolContainer &container, uint32_t idx,
-                                      uint32_t &idxInPool) {
+VkQueryPool ProfilerGpuTimer::getPool(PoolContainer& container, uint32_t idx,
+                                      uint32_t& idxInPool)
+{
   idxInPool = idx % PoolContainer::POOL_QUERY_COUNT;
 
   // early out
-  if (idx <= container.queryPoolSize) {
+  if (idx <= container.queryPoolSize)
+  {
     return container.queryPools[idx / PoolContainer::POOL_QUERY_COUNT];
   }
 
@@ -219,15 +242,17 @@ VkQueryPool ProfilerGpuTimer::getPool(PoolContainer &container, uint32_t idx,
   return container.queryPools[idx / PoolContainer::POOL_QUERY_COUNT];
 }
 
-VkQueryPool ProfilerGpuTimer::getPool(const PoolContainer &container,
-                                      uint32_t idx, uint32_t &idxInPool) const {
+VkQueryPool ProfilerGpuTimer::getPool(const PoolContainer& container,
+                                      uint32_t idx, uint32_t& idxInPool) const
+{
   idxInPool = idx % PoolContainer::POOL_QUERY_COUNT;
 
   return container.queryPools[idx / PoolContainer::POOL_QUERY_COUNT];
 }
 
-void ProfilerGpuTimer::resizePool(PoolContainer &container,
-                                  uint32_t requiredSize) {
+void ProfilerGpuTimer::resizePool(PoolContainer& container,
+                                  uint32_t requiredSize)
+{
 
   uint32_t oldCount = container.queryPoolSize / PoolContainer::POOL_QUERY_COUNT;
   uint32_t newCount = (requiredSize + PoolContainer::POOL_QUERY_COUNT - 1) /
@@ -235,7 +260,8 @@ void ProfilerGpuTimer::resizePool(PoolContainer &container,
 
   container.queryPools.resize(newCount);
 
-  for (uint32_t i = oldCount; i < newCount; i++) {
+  for (uint32_t i = oldCount; i < newCount; i++)
+  {
     VkQueryPoolCreateInfo createInfo = {
         VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
     createInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -248,12 +274,13 @@ void ProfilerGpuTimer::resizePool(PoolContainer &container,
 
   container.queryPoolSize = newCount * PoolContainer::POOL_QUERY_COUNT;
 }
-} // namespace nvvk
+}  // namespace nvvk
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
-[[maybe_unused]] static void usage_ProfilerGpuTimer() {
+[[maybe_unused]] static void usage_ProfilerGpuTimer()
+{
   VkDevice device{};
   VkPhysicalDevice physicalDevice{};
 
@@ -261,7 +288,7 @@ void ProfilerGpuTimer::resizePool(PoolContainer &container,
 
   // in a typical single-threaded main loop we have one timeline on which we
   // submit commands.
-  core::ProfilerTimeline *profilerTimeline =
+  core::ProfilerTimeline* profilerTimeline =
       profilerManager.createTimeline({"primary"});
 
   // the above timeline will represent a VkQueue
@@ -276,7 +303,7 @@ void ProfilerGpuTimer::resizePool(PoolContainer &container,
   {
     profilerTimeline->frameAdvance();
 
-    VkCommandBuffer cmd{}; // EX acquire somehow per-frame
+    VkCommandBuffer cmd{};  // EX acquire somehow per-frame
 
     {
       // per-frame sections must be within frameBegin/frameEnd

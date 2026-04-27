@@ -1,14 +1,16 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <memory>
 #include <vector>
+
+#include <glm/glm.hpp>
 
 #include "renderer/interfaces/IDeviceAssets.hpp"
 #include "scene/Scene.h"
 #include "shaders/shared/structs.h"
 
-struct EnvmapInfo {
+struct EnvmapInfo
+{
   std::string filename;
   float scale = 1.0f;
   float rotation = 0.0f;
@@ -23,29 +25,30 @@ struct EnvmapInfo {
   float totalIntegral;
 };
 
-class LightManager {
+class LightManager
+{
 public:
   LightManager() = default;
 
   /**
    * Loads envmap buffer to CPU on disk
    */
-  const EnvmapInfo &loadEnvmap(const std::filesystem::path &filename,
+  const EnvmapInfo& loadEnvmap(const std::filesystem::path& filename,
                                float scale, float rotation);
 
   /**
    * Extracts emissive geometry from the scene and uploads to GPU.
    */
-  void uploadAreaLights(const Scene &scene,
-                        const std::shared_ptr<IDeviceAssets> &deviceResources,
-                        shaderio::AreaLight &areaLight);
+  void uploadAreaLights(const Scene& scene,
+                        const std::shared_ptr<IDeviceAssets>& deviceResources,
+                        shaderio::AreaLight& areaLight);
 
   // Uploads to GPU
-  void uploadEnvmap(const EnvmapInfo &info,
-                    const std::shared_ptr<IDeviceAssets> &deviceResources,
-                    shaderio::EnvmapLight &envmapLight);
+  void uploadEnvmap(const EnvmapInfo& info,
+                    const std::shared_ptr<IDeviceAssets>& deviceResources,
+                    shaderio::EnvmapLight& envmapLight);
 
-  float computeAnalyticalLightContribution(const Scene &scene);
+  float computeAnalyticalLightContribution(const Scene& scene);
 
 private:
   /**
@@ -53,7 +56,7 @@ private:
    * the importance (power) for the CDF.
    */
   std::pair<std::vector<float>, std::vector<shaderio::TriangleLight>>
-  extractAreaLights(const Scene &scene);
+  extractAreaLights(const Scene& scene);
 
   // cached members
   EnvmapInfo m_envmapInfo;

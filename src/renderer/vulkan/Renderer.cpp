@@ -1,25 +1,23 @@
 #include "Renderer.hpp"
 
-#include "nvvk/check_error.hpp"
-#include "nvvk/debug_util.hpp"
-#include "nvvk/formats.hpp"
-#include "nvvk/gbuffers.hpp"
-#include "nvvk/helpers.hpp"
-
 #include "SceneAssetManager.hpp"
 #include "backend/vulkan/core/Backend.hpp"
 #include "backend/vulkan/core/FrameSynchronizationManager.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
+#include "nvvk/check_error.hpp"
+#include "nvvk/debug_util.hpp"
+#include "nvvk/formats.hpp"
+#include "nvvk/gbuffers.hpp"
+#include "nvvk/helpers.hpp"
 #include "passes/ToneMapPass.hpp"
-
 #include "renderer/interfaces/IToneMapper.hpp"
 #include "scene/SceneResources.hpp"
 #include "shaders/shared/structs.h"
 
 /**********************************************************/
-VulkanRenderer::VulkanRenderer(VulkanBackend *backend,
-                               const std::vector<std::filesystem::path> &paths)
+VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
+                               const std::vector<std::filesystem::path>& paths)
 /**********************************************************/
 {
   SlangCompiler::instance().init(paths);
@@ -38,7 +36,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend *backend,
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void VulkanRenderer::init(const SceneResourcesManager & /*scene*/)
+void VulkanRenderer::init(const SceneResourcesManager& /*scene*/)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -88,18 +86,23 @@ void VulkanRenderer::reload()
 }
 
 /**********************************************************/
-bool VulkanRenderer::update(const SceneResourcesManager &scene)
+bool VulkanRenderer::update(const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  if (!scene.requireRebuild() && !scene.dirty()) {
+  if (!scene.requireRebuild() && !scene.dirty())
+  {
     return false;
   }
 
-  if (m_graph->name() == "Raytrace") {
-    if (scene.requireRebuild()) {
+  if (m_graph->name() == "Raytrace")
+  {
+    if (scene.requireRebuild())
+    {
       m_accel->clear();
       m_accel->build(scene, m_shaderManager);
-    } else {
+    }
+    else
+    {
       m_accel->rebuild(scene, m_shaderManager);
     }
   }
@@ -107,20 +110,24 @@ bool VulkanRenderer::update(const SceneResourcesManager &scene)
 }
 
 /**********************************************************/
-void VulkanRenderer::setRenderMode(const std::string &mode)
+void VulkanRenderer::setRenderMode(const std::string& mode)
 /**********************************************************/
 {
   auto available = m_pipelineManager.getAvailableGraphs();
 
-  const std::string &current_mode = m_graph->name();
+  const std::string& current_mode = m_graph->name();
   if (std::find(available.begin(), available.end(), mode) != available.end() &&
-      current_mode != mode) {
+      current_mode != mode)
+  {
     m_context->waitForDeviceIdle();
     buildGraph(mode);
     reset();
-  } else {
+  }
+  else
+  {
     std::string valid_list;
-    for (size_t i = 0; i < available.size(); ++i) {
+    for (size_t i = 0; i < available.size(); ++i)
+    {
       valid_list +=
           "'" + available[i] + "'" + (i < available.size() - 1 ? ", " : "");
     }
@@ -132,12 +139,13 @@ void VulkanRenderer::setRenderMode(const std::string &mode)
 }
 
 /**********************************************************/
-void VulkanRenderer::buildGraph(const std::string &name)
+void VulkanRenderer::buildGraph(const std::string& name)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
   m_context->waitForDeviceIdle();
-  if (m_graph) {
+  if (m_graph)
+  {
     m_graph->deinit();
   }
 
@@ -157,22 +165,22 @@ void VulkanRenderer::buildGraph(const std::string &name)
 }
 
 /**********************************************************/
-void VulkanRenderer::render(IRenderContext &ctx)
+void VulkanRenderer::render(IRenderContext& ctx)
 /**********************************************************/
 {
-  auto &vkCtx = VulkanRenderContext::get(ctx);
+  auto& vkCtx = VulkanRenderContext::get(ctx);
 
   // 1. Link Core Subsystems
   vkCtx.gBuffers = m_gBuffers.get();
 
   // 2. Update GPU Resources (Uploads & Barriers)
-  auto *sceneInfoAddress =
+  VkDeviceAddress sceneInfoAddress =
       m_resources->update(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
-  auto *resourcesAddress = m_resources->getSceneResources();
+  VkDeviceAddress resourcesAddress = m_resources->getSceneResources();
 
   // 3. Configure Frame Global State (Push Constants)
-  vkCtx.pushValues.sceneInfoAddress = sceneInfoAddress;
-  vkCtx.pushValues.resourcesAddress = resourcesAddress;
+  vkCtx.pushValues.sceneInfoAddress = {.address = sceneInfoAddress};
+  vkCtx.pushValues.resourcesAddress = {.address = resourcesAddress};
   vkCtx.pushValues.renderParams = m_renderParams;
   vkCtx.pushValues.renderParams.frameIdx = m_frameIndex;
   vkCtx.pushValues.rasterParams = m_rasterParams;
@@ -180,8 +188,9 @@ void VulkanRenderer::render(IRenderContext &ctx)
                                        m_gBuffers->getSize().height};
 
   // 4. Setup Render Targets (Swapchain)
-  if (m_swapchain_manager) {
-    const auto &swapchain = m_swapchain_manager->getSwapchain();
+  if (m_swapchain_manager)
+  {
+    const auto& swapchain = m_swapchain_manager->getSwapchain();
     vkCtx.swapchainImage = swapchain.getImage();
     vkCtx.swapchainImageView = swapchain.getImageView();
     vkCtx.screenSize = m_swapchain_manager->getWindowSize();
@@ -194,7 +203,7 @@ void VulkanRenderer::render(IRenderContext &ctx)
 }
 
 /**********************************************************/
-void VulkanRenderer::onResize(const WindowSize &size)
+void VulkanRenderer::onResize(const WindowSize& size)
 /**********************************************************/
 {
   m_context->waitForDeviceIdle();
@@ -220,10 +229,10 @@ void VulkanRenderer::initGBuffers()
       .allocator = &m_context->getAllocator(),
       .colorFormats =
           {
-              VK_FORMAT_R32G32B32A32_SFLOAT, // [0] Linear
-              VK_FORMAT_R8G8B8A8_UNORM,      // [1] ToneMapped
-              VK_FORMAT_R32G32B32A32_SFLOAT, // [2] AccumLinear
-              VK_FORMAT_R32G32B32A32_SFLOAT  // [3] Denoised
+              VK_FORMAT_R32G32B32A32_SFLOAT,  // [0] Linear
+              VK_FORMAT_R8G8B8A8_UNORM,       // [1] ToneMapped
+              VK_FORMAT_R32G32B32A32_SFLOAT,  // [2] AccumLinear
+              VK_FORMAT_R32G32B32A32_SFLOAT   // [3] Denoised
           },
       .depthFormat = nvvk::findDepthFormat(m_context->getPhysicalDevice()),
       .imageSampler = linearSampler,
@@ -244,11 +253,11 @@ int64_t VulkanRenderer::getImageDescriptor(RenderOutput output) const
 }
 
 /**********************************************************/
-IToneMapper &VulkanRenderer::postProcessor() noexcept
+IToneMapper& VulkanRenderer::postProcessor() noexcept
 /**********************************************************/
 {
-  auto *pass = m_graph->findPass<ToneMapPass>();
-  return *dynamic_cast<IToneMapper *>(pass);
+  auto* pass = m_graph->findPass<ToneMapPass>();
+  return *dynamic_cast<IToneMapper*>(pass);
 }
 
 /**********************************************************/
@@ -263,7 +272,7 @@ std::shared_ptr<IDeviceAssets> VulkanRenderer::deviceResources() noexcept
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void VulkanRenderer::saveImage(const std::filesystem::path &filename,
+void VulkanRenderer::saveImage(const std::filesystem::path& filename,
                                int quality) const
 /**********************************************************/
 {
@@ -274,7 +283,8 @@ void VulkanRenderer::saveImage(const std::filesystem::path &filename,
   VkCommandBuffer cmd = m_context->startSingleTimeCmd();
 
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
-  if (filename.extension() == ".hdr") {
+  if (filename.extension() == ".hdr")
+  {
     format = VK_FORMAT_R32G32B32A32_SFLOAT;
   }
 
@@ -346,7 +356,8 @@ void VulkanRenderer::initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size)
                              &m_hiZTexture.descriptor.sampler));
 
   // --- Transition Layout Immediately ---
-  if (cmd != VK_NULL_HANDLE) {
+  if (cmd != VK_NULL_HANDLE)
+  {
     VkImageMemoryBarrier2 barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -375,7 +386,9 @@ void VulkanRenderer::initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size)
     // Update tracking to reflect the new layout
     m_hiZTexture.descriptor.imageLayout =
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  } else {
+  }
+  else
+  {
     m_hiZTexture.descriptor.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   }
 }
@@ -384,7 +397,8 @@ void VulkanRenderer::initHiZBuffer(VkCommandBuffer cmd, VkExtent2D size)
 void VulkanRenderer::destroyHiZBuffer()
 /**********************************************************/
 {
-  if (m_hiZTexture.image != VK_NULL_HANDLE) {
+  if (m_hiZTexture.image != VK_NULL_HANDLE)
+  {
     vkDestroySampler(m_context->getDevice(), m_hiZTexture.descriptor.sampler,
                      nullptr);
     m_context->getAllocator().destroyImage(m_hiZTexture);

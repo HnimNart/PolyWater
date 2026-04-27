@@ -17,59 +17,63 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
-#include <unordered_map>
-#include <sstream>
+#include "settings_handler.hpp"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include "settings_handler.hpp"
+#include <sstream>
+#include <unordered_map>
 
 app::SettingsHandler::SettingsHandler(const std::string& name)
 {
   setHandlerName(name);
 }
 
-app::SettingsHandler::SettingsHandler() {}
+app::SettingsHandler::SettingsHandler()
+{
+}
 
-// This is reading the section in the .ini file and for each entry read or write the value
-// ex:
-// [Application][State]
-// WindowWidth=1513
-// WindowHeight=871
+// This is reading the section in the .ini file and for each entry read or write
+// the value ex: [Application][State] WindowWidth=1513 WindowHeight=871
 //
 void app::SettingsHandler::addImGuiHandler()
 {
   assert(!handlerName.empty());
   ImGuiSettingsHandler ini_handler{};
-  ini_handler.TypeName   = handlerName.c_str();
-  ini_handler.TypeHash   = ImHashStr(handlerName.c_str());
-  ini_handler.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler*, const char*) -> void* { return (void*)1; };
+  ini_handler.TypeName = handlerName.c_str();
+  ini_handler.TypeHash = ImHashStr(handlerName.c_str());
+  ini_handler.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler*,
+                              const char*) -> void* { return (void*) 1; };
   // Read line by line and send the string after the `=` as value
-  ini_handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler* handler, void*, const char* line) {
+  ini_handler.ReadLineFn =
+      [](ImGuiContext*, ImGuiSettingsHandler* handler, void*, const char* line)
+  {
     SettingsHandler* s = static_cast<SettingsHandler*>(handler->UserData);
-    char             key[64], value[256];
-    key[63]    = 0;  // zero terminate, protection
+    char key[64], value[256];
+    key[63] = 0;     // zero terminate, protection
     value[255] = 0;  // zero terminate, protection
 #ifdef _MSC_VER
-    if(sscanf_s(line, "%63[^=]=%255[^\n]", key, (unsigned)_countof(key), value, (unsigned)_countof(value)) == 2)
+    if (sscanf_s(line, "%63[^=]=%255[^\n]", key, (unsigned) _countof(key),
+                 value, (unsigned) _countof(value)) == 2)
 #else
-    if(sscanf(line, "%63[^=]=%255[^\n]", key, value) == 2)
+    if (sscanf(line, "%63[^=]=%255[^\n]", key, value) == 2)
 #endif
     {
       auto it = s->settings.find(key);
-      if(it != s->settings.end())
+      if (it != s->settings.end())
       {
         it->second.fromString(value);
       }
     }
   };
   // Write the ["name"][State], then one line for each setting
-  ini_handler.WriteAllFn = [](ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf) {
+  ini_handler.WriteAllFn =
+      [](ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+  {
     SettingsHandler* s = static_cast<SettingsHandler*>(handler->UserData);
     buf->appendf("[%s][State]\n", handler->TypeName);
-    for(const auto& [key, entry] : s->settings)
+    for (const auto& [key, entry] : s->settings)
     {
       buf->appendf("%s=%s\n", key.c_str(), entry.toString().c_str());
     }

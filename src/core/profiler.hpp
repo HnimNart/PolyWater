@@ -32,7 +32,8 @@
 
 #include "timers.hpp"
 
-namespace core {
+namespace core
+{
 
 class ProfilerManager;
 
@@ -46,7 +47,8 @@ class ProfilerManager;
 //   They are thread-safe and can be called at any time.
 //   Timer results using the same timer name are then overwritten.
 
-class ProfilerTimeline {
+class ProfilerTimeline
+{
 public:
   // on every `frameEnd` we query past frame timers
   // 0..FRAME_DELAY-1 must fit in FrameSectionID::subFrame
@@ -54,9 +56,10 @@ public:
 
   // Maximum number of frames when using a limited window for averaging.
   // It is possible to average all values as well.
-  static constexpr uint32_t MAX_LAST_FRAMES = 128; // JEM 32;
+  static constexpr uint32_t MAX_LAST_FRAMES = 128;  // JEM 32;
 
-  struct CreateInfo {
+  struct CreateInfo
+  {
     // for statistics and debugging
     std::string name;
 
@@ -77,27 +80,30 @@ public:
     uint32_t frameAveragingCount = MAX_LAST_FRAMES;
   };
 
-  struct FrameSectionID {
+  struct FrameSectionID
+  {
     uint32_t id : 28;
     uint32_t subFrame : 4;
   };
 
-  struct AsyncSectionID {
+  struct AsyncSectionID
+  {
     uint32_t id;
   };
 
   // GPU times for a FrameSections are queried at "frameEnd" with the use of
   // this function. It returns true if the queried result was available, and
   // writes the microseconds into gpuTime.
-  typedef std::function<bool(FrameSectionID, double &gpuTime)>
+  typedef std::function<bool(FrameSectionID, double& gpuTime)>
       gpuFrameTimeProvider_fn;
   // GPU times for AsyncSectionID are queried at "
-  typedef std::function<bool(AsyncSectionID, double &gpuTime)>
+  typedef std::function<bool(AsyncSectionID, double& gpuTime)>
       gpuAsyncTimeProvider_fn;
 
   // This class can hold timer sections from different APIs (Vk, GL, CUDA...).
   // We use the below struct to serve as API agnostic interface.
-  struct GpuTimeProvider {
+  struct GpuTimeProvider
+  {
     std::string apiName;
     gpuFrameTimeProvider_fn frameFunction;
     gpuAsyncTimeProvider_fn asyncFunction;
@@ -109,12 +115,14 @@ public:
     // always 2 consecutive indices per timer, one for begin, one for end
     // frame timers use aup to MAX_FRAME_DELAY queries in-flight, hence the
     // multiplication.
-    static inline uint32_t getTimerBaseIdx(FrameSectionID slot) {
+    static inline uint32_t getTimerBaseIdx(FrameSectionID slot)
+    {
       return ((slot.id * MAX_FRAME_DELAY) + slot.subFrame) * 2;
     }
 
     // always 2 consecutive indices per timer, one for begin, one for end
-    static inline uint32_t getTimerBaseIdx(AsyncSectionID slot) {
+    static inline uint32_t getTimerBaseIdx(AsyncSectionID slot)
+    {
       return (slot.id * 2);
     }
   };
@@ -124,8 +132,10 @@ public:
   // NOT thread-safe
 
   // move to next frame on this queue (closes previous frame and start new one)
-  inline void frameAdvance() {
-    if (m_inFrame) {
+  inline void frameAdvance()
+  {
+    if (m_inFrame)
+    {
       frameEnd();
     }
     frameBegin();
@@ -135,8 +145,8 @@ public:
   // must be called within begin/endFrame
   // The `gpuTimeProvider` pointer is copied and must be kept alive throughout
   // for as long as this class is in use
-  FrameSectionID frameBeginSection(const std::string &name,
-                                   GpuTimeProvider *gpuTimeProvider = nullptr);
+  FrameSectionID frameBeginSection(const std::string& name,
+                                   GpuTimeProvider* gpuTimeProvider = nullptr);
   // end a timed per-frame section
   void frameEndSection(FrameSectionID sec);
 
@@ -183,8 +193,8 @@ public:
   // begin an async timed section
   // The `gpuTimeProvider` pointer is copied and must be kept alive throughout
   // for as long as this class is in use
-  AsyncSectionID asyncBeginSection(const std::string &name,
-                                   GpuTimeProvider *gpuTimeProvider = nullptr);
+  AsyncSectionID asyncBeginSection(const std::string& name,
+                                   GpuTimeProvider* gpuTimeProvider = nullptr);
   // end an async timed timed section
   void asyncEndSection(AsyncSectionID sec);
 
@@ -192,12 +202,13 @@ public:
   // overhead
   void asyncResetCpuBegin(AsyncSectionID sec);
   // can release timer names you never want to use again
-  void asyncRemoveTimer(const std::string &name);
+  void asyncRemoveTimer(const std::string& name);
 
   //////////////////////////////////////////////////////////////////////////
   // getters
 
-  struct TimerStats {
+  struct TimerStats
+  {
     // time in microseconds
     double last = 0;
     double average = 0;
@@ -208,7 +219,8 @@ public:
     std::array<double, MAX_LAST_FRAMES> times = {};
   };
 
-  struct TimerInfo {
+  struct TimerInfo
+  {
     // number of averaged values
     // 0 means timer was unavailable
     uint32_t numAveraged = 0;
@@ -229,7 +241,8 @@ public:
   // to allow thread-safe querying of results, all results
   // can be queried in bulk and are handed out as a copy
   // into this struct.
-  class Snapshot {
+  class Snapshot
+  {
   public:
     // name of the ProfilerTimeline from creation time
     std::string name;
@@ -247,21 +260,21 @@ public:
 
     // If `full == true` appends all properties of a `TimerInfo`,
     // otherwise only the `level` and `averages` for GPU and CPU are added.
-    void appendToString(std::string &stats, bool full) const;
+    void appendToString(std::string& stats, bool full) const;
   };
 
   // getters are thread-safe
 
-  const std::string &getName() const { return m_info.name; }
-  ProfilerManager *getProfiler() const { return m_profiler; }
+  const std::string& getName() const { return m_info.name; }
+  ProfilerManager* getProfiler() const { return m_profiler; }
 
-  void getAsyncSnapshot(Snapshot &snapShot) const;
-  bool getAsyncTimerInfo(const std::string &name, TimerInfo &timerInfo,
-                         std::string &apiName) const;
+  void getAsyncSnapshot(Snapshot& snapShot) const;
+  bool getAsyncTimerInfo(const std::string& name, TimerInfo& timerInfo,
+                         std::string& apiName) const;
 
-  void getFrameSnapshot(Snapshot &snapShot) const;
-  bool getFrameTimerInfo(const std::string &name, TimerInfo &info,
-                         std::string &apiName) const;
+  void getFrameSnapshot(Snapshot& snapShot) const;
+  bool getFrameTimerInfo(const std::string& name, TimerInfo& info,
+                         std::string& apiName) const;
 
   //////////////////////////////////////////////////////////////////////////
   // configuration changes
@@ -286,37 +299,41 @@ public:
   //////////////////////////////////////////////////////////////////////////
 
   // utility class to call begin/end within local scope
-  class FrameSection {
+  class FrameSection
+  {
   public:
-    FrameSection(ProfilerTimeline &ProfilerTimeline, FrameSectionID id)
-        : m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
+    FrameSection(ProfilerTimeline& ProfilerTimeline, FrameSectionID id) :
+        m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
     ~FrameSection() { m_ProfilerTimeline.frameEndSection(m_id); }
 
   private:
-    ProfilerTimeline &m_ProfilerTimeline;
+    ProfilerTimeline& m_ProfilerTimeline;
     FrameSectionID m_id;
   };
 
   // must be called within frameBegin/frameEnd
   // not thread-safe
-  FrameSection frameSection(const std::string &name) {
+  FrameSection frameSection(const std::string& name)
+  {
     return FrameSection(*this, frameBeginSection(name, nullptr));
   }
 
   // utility class to call begin/end within local scope
-  class AsyncSection {
+  class AsyncSection
+  {
   public:
-    AsyncSection(ProfilerTimeline &ProfilerTimeline, AsyncSectionID id)
-        : m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
+    AsyncSection(ProfilerTimeline& ProfilerTimeline, AsyncSectionID id) :
+        m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
     ~AsyncSection() { m_ProfilerTimeline.asyncEndSection(m_id); }
 
   private:
-    ProfilerTimeline &m_ProfilerTimeline;
+    ProfilerTimeline& m_ProfilerTimeline;
     AsyncSectionID m_id;
   };
 
   // thread-safe
-  AsyncSection asyncSection(const std::string &name) {
+  AsyncSection asyncSection(const std::string& name)
+  {
     return AsyncSection(*this, asyncBeginSection(name, nullptr));
   }
 
@@ -327,8 +344,9 @@ public:
 protected:
   friend class ProfilerManager;
 
-  ProfilerTimeline(ProfilerManager *profiler,
-                   const ProfilerTimeline::CreateInfo &createInfo) {
+  ProfilerTimeline(ProfilerManager* profiler,
+                   const ProfilerTimeline::CreateInfo& createInfo)
+  {
     assert(profiler);
 
     m_info = createInfo;
@@ -351,14 +369,15 @@ protected:
 
   FrameSectionID frameGetSectionID();
 
-  bool frameGetTimerInfo(uint32_t i, TimerInfo &info);
+  bool frameGetTimerInfo(uint32_t i, TimerInfo& info);
   void frameInternalSnapshot();
 
-  bool asyncGetTimerInfo(uint32_t i, TimerInfo &info) const;
+  bool asyncGetTimerInfo(uint32_t i, TimerInfo& info) const;
 
   static constexpr uint32_t LEVEL_SINGLESHOT = ~0;
 
-  struct TimeValues {
+  struct TimeValues
+  {
     double valueLast = 0;
     double valueTotal = 0;
     double absMinValue = std::numeric_limits<double>::max();
@@ -371,30 +390,36 @@ protected:
     std::array<double, MAX_LAST_FRAMES> times = {};
 
     // use non-zero for averaging over a window
-    TimeValues(uint32_t averagedFrameCount_ = MAX_LAST_FRAMES) {
+    TimeValues(uint32_t averagedFrameCount_ = MAX_LAST_FRAMES)
+    {
       init(averagedFrameCount_);
     }
 
-    void init(uint32_t averagedFrameCount_) {
+    void init(uint32_t averagedFrameCount_)
+    {
       cycleCount = std::min(averagedFrameCount_, MAX_LAST_FRAMES);
       reset();
     }
 
     void reset();
 
-    void add(double time) {
+    void add(double time)
+    {
       absMinValue = std::min(time, absMinValue);
       absMaxValue = std::max(time, absMaxValue);
       valueLast = time;
 
-      if (cycleCount) {
+      if (cycleCount)
+      {
         // Averaging is performed over a window.
         // minus does remove the old value
         valueTotal += time - times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) %
                                    MAX_LAST_FRAMES];
 
         validCount = std::min(validCount + 1, cycleCount);
-      } else {
+      }
+      else
+      {
         // Averaging is done over all frames
         valueTotal += time;
         validCount++;
@@ -407,24 +432,29 @@ protected:
       cycleIndex = (cycleIndex + 1) % MAX_LAST_FRAMES;
     }
 
-    double getAveraged() {
-      if (validCount) {
+    double getAveraged()
+    {
+      if (validCount)
+      {
         return valueTotal / double(validCount);
-      } else {
+      }
+      else
+      {
         return 0;
       }
     }
   };
 
-  struct SectionData {
+  struct SectionData
+  {
     std::string name = {};
-    GpuTimeProvider *gpuTimeProvider = nullptr;
+    GpuTimeProvider* gpuTimeProvider = nullptr;
 
     uint32_t level = 0;
     uint32_t subFrame = 0;
 
-    std::array<double, MAX_FRAME_DELAY> cpuTimes = {}; // In microseconds
-    std::array<double, MAX_FRAME_DELAY> gpuTimes = {}; // In microseconds
+    std::array<double, MAX_FRAME_DELAY> cpuTimes = {};  // In microseconds
+    std::array<double, MAX_FRAME_DELAY> gpuTimes = {};  // In microseconds
 
     // number of times summed since last reset
     uint32_t numTimes = 0;
@@ -451,7 +481,8 @@ protected:
     bool accumulated = false;
   };
 
-  struct FrameData {
+  struct FrameData
+  {
     uint32_t averagingCount = MAX_LAST_FRAMES;
     uint32_t averagingCountLast = MAX_LAST_FRAMES;
 
@@ -469,23 +500,24 @@ protected:
     uint32_t sectionsCount = 0;
     uint32_t sectionsCountLast = 0;
 
-    double cpuCurrentTime = 0; // In microseconds
+    double cpuCurrentTime = 0;  // In microseconds
     TimeValues cpuTime;
     TimeValues gpuTime;
 
     std::vector<SectionData> sections;
   };
 
-  struct AsyncData {
+  struct AsyncData
+  {
     uint32_t sectionsCount = 0;
     std::vector<SectionData> sections;
   };
 
-  void grow(std::vector<SectionData> &sections, size_t newSize,
+  void grow(std::vector<SectionData>& sections, size_t newSize,
             uint32_t averagingCount);
 
   bool m_inFrame = false;
-  ProfilerManager *m_profiler{};
+  ProfilerManager* m_profiler{};
 
   ProfilerTimeline::CreateInfo m_info;
 
@@ -497,7 +529,8 @@ protected:
   mutable std::mutex m_asyncMutex;
 };
 
-class ProfilerManager {
+class ProfilerManager
+{
 public:
   //////////////////////////////////////////////////////////////////////////
 
@@ -506,9 +539,9 @@ public:
 
   // all functions are thread-safe
 
-  ProfilerTimeline *
-  createTimeline(const ProfilerTimeline::CreateInfo &createInfo);
-  void destroyTimeline(ProfilerTimeline *timeline);
+  ProfilerTimeline*
+  createTimeline(const ProfilerTimeline::CreateInfo& createInfo);
+  void destroyTimeline(ProfilerTimeline* timeline);
 
   inline double getMicroseconds() const { return m_timer.getMicroseconds(); }
 
@@ -521,17 +554,17 @@ public:
   // If `full == true` appends all properties of a
   // `ProfilerTimeline::TimerInfo`, otherwise only the `level` and `averages`
   // for GPU and CPU are added.
-  void appendPrint(std::string &statsFrames, std::string &statsAsyncs,
+  void appendPrint(std::string& statsFrames, std::string& statsAsyncs,
                    bool full = false) const;
 
   // sets vectors to contain all snapshots
   void
-  getSnapshots(std::vector<ProfilerTimeline::Snapshot> &frameSnapshots,
-               std::vector<ProfilerTimeline::Snapshot> &asyncSnapshots) const;
+  getSnapshots(std::vector<ProfilerTimeline::Snapshot>& frameSnapshots,
+               std::vector<ProfilerTimeline::Snapshot>& asyncSnapshots) const;
 
 protected:
   std::list<std::unique_ptr<ProfilerTimeline>> m_timelines;
   mutable std::mutex m_mutex;
   core::PerformanceTimer m_timer;
 };
-} // namespace core
+}  // namespace core

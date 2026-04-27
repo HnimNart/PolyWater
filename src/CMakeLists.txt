@@ -17,10 +17,7 @@ target_compile_definitions(${LIB_NAME} INTERFACE
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
-
-# -------------------------------------------------------------------
-# Shader Compilation Logic (RESTORED)
-# -------------------------------------------------------------------
+#-- 4. Shader Compilation Logic ---
 include(CompilerGlslShader)
 include(CompilerSlangShader)
 
@@ -39,7 +36,6 @@ file(GLOB_RECURSE SHADER_GLSL_FILES CONFIGURE_DEPENDS "shaders/*.glsl")
 
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/_autogen")
 file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
-
 set(SHADER_INCLUDE_FLAGS
     "-I${ROOT_DIR}"
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders"
@@ -47,19 +43,21 @@ set(SHADER_INCLUDE_FLAGS
     "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
 )
 
-message(STATUS "--- Shaders to be compiled for ${ACTIVE_SHADER_BACKEND} ---")
-foreach(SHADER_PATH ${SHADER_SLANG_FILES})
-    get_filename_component(SHADER_NAME ${SHADER_PATH} NAME)
-    message(STATUS "  [Slang] Found: ${SHADER_PATH}")
-endforeach()
-
 # Determine backend + compile shaders
 if(APPLE)
     set(ACTIVE_SHADER_BACKEND "metal")
-    compile_slang_to_metal("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
+    compile_slang_to_metal(
+        "${SHADER_SLANG_FILES}"
+        "${SHADER_OUTPUT_DIR}"
+        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
+    )
 else()
     set(ACTIVE_SHADER_BACKEND "vulkan")
-    compile_slang_to_spirv("${SHADER_SLANG_FILES}" "${SHADER_OUTPUT_DIR}" SLANG_OUT EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS})
+    compile_slang_to_spirv(
+        "${SHADER_SLANG_FILES}"
+        "${SHADER_OUTPUT_DIR}"
+        EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
+    )
 endif()
 
 # GLSL compilation only for Vulkan builds
@@ -98,12 +96,15 @@ target_include_directories(${LIB_NAME} INTERFACE
     ${ROOT_DIR}/ext/stb
 )
 
+# --- Linking ---
 target_link_libraries(${LIB_NAME} INTERFACE
     core_lib
     app_lib
     scene_lib
 )
 
+# --- IDE Organization ---
+source_group("Sources" FILES ${LIB_SOURCES})
 # Ensure anything that links 'common' also builds shaders first
 # (INTERFACE libs can carry "usage requirements", but not real build deps;
 # so we attach shader build to sub-libs below after they exist.)

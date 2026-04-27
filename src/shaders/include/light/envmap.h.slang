@@ -3,7 +3,10 @@
 #include "shared/tonemapper_io.h.slang"
 
 // Helper: Binary search to find the lower bound index in a float array
-int findLowerBound(float *cdf, int size, float u) {
+/**********************************************************/
+int findLowerBound(float *cdf, int size, float u)
+/**********************************************************/
+{
   int low = 0;
   int high = size - 1;
   while (low < high) {
@@ -18,15 +21,19 @@ int findLowerBound(float *cdf, int size, float u) {
 
 struct EnvmapSampler {
   // 1. Pick a direction based on two random numbers [0, 1)
+  /**********************************************************/
   void sample(EnvmapLight light, float2 randomSample, out float3 wi,
-              out float pdf, out float3 radiance, Sampler2D envTextures[]) {
+              out float pdf, out float3 radiance, Sampler2D envTextures[])
+  /**********************************************************/
+  {
 
     // A. Find Row (V) using Marginal CDF
-    int vIdx = findLowerBound(light.cdfCols, light.dims.y + 1, randomSample.y);
+    int vIdx =
+        findLowerBound(light.cdfCols.get(), light.dims.y + 1, randomSample.y);
     float v = (float(vIdx) + 0.5f) / float(light.dims.y);
 
     // B. Find Column (U) using Conditional CDF
-    float *rowCDF = light.cdfRows + (vIdx * (light.dims.x + 1));
+    float *rowCDF = light.cdfRows.at((vIdx * (light.dims.x + 1)));
     int uIdx = findLowerBound(rowCDF, light.dims.x + 1, randomSample.x);
     float u = (float(uIdx) + 0.5f) / float(light.dims.x);
 
@@ -49,7 +56,10 @@ struct EnvmapSampler {
   }
 
   // 2. Evaluate radiance for a given world-space direction
-  float3 evalRadiance(EnvmapLight light, float3 wi, Sampler2D envTextures[]) {
+  /**********************************************************/
+  float3 evalRadiance(EnvmapLight light, float3 wi, Sampler2D envTextures[])
+  /**********************************************************/
+  {
     float3 localDir = normalize(mul((float3x3)transpose(light.rotation), wi));
 
     float theta = acos(clamp(localDir.y, -1.0f, 1.0f));
@@ -69,7 +79,10 @@ struct EnvmapSampler {
   }
 
   // 3. Evaluate PDF for MIS
-  float evalPdf(EnvmapLight light, float3 wi, float3 radiance) {
+  /**********************************************************/
+  float evalPdf(EnvmapLight light, float3 wi, float3 radiance)
+  /**********************************************************/
+  {
 
     uint width = light.dims.x;
     uint height = light.dims.y;
@@ -84,14 +97,13 @@ struct EnvmapSampler {
       return 0.0f;
 
     // Importance is luminance (scale is cancelled out in the ratio)
-    float luminance =
-        bt709Luminance(radiance) / light.scale;
+    float luminance = bt709Luminance(radiance) / light.scale;
 
     // Standard PDF for Equirectangular Importance Sampling:
     // pdf = luminance / (totalIntegral * 2 * PI^2)
     // We don't divide by sinTheta here because the sampling logic
     // already accounts for the solid angle Jacobian.
-    return (luminance * width * height) / (light.totalSum * (2.0f * M_PI * M_PI));
+    return (luminance * width * height) /
+           (light.totalSum * (2.0f * M_PI * M_PI));
   }
 };
-

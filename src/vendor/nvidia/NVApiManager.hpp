@@ -17,21 +17,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
 
-#include "nvapi.h"
-#include "NvApiDriverSettings.h"
 #include <iostream>
+
+#include "NvApiDriverSettings.h"
+#include "nvapi.h"
 
 class NVAPIManager
 {
 public:
-  NVAPIManager()
-      : hSession(nullptr)
-      , hProfile(nullptr)
-  {
-  }
+  NVAPIManager() : hSession(nullptr), hProfile(nullptr) {}
 
   void init()
   {
@@ -51,7 +47,8 @@ public:
   void pushSetting(const NVDRS_SETTING& setting)
   {
     NVDRS_SETTING oldSetting = setting;
-    NvAPI_Status  status     = NvAPI_DRS_GetSetting(hSession, hProfile, setting.settingId, &oldSetting);
+    NvAPI_Status status = NvAPI_DRS_GetSetting(hSession, hProfile,
+                                               setting.settingId, &oldSetting);
     checkNvapiStatus(status);
     oldSettings.push_back(oldSetting);
 
@@ -60,7 +57,7 @@ public:
 
   void popSettings()
   {
-    for(auto& setting : oldSettings)
+    for (auto& setting : oldSettings)
     {
       setSetting(setting);
     }
@@ -69,7 +66,8 @@ public:
   void setSetting(const NVDRS_SETTING& setting)
   {
     NVDRS_SETTING nonConstSetting = setting;
-    NvAPI_Status  status          = NvAPI_DRS_SetSetting(hSession, hProfile, &nonConstSetting);
+    NvAPI_Status status =
+        NvAPI_DRS_SetSetting(hSession, hProfile, &nonConstSetting);
     checkNvapiStatus(status);
 
     status = NvAPI_DRS_SaveSettings(hSession);
@@ -87,7 +85,7 @@ public:
 private:
   void checkNvapiStatus(NvAPI_Status status)
   {
-    if(status != NVAPI_OK)
+    if (status != NVAPI_OK)
     {
       NvAPI_ShortString errorMessage;
       NvAPI_GetErrorMessage(status, errorMessage);
@@ -96,7 +94,7 @@ private:
     }
   }
 
-  NvDRSSessionHandle         hSession;
-  NvDRSProfileHandle         hProfile;
+  NvDRSSessionHandle hSession;
+  NvDRSProfileHandle hProfile;
   std::vector<NVDRS_SETTING> oldSettings;
 };

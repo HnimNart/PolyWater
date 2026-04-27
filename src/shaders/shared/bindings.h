@@ -3,10 +3,11 @@
 NAMESPACE_SHADERIO_BEGIN()
 
 // ==========================================
-// SET 0: GLOBAL 
+// SET 0: GLOBAL
 // ==========================================
-enum BindGlobal {
-    eTextures = 0,  // Bindless array
+enum BindGlobal
+{
+  eTextures = 0,  // Bindless array
 };
 
 // ==========================================
@@ -14,16 +15,18 @@ enum BindGlobal {
 // ==========================================
 
 // For Ray Tracing Shaders (.rgen / .rchit)
-enum BindRayTrace {
-    eTlas     = 0,
-    eOutImage    = 1,
-    eAccumImage  = 2
+enum BindRayTrace
+{
+  eTlas = 0,
+  eOutImage = 1,
+  eAccumImage = 2
 };
 
 // For Meshlet/Raster Shaders (.mesh / .frag)
-enum BindRaster {
-    eHiZTexture  = 0,
-    eHiZSampler  = 1
+enum BindRaster
+{
+  eHiZTexture = 0,
+  eHiZSampler = 1
 };
 
 #ifndef MAX_SCENE_TEXTURES
@@ -42,6 +45,5 @@ enum BindRaster {
 
 // clang-format on
 #endif
-
 
 NAMESPACE_SHADERIO_END()

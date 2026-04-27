@@ -1,39 +1,39 @@
 #include "SceneResources.hpp"
+
 #include "core/Math.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <glm/gtx/string_cast.hpp>
+#include <core/string_utils.h>
+#include <shaders/shared/bindings.h>
 #include <tiny_gltf.h>
 #include <tinyobjloader/tiny_obj_loader.h>
-
-#include "models/gltf_utils.hpp"
-#include "models/obj_utils.hpp"
-#include "models/optimizer.hpp"
 
 #include <core/Frustum.hpp>
 #include <core/Image.hpp>
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
-#include <core/string_utils.h>
-#include <shaders/shared/bindings.h>
+#include <glm/gtx/string_cast.hpp>
 
 #include "core/path_utils.hpp"
+#include "models/gltf_utils.hpp"
+#include "models/obj_utils.hpp"
+#include "models/optimizer.hpp"
 
-#include <iostream>
-
-namespace {
+namespace
+{
 
 /**********************************************************/
 std::string
-getUniqueName(const std::unordered_map<std::string, uint32_t> &nameMap,
-              const std::string &baseName)
+getUniqueName(const std::unordered_map<std::string, uint32_t>& nameMap,
+              const std::string& baseName)
 /**********************************************************/
 {
   std::string candidate = baseName;
   uint32_t counter = 1;
 
   // Keep checking if the name exists. If it does, increment the counter.
-  while (nameMap.find(candidate) != nameMap.end()) {
+  while (nameMap.find(candidate) != nameMap.end())
+  {
     candidate = baseName + "_" + std::to_string(counter++);
   }
   return core::trim(candidate);
@@ -42,34 +42,38 @@ getUniqueName(const std::unordered_map<std::string, uint32_t> &nameMap,
 /**********************************************************/
 std::optional<std::string>
 findKeyByTextureId(int targetTextureId,
-                   const std::unordered_map<std::string, core::Image> &map)
+                   const std::unordered_map<std::string, core::Image>& map)
 /**********************************************************/
 {
-  for (const auto &[name, imageInfo] : map) {
-    if (imageInfo.textureId == targetTextureId) {
-      return name; // Found the matching key!
+  for (const auto& [name, imageInfo] : map)
+  {
+    if (imageInfo.textureId == targetTextureId)
+    {
+      return name;  // Found the matching key!
     }
   }
 
-  return std::nullopt; // Not found
+  return std::nullopt;  // Not found
 }
 
 /**********************************************************/
 std::optional<std::string> findKeyByTextureId(
     int targetTextureId,
-    const std::unordered_map<std::filesystem::path, TextureID> &map)
+    const std::unordered_map<std::filesystem::path, TextureID>& map)
 /**********************************************************/
 {
-  for (const auto &[name, id] : map) {
-    if (id == targetTextureId) {
-      return name; // Found the matching key!
+  for (const auto& [name, id] : map)
+  {
+    if (id == targetTextureId)
+    {
+      return name;  // Found the matching key!
     }
   }
 
-  return std::nullopt; // Not found
+  return std::nullopt;  // Not found
 }
 
-} // namespace
+}  // namespace
 
 /**********************************************************/
 void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
@@ -80,25 +84,31 @@ void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 
 /**********************************************************/
 std::vector<MeshID>
-SceneResourcesManager::loadModel(const std::string &filename, std::string name)
+SceneResourcesManager::loadModel(const std::string& filename, std::string name)
 /**********************************************************/
 {
   // 1. Extract Extension
   std::string ext = core::getExtension(filename);
   core::toLower(ext);
 
-  if (name.empty()) {
+  if (name.empty())
+  {
     name = core::getLowercasedStem(filename);
   }
 
   // 3. Dispatch
-  if (ext == ".gltf" || ext == ".glb") {
+  if (ext == ".gltf" || ext == ".glb")
+  {
     LOGD("Loading GLTF: %s", filename.c_str());
     return loadGltf(name, filename);
-  } else if (ext == ".obj") {
+  }
+  else if (ext == ".obj")
+  {
     LOGD("Loading OBJ: %s", filename.c_str());
     return loadObj(name, filename);
-  } else {
+  }
+  else
+  {
     LOGE("Error: Unsupported file extension '%s' for file '%s'", ext.c_str(),
          filename.c_str());
     return {};
@@ -113,12 +123,13 @@ MeshID SceneResourcesManager::getNextFreeMeshID()
 }
 
 /**********************************************************/
-std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
-                                                    const std::string &filename)
+std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string& name,
+                                                    const std::string& filename)
 /**********************************************************/
 {
   tinygltf::Model model = gltf::loadModel(filename);
-  if (model.meshes.empty()) {
+  if (model.meshes.empty())
+  {
     LOGE("Error: GLTF file %s contains no meshes.", filename.c_str());
     return {};
   }
@@ -127,11 +138,13 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
 
   std::vector<MeshID> meshIDs;
   meshIDs.reserve(model.meshes.size());
-  for (size_t i = 0; i < model.meshes.size(); i++) {
-    const auto &gltfMesh = model.meshes[i];
+  for (size_t i = 0; i < model.meshes.size(); i++)
+  {
+    const auto& gltfMesh = model.meshes[i];
     std::string subMeshName = gltfMesh.name;
-    if (subMeshName.empty()) {
-      subMeshName = name + "_" + std::to_string(i); // Fallback if unnamed
+    if (subMeshName.empty())
+    {
+      subMeshName = name + "_" + std::to_string(i);  // Fallback if unnamed
     }
 
     std::string fullName = subMeshName;
@@ -155,25 +168,28 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string &name,
 }
 
 /**********************************************************/
-std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
-                                                   const std::string &filename)
+std::vector<MeshID> SceneResourcesManager::loadObj(const std::string& name,
+                                                   const std::string& filename)
 /**********************************************************/
 {
   auto loadedShapes = obj::loadObjPrimitives(filename);
-  if (loadedShapes.meshes.empty()) {
+  if (loadedShapes.meshes.empty())
+  {
     return {};
   }
 
-  auto &meshes = loadedShapes.meshes;
-  auto &materials = loadedShapes.materials;
+  auto& meshes = loadedShapes.meshes;
+  auto& materials = loadedShapes.materials;
 
   MeshID baseID = getNextFreeMeshID();
 
   // 1. Process materials (unchanged)
   std::vector<MaterialID> matIdMap;
   matIdMap.reserve(materials.size());
-  for (auto &material : materials) {
-    if (!material.diffuseTexturePath.empty()) {
+  for (auto& material : materials)
+  {
+    if (!material.diffuseTexturePath.empty())
+    {
       TextureID texId =
           addTexture(material.name, core::findFile(material.diffuseTexturePath,
                                                    common::getTextureDir()));
@@ -188,10 +204,11 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
   meshIDs.reserve(meshes.size());
 
   // 2. Register geometry and instances
-  for (size_t i = 0; i < meshes.size(); i++) {
+  for (size_t i = 0; i < meshes.size(); i++)
+  {
     // Access directly from the LoadedMesh struct
-    auto &shapeName = meshes[i].name;
-    auto &materialIdx = meshes[i].materialIndex;
+    auto& shapeName = meshes[i].name;
+    auto& materialIdx = meshes[i].materialIndex;
 
     // Registration logic
     std::string uniqueName = getUniqueName(
@@ -207,7 +224,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string &name,
                              ? matIdMap[materialIdx]
                              : 0;
     inst.meshIndex = currentID;
-    inst.hit_group = static_cast<uint32_t>(MaterialType::eDiffuse);
+    inst.hit_group = MaterialType::eDiffuse;
     addInstance(std::move(inst), uniqueName);
   }
 
@@ -224,35 +241,41 @@ bool SceneResourcesManager::destroyTexture(TextureID id)
 /**********************************************************/
 {
   // 1. Validation & Hardware destruction
-  if (id == -1 || !m_device_resources->destroyTexture(id)) {
+  if (id == -1 || !m_device_resources->destroyTexture(id))
+  {
     return false;
   }
 
   // 2. Clean up the Name -> ID mapping
   std::optional<std::string> old_name =
       findKeyByTextureId(id, m_textureImageMap);
-  if (old_name) {
+  if (old_name)
+  {
     m_textureImageMap.erase(old_name.value());
     m_textureMap.erase(old_name.value());
   }
 
   std::optional<std::string> filename =
       findKeyByTextureId(id, m_fileToTextureMap);
-  if (old_name) {
+  if (old_name)
+  {
     m_fileToTextureMap.erase(filename.value());
   }
 
   // 3. Update Materials
   bool modified = false;
-  for (auto &material : m_scene_resources.materials) {
-    if (material.baseColorTextureIndex == id) {
+  for (auto& material : m_scene_resources.materials)
+  {
+    if (material.baseColorTextureIndex == id)
+    {
       material.baseColorTextureIndex = -1;
       modified = true;
     }
   }
 
   // 4. Notify System
-  if (modified) {
+  if (modified)
+  {
     onMaterialChange();
   }
 
@@ -260,20 +283,23 @@ bool SceneResourcesManager::destroyTexture(TextureID id)
 }
 
 /**********************************************************/
-TextureID SceneResourcesManager::addTexture(const std::string &name,
-                                            const std::string &filename)
+TextureID SceneResourcesManager::addTexture(const std::string& name,
+                                            const std::string& filename)
 /**********************************************************/
 {
   auto fileIt = m_fileToTextureMap.find(filename);
-  if (fileIt != m_fileToTextureMap.end()) {
-    if (m_textureMap.find(name) == m_textureMap.end()) {
+  if (fileIt != m_fileToTextureMap.end())
+  {
+    if (m_textureMap.find(name) == m_textureMap.end())
+    {
       m_textureMap[name] = fileIt->second;
     }
     return fileIt->second;
   }
 
   std::string finalName = name;
-  if (m_textureMap.find(name) != m_textureMap.end()) {
+  if (m_textureMap.find(name) != m_textureMap.end())
+  {
     finalName = getUniqueName(m_textureMap, name);
     LOGW("Texture name collision: '%s' already exists for a different file. "
          "Renaming... to %s\n",
@@ -289,7 +315,7 @@ TextureID SceneResourcesManager::addTexture(const std::string &name,
 }
 
 /**********************************************************/
-void SceneResourcesManager::addEnvmap(const std::filesystem::path &filename,
+void SceneResourcesManager::addEnvmap(const std::filesystem::path& filename,
                                       float scale, float rotation)
 /**********************************************************/
 {
@@ -297,19 +323,16 @@ void SceneResourcesManager::addEnvmap(const std::filesystem::path &filename,
 }
 
 /**********************************************************/
-InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
+InstanceID SceneResourcesManager::addInstance(shaderio::Instance&& instance,
                                               std::string name)
 /**********************************************************/
 {
-  instance.transform =
-      math::composeTransform(glm::vec3(instance.translation), instance.rotation,
-                             glm::vec3(instance.scale));
-  std::cout << glm::to_string(instance.scale) << std::endl;
-  std::cout << glm::to_string(instance.translation) << std::endl;
-  std::cout << glm::to_string(instance.transform) << std::endl;
+  instance.transform = math::composeTransform(
+      instance.translation, instance.rotation, instance.scale);
   name = core::trim(name);
   auto it = m_instanceMap.find(name);
-  if (it != m_instanceMap.end()) {
+  if (it != m_instanceMap.end())
+  {
     InstanceID existingID = it->second;
     LOGD("[SceneResourcesManager] Replacing Instance: '%s' (ID: %d)",
          name.c_str(), existingID);
@@ -321,7 +344,8 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
   InstanceID id =
       static_cast<InstanceID>(m_scene_resources.instances.size() - 1);
 
-  if (name.empty()) {
+  if (name.empty())
+  {
     name = "Instance_" + std::to_string(id);
   }
 
@@ -332,13 +356,14 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance &&instance,
 }
 
 /**********************************************************/
-MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
+MaterialID SceneResourcesManager::addMaterial(shaderio::Material&& material,
                                               std::string name)
 /**********************************************************/
 {
   name = core::trim(name);
   auto it = m_materialMap.find(name);
-  if (it != m_materialMap.end()) {
+  if (it != m_materialMap.end())
+  {
     MaterialID existingID = it->second;
     LOGD("[SceneResourcesManager] Overwriting existing material: '%s' (ID: %d)",
          name.c_str(), existingID);
@@ -349,7 +374,8 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
   m_scene_resources.materials.push_back(std::move(material));
   MaterialID id =
       static_cast<MaterialID>(m_scene_resources.materials.size() - 1);
-  if (name.empty()) {
+  if (name.empty())
+  {
     name = "Material_" + std::to_string(id);
   }
 
@@ -360,10 +386,11 @@ MaterialID SceneResourcesManager::addMaterial(shaderio::Material &&material,
 }
 
 /**********************************************************/
-void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
+void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload& payload)
 /**********************************************************/
 {
-  if (payload.rawBuffer.empty() || payload.primitives.empty()) {
+  if (payload.rawBuffer.empty() || payload.primitives.empty())
+  {
     LOGW("Warning: Attempting to upload an empty optimized mesh.");
     return;
   }
@@ -373,18 +400,13 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
   m_scene_resources.meshData.emplace_back(payload.rawBuffer);
 
   const auto bufferHandle = m_device_resources->upload(data);
-  if (!bufferHandle.isValid()) {
-    m_pendingMeshes -= payload.primitives.size();
-    return;
-  }
-
-  printf("%p %d\n", bufferHandle.address, bufferHandle.id);
   const size_t startSize = m_scene_resources.meshes.size();
   m_scene_resources.meshes.reserve(startSize + payload.primitives.size());
 
-  for (auto mesh : payload.primitives) {
+  for (auto mesh : payload.primitives)
+  {
     mesh.rawBufferIndex = m_scene_resources.meshData.size() - 1;
-    mesh.buffer = bufferHandle.as<uint64_t>();
+    mesh.buffer = {.address = bufferHandle.address};
     m_device_resources->linkMeshToBuffer(m_scene_resources.meshes.size(),
                                          bufferHandle.id);
     m_scene_resources.meshes.emplace_back(mesh);
@@ -396,9 +418,11 @@ void SceneResourcesManager::uploadOptimizedMesh(const OptimizedPayload &payload)
 void SceneResourcesManager::uploadPendingTextures(bool immediate)
 /**********************************************************/
 {
-  for (auto &[name, filename, id] : m_pendingTextures) {
+  for (auto& [name, filename, id] : m_pendingTextures)
+  {
     core::Image raw = core::loadRawImage(filename);
-    if (!raw.isValid()) {
+    if (!raw.isValid())
+    {
       assert(0 && "Failed to load texture image!");
       continue;
     }
@@ -417,7 +441,8 @@ void SceneResourcesManager::finalizeSceneResources()
   m_device_resources->beginUploading();
 
   // Upload meshes
-  for (const auto &mesh : m_pendingOptimizedMesh) {
+  for (const auto& mesh : m_pendingOptimizedMesh)
+  {
     uploadOptimizedMesh(mesh);
   }
   m_pendingOptimizedMesh.clear();
@@ -438,12 +463,13 @@ void SceneResourcesManager::finalizeSceneResources()
 void SceneResourcesManager::uploadLights(LightChangedBitMask mask)
 /**********************************************************/
 {
-  shaderio::SceneInfo &sceneInfo = m_scene_resources.sceneInfo;
+  shaderio::SceneInfo& sceneInfo = m_scene_resources.sceneInfo;
 
   // 1. Handle Environment Map Changes
-  if ((mask & LightChangedBitMask::EnvmapChanged) && m_pendingEnvmap) {
+  if ((mask & LightChangedBitMask::EnvmapChanged) && m_pendingEnvmap)
+  {
     TextureID oldId = sceneInfo.envmapLight.envTextureIdx;
-    const EnvmapInfo &envmapInfo =
+    const EnvmapInfo& envmapInfo =
         m_lights.loadEnvmap(m_pendingEnvmap->filepath, m_pendingEnvmap->scale,
                             m_pendingEnvmap->rotation);
 
@@ -456,13 +482,15 @@ void SceneResourcesManager::uploadLights(LightChangedBitMask mask)
   }
 
   // 2. Handle Area Light Changes
-  if (mask & LightChangedBitMask::AreaLightChanged) {
+  if (mask & LightChangedBitMask::AreaLightChanged)
+  {
     m_lights.uploadAreaLights(m_scene_resources, m_device_resources,
                               sceneInfo.areaLight);
   }
 
   // 3. Recalculate Analytical Power
-  if (mask != LightChangedBitMask::NoneChanged) {
+  if (mask != LightChangedBitMask::NoneChanged)
+  {
     sceneInfo.totalAnalyticalPower =
         m_lights.computeAnalyticalLightContribution(m_scene_resources);
   }
@@ -473,7 +501,7 @@ void SceneResourcesManager::clear()
 /**********************************************************/
 {
   // Reset the core data structures
-  m_scene_resources = Scene{}; // This handles instances, materials, etc.
+  m_scene_resources = Scene{};  // This handles instances, materials, etc.
 
   // Clear all naming and deduplication maps
   m_materialMap.clear();
@@ -492,7 +520,7 @@ void SceneResourcesManager::clear()
 }
 
 /**********************************************************/
-void SceneResourcesManager::update(const CameraPtr &camera)
+void SceneResourcesManager::update(const CameraPtr& camera)
 /**********************************************************/
 {
   updateSceneInfo(camera);
@@ -501,11 +529,11 @@ void SceneResourcesManager::update(const CameraPtr &camera)
 }
 
 /**********************************************************/
-void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
+void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
 /**********************************************************/
 {
-  const glm::mat4 &viewMatrix = camera->getViewMatrix();
-  const glm::mat4 &projMatrix = camera->getPerspectiveMatrix();
+  const glm::mat4& viewMatrix = camera->getViewMatrix();
+  const glm::mat4& projMatrix = camera->getPerspectiveMatrix();
 
   m_scene_resources.sceneInfo.viewMatrix = viewMatrix;
   m_scene_resources.sceneInfo.projMatrix = projMatrix;
@@ -517,7 +545,8 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr &camera)
 
   auto cameraFrustum =
       core::extractFrustumPlanes(m_scene_resources.sceneInfo.viewProjMatrix);
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 6; ++i)
+  {
     m_scene_resources.sceneInfo.frustumPlanes[i] = cameraFrustum.planes[i];
   }
 }
@@ -570,8 +599,8 @@ void SceneResourcesManager::setSceneInfo(shaderio::SceneInfo sceneInfo)
 }
 
 /**********************************************************/
-shaderio::Material *
-SceneResourcesManager::getMaterialFromName(const std::string &name)
+shaderio::Material*
+SceneResourcesManager::getMaterialFromName(const std::string& name)
 /**********************************************************/
 {
   auto it = m_materialMap.find(name);
@@ -580,7 +609,7 @@ SceneResourcesManager::getMaterialFromName(const std::string &name)
 }
 
 /**********************************************************/
-const shaderio::MeshPrimitive &
+const shaderio::MeshPrimitive&
 SceneResourcesManager::getMeshFromIdx(uint32_t index) const
 /**********************************************************/
 {
@@ -589,7 +618,7 @@ SceneResourcesManager::getMeshFromIdx(uint32_t index) const
 }
 
 /**********************************************************/
-MeshID SceneResourcesManager::getMeshIDFromName(const std::string &name) const
+MeshID SceneResourcesManager::getMeshIDFromName(const std::string& name) const
 /**********************************************************/
 {
   auto it = m_meshMap.find(name);
@@ -602,7 +631,7 @@ MeshID SceneResourcesManager::getMeshIDFromName(const std::string &name) const
 
 /**********************************************************/
 TextureID
-SceneResourcesManager::getTextureIDFromName(const std::string &name) const
+SceneResourcesManager::getTextureIDFromName(const std::string& name) const
 /**********************************************************/
 {
   auto it = m_textureMap.find(name);

@@ -20,51 +20,36 @@
 #pragma once
 
 #ifdef __cplusplus
-// Use 16-byte alignment check for Metal/macOS compatibility
-#define ALIGN alignas(16)
-#define CHECK_STRUCT_ALIGNMENT(_s)                                             \
-  static_assert(sizeof(_s) % 4 == 0,                                           \
-                "Struct must be 16-byte aligned for Metal");
-
-// In C++, these macros are just placeholders or simple casts
-#define BUFFER_REF_DECL(_type)
-#define BUFFER_REF(_type, _addr) ((_type *)(_addr))
+#  define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
 #elif defined(__SLANG__)
-#define ALIGN
-// Slang natively supports pointers!
-// We define these to maintain compatibility with your existing code logic.
-#define CHECK_STRUCT_ALIGNMENT(_s)
-
-// In Slang, we don't need a special decl for buffer references.
-#define BUFFER_REF_DECL(_type)
-
-// We treat the address as a pointer to an unsized array of that type.
-#define BUFFER_REF(_type, _addr) ((_type *)(_addr))
-#elif defined(__METAL_VERSION__)
-// If you ever pass this header to a raw Metal compiler
-#define CHECK_STRUCT_ALIGNMENT(_s)                                             \
-  static_assert(sizeof(_s) % 16 == 0, "Alignment Error");
-#define BUFFER_REF_DECL(_type)
-#define BUFFER_REF(_type, _addr) ((device _type *)(_addr))
+#  define CHECK_STRUCT_ALIGNMENT(_s)
 #else
-// Fallback for standard GLSL if needed
-#define CHECK_STRUCT_ALIGNMENT(_s)
-#define BUFFER_REF_DECL(_type)                                                 \
-  layout(buffer_reference, scalar) buffer _type##Buffer { _type o[]; };
-#define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
-#endif
+#  define CHECK_STRUCT_ALIGNMENT(_s)
 
-#include "slang_types.h"
+// This is a utility to define a buffer reference in GLSL.
+// Usage: declare the buffer reference type with: BUFFER_REF_DECL(type), where
+// type is the type of the buffer (vec3, float, Material). Then use the buffer
+// reference in the shader with: BUFFER_REF(type, address), where address is the
+// address of the buffer in the shader.
+#  define BUFFER_REF_DECL(_type)                                               \
+    layout(buffer_reference, scalar) buffer _type##Buffer                      \
+    {                                                                          \
+      _type o[];                                                               \
+    };
+
+#  define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
+
+#endif
 
 #include "sky_io.h.slang"
+#include "slang_types.h"
 
 #define MAX_LIGHTS 2
-#ifndef MAX_SCENE_TEXTURES
 #define MAX_SCENE_TEXTURES 4096
-#endif
 #define MAX_SCENE_MESHLETS (10000000)
 
-enum class MaterialType : uint32_t {
+enum class MaterialType : uint32_t
+{
   eDiffuse,
   eGltfPbr,
   eNormals,
@@ -75,96 +60,50 @@ enum class MaterialType : uint32_t {
   eCount
 };
 
-#ifdef __cplusplus
-// --- Comparison Overloads ---
-inline bool operator==(uint32_t lhs, MaterialType rhs) {
-  return lhs == static_cast<uint32_t>(rhs);
-}
-inline bool operator!=(uint32_t lhs, MaterialType rhs) { return !(lhs == rhs); }
-inline bool operator==(MaterialType lhs, uint32_t rhs) {
-  return static_cast<uint32_t>(lhs) == rhs;
-}
-inline bool operator!=(MaterialType lhs, uint32_t rhs) { return !(lhs == rhs); }
-
-// --- Assignment Helper ---
-// Since we can't overload '=' for built-in types like uint32_t,
-// we use a simple setter or just a cast.
-// Most devs prefer the explicit cast for clarity in assignments:
-#define SET_ENUM(_field, _val) _field = static_cast<uint32_t>(_val)
-
-#endif
-
 NAMESPACE_SHADERIO_BEGIN()
 
 // Ray payload structure - carries data through the ray tracing pipeline
-struct HitPayload {
-  float3 color;  // Accumulated color along the ray path
-  float3 weight; // Weight/importance of this ray (for importance sampling)
-  int depth;     // Current recursion depth (for limiting bounces)
+struct HitPayload
+{
+  float3 color;   // Accumulated color along the ray path
+  float3 weight;  // Weight/importance of this ray (for importance sampling)
+  int depth;      // Current recursion depth (for limiting bounces)
   int seed;
-  int emit; // Should we include emitting surfaces in the contribution
-  float3 nextRayOrigin; // Where the bounce starts
-  float3 nextRayDir;    // Where the bounce goes
-  bool stop;            // "Did we hit the sky or a black hole?"
+  int emit;  // Should we include emitting surfaces in the contribution
+  float3 nextRayOrigin;  // Where the bounce starts
+  float3 nextRayDir;     // Where the bounce goes
+  bool stop;             // "Did we hit the sky or a black hole?"
 };
 
-struct ShadowPayload {
+struct ShadowPayload
+{
   bool isHit;
 };
 
-struct BoundingBox {
-  float3 min;
-  float3 max;
-
-#ifdef __cplusplus
-  BoundingBox()
-      : min(std::numeric_limits<float>::max()),
-        max(std::numeric_limits<float>::lowest()) {}
-
-  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
-
-  // Add a point to the bounding box (Encapsulate)
-  void add(const float3 &p) {
-    min = glm::min(min, p);
-    max = glm::max(max, p);
-  }
-
-  // Merge another bounding box into this one
-  void add(const BoundingBox &other) {
-    min = glm::min(min, other.min);
-    max = glm::max(max, other.max);
-  }
-
-  bool isEmpty() const {
-    return min.x > max.x || min.y > max.y || min.z > max.z;
-  }
-
-  float3 center() const { return (min + max) * 0.5f; }
-#endif
+struct BufferView
+{
+  uint32_t offset;      // Offset in the buffer where the data starts (in bytes)
+  uint32_t count;       // Number of elements in the buffer view
+  uint32_t byteStride;  // Stride in bytes between consecutive elements (0 if
+                        // tightly packed)
 };
 
-struct BufferView {
-  uint32_t offset;     // Offset in the buffer where the data starts (in bytes)
-  uint32_t count;      // Number of elements in the buffer view
-  uint32_t byteStride; // Stride in bytes between consecutive elements (0 if
-                       // tightly packed)
-  uint32_t _pad;       // Explicitly fill the 4-byte hole
+struct TriangleMesh
+{
+  BufferView indices;    // Index buffer view
+  BufferView positions;  // Position buffer view (vec3)
+  BufferView normals;    // Normal buffer view (vec3)
+  BufferView colorVert;  // color at vertices (vec4, optional)
+  BufferView texCoords;  // texture coordinates buffer view (vec2, optional)
+  BufferView tangents;   // tangents buffer view (vec4, optional)
 };
 
-struct TriangleMesh {
-  BufferView indices;   // Index buffer view
-  BufferView positions; // Position buffer view (vec3)
-  BufferView normals;   // Normal buffer view (vec3)
-  BufferView colorVert; // color at vertices (vec4, optional)
-  BufferView texCoords; // texture coordinates buffer view (vec2, optional)
-  BufferView tangents;  // tangents buffer view (vec4, optional)
-};
-
-struct GPUMeshlet {
-  uint32_t vertexOffset;   // Offset into the meshlet_vertices buffer
-  uint32_t triangleOffset; // Offset into the meshlet_triangles buffer
-  uint32_t vertexCount;    // Number of vertices in this meshlet (max 64)
-  uint32_t triangleCount;  // Number of triangles in this meshlet (max 124)
+struct GPUMeshlet
+{
+  uint32_t vertexOffset;    // Offset into the meshlet_vertices buffer
+  uint32_t triangleOffset;  // Offset into the meshlet_triangles buffer
+  uint32_t vertexCount;     // Number of vertices in this meshlet (max 64)
+  uint32_t triangleCount;   // Number of triangles in this meshlet (max 124)
 
   // Culling data
   float3 center;
@@ -174,198 +113,217 @@ struct GPUMeshlet {
 };
 CHECK_STRUCT_ALIGNMENT(GPUMeshlet)
 
-struct GlobalMeshletRef {
+struct GlobalMeshletRef
+{
   uint instanceIndex;
   uint localMeshletIndex;
-  uint32_t pad0, pad1; // Padding to 16-byte boundary (8 → 16 bytes)
+  uint32_t pad0 = 0;  // Padding to 16-byte boundary (8 → 16 bytes)
+  uint32_t pad1 = 0;
 };
 CHECK_STRUCT_ALIGNMENT(GlobalMeshletRef)
 
-struct MeshletTopology {
-  BufferView meshlets; // Points to an array of GPUMeshlet structs
-  BufferView
-      meshletVertices; // Points to an array of uint32_t (global vertex indices)
-  BufferView meshletTriangles; // Points to an array of uint8_t (local triangle
-                               // indices)
-  BufferView tmp; // Points to an array of uint8_t (local triangle indices)
+struct MeshletTopology
+{
+  BufferView meshlets;          // Points to an array of GPUMeshlet structs
+  BufferView meshletVertices;   // Points to an array of uint32_t
+  BufferView meshletTriangles;  // Points to an array of uint8_t
+  BufferView pad;
 };
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
 
-struct MeshPrimitive {
-  uint64_t buffer;         // Buffer to the data (index, position, normal,
-  uint64_t _padPtr;        // Manual 8-byte pad so TriangleMesh starts at 0x10//
-  TriangleMesh triMesh;    // Mesh data
-  MeshletTopology meshlet; // Meshlet data
-  uint32_t rawBufferIndex; // Index into raw data buffers
-  int indexType;           // Index type (uint16_t or uint32_t)
-  BoundingBox bbox;        // Local space bbox
-  // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
-  // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
-  // the pointer), the GPU treats it as though it has a stride of 84.
-  int padWorkaround;
-  uint32_t pad1, pad2; // Padding to 16-byte boundary (168 → 176 bytes)
+struct MeshPrimitive
+{
+  DevicePtr<uint8_t> buffer = {
+      0};                   // GPU device address of the raw mesh data buffer
+  TriangleMesh triMesh;     // Mesh data
+  MeshletTopology meshlet;  // Meshlet data
+  uint32_t rawBufferIndex;  // Index into raw data buffers
+  int indexType;            // Index type (uint16_t or uint32_t)
+  BoundingBox bbox;         // Local space bbox
 };
 CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
-struct Instance {
-  float4 translation = float4(0); // .xyz = pos, .w = pad
-  float4 rotation = float4(0);    // quaternion
-  float4 scale =
-      float4(1, 1, 1, 0); // .xyz = scale, .w = materialIndex (Cast in shader!)
+struct Instance
+{
+  // Explicit 16-byte blocks for Metal/C++ GPU buffer compatibility.
+  // Metal requires float4 at 16-byte alignment and float4x4 at 16-byte
+  // alignment. Without this layout the second (and later) mesh reads corrupt
+  // data when Metal indexes into a tightly-packed Instance[].
 
-  // Block 3 & 4 Combined (Now 32 bytes)
-  uint32_t materialIndex; // 4 bytes
-  uint32_t meshIndex;     // 4 bytes
-  uint32_t hit_group;     // 4 bytes
-  uint32_t pad0 = 13;     // 4 bytes (Aligns to 16)
+  // Block 1 (offset 0, 16 bytes)
+  float3 translation = float3(0);  // 12 bytes
+  float pad0 = 0.f;               // 4 bytes → pushes rotation to offset 16
 
-  float4x4 transform; // Starts at byte 64
+  // Block 2 (offset 16, 16 bytes)
+  float4 rotation = float4(0, 0, 0, 1);  // 16 bytes
+
+  // Block 3 (offset 32, 16 bytes)
+  float3 scale = float3(1);           // 12 bytes
+  uint32_t materialIndex = 0;         // 4 bytes → fills block to 16
+
+  // Block 4 (offset 48, 16 bytes)
+  uint32_t meshIndex = 0;             // 4 bytes
+  MaterialType hit_group = MaterialType::eDiffuse;  // 4 bytes (uint32_t)
+  uint32_t pad1 = 0;                  // 4 bytes
+  uint32_t pad2 = 0;                  // 4 bytes → pushes transform to offset 64
+
+  // Blocks 5-8 (offset 64, 64 bytes)
+  float4x4 transform;  // Cached Local-to-World matrix (T * R * S)
 };
 CHECK_STRUCT_ALIGNMENT(Instance)
 
-struct Material {
+struct Material
+{
   // --- 16-byte aligned (float4) ---
-  float4 baseColorFactor; // Base color factor (RGBA)
+  float4 baseColorFactor;  // Base color factor (RGBA)
 
   // --- 12/16-byte aligned (float3) ---
-  float3 ior = float3(1.5);       // Index of Refraction (RGB for dispersion)
-  float3 asymmetry = float3(0.0); // Anisotropy factor 'g'
-  float3 emission = float3(0);    // Emission color
+  float3 ior = float3(1.5);        // Index of Refraction (RGB for dispersion)
+  float3 asymmetry = float3(0.0);  // Anisotropy factor 'g'
+  float3 emission = float3(0);     // Emission color
 
   // --- 4-byte aligned (scalars) ---
-  float metallicFactor;      // 0.0 = dielectric, 1.0 = metal
-  float roughnessFactor;     // 0.0 = smooth, 1.0 = rough
-  float3 sigma_t;            // Extinction coefficient (density)
-  int baseColorTextureIndex; // Texture ID
+  float metallicFactor;       // 0.0 = dielectric, 1.0 = metal
+  float roughnessFactor;      // 0.0 = smooth, 1.0 = rough
+  float3 sigma_t;             // Extinction coefficient (density)
+  int baseColorTextureIndex;  // Texture ID
 
   uint32_t pad;
 };
 CHECK_STRUCT_ALIGNMENT(Material)
 
-enum LightType {
-  ePoint = 0,       // Point light type
-  eSpot = 1,        // Spot light type
-  eDirectional = 2, // Directional light type
+enum LightType
+{
+  ePoint = 0,        // Point light type
+  eSpot = 1,         // Spot light type
+  eDirectional = 2,  // Directional light type
   eAreaLight = 3
 };
 
-struct PunctualLight {
-  float3 position;  // Position of the punctual light in world space
-  float intensity;  // Intensity of the light
-  float3 direction; // Direction of the light (for spot and directional lights)
-  LightType type;   // Type of the light (0 = point, 1 = spot, 2 = directional)
-  float3 color;     // Color of the light (RGB)
-  float coneAngle;  // Cone angle for spot lights (in radians, 0 for point and
-                    // directional lights)
+struct PunctualLight
+{
+  float3 position;   // Position of the punctual light in world space
+  float intensity;   // Intensity of the light
+  float3 direction;  // Direction of the light (for spot and directional lights)
+  LightType type;    // Type of the light (0 = point, 1 = spot, 2 = directional)
+  float3 color;      // Color of the light (RGB)
+  float coneAngle;   // Cone angle for spot lights (in radians, 0 for point and
+                     // directional lights)
 };
 
-struct TriangleLight {
-  float3 v0, v1, v2; // World Space Positions
+struct TriangleLight
+{
+  float3 v0, v1, v2;  // World Space Positions
   float3 emission;
   float area;
   uint pad;
-  uint32_t pad0, pad1; // Padding to 16-byte boundary (56 → 64 bytes)
+  uint32_t pad0 = 0;  // Padding to 16-byte boundary (56 → 64 bytes)
+  uint32_t pad1 = 0;
 };
 CHECK_STRUCT_ALIGNMENT(TriangleLight)
 
-struct AreaLight {
-  TriangleLight *triangles = nullptr;
+struct AreaLight
+{
+  DevicePtr<TriangleLight> triangles = {};
   uint TriangleLightBufferIndex = -1;
-  float *cdf = nullptr;
+  DevicePtr<float> cdf = {};
   uint cdfBufferIndex = -1;
   uint nTriangles = 0;
-  float totalSum = 0; // Total sum of light
+  float totalSum = 0;  // Total sum of light
 };
 
-struct EnvmapLight {
+struct EnvmapLight
+{
   // GPU Buffer Addresses for MIS
-  float *cdfRows = nullptr; // Conditional CDF: (width + 1) * height
+  DevicePtr<float> cdfRows = {};  // Conditional CDF: (width + 1) * height
   int cdfRowsBufferIndex = -1;
-  float *cdfCols = nullptr; // Marginal CDF: (height + 1)
+  DevicePtr<float> cdfCols = {};  // Marginal CDF: (height + 1)
   int cdfColsBufferIndex = -1;
 
   // Transformation & Intensity
   float rotationAzimuthDegree;
-  float4x4 rotation; // Pre-computed rotation matrix (world to local)
-  float scale;       // Intensity/Brightness multiplier
-  float totalSum;    // The integral of the importance map (needed for PDF)
+  float4x4 rotation;  // Pre-computed rotation matrix (world to local)
+  float scale;        // Intensity/Brightness multiplier
+  float totalSum;     // The integral of the importance map (needed for PDF)
 
   // Texture Information
-  uint32_t envTextureIdx = -1; // Index for bindless texture lookup
-  uint2 dims;                  // Width and Height of the texture
-  uint32_t pad0, pad1;
+  uint32_t envTextureIdx = -1;  // Index for bindless texture lookup
+  uint2 dims;                   // Width and Height of the texture
+  uint32_t pad0 = 0;            // Padding to 16-byte boundary (120 → 128 bytes)
+  uint32_t pad1 = 0;
 };
 CHECK_STRUCT_ALIGNMENT(EnvmapLight)
 
-struct RenderParams {
-  int nSamples = 1; // Number of samples pr pass
+struct RenderParams
+{
+  int nSamples = 1;  // Number of samples pr pass
   int maxBounces = 16;
   int nBouncesRR = 3;
   uint frameIdx;
 
-  uint denoise = 0; // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
+  uint denoise = 0;  // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
   // --- Denoiser Settings ---
-  float denoiseRadius = 2.0f; // Cast to int in shader
+  float denoiseRadius = 2.0f;  // Cast to int in shader
   float denoiseSpatialSigma = 2.0f;
   float denoiseLuminanceSigma = 0.5f;
 };
 
-struct RasterParams {
-  uint32_t wireframe = false;
+struct RasterParams
+{
+  bool wireframe = false;
   float wireframeLineWidth = 1.0f;
 };
 
-struct SceneResources {
-  uint64_t instances;   // Address of the instance buffer
-  uint64_t meshes; // Address of the mesh buffer
-  Material *materials;   // Address of material properties
+struct SceneResources
+{
+  Instance* instances;    // Address of the instance buffer
+  MeshPrimitive* meshes;  // Address of the mesh buffer
+  Material* materials;    // Address of material properties
 };
 
-struct SceneInfo {
-  float4x4 viewMatrix;     // View matrix for the scene
-  float4x4 projMatrix;     // projection matrix for the scene
-  float4x4 viewProjMatrix; // View projection matrix for the scene
-  float4x4 projInvMatrix;  // Inverse projection matrix for the scene
-  float4x4 viewInvMatrix;  // Inverse view matrix for the scene
-  float3 cameraPosition;   // Camera position in world space
+struct SceneInfo
+{
+  float4x4 viewMatrix;      // View matrix for the scene
+  float4x4 projMatrix;      // projection matrix for the scene
+  float4x4 viewProjMatrix;  // View projection matrix for the scene
+  float4x4 projInvMatrix;   // Inverse projection matrix for the scene
+  float4x4 viewInvMatrix;   // Inverse view matrix for the scene
+  float3 cameraPosition;    // Camera position in world space
   float nearZ;
-  float4 frustumPlanes[6]; // Frustum planes
+  float4 frustumPlanes[6];  // Frustum planes
 
   // Light info
-  int useSky; // Whether to use the sky rendering
+  int useSky;  // Whether to use the sky rendering
   int useEnv;
-  float3 backgroundColor; // Background color of the scene
+  float3 backgroundColor;  // Background color of the scene
   float totalAnalyticalPower = 0.0;
-  int numLights; // Number of punctual lights in the scene (up to 2)
+  int numLights;  // Number of punctual lights in the scene (up to 2)
   PunctualLight
-      punctualLights[MAX_LIGHTS];     // punctual lights in the scene (up to 2)
-  SkySimpleParameters skySimpleParam; // Parameters for the sky rendering
+      punctualLights[MAX_LIGHTS];      // punctual lights in the scene (up to 2)
+  SkySimpleParameters skySimpleParam;  // Parameters for the sky rendering
 
   AreaLight areaLight;
   EnvmapLight envmapLight;
-
-  uint32_t pad0, pad1;
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
-struct PushConstant {
-
-  float4x4 transform;        // 64 (Total 160)
-  uint64_t sceneInfoAddress; // 8
-  uint64_t resourcesAddress; // 8 (Total 16)
-
-  GlobalMeshletRef *globalMeshletRefsAddress; // 8
-  int instanceIndex;                          // 4
-  uint32_t totalSceneMeshlets;                // 4 (Total 32)
-
-  // Ensure RenderParams + RasterParams combined are a multiple of 16!
+struct PushConstant
+{
+  float3x3 normalMatrix;
+  int instanceIndex;  // Instance index for the current draw call
+  DevicePtr<SceneInfo>
+      sceneInfoAddress;  // Address of the scene information buffer
+  DevicePtr<SceneResources> resourcesAddress;  //
   RenderParams renderParams;
   RasterParams rasterParams;
 
-  uint2 screenResolution; // 8
-  /* uint32_t pad_a, pad_b;  // 8 (Total 16) */
-  /* uint32_t pad0, pad1; */
+  // --- NEW: Global Meshlet Dispatch Data ---
+  GlobalMeshletRef*
+      globalMeshletRefsAddress;  // 64-bit GPU pointer to this frame's array
+  uint32_t totalSceneMeshlets;   // How many meshlets we are drawing
+  uint32_t pad_meshlet;
+
+  uint2 screenResolution;
 };
-CHECK_STRUCT_ALIGNMENT(PushConstant)
 
 NAMESPACE_SHADERIO_END()

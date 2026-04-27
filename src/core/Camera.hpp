@@ -23,12 +23,14 @@
 #define CAMERA_H
 
 #include <array>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <string>
 
-namespace core {
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+namespace core
+{
 /*-------------------------------------------------------------------------------------------------
   # class core::CameraManipulator
 
@@ -77,7 +79,8 @@ core::CameraManipulator::Fly);
 
 -------------------------------------------------------------------------------------------------*/
 
-class CameraManipulator {
+class CameraManipulator
+{
 public:
   CameraManipulator();
 
@@ -88,25 +91,28 @@ public:
                  bool shift=false; bool ctrl=false; bool alt=false;};
   // clang-format on
 
-  struct Camera {
+  struct Camera
+  {
     glm::vec3 eye = glm::vec3(10, 10, 10);
     glm::vec3 ctr = glm::vec3(0, 0, 0);
     glm::vec3 up = glm::vec3(0, 1, 0);
     float fov = 60.0f;
     glm::vec2 clip = {0.001f, 100000.0f};
 
-    bool operator!=(const Camera &rhr) const {
+    bool operator!=(const Camera& rhr) const
+    {
       return (eye != rhr.eye) || (ctr != rhr.ctr) || (up != rhr.up) ||
              (fov != rhr.fov) || (clip != rhr.clip);
     }
-    bool operator==(const Camera &rhr) const {
+    bool operator==(const Camera& rhr) const
+    {
       return (eye == rhr.eye) && (ctr == rhr.ctr) && (up == rhr.up) &&
              (fov == rhr.fov) && (clip == rhr.clip);
     }
 
     // basic serialization, mostly for copy/paste
     std::string getString() const;
-    bool setFromString(const std::string &text);
+    bool setFromString(const std::string& text);
   };
 
 public:
@@ -114,12 +120,12 @@ public:
   // On application mouse move, call this function with the current mouse
   // position, mouse button presses and keyboard modifier. The camera matrix
   // will be updated and can be retrieved calling getMatrix
-  Actions mouseMove(glm::vec2 screenDisplacement, const Inputs &inputs);
+  Actions mouseMove(glm::vec2 screenDisplacement, const Inputs& inputs);
 
   // Set the camera to look at the interest point
   // instantSet = true will not interpolate to the new position
-  void setLookat(const glm::vec3 &eye, const glm::vec3 &center,
-                 const glm::vec3 &up, bool instantSet = true);
+  void setLookat(const glm::vec3& eye, const glm::vec3& center,
+                 const glm::vec3& up, bool instantSet = true);
 
   // This should be called in an application loop to update the camera matrix if
   // this one is animated: new position, key movement
@@ -133,7 +139,7 @@ public:
   void setCamera(Camera camera, bool instantSet = true);
 
   // Retrieve the position, interest and up vector of the camera
-  void getLookat(glm::vec3 &eye, glm::vec3 &center, glm::vec3 &up) const;
+  void getLookat(glm::vec3& eye, glm::vec3& center, glm::vec3& up) const;
   glm::vec3 getEye() const { return m_current.eye; }
   glm::vec3 getCenter() const { return m_current.ctr; }
   glm::vec3 getUp() const { return m_current.up; }
@@ -145,24 +151,27 @@ public:
   Modes getMode() const { return m_mode; }
 
   // Retrieving the transformation matrix of the camera
-  const glm::mat4 &getViewMatrix() const { return m_matrix; }
+  const glm::mat4& getViewMatrix() const { return m_matrix; }
 
-  const glm::mat4 getPerspectiveMatrix() const {
+  const glm::mat4 getPerspectiveMatrix() const
+  {
     glm::mat4 projMatrix = glm::perspectiveRH_ZO(
         getRadFov(), getAspectRatio(), m_current.clip.x, m_current.clip.y);
-    projMatrix[1][1] *= -1; // Flip the Y axis
+    projMatrix[1][1] *= -1;  // Flip the Y axis
     return projMatrix;
   }
 
-  const glm::mat4 getViewProjection() const {
-    // getPerspectiveMatrix() already applies the Vulkan Y-flip once.
-    return getPerspectiveMatrix() * getViewMatrix();
+  const glm::mat4 getViewProjection() const
+  {
+    auto projMatrix = getPerspectiveMatrix();
+    projMatrix[1][1] *= -1;  // Flip the Y axis
+    return projMatrix * getViewMatrix();
   }
 
   // Set the position, interest from the matrix.
   // instantSet = true will not interpolate to the new position
   // centerDistance is the distance of the center from the eye
-  void setMatrix(const glm::mat4 &mat_, bool instantSet = true,
+  void setMatrix(const glm::mat4& mat_, bool instantSet = true,
                  float centerDistance = 1.f);
 
   // Changing the default speed movement
@@ -172,22 +181,23 @@ public:
   float getSpeed() const { return m_speed; }
 
   // Mouse position
-  void setMousePosition(const glm::vec2 &pos) { m_mouse = pos; }
+  void setMousePosition(const glm::vec2& pos) { m_mouse = pos; }
   glm::vec2 getMousePosition() const { return m_mouse; }
 
   // Main function which is called to apply a camera motion.
   // It is preferable to
-  void motion(const glm::vec2 &screenDisplacement, Actions action = NoAction);
+  void motion(const glm::vec2& screenDisplacement, Actions action = NoAction);
 
   // This is called when moving with keys (ex. WASD)
   void keyMotion(glm::vec2 delta, Actions action);
 
   // To call when the mouse wheel change
-  void wheel(float value, const Inputs &inputs);
+  void wheel(float value, const Inputs& inputs);
 
   // Retrieve the screen dimension
   glm::uvec2 getWindowSize() const { return m_windowSize; }
-  float getAspectRatio() const {
+  float getAspectRatio() const
+  {
     return static_cast<float>(m_windowSize.x) /
            static_cast<float>(m_windowSize.y);
   }
@@ -199,7 +209,7 @@ public:
 
   // Clip planes
   void setClipPlanes(glm::vec2 clip) { m_current.clip = clip; }
-  const glm::vec2 &getClipPlanes() const { return m_current.clip; }
+  const glm::vec2& getClipPlanes() const { return m_current.clip; }
 
   // Animation duration
   double getAnimationDuration() const { return m_duration; }
@@ -207,10 +217,10 @@ public:
   bool isAnimated() const { return m_animDone == false; }
 
   // Returning a default help string
-  const std::string &getHelp();
+  const std::string& getHelp();
 
   // Fitting the camera position and interest to see the bounding box
-  void fit(const glm::vec3 &boxMin, const glm::vec3 &boxMax,
+  void fit(const glm::vec3& boxMin, const glm::vec3& boxMax,
            bool instantFit = true, bool tight = false, float aspect = 1.0f);
 
   // Returns true if the camera has moved since the last call to setClean()
@@ -221,7 +231,8 @@ public:
 
 private:
   // Update the internal matrix.
-  void updateLookatMatrix() {
+  void updateLookatMatrix()
+  {
     m_matrix = glm::lookAt(m_current.eye, m_current.ctr, m_current.up);
   }
 
@@ -235,16 +246,16 @@ private:
 
   double getSystemTime();
 
-  glm::vec3 computeBezier(float t, glm::vec3 &p0, glm::vec3 &p1, glm::vec3 &p2);
+  glm::vec3 computeBezier(float t, glm::vec3& p0, glm::vec3& p1, glm::vec3& p2);
   void findBezierPoints();
 
 protected:
   glm::mat4 m_matrix = glm::mat4(1);
 
-  Camera m_current;  // Current camera position
-  Camera m_goal;     // Wish camera position
-  Camera m_snapshot; // Current camera the moment a set look-at is done
-  Camera m_lastSync; // To track the state used for the last render frame
+  Camera m_current;   // Current camera position
+  Camera m_goal;      // Wish camera position
+  Camera m_snapshot;  // Current camera the moment a set look-at is done
+  Camera m_lastSync;  // To track the state used for the last render frame
 
   // Animation
   std::array<glm::vec3, 3> m_bezier = {};
@@ -264,6 +275,6 @@ protected:
 
 // Global Manipulator
 
-} // namespace core
+}  // namespace core
 
 using CameraPtr = std::shared_ptr<core::CameraManipulator>;

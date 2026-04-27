@@ -38,16 +38,18 @@
 
 #pragma once
 
-#include "IconsMaterialSymbols.h" // ICON_MS definitions
+#include "IconsMaterialSymbols.h"  // ICON_MS definitions
 
 struct ImFont;
 
-namespace app {
+namespace app
+{
 
 void addDefaultFont(float fontSize = 15.F,
-                    bool appendIcons = true); // Initializes the default font.
-ImFont *getDefaultFont();                     // Returns the default font.
-void addMonospaceFont(float fontSize = 15.F); // Initializes the monospace font.
-ImFont *getMonospaceFont();                   // Returns the monospace font
+                    bool appendIcons = true);  // Initializes the default font.
+ImFont* getDefaultFont();                      // Returns the default font.
+void addMonospaceFont(
+    float fontSize = 15.F);  // Initializes the monospace font.
+ImFont* getMonospaceFont();  // Returns the monospace font
 
-} // namespace app
+}  // namespace app

@@ -19,12 +19,13 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include "core/profiler.hpp"
 #include "parameter_parser.hpp"
 
-#include <filesystem>
-
-namespace app::cli {
+namespace app::cli
+{
 
 // The ParameterSequencer class allows parsing a parameter file
 // in sequences. Each sequence starts with the "SEQUENCE" keyword
@@ -49,27 +50,31 @@ namespace app::cli {
 // averaging. After each sequence a report is generated from the profiler and
 // logged via `LogLevel::eSTATS`.
 
-class ParameterSequencer {
+class ParameterSequencer
+{
 public:
   // Information passed to InitInfo::postCallbacks about the sequence that
   // just ran.
-  struct State {
-    uint32_t index = 0;      // Sequence index within script
-    std::string description; // Sequence description within script
+  struct State
+  {
+    uint32_t index = 0;       // Sequence index within script
+    std::string description;  // Sequence description within script
   };
 
-  class InitInfo {
+  class InitInfo
+  {
   public:
     // the parameters sequence is provided either as content string or as
     // filename.
-    std::string scriptContent;            // parameter: "sequencestring"
-    std::filesystem::path scriptFilename; // parameter: "sequencefile"
+    std::string scriptContent;             // parameter: "sequencestring"
+    std::filesystem::path scriptFilename;  // parameter: "sequencefile"
 
     // registers the above using this
-    void registerScriptParameters(ParameterRegistry &registry,
-                                  ParameterParser &parser);
+    void registerScriptParameters(ParameterRegistry& registry,
+                                  ParameterParser& parser);
 
-    bool hasScript() const {
+    bool hasScript() const
+    {
       return !scriptFilename.empty() || !scriptContent.empty();
     }
 
@@ -78,26 +83,26 @@ public:
     // `parameterRegistry` at `ParameterSequencer::init` time.
 
     // how many frames each sequence is running
-    uint32_t sequenceFrameCount = 128; // parameter: "sequenceframes"
+    uint32_t sequenceFrameCount = 128;  // parameter: "sequenceframes"
     // how many frames to delay measuring frames in profiler
-    uint32_t profilerResetFrameCount = 8; // parameter: "sequenceresetframes"
+    uint32_t profilerResetFrameCount = 8;  // parameter: "sequenceresetframes"
     // how many last N frames to average (0 averages entire sequence)
     uint32_t profilerAverageCount =
-        core::ProfilerTimeline::MAX_LAST_FRAMES; // parameter:
-                                                 // "sequenceaverages"
+        core::ProfilerTimeline::MAX_LAST_FRAMES;  // parameter:
+                                                  // "sequenceaverages"
 
     // mandatory, the scripts are parsed using this parser
-    ParameterParser *parameterParser{};
+    ParameterParser* parameterParser{};
     // mandatory, the internal parameters are registered here
-    ParameterRegistry *parameterRegistry{};
+    ParameterRegistry* parameterRegistry{};
 
     // optional, after each sequence we print the results provided from this
     // manager
-    core::ProfilerManager *profilerManager{};
+    core::ProfilerManager* profilerManager{};
 
     // To get called after a new benchmark setting.
     // The input to each function is the description of the previous benchmark.
-    std::vector<std::function<void(const State &)>> postCallbacks;
+    std::vector<std::function<void(const State&)>> postCallbacks;
   };
 
   // The script is parsed using the provided `parameterParser` (must be kept
@@ -109,7 +114,7 @@ public:
   //
   // Returns `true` if the script content or file was provided and was loaded
   // successfully and the sequence can be run.
-  bool init(const InitInfo &initInfo);
+  bool init(const InitInfo& initInfo);
 
   // The user must continue to generate frames until this is true
   bool isCompleted() const { return m_completed; }
@@ -140,4 +145,4 @@ protected:
   // Info about the current sequence
   State m_sequenceState = {};
 };
-} // namespace app::cli
+}  // namespace app::cli

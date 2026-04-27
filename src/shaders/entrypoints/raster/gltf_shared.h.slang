@@ -77,7 +77,7 @@ float3 computeFragmentColor(SceneInfo sceneInfo,
 
     case MaterialType::eGltfPbr:
     default: {
-        LightSample light = sampleLight(sceneInfo, stage.worldPos);
+        LightSample light = sampleLight(&sceneInfo, stage.worldPos);
 
         float3 V = normalize(sceneInfo.cameraPosition - stage.worldPos);
         float3 N = normalize(stage.worldNormal);

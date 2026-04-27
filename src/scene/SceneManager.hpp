@@ -9,36 +9,38 @@
 #include "SceneResources.hpp"
 #include "core/Camera.hpp"
 
-namespace shaderio {
+namespace shaderio
+{
 struct TonemapperData;
 }
 
 class IRenderContext;
 
-class SceneManager {
+class SceneManager
+{
 public:
   SceneManager() = default;
   explicit SceneManager(std::shared_ptr<IDeviceAssets> deviceResources);
   void clear();
 
-  void buildSceneFromData(const SceneData &data,
-                          const std::vector<std::filesystem::path> &searchDirs);
+  void buildSceneFromData(const SceneData& data,
+                          const std::vector<std::filesystem::path>& searchDirs);
   // --------------------------------------------------
   // Scene / Resources
   // --------------------------------------------------
   void onPreRender();
-  Scene *getScenePtr();
-  Scene &gltfResources();
-  const Scene &gltfResources() const;
-  SceneResourcesManager &sceneResourceManager();
-  const SceneResourcesManager &sceneResourceManager() const;
+  Scene* getScenePtr();
+  Scene& gltfResources();
+  const Scene& gltfResources() const;
+  SceneResourcesManager& sceneResourceManager();
+  const SceneResourcesManager& sceneResourceManager() const;
 
   void onEndFrame();
 
   // --------------------------------------------------
   // Rendering parameters
   // --------------------------------------------------
-  shaderio::SceneInfo &sceneInfo();
+  shaderio::SceneInfo& sceneInfo();
 
   // --------------------------------------------------
   // Camera

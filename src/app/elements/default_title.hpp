@@ -26,7 +26,8 @@
 #include "app/IAppElement.hpp"
 #include "renderer/interfaces/IRenderer.hpp"
 
-namespace app {
+namespace app
+{
 
 /*-------------------------------------------------------------------------------------------------
 # class core::ElementDefaultWindowTitle
@@ -41,24 +42,25 @@ To use this class, you need to add it to the `core::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultWindowTitle : public IAppElement {
+class ElementDefaultWindowTitle : public IAppElement
+{
 public:
   ElementDefaultWindowTitle(std::string prefix = "", std::string suffix = "");
 
-  void onAttach(Application *app) override;
+  void onAttach(Application* app) override;
   void onUIRender() override;
-  void setPrefix(const std::string &str);
-  void setSuffix(const std::string &str);
+  void setPrefix(const std::string& str);
+  void setSuffix(const std::string& str);
 
-  void setRenderer(const IRenderer *renderer);
+  void setRenderer(const IRenderer* renderer);
 
 private:
-  Application *m_app{nullptr};
-  const IRenderer *m_renderer{nullptr};
+  Application* m_app{nullptr};
+  const IRenderer* m_renderer{nullptr};
 
   float m_dirtyTimer{0.0F};
   std::string m_prefix;
   std::string m_suffix;
 };
 
-} // namespace app
+}  // namespace app

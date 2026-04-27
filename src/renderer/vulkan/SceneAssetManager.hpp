@@ -1,11 +1,12 @@
 #pragma once
 
-#include <map>
-#include <nvvk/descriptors.hpp>
-#include <span>
-#include <vector>
 #include <vulkan/vulkan.h>
 
+#include <map>
+#include <span>
+#include <vector>
+
+#include <nvvk/descriptors.hpp>
 #include <nvvk/sampler_pool.hpp>
 
 // Project Includes
@@ -15,42 +16,47 @@
 #include "shaders/shared/bindings.h"
 
 // Forward Declarations
-namespace tinygltf {
+namespace tinygltf
+{
 class Model;
 }
-namespace nvvk {
+namespace nvvk
+{
 class DescriptorPack;
 class StagingUploader;
-} // namespace nvvk
-namespace core {
+}  // namespace nvvk
+namespace core
+{
 struct PrimitiveMesh;
 }
 
 // Holds the GPU-side buffers for the scene geometry and assets
-struct VulkanSceneGpuData {
+struct VulkanSceneGpuData
+{
   // Shader Storage Buffers (SSBOs)
-  nvvk::Buffer bMeshes;    // Mesh metadata array
-  nvvk::Buffer bInstances; // Instance metadata array
-  nvvk::Buffer bMaterials; // Material data array
+  nvvk::Buffer bMeshes;     // Mesh metadata array
+  nvvk::Buffer bInstances;  // Instance metadata array
+  nvvk::Buffer bMaterials;  // Material data array
 
   // Uniform Buffers (UBOs)
-  nvvk::Buffer bSceneInfo;      // Global SceneInfo struct
-  nvvk::Buffer bSceneResources; // Pointers to other buffers (BDA)
+  nvvk::Buffer bSceneInfo;       // Global SceneInfo struct
+  nvvk::Buffer bSceneResources;  // Pointers to other buffers (BDA)
 
   std::vector<nvvk::Buffer>
-      bDatas; // Binary data per scene (Vertex/Index buffers)
+      bDatas;  // Binary data per scene (Vertex/Index buffers)
   // Mapping: meshToBufferIndex[meshIndex] -> bufferIndex in bGltfDatas
   std::unordered_map<IDeviceAssets::MeshID, uint32_t> meshToBufferIndex;
 };
 
 // Concrete implementation of resource uploading/management for Vulkan.
-class VulkanSceneAssetManager final : public IDeviceAssets {
+class VulkanSceneAssetManager final : public IDeviceAssets
+{
 public:
   // -------------------------------------------------------------------------
   // 1. Lifecycle & Upload Flow
   //    Init/Deinit and command buffer management for staging uploads.
   // -------------------------------------------------------------------------
-  explicit VulkanSceneAssetManager(VulkanContextManager *backend);
+  explicit VulkanSceneAssetManager(VulkanContextManager* backend);
   void deinit() override;
   void clear();
 
@@ -62,34 +68,34 @@ public:
   //    Uploading static model data (GLTF buffers) and initial mesh setup.
   // -------------------------------------------------------------------------
   IDeviceAssets::BufferHandle
-  upload(const std::span<const uint8_t> &data) override;
+  upload(const std::span<const uint8_t>& data) override;
   void destroyBuffer(BufferID id) override;
 
   void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
-  void uploadSceneResoures(const Scene &resources) override;
+  void uploadSceneResoures(const Scene& resources) override;
 
-  const VulkanSceneGpuData &deviceResources() const { return m_data; }
-  const nvvk::Buffer &getBufferFromIndex(MeshID meshIndex) const;
+  const VulkanSceneGpuData& deviceResources() const { return m_data; }
+  const nvvk::Buffer& getBufferFromIndex(MeshID meshIndex) const;
 
   // -------------------------------------------------------------------------
   // 3. Scene Data Updates (Per-Frame / Dynamic)
   //    Updating SSBOs and UBOs when scene state changes (animation, editing).
   // -------------------------------------------------------------------------
-  void update(const std::vector<shaderio::MeshPrimitive> &) override;
-  void update(const std::vector<shaderio::Instance> &) override;
-  void update(const std::vector<shaderio::Material> &) override;
+  void update(const std::vector<shaderio::MeshPrimitive>&) override;
+  void update(const std::vector<shaderio::Instance>&) override;
+  void update(const std::vector<shaderio::Material>&) override;
 
-  shaderio::SceneInfo *update(VkCommandBuffer cmd,
-                              const shaderio::SceneInfo &sceneInfo) const;
+  VkDeviceAddress update(VkCommandBuffer cmd,
+                         const shaderio::SceneInfo& sceneInfo) const;
   void updateSceneResources() const;
-  shaderio::SceneResources *getSceneResources() const;
+  VkDeviceAddress getSceneResources() const;
 
   // -------------------------------------------------------------------------
   // 4. Texture & Bindless Descriptor Management
   //    Handling image creation, GPU upload, and descriptor set manipulation.
   // -------------------------------------------------------------------------
   bool destroyTexture(TextureID id) override;
-  bool addAndUploadTexture(const core::Image &image, TextureID &id,
+  bool addAndUploadTexture(const core::Image& image, TextureID& id,
                            bool immediate = false) override;
   TextureID reserveTextureSlot() override;
   uint64_t getTextureHandle(TextureID id) override;
@@ -98,42 +104,43 @@ public:
 
   // Accessors
   uint32_t getMaximumNumberOfTextures() const { return MAX_SCENE_TEXTURES; }
-  const std::map<TextureID, nvvk::Image> &textures() const {
+  const std::map<TextureID, nvvk::Image>& textures() const
+  {
     return m_textures;
   }
-  nvvk::SamplerPool &samplerPool() { return m_samplerPool; }
-  const nvvk::DescriptorPack &getDesriptorPack() const { return m_descPack; }
+  nvvk::SamplerPool& samplerPool() { return m_samplerPool; }
+  const nvvk::DescriptorPack& getDesriptorPack() const { return m_descPack; }
 
 private:
   // -------------------------------------------------------------------------
   // 5. Internal Texture & Descriptor Helpers
   // -------------------------------------------------------------------------
   void createDesctriptorLayout();
-  void pushTextureUpdates(const std::map<TextureID, nvvk::Image> &updates);
-  nvvk::Image createImageFromRaw(const core::Image &raw,
-                                 nvvk::StagingUploader &staging,
+  void pushTextureUpdates(const std::map<TextureID, nvvk::Image>& updates);
+  nvvk::Image createImageFromRaw(const core::Image& raw,
+                                 nvvk::StagingUploader& staging,
                                  bool sRgb = true);
 
   // -------------------------------------------------------------------------
   // 6. Internal Buffer Lifecycle Helpers
   // -------------------------------------------------------------------------
-  bool registerTexture(const core::Image &image, TextureID &id);
-  void createSceneBuffers(const Scene &sceneResources);
+  bool registerTexture(const core::Image& image, TextureID& id);
+  void createSceneBuffers(const Scene& sceneResources);
   void clearSceneBuffers();
   void updateSceneResources(VkCommandBuffer cmd) const;
-  void uploadTextures(); // Legacy/Batch update
-  void updateTextureDescriptorSets(const std::vector<TextureID> &indices);
+  void uploadTextures();  // Legacy/Batch update
+  void updateTextureDescriptorSets(const std::vector<TextureID>& indices);
 
-  void allocBuffer(nvvk::Buffer &buffer, size_t bytes,
+  void allocBuffer(nvvk::Buffer& buffer, size_t bytes,
                    VkBufferUsageFlags2KHR usage);
-  void destroyBuffer(nvvk::Buffer &buffer);
+  void destroyBuffer(nvvk::Buffer& buffer);
 
   template <typename T>
-  void createBuffer(nvvk::Buffer &buffer, const std::span<T> &dataSpan,
+  void createBuffer(nvvk::Buffer& buffer, const std::span<T>& dataSpan,
                     VkBufferUsageFlags2KHR usage);
 
   template <typename T>
-  void updateBuffer(nvvk::Buffer &buffer, std::span<T> &&dataSpan);
+  void updateBuffer(nvvk::Buffer& buffer, std::span<T>&& dataSpan);
 
   // -------------------------------------------------------------------------
   // Constants
@@ -153,7 +160,7 @@ private:
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
-  VulkanContextManager *m_context_manager = nullptr;
+  VulkanContextManager* m_context_manager = nullptr;
   VulkanSceneGpuData m_data{};
 
   // Textures & Descriptors
@@ -167,5 +174,5 @@ private:
   uint32_t m_meshIdCounter = 0;
   std::vector<BufferID> m_freeBufferIndices;
   std::vector<TextureID> m_freeTextureIndices;
-  uint m_nextTextureId{1}; // 0 is reserved for system
+  uint m_nextTextureId{1};  // 0 is reserved for system
 };

@@ -187,7 +187,7 @@ void MetalRasterPass::execute(const IRenderContext &ctx)
 
     // Start from frame-global push constants and patch only draw-local state.
     shaderio::PushConstant pc = metalCtx.pushValues;
-    pc.transform = inst.transform;
+    pc.normalMatrix = glm::transpose(glm::inverse(glm::mat3(inst.transform)));
     pc.instanceIndex = static_cast<int>(i);
     // Slang compiles [[vk::push_constant]] to buffer(0) on both stages.
     auto size = sizeof(pc);

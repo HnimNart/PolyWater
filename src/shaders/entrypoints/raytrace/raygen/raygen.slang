@@ -1,6 +1,8 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
 
+/**********************************************************/
 [shader("raygeneration")] void rgenMain()
+/**********************************************************/
 {
   // --- CONFIG ---
   RenderParams params = pushConst.renderParams;
@@ -10,7 +12,7 @@
   // --- SETUP ---
   uint2 launchID = DispatchRaysIndex().xy;
   float2 launchSize = (float2) DispatchRaysDimensions().xy;
-  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress.get();
 
   float3 finalPixelColor = float3(0, 0, 0);
 

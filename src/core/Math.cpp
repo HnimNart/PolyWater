@@ -1,9 +1,9 @@
 #include "Math.hpp"
 
 /**********************************************************/
-glm::mat4 math::composeTransform(const glm::vec3 &translation,
-                                 const glm::vec4 &rotationRaw,
-                                 const glm::vec3 &scale)
+glm::mat4 math::composeTransform(const glm::vec3& translation,
+                                 const glm::vec4& rotationRaw,
+                                 const glm::vec3& scale)
 /**********************************************************/
 {
   glm::quat rotation = toQuat(rotationRaw);
@@ -14,21 +14,21 @@ glm::mat4 math::composeTransform(const glm::vec3 &translation,
 }
 
 /**********************************************************/
-glm::quat math::toQuat(const glm::vec4 &rotationRaw)
+glm::quat math::toQuat(const glm::vec4& rotationRaw)
 /**********************************************************/
 {
   return glm::quat(rotationRaw.w, rotationRaw.x, rotationRaw.y, rotationRaw.z);
 }
 
 /**********************************************************/
-glm::vec4 math::fromQuat(const glm::quat &quat)
+glm::vec4 math::fromQuat(const glm::quat& quat)
 /**********************************************************/
 {
   return glm::vec4(quat.x, quat.y, quat.z, quat.w);
 }
 
 /**********************************************************/
-glm::vec4 math::eulerToQuat(const glm::vec3 &euler)
+glm::vec4 math::eulerToQuat(const glm::vec3& euler)
 /**********************************************************/
 {
   glm::quat quat = glm::quat(glm::radians(euler));
@@ -36,8 +36,8 @@ glm::vec4 math::eulerToQuat(const glm::vec3 &euler)
 }
 
 /**********************************************************/
-bool math::rayAABBIntersection(const Ray &ray, const glm::vec3 &boxMin,
-                               const glm::vec3 &boxMax, float &t)
+bool math::rayAABBIntersection(const Ray& ray, const glm::vec3& boxMin,
+                               const glm::vec3& boxMax, float& t)
 /**********************************************************/
 {
   glm::vec3 dirInv = 1.0f / ray.direction;
@@ -54,7 +54,8 @@ bool math::rayAABBIntersection(const Ray &ray, const glm::vec3 &boxMin,
   float tmax =
       glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
 
-  if (tmax < 0 || tmin > tmax) {
+  if (tmax < 0 || tmin > tmax)
+  {
     t = tmax;
     return false;
   }

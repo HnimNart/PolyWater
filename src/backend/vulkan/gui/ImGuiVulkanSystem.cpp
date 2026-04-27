@@ -42,10 +42,11 @@ ImGuiVulkanSystem::~ImGuiVulkanSystem()
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::init(const app::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::init(const app::ApplicationCreateInfo& info)
 /**********************************************************/
 {
-  if (m_contextCreated) {
+  if (m_contextCreated)
+  {
     return;
   }
 
@@ -71,7 +72,8 @@ void ImGuiVulkanSystem::deinit()
 void ImGuiVulkanSystem::destroyContext()
 /**********************************************************/
 {
-  if (!m_contextCreated) {
+  if (!m_contextCreated)
+  {
     return;
   }
 
@@ -84,7 +86,7 @@ void ImGuiVulkanSystem::destroyContext()
  *****************************************************************************/
 
 /**********************************************************/
-void ImGuiVulkanSystem::setupImGui(const app::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::setupImGui(const app::ApplicationCreateInfo& info)
 /**********************************************************/
 {
   m_iniFilename =
@@ -99,13 +101,14 @@ void ImGuiVulkanSystem::setupImGui(const app::ApplicationCreateInfo &info)
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo &info)
+void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo& info)
 /**********************************************************/
 {
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags = info.imguiConfigFlags;
 
-  if (info.headless) {
+  if (info.headless)
+  {
     io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
   }
 
@@ -116,7 +119,7 @@ void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo &info)
 void ImGuiVulkanSystem::initializeFonts()
 /**********************************************************/
 {
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
 
   app::addDefaultFont();
   io.FontDefault = app::getDefaultFont();
@@ -128,13 +131,14 @@ void ImGuiVulkanSystem::initializeFonts()
  *****************************************************************************/
 
 /**********************************************************/
-void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager &coreManager,
+void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager& coreManager,
                                           uint maxFramesInFlight,
                                           VkFormat imageFormat,
-                                          GLFWwindow *windowHandle)
+                                          GLFWwindow* windowHandle)
 /**********************************************************/
 {
-  if (m_vulkanInitialized) {
+  if (m_vulkanInitialized)
+  {
     return;
   }
 
@@ -145,10 +149,11 @@ void ImGuiVulkanSystem::initVulkanBackend(VulkanContextManager &coreManager,
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow *windowHandle)
+void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow* windowHandle)
 /**********************************************************/
 {
-  if (windowHandle) {
+  if (windowHandle)
+  {
     ImGui_ImplGlfw_InitForVulkan(windowHandle, true);
     m_glfwInitialized = true;
   }
@@ -156,7 +161,7 @@ void ImGuiVulkanSystem::initializeGlfwBackend(GLFWwindow *windowHandle)
 
 /**********************************************************/
 void ImGuiVulkanSystem::initializeVulkanBackend(
-    VulkanContextManager &coreManager, uint max_frames_in_flight,
+    VulkanContextManager& coreManager, uint max_frames_in_flight,
     VkFormat _imageFormat)
 /**********************************************************/
 {
@@ -187,11 +192,13 @@ void ImGuiVulkanSystem::initializeVulkanBackend(
 void ImGuiVulkanSystem::shutdownVulkanBackend()
 /**********************************************************/
 {
-  if (!m_vulkanInitialized) {
+  if (!m_vulkanInitialized)
+  {
     return;
   }
-  ImGui_ImplVulkan_Shutdown(); // Optional
-  if (m_glfwInitialized) {
+  ImGui_ImplVulkan_Shutdown();  // Optional
+  if (m_glfwInitialized)
+  {
     ImGui_ImplGlfw_Shutdown();
   }
   m_vulkanInitialized = false;
@@ -205,11 +212,13 @@ void ImGuiVulkanSystem::shutdownVulkanBackend()
 void ImGuiVulkanSystem::beginFrame()
 /**********************************************************/
 {
-  if (m_vulkanInitialized) {
+  if (m_vulkanInitialized)
+  {
     ImGui_ImplVulkan_NewFrame();
   }
 
-  if (m_glfwInitialized) {
+  if (m_glfwInitialized)
+  {
     ImGui_ImplGlfw_NewFrame();
   }
   ImGui::NewFrame();
@@ -234,17 +243,18 @@ void ImGuiVulkanSystem::render()
 void ImGuiVulkanSystem::renderViewports()
 /**********************************************************/
 {
-  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  {
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
   }
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::onRender(const IRenderContext &ctx)
+void ImGuiVulkanSystem::onRender(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const VulkanRenderContext &vkContext = VulkanRenderContext::get(ctx);
+  const VulkanRenderContext& vkContext = VulkanRenderContext::get(ctx);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vkContext.cmdBuffer);
 }
 
@@ -254,13 +264,15 @@ void ImGuiVulkanSystem::onRender(const IRenderContext &ctx)
 
 /**********************************************************/
 void ImGuiVulkanSystem::renderMenu(
-    const std::vector<std::shared_ptr<app::IAppElement>> &elements)
+    const std::vector<std::shared_ptr<app::IAppElement>>& elements)
 /**********************************************************/
 {
   setupImguiDock();
 
-  if (ImGui::BeginMainMenuBar()) {
-    for (const auto &element : elements) {
+  if (ImGui::BeginMainMenuBar())
+  {
+    for (const auto& element : elements)
+    {
       element->onUIMenu();
     }
     ImGui::EndMainMenuBar();
@@ -279,7 +291,8 @@ void ImGuiVulkanSystem::setupImguiDock()
       ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
 
   if (!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() &&
-      !ImGui::FindWindowByName("Viewport")) {
+      !ImGui::FindWindowByName("Viewport"))
+  {
     setupDefaultDockLayout(dockID);
   }
 }
@@ -292,9 +305,12 @@ void ImGuiVulkanSystem::setupDefaultDockLayout(ImGuiID dockID)
   ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |=
       ImGuiDockNodeFlags_NoTabBar;
 
-  if (m_dockSetup) {
+  if (m_dockSetup)
+  {
     m_dockSetup(dockID);
-  } else {
+  }
+  else
+  {
     createDefaultLayout(dockID);
   }
 }
@@ -313,12 +329,13 @@ void ImGuiVulkanSystem::createDefaultLayout(ImGuiID dockID)
  *****************************************************************************/
 
 /**********************************************************/
-bool ImGuiVulkanSystem::getWindowSize(const std::string &windowName,
-                                      WindowSize &size)
+bool ImGuiVulkanSystem::getWindowSize(const std::string& windowName,
+                                      WindowSize& size)
 /**********************************************************/
 {
-  const ImGuiWindow *viewport = ImGui::FindWindowByName(windowName.c_str());
-  if (!viewport) {
+  const ImGuiWindow* viewport = ImGui::FindWindowByName(windowName.c_str());
+  if (!viewport)
+  {
     return false;
   }
 
@@ -327,10 +344,10 @@ bool ImGuiVulkanSystem::getWindowSize(const std::string &windowName,
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::setWindowSize(const WindowSize &size)
+void ImGuiVulkanSystem::setWindowSize(const WindowSize& size)
 /**********************************************************/
 {
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize.x = float(size.width);
   io.DisplaySize.y = float(size.height);
 }
@@ -339,25 +356,28 @@ void ImGuiVulkanSystem::setWindowSize(const WindowSize &size)
 void ImGuiVulkanSystem::setConfigFlags(unsigned int flags)
 /**********************************************************/
 {
-  if (m_contextCreated) {
+  if (m_contextCreated)
+  {
     ImGui::GetIO().ConfigFlags |= flags;
   }
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::loadSettings(const char *filename)
+void ImGuiVulkanSystem::loadSettings(const char* filename)
 /**********************************************************/
 {
-  if (m_contextCreated) {
+  if (m_contextCreated)
+  {
     ImGui::LoadIniSettingsFromDisk(filename);
   }
 }
 
 /**********************************************************/
-void ImGuiVulkanSystem::saveSettings(const char *filename)
+void ImGuiVulkanSystem::saveSettings(const char* filename)
 /**********************************************************/
 {
-  if (m_contextCreated) {
+  if (m_contextCreated)
+  {
     ImGui::SaveIniSettingsToDisk(filename);
   }
 }

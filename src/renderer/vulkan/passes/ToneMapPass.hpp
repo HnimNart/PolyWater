@@ -12,38 +12,39 @@
 #include "renderer/interfaces/IRenderGraph.hpp"
 #include "renderer/interfaces/IToneMapper.hpp"
 
-class ToneMapPass : public IToneMapper, public IRenderPass {
+class ToneMapPass : public IToneMapper, public IRenderPass
+{
 public:
-  ToneMapPass(VulkanContextManager *core, RenderOutput input);
+  ToneMapPass(VulkanContextManager* core, RenderOutput input);
   ~ToneMapPass() override;
 
   void init() override;
 
-  void setup(PassBuilder &builder) override;
+  void setup(PassBuilder& builder) override;
   void deinit() override;
-  void execute(const IRenderContext &ctx) override;
+  void execute(const IRenderContext& ctx) override;
 
   // Explicitly non-copyable
-  ToneMapPass(const ToneMapPass &) = delete;
-  ToneMapPass &operator=(const ToneMapPass &) = delete;
+  ToneMapPass(const ToneMapPass&) = delete;
+  ToneMapPass& operator=(const ToneMapPass&) = delete;
 
-  VkResult init(nvvk::ResourceAllocator *alloc,
+  VkResult init(nvvk::ResourceAllocator* alloc,
                 std::span<const uint32_t> spirv);
-  void destroyResources();
 
-  void runCompute(VkCommandBuffer cmd, const VkExtent2D &size,
-                  const shaderio::TonemapperData &tonemapper,
-                  const VkDescriptorImageInfo &inImage,
-                  const VkDescriptorImageInfo &outImage);
+  void runCompute(VkCommandBuffer cmd, const VkExtent2D& size,
+                  const shaderio::TonemapperData& tonemapper,
+                  const VkDescriptorImageInfo& inImage,
+                  const VkDescriptorImageInfo& outImage);
 
 private:
+  VulkanContextManager* m_core = nullptr;
   RenderOutput m_input;
-  void runAutoExposureHistogram(VkCommandBuffer cmd, const VkExtent2D &size,
-                                const VkDescriptorImageInfo &inImage);
+  void runAutoExposureHistogram(VkCommandBuffer cmd, const VkExtent2D& size,
+                                const VkDescriptorImageInfo& inImage);
   void runAutoExposure(VkCommandBuffer cmd);
   void clearHistogram(VkCommandBuffer cmd);
 
-  nvvk::ResourceAllocator *m_alloc{};
+  nvvk::ResourceAllocator* m_alloc{};
 
   VkDevice m_device{};
   nvvk::DescriptorPack m_descriptorPack;
@@ -52,11 +53,10 @@ private:
   VkPipeline m_histogramPipeline{};
   VkPipeline m_exposurePipeline{};
 
-  core::PerformanceTimer m_timer; // Timer for performance measurement
+  core::PerformanceTimer m_timer;  // Timer for performance measurement
 
   // Auto-Exposure
   nvvk::Buffer m_exposureBuffer;
   nvvk::Buffer m_histogramBuffer;
-  VulkanContextManager *m_context = nullptr;
   bool m_initialized = false;
 };

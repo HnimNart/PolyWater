@@ -5,7 +5,8 @@
 #include <filesystem>
 #include <string>
 
-namespace core {
+namespace core
+{
 
 // ========================================================================
 // String Manipulation Utilities
@@ -20,7 +21,8 @@ namespace core {
 inline std::string capitalize(std::string str)
 /**********************************************************/
 {
-  if (!str.empty()) {
+  if (!str.empty())
+  {
     // Use unsigned char cast for safety with std::toupper
     str[0] =
         static_cast<char>(std::toupper(static_cast<unsigned char>(str[0])));
@@ -33,7 +35,7 @@ inline std::string capitalize(std::string str)
  * @param str The string to modify.
  */
 /**********************************************************/
-inline void toLower(std::string &str)
+inline void toLower(std::string& str)
 /**********************************************************/
 {
   std::transform(str.begin(), str.end(), str.begin(),
@@ -47,11 +49,12 @@ inline void toLower(std::string &str)
  * both ends.
  */
 /**********************************************************/
-inline std::string trim(const std::string &str)
+inline std::string trim(const std::string& str)
 /**********************************************************/
 {
   const auto first = str.find_first_not_of(" \t\n\r");
-  if (first == std::string::npos) {
+  if (first == std::string::npos)
+  {
     return "";
   }
   const auto last = str.find_last_not_of(" \t\n\r");
@@ -68,7 +71,7 @@ inline std::string trim(const std::string &str)
  * @return The parent directory path (e.g., "assets/models").
  */
 /**********************************************************/
-inline std::string getDirectory(const std::string &filepath)
+inline std::string getDirectory(const std::string& filepath)
 /**********************************************************/
 {
   return std::filesystem::path(filepath).parent_path().string();
@@ -80,7 +83,7 @@ inline std::string getDirectory(const std::string &filepath)
  * @return The filename with its extension (e.g., "helmet.gltf").
  */
 /**********************************************************/
-inline std::string getFilename(const std::string &path)
+inline std::string getFilename(const std::string& path)
 /**********************************************************/
 {
   return std::filesystem::path(path).filename().string();
@@ -93,12 +96,13 @@ inline std::string getFilename(const std::string &path)
  * exists.
  */
 /**********************************************************/
-inline std::string getExtension(const std::string &filename)
+inline std::string getExtension(const std::string& filename)
 /**********************************************************/
 {
   std::string ext = "";
   size_t dotPos = filename.find_last_of(".");
-  if (dotPos != std::string::npos) {
+  if (dotPos != std::string::npos)
+  {
     ext = filename.substr(dotPos);
   }
   return ext;
@@ -112,7 +116,7 @@ inline std::string getExtension(const std::string &filename)
  * "helmet").
  */
 /**********************************************************/
-inline std::string getLowercasedStem(const std::string &filepath)
+inline std::string getLowercasedStem(const std::string& filepath)
 /**********************************************************/
 {
   std::string stem = std::filesystem::path(filepath).stem().string();
@@ -122,10 +126,10 @@ inline std::string getLowercasedStem(const std::string &filepath)
 }
 
 /**********************************************************/
-inline std::string getFileName(const std::string &path)
+inline std::string getFileName(const std::string& path)
 /**********************************************************/
 {
   return std::filesystem::path(path).filename().string();
 }
 
-} // namespace core
+}  // namespace core

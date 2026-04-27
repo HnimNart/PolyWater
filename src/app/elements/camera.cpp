@@ -25,13 +25,13 @@
 /**********************************************************/
 void app::ElementCamera::updateCamera(
     std::shared_ptr<core::CameraManipulator> cameraManip,
-    ImGuiWindow *viewportWindow)
+    ImGuiWindow* viewportWindow)
 /**********************************************************/
 {
-  core::CameraManipulator::Inputs inputs; // Mouse and keyboard inputs
+  core::CameraManipulator::Inputs inputs;  // Mouse and keyboard inputs
 
-  cameraManip->updateAnim(); // This makes the camera to transition smoothly to
-                             // the new position
+  cameraManip->updateAnim();  // This makes the camera to transition smoothly to
+                              // the new position
 
   // Check if the mouse cursor is over the "Viewport", check for all inputs that
   // can manipulate the camera.
@@ -50,47 +50,56 @@ void app::ElementCamera::updateCamera(
   ImVec2 mousePos = ImGui::GetMousePos();
 
   // None of the modifiers should be pressed for the single key: WASD and arrows
-  if (!inputs.alt) {
+  if (!inputs.alt)
+  {
     // Speed of the camera movement when using WASD and arrows
     float keyMotionFactor = ImGui::GetIO().DeltaTime;
-    if (inputs.shift) {
-      keyMotionFactor *= 5.0F; // Speed up the camera movement
+    if (inputs.shift)
+    {
+      keyMotionFactor *= 5.0F;  // Speed up the camera movement
     }
-    if (inputs.ctrl) {
-      keyMotionFactor *= 0.1F; // Slow down the camera movement
+    if (inputs.ctrl)
+    {
+      keyMotionFactor *= 0.1F;  // Slow down the camera movement
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_W)) {
+    if (ImGui::IsKeyDown(ImGuiKey_W))
+    {
       cameraManip->keyMotion({keyMotionFactor, 0},
                              core::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_S)) {
+    if (ImGui::IsKeyDown(ImGuiKey_S))
+    {
       cameraManip->keyMotion({-keyMotionFactor, 0},
                              core::CameraManipulator::Dolly);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
+    if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow))
+    {
       cameraManip->keyMotion({keyMotionFactor, 0},
                              core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
+    if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))
+    {
       cameraManip->keyMotion({-keyMotionFactor, 0},
                              core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
+    if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
+    {
       cameraManip->keyMotion({0, keyMotionFactor},
                              core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
+    if (ImGui::IsKeyDown(ImGuiKey_DownArrow))
+    {
       cameraManip->keyMotion({0, -keyMotionFactor},
                              core::CameraManipulator::Pan);
       inputs.shift = inputs.ctrl = false;
@@ -99,23 +108,26 @@ void app::ElementCamera::updateCamera(
 
   if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
       ImGui::IsMouseClicked(ImGuiMouseButton_Middle) ||
-      ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+      ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+  {
     cameraManip->setMousePosition({mousePos.x, mousePos.y});
   }
 
   if (ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.0F) ||
       ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 1.0F) ||
-      ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.0F)) {
+      ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.0F))
+  {
     cameraManip->mouseMove({mousePos.x, mousePos.y}, inputs);
   }
 
   // Mouse Wheel
-  if (ImGui::GetIO().MouseWheel != 0.0F) {
+  if (ImGui::GetIO().MouseWheel != 0.0F)
+  {
     cameraManip->wheel(ImGui::GetIO().MouseWheel * -3.f, inputs);
   }
 }
 /**********************************************************/
-void app::ElementCamera::onAttach(Application *)
+void app::ElementCamera::onAttach(Application*)
 /**********************************************************/
 {
   LOGI("Adding Camera Element\n");

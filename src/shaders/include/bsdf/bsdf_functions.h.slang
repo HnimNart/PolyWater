@@ -112,7 +112,9 @@ and a V-cavity shadowing-masking function).
 # Function `absorptionCoefficient`
 > Returns the absorption coefficient of the material.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float3 absorptionCoefficient(PbrMaterial mat)
+/**********************************************************/
 {
   return -log(max(mat.attenuationColor, float3(0.001))) / max(mat.attenuationDistance, 0.001);
 }
@@ -136,7 +138,9 @@ float3 absorptionCoefficient(PbrMaterial mat)
 // For a mirror surface, we have H == N. For a perfectly diffuse surface, k2
 // is sampled in a cosine distribution around N, so H ~ normalize(k1 + N).
 // We ad-hoc interpolate between them using the roughness.
+/**********************************************************/
 float fresnelCosineApproximation(float VdotN, float roughness)
+/**********************************************************/
 {
   return lerp(VdotN, sqrt(0.5F + 0.5F * VdotN), sqrt(roughness));
 }
@@ -156,7 +160,9 @@ float3 tint = mat.baseColor;
 float[LOBE_COUNT] weights = computeLobeWeights(mat, dot(k1, mat.N), tint);
 ```
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 ARRAY_TYPE(float, LOBE_COUNT, ) computeLobeWeights(PbrMaterial mat, float VdotN, NVSHADERS_INOUT_TYPE(float3) tint)
+/**********************************************************/
 {
   float frCoat = 0.0F;
   if(mat.clearcoat > 0.0f)
@@ -244,7 +250,9 @@ ARRAY_TYPE(float, LOBE_COUNT, ) computeLobeWeights(PbrMaterial mat, float VdotN,
 > Calculates the weights of the individual lobes inside the standard PBR material
 > and randomly selects one.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 int findLobe(PbrMaterial mat, float VdotN, float rndVal, NVSHADERS_INOUT_TYPE(float3) tint)
+/**********************************************************/
 {
   ARRAY_TYPE(float, LOBE_COUNT, weightLobe) = computeLobeWeights(mat, VdotN, tint);
 
@@ -265,7 +273,9 @@ int findLobe(PbrMaterial mat, float VdotN, float rndVal, NVSHADERS_INOUT_TYPE(fl
 }
 
 // Evaluates a diffuse lobe.
+/**********************************************************/
 void brdf_diffuse_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   // If the incoming light direction is on the backside, there is nothing to evaluate for a BRDF.
   // Note that the state normals have been flipped to the ray side by the caller.
@@ -281,13 +291,17 @@ void brdf_diffuse_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial 
   data.bsdf_diffuse = tint * data.pdf;
 }
 
+/**********************************************************/
 void brdf_diffuse_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat)
+/**********************************************************/
 {
   brdf_diffuse_eval(data, mat, mat.baseColor);
 }
 
 // Samples a diffuse lobe.
+/**********************************************************/
 void brdf_diffuse_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   data.k2  = cosineSampleHemisphere(data.xi.x, data.xi.y);
   data.k2  = mat.T * data.k2.x + mat.B * data.k2.y + mat.N * data.k2.z;
@@ -298,12 +312,16 @@ void brdf_diffuse_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial 
   data.event_type    = BSDF_EVENT_DIFFUSE_REFLECTION;
 }
 
+/**********************************************************/
 void brdf_diffuse_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat)
+/**********************************************************/
 {
   brdf_diffuse_sample(data, mat, mat.baseColor);
 }
 
+/**********************************************************/
 void brdf_diffuse_transmission_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   // If the incoming light direction is on the same side as the surface normal,
   // there is no diffuse transmission to evaluate. Absorb light in this case.
@@ -319,7 +337,9 @@ void brdf_diffuse_transmission_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data,
   data.bsdf_diffuse = tint * data.pdf * mat.diffuseTransmissionColor;
 }
 
+/**********************************************************/
 void brdf_diffuse_transmission_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   // Sample a direction on the opposite hemisphere (relative to -mat.N).
   float3 sampledDir = cosineSampleHemisphere(data.xi.x, data.xi.y);
@@ -337,7 +357,9 @@ void brdf_diffuse_transmission_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data,
 
 // Evaluates a reflective lobe with a GGX NDF and an uncorrelated Smith
 // scattering-masking function.
+/**********************************************************/
 void brdf_ggx_smith_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat, const int lobe, float3 tint)
+/**********************************************************/
 {
   const float nk1 = abs(dot(data.k1, mat.N));
   const float nk2 = abs(dot(data.k2, mat.N));
@@ -397,7 +419,9 @@ void brdf_ggx_smith_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMateria
 
 // Samples a reflective lobe with a GGX NDF and an uncorrelated Smith
 // scattering-masking function.
+/**********************************************************/
 void brdf_ggx_smith_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat, const int lobe, float3 tint)
+/**********************************************************/
 {
   // When the sampling returns eventType = BSDF_EVENT_ABSORB, the path ends inside the ray generation program.
   // Make sure the returned values are valid numbers when manipulating the PRD.
@@ -489,7 +513,9 @@ void brdf_ggx_smith_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMateria
  * Its quality hasn't been tested and it's not very principled, but it's better
  * than using a random number that's correlated with material sampling.
 */
+/**********************************************************/
 float rerandomize(float v)
+/**********************************************************/
 {
   uint word = asuint(v);
   word      = ((word >> ((word >> 28) + 4)) ^ word) * 277803737U;
@@ -504,7 +530,9 @@ float rerandomize(float v)
 
 See https://github.com/KhronosGroup/glTF/tree/0251c5c0cce8daec69bd54f29f891e3d0cdb52c8/extensions/2.0/Khronos/KHR_materials_dispersion.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float computeDispersedIOR(float base_ior, float dispersion, float wavelength_nm)
+/**********************************************************/
 {
   // Since the glTF extension stores 20 / V_d
   float abbeNumber = 20.0F / dispersion;
@@ -529,7 +557,9 @@ colors but are out-of-gamut).
 -------------------------------------------------------------------------------------------------*/
 #define WAVELENGTH_MIN 399.43862850585765F
 #define WAVELENGTH_MAX 668.6617899434457F
+/**********************************************************/
 float3 wavelengthToRGB(float x)
+/**********************************************************/
 {
   // This uses a piecewise-linear approximation generated using the CIE 2015
   // 2-degree standard observer times the D65 illuminant, minimizing the L2
@@ -569,7 +599,9 @@ float3 wavelengthToRGB(float x)
 
 
 // Evaluates the transmission lobe.
+/**********************************************************/
 void btdf_ggx_smith_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   bool isThinWalled = (mat.isThinWalled);
 
@@ -661,7 +693,9 @@ void btdf_ggx_smith_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMateria
 
 
 // Samples the transmission lobe.
+/**********************************************************/
 void btdf_ggx_smith_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat, float3 tint)
+/**********************************************************/
 {
   bool isThinWalled = (mat.isThinWalled);
 
@@ -766,7 +800,9 @@ void btdf_ggx_smith_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMateria
 
 
 // Evaluates the sheen lobe.
+/**********************************************************/
 void brdf_sheen_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat)
+/**********************************************************/
 {
   // BRDF or BTDF eval?
   // If the incoming light direction is on the backface.
@@ -819,7 +855,9 @@ void brdf_sheen_eval(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial ma
 
 
 // Samples the sheen lobe.
+/**********************************************************/
 void brdf_sheen_sample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat)
+/**********************************************************/
 {
   // When the sampling returns eventType = BSDF_EVENT_ABSORB, the path ends inside the ray generation program.
   // Make sure the returned values are valid numbers when manipulating the PRD.
@@ -902,7 +940,9 @@ The diffuse lobe evaluation and the sum of the specular lobe evaluations
 `data.bsdf_diffuse` and `data.bsdf_glossy`. Additionally, the probability that
 the sampling code will return this direction will be returned in `data.pdf`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfEvaluate(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat)
+/**********************************************************/
 {
   float3 tint       = mat.baseColor;
   float  VdotN      = dot(data.k1, mat.N);
@@ -966,7 +1006,9 @@ There are two things you should check after calling this function:
   as if `data.pdf` was infinity.
   
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfSample(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat)
+/**********************************************************/
 {
   float3 tint        = mat.baseColor;
   float  VdotN       = dot(data.k1, mat.N);
@@ -1032,7 +1074,9 @@ This is based on the metallic/roughness BRDF in Appendix B of the glTF specifica
 -------------------------------------------------------------------------------------------------*/
 
 // Returns the probability that bsdfSampleSimple samples a glossy lobe.
+/**********************************************************/
 float bsdfSimpleGlossyProbability(float NdotV, float metallic)
+/**********************************************************/
 {
   return lerp(schlickFresnel(0.04F, 1.0F, NdotV), 1.0F, metallic);
 }
@@ -1043,7 +1087,9 @@ float bsdfSimpleGlossyProbability(float NdotV, float metallic)
 
 You must provide `data.k1` and `data.k2`, but do not need to provide `data.xi`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfEvaluateSimple(NVSHADERS_INOUT_TYPE(BsdfEvaluateData) data, PbrMaterial mat)
+/**********************************************************/
 {
   // Specular reflection
   float3 H     = normalize(data.k1 + data.k2);
@@ -1100,7 +1146,9 @@ surface, and the light path ends here (it should be treated as a reflectance of 
 This code cannot currently return a PDF of `DIRAC`, but that might change in
 the future.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 void bsdfSampleSimple(NVSHADERS_INOUT_TYPE(BsdfSampleData) data, PbrMaterial mat)
+/**********************************************************/
 {
   float3 tint        = mat.baseColor;
   data.bsdf_over_pdf = float3(0.0F);
@@ -1152,7 +1200,9 @@ Tomasz Stachowiak's *Stochastic Screen-Space Reflections*; see also
 Ray-Tracing Gems 1, chapter 32, *Accurate Real-Time Specular Reflections
 with Radiance Caching*.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float3 bsdfSimpleAverageReflectance(float3 k1, PbrMaterial mat)
+/**********************************************************/
 {
   float  NdotV             = clampedDot(mat.N, k1);
   float  c_min_reflectance = 0.04F;

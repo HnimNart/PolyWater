@@ -17,21 +17,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #pragma once
-
 
 /**
   # class nvvk::RayPicker
 
-  nvvk::RayPicker is a utility to get hit information under a screen coordinate. 
+  nvvk::RayPicker is a utility to get hit information under a screen coordinate.
 
-  The information returned is: 
+  The information returned is:
     - origin and direction in world space
     - hitT, the distance of the hit along the ray direction
     - primitiveID, instanceID and instanceCustomIndex
     - the barycentric coordinates in the triangle
-  
+
   Getting results, for example, on mouse down:
   - fill the PickInfo structure
   - call run()
@@ -43,30 +41,32 @@
 */
 
 #include <glm/glm.hpp>
-#include "resource_allocator.hpp"
-#include "descriptors.hpp"
 
-namespace nvvk {
+#include "descriptors.hpp"
+#include "resource_allocator.hpp"
+
+namespace nvvk
+{
 
 struct RayPicker
 {
 public:
   struct PickInfo
   {
-    glm::mat4                  modelViewInv{1};    // inverse model view matrix
-    glm::mat4                  perspectiveInv{1};  // inverse perspective matrix
-    glm::vec2                  pickPos{0};         // normalized position
-    VkAccelerationStructureKHR tlas{};             // top level acceleration structure
+    glm::mat4 modelViewInv{1};          // inverse model view matrix
+    glm::mat4 perspectiveInv{1};        // inverse perspective matrix
+    glm::vec2 pickPos{0};               // normalized position
+    VkAccelerationStructureKHR tlas{};  // top level acceleration structure
   };
 
   struct PickResult
   {
     glm::vec4 worldRayOrigin{0.f, 0.f, 0.f, 0.f};
     glm::vec4 worldRayDirection{0.f, 0.f, 0.f, 0.f};
-    float     hitT{0.f};
-    int       primitiveID{0};
-    int       instanceID{-1};
-    int       instanceCustomIndex{0};
+    float hitT{0.f};
+    int primitiveID{0};
+    int instanceID{-1};
+    int instanceCustomIndex{0};
     glm::vec3 baryCoord{0.f, 0.f, 0.f};
   };
 
@@ -80,24 +80,23 @@ public:
   void run(VkCommandBuffer cmd, const PickInfo& pickInfo);
 
   PickResult getResult() const;
-  bool       isValid() const;
+  bool isValid() const;
 
 private:
-  void                            createOutputResult();
-  void                            createDescriptorSet();
-  void                            createPipeline();
+  void createOutputResult();
+  void createDescriptorSet();
+  void createPipeline();
   const std::span<const uint32_t> getSpirV();
-  std::string                     getGlsl();
+  std::string getGlsl();
 
-  nvvk::Buffer             m_pickResult;
-  nvvk::Buffer             m_sbtBuffer;
+  nvvk::Buffer m_pickResult;
+  nvvk::Buffer m_sbtBuffer;
   nvvk::DescriptorBindings m_bindings;
   nvvk::ResourceAllocator* m_alloc{};
 
   VkDescriptorSetLayout m_descriptorSetLayout{};
-  VkPipelineLayout      m_pipelineLayout{};
-  VkPipeline            m_pipeline{};
+  VkPipelineLayout m_pipelineLayout{};
+  VkPipeline m_pipeline{};
 };
-
 
 }  // namespace nvvk

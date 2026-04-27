@@ -22,9 +22,8 @@
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <tiny_gltf.h>
-
 #include <fmt/format.h>
+#include <tiny_gltf.h>
 
 #include <core/logger.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -33,7 +32,8 @@
 #include "backend/interfaces/RHI_definitions.hpp"
 #include "core/timers.hpp"
 
-namespace {
+namespace
+{
 
 // Helper for element byte size calculation
 /**********************************************************/
@@ -62,18 +62,19 @@ uint32_t getTypeSize(int type)
 
 // Helper for extracting attributes
 /**********************************************************/
-void extractAttribute(const tinygltf::Model &model,
-                      const tinygltf::Primitive &primitive,
-                      const std::string &name, shaderio::BufferView &attr)
+void extractAttribute(const tinygltf::Model& model,
+                      const tinygltf::Primitive& primitive,
+                      const std::string& name, shaderio::BufferView& attr)
 /**********************************************************/
 {
-  if (!primitive.attributes.contains(name)) {
+  if (!primitive.attributes.contains(name))
+  {
     attr.offset = -1;
     return;
   }
-  const tinygltf::Accessor &acc =
+  const tinygltf::Accessor& acc =
       model.accessors[primitive.attributes.at(name)];
-  const tinygltf::BufferView &bv = model.bufferViews[acc.bufferView];
+  const tinygltf::BufferView& bv = model.bufferViews[acc.bufferView];
   assert((acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) &&
          "Should be floats");
   attr = {
@@ -88,9 +89,9 @@ void extractAttribute(const tinygltf::Model &model,
 
 // Helper to expand the global bounds by a transformed local box
 /**********************************************************/
-void expandBounds(const glm::vec3 &localMin, const glm::vec3 &localMax,
-                  const glm::mat4 &transform, glm::vec3 &globalMin,
-                  glm::vec3 &globalMax)
+void expandBounds(const glm::vec3& localMin, const glm::vec3& localMax,
+                  const glm::mat4& transform, glm::vec3& globalMin,
+                  glm::vec3& globalMax)
 /**********************************************************/
 {
   // The 8 corners of the local bounding box
@@ -104,7 +105,8 @@ void expandBounds(const glm::vec3 &localMin, const glm::vec3 &localMax,
                                     {localMax.x, localMax.y, localMax.z}};
 
   // Transform each corner and expand the global bounds
-  for (const auto &corner : corners) {
+  for (const auto& corner : corners)
+  {
     // Apply transform (w=1.0 for points)
     glm::vec4 worldPos = transform * glm::vec4(corner, 1.0f);
 
@@ -120,36 +122,42 @@ void expandBounds(const glm::vec3 &localMin, const glm::vec3 &localMax,
 
 // Recursive function to traverse nodes
 /**********************************************************/
-void processNode(const tinygltf::Model &model, int nodeIndex,
-                 const glm::mat4 &parentTransform, glm::vec3 &minBound,
-                 glm::vec3 &maxBound)
+void processNode(const tinygltf::Model& model, int nodeIndex,
+                 const glm::mat4& parentTransform, glm::vec3& minBound,
+                 glm::vec3& maxBound)
 /**********************************************************/
 {
-  const tinygltf::Node &node = model.nodes[nodeIndex];
+  const tinygltf::Node& node = model.nodes[nodeIndex];
 
   // 1. Calculate Local Transform
   glm::mat4 localTransform(1.0f);
 
-  if (!node.matrix.empty()) {
+  if (!node.matrix.empty())
+  {
     // Node has a raw matrix
     // GLTF stores column-major, GLM accepts column-major.
     // We must cast double (tinygltf) to float (glm).
-    double *m = const_cast<double *>(node.matrix.data());
+    double* m = const_cast<double*>(node.matrix.data());
     localTransform = glm::make_mat4(m);
-  } else {
+  }
+  else
+  {
     // Node has TRS (Translation, Rotation, Scale)
-    if (!node.translation.empty()) {
+    if (!node.translation.empty())
+    {
       localTransform = glm::translate(
           localTransform, glm::vec3(node.translation[0], node.translation[1],
                                     node.translation[2]));
     }
-    if (!node.rotation.empty()) {
+    if (!node.rotation.empty())
+    {
       // GLTF quaternion: (x, y, z, w) -> GLM quat constructor: (w, x, y, z)
       glm::quat q(node.rotation[3], node.rotation[0], node.rotation[1],
                   node.rotation[2]);
       localTransform = localTransform * glm::mat4_cast(q);
     }
-    if (!node.scale.empty()) {
+    if (!node.scale.empty())
+    {
       localTransform =
           glm::scale(localTransform,
                      glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
@@ -160,17 +168,21 @@ void processNode(const tinygltf::Model &model, int nodeIndex,
   glm::mat4 globalTransform = parentTransform * localTransform;
 
   // 3. Process Mesh (if present)
-  if (node.mesh > -1) {
-    const tinygltf::Mesh &mesh = model.meshes[node.mesh];
+  if (node.mesh > -1)
+  {
+    const tinygltf::Mesh& mesh = model.meshes[node.mesh];
 
-    for (const auto &primitive : mesh.primitives) {
+    for (const auto& primitive : mesh.primitives)
+    {
       // Look for the "POSITION" attribute
       auto it = primitive.attributes.find("POSITION");
-      if (it != primitive.attributes.end()) {
-        const tinygltf::Accessor &accessor = model.accessors[it->second];
+      if (it != primitive.attributes.end())
+      {
+        const tinygltf::Accessor& accessor = model.accessors[it->second];
 
         // GLTF Accessors *must* have min/max values for POSITION
-        if (!accessor.minValues.empty() && !accessor.maxValues.empty()) {
+        if (!accessor.minValues.empty() && !accessor.maxValues.empty())
+        {
           glm::vec3 localMin(accessor.minValues[0], accessor.minValues[1],
                              accessor.minValues[2]);
           glm::vec3 localMax(accessor.maxValues[0], accessor.maxValues[1],
@@ -183,14 +195,15 @@ void processNode(const tinygltf::Model &model, int nodeIndex,
   }
 
   // 4. Recurse Children
-  for (int childIndex : node.children) {
+  for (int childIndex : node.children)
+  {
     processNode(model, childIndex, globalTransform, minBound, maxBound);
   }
 }
-} // namespace
+}  // namespace
 
 /**********************************************************/
-tinygltf::Model gltf::loadModel(const std::filesystem::path &filename)
+tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
 /**********************************************************/
 {
   std::string baseName = filename.filename().string();
@@ -199,20 +212,26 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path &filename)
   tinygltf::TinyGLTF tinyLoader;
   tinygltf::Model model;
   std::string err, warn;
-  if (filename.extension() == ".gltf") {
-    if (!tinyLoader.LoadASCIIFromFile(&model, &err, &warn, filename.string())) {
+  if (filename.extension() == ".gltf")
+  {
+    if (!tinyLoader.LoadASCIIFromFile(&model, &err, &warn, filename.string()))
+    {
       LOGE("Error loading glTF file: %s\n", err.c_str());
       assert(0 && "No fallback");
       return {};
     }
-  } else if (filename.extension() == ".glb") {
-    if (!tinyLoader.LoadBinaryFromFile(&model, &err, &warn,
-                                       filename.string())) {
+  }
+  else if (filename.extension() == ".glb")
+  {
+    if (!tinyLoader.LoadBinaryFromFile(&model, &err, &warn, filename.string()))
+    {
       LOGE("Error loading glTF file: %s\n", err.c_str());
       assert(0 && "No fallback");
       return {};
     }
-  } else {
+  }
+  else
+  {
     LOGE("Unsupported file format: %s\n",
          filename.extension().string().c_str());
     assert(0 && "No fallback");
@@ -222,19 +241,19 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path &filename)
 }
 
 /**********************************************************/
-shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model &model,
+shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
                                               uint meshIdx)
 /**********************************************************/
 {
   shaderio::MeshPrimitive mesh{};
-  const tinygltf::Mesh &tinyMesh = model.meshes[meshIdx];
-  const tinygltf::Primitive &primitive = tinyMesh.primitives.front();
+  const tinygltf::Mesh& tinyMesh = model.meshes[meshIdx];
+  const tinygltf::Primitive& primitive = tinyMesh.primitives.front();
   assert((tinyMesh.primitives.size() == 1 &&
           primitive.mode == TINYGLTF_MODE_TRIANGLES) &&
          "Must have one triangle primitive");
 
-  auto &accessor = model.accessors[primitive.indices];
-  auto &bufferView = model.bufferViews[accessor.bufferView];
+  auto& accessor = model.accessors[primitive.indices];
+  auto& bufferView = model.bufferViews[accessor.bufferView];
   assert((accessor.count % 3 == 0) && "Should be a multiple of 3");
 
   mesh.triMesh.indices = {
@@ -259,18 +278,19 @@ shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model &model,
 
 /**********************************************************/
 std::pair<glm::vec3, glm::vec3>
-gltf::computeModelBounds(const tinygltf::Model &model)
+gltf::computeModelBounds(const tinygltf::Model& model)
 /**********************************************************/
 {
   glm::vec3 minBound(std::numeric_limits<float>::max());
   glm::vec3 maxBound(std::numeric_limits<float>::lowest());
 
   // Iterate over the scenes (usually just the default one)
-  const tinygltf::Scene &scene =
+  const tinygltf::Scene& scene =
       model.scenes[model.defaultScene > -1 ? model.defaultScene : 0];
 
   // Traverse the root nodes of the scene
-  for (int nodeIndex : scene.nodes) {
+  for (int nodeIndex : scene.nodes)
+  {
     processNode(model, nodeIndex, glm::mat4(1.0f), minBound, maxBound);
   }
 
@@ -278,19 +298,22 @@ gltf::computeModelBounds(const tinygltf::Model &model)
 }
 
 /**********************************************************/
-shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model &model,
+shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model& model,
                                           uint meshIdx)
 /**********************************************************/
 {
   shaderio::BoundingBox bbox;
-  const tinygltf::Mesh &mesh = model.meshes.at(meshIdx);
-  for (const auto &primitive : mesh.primitives) {
+  const tinygltf::Mesh& mesh = model.meshes.at(meshIdx);
+  for (const auto& primitive : mesh.primitives)
+  {
     auto it = primitive.attributes.find("POSITION");
-    if (it != primitive.attributes.end()) {
-      const tinygltf::Accessor &accessor = model.accessors[it->second];
+    if (it != primitive.attributes.end())
+    {
+      const tinygltf::Accessor& accessor = model.accessors[it->second];
 
       // tinygltf accessors for POSITION usually already contain the min/max
-      if (accessor.minValues.size() == 3 && accessor.maxValues.size() == 3) {
+      if (accessor.minValues.size() == 3 && accessor.maxValues.size() == 3)
+      {
 
         bbox.add(glm::vec3(accessor.minValues[0], accessor.minValues[1],
                            accessor.minValues[2]));
@@ -304,21 +327,21 @@ shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model &model,
 
 /**********************************************************/
 template <typename T>
-bool gltf::getGltfAttribute(const tinygltf::Model &model,
-                            const tinygltf::Primitive &primitive,
-                            const std::string &attributeName,
-                            const uint8_t *&dataPtr, size_t &stride,
-                            size_t &count)
+bool gltf::getGltfAttribute(const tinygltf::Model& model,
+                            const tinygltf::Primitive& primitive,
+                            const std::string& attributeName,
+                            const uint8_t*& dataPtr, size_t& stride,
+                            size_t& count)
 /**********************************************************/
 {
   auto it = primitive.attributes.find(attributeName);
   if (it == primitive.attributes.end())
     return false;
 
-  const tinygltf::Accessor &accessor = model.accessors[it->second];
-  const tinygltf::BufferView &bufferView =
+  const tinygltf::Accessor& accessor = model.accessors[it->second];
+  const tinygltf::BufferView& bufferView =
       model.bufferViews[accessor.bufferView];
-  const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+  const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
 
   dataPtr = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
   stride = accessor.ByteStride(bufferView);
@@ -326,18 +349,18 @@ bool gltf::getGltfAttribute(const tinygltf::Model &model,
   return true;
 }
 
-template bool gltf::getGltfAttribute<glm::vec2>(const tinygltf::Model &,
-                                                const tinygltf::Primitive &,
-                                                const std::string &,
-                                                const uint8_t *&, size_t &,
-                                                size_t &);
-template bool gltf::getGltfAttribute<glm::vec3>(const tinygltf::Model &,
-                                                const tinygltf::Primitive &,
-                                                const std::string &,
-                                                const uint8_t *&, size_t &,
-                                                size_t &);
-template bool gltf::getGltfAttribute<glm::vec4>(const tinygltf::Model &,
-                                                const tinygltf::Primitive &,
-                                                const std::string &,
-                                                const uint8_t *&, size_t &,
-                                                size_t &);
+template bool gltf::getGltfAttribute<glm::vec2>(const tinygltf::Model&,
+                                                const tinygltf::Primitive&,
+                                                const std::string&,
+                                                const uint8_t*&, size_t&,
+                                                size_t&);
+template bool gltf::getGltfAttribute<glm::vec3>(const tinygltf::Model&,
+                                                const tinygltf::Primitive&,
+                                                const std::string&,
+                                                const uint8_t*&, size_t&,
+                                                size_t&);
+template bool gltf::getGltfAttribute<glm::vec4>(const tinygltf::Model&,
+                                                const tinygltf::Primitive&,
+                                                const std::string&,
+                                                const uint8_t*&, size_t&,
+                                                size_t&);

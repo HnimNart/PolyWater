@@ -5,9 +5,12 @@
 //-----------------------------------------------------------------------
 // CLOSEST HIT SHADER - PBR Path Tracer + NEE
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("closesthit")] void
 rchit_gltf(inout HitPayload payload,
-           in BuiltInTriangleIntersectionAttributes attr) {
+           in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;
@@ -30,7 +33,7 @@ rchit_gltf(inout HitPayload payload,
 
   // --- (Direct Lighting) ---
   PbrEvaluator bsdf = PbrEvaluator(viewDir, albedo, roughness, metallic);
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
   LightRaySample sample = sampleDirectLightingPowerCDF(
       sceneInfo, worldPos, worldNormal, bsdf, payload.seed);
   payload.color += sample.light * payload.weight;

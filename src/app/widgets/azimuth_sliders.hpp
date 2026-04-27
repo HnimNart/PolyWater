@@ -19,15 +19,19 @@
 
 #pragma once
 
-#include "app/widgets/property_editor.hpp"
 #include <glm/glm.hpp>
 
-namespace app {
+#include "app/widgets/property_editor.hpp"
 
-inline bool azimuthElevationSliders(glm::vec3 &direction, bool negative,
-                                    bool yIsUp /*=true*/) {
+namespace app
+{
+
+inline bool azimuthElevationSliders(glm::vec3& direction, bool negative,
+                                    bool yIsUp /*=true*/)
+{
   glm::vec3 normalized_dir = normalize(direction);
-  if (negative) {
+  if (negative)
+  {
     normalized_dir = -normalized_dir;
   }
 
@@ -38,10 +42,13 @@ inline bool azimuthElevationSliders(glm::vec3 &direction, bool negative,
   const double min_elevation = -90.0;
   const double max_elevation = 90.0;
 
-  if (yIsUp) {
+  if (yIsUp)
+  {
     azimuth = glm::degrees(atan2(normalized_dir.z, normalized_dir.x));
     elevation = glm::degrees(asin(normalized_dir.y));
-  } else {
+  }
+  else
+  {
     azimuth = glm::degrees(atan2(normalized_dir.y, normalized_dir.x));
     elevation = glm::degrees(asin(normalized_dir.z));
   }
@@ -55,22 +62,27 @@ inline bool azimuthElevationSliders(glm::vec3 &direction, bool negative,
                               &min_elevation, &max_elevation, "%.1f deg",
                               ImGuiSliderFlags_NoRoundToFormat);
 
-  if (changed) {
+  if (changed)
+  {
     azimuth = glm::radians(azimuth);
     elevation = glm::radians(elevation);
     double cos_elevation = cos(elevation);
 
-    if (yIsUp) {
+    if (yIsUp)
+    {
       direction.y = static_cast<float>(sin(elevation));
       direction.x = static_cast<float>(cos(azimuth) * cos_elevation);
       direction.z = static_cast<float>(sin(azimuth) * cos_elevation);
-    } else {
+    }
+    else
+    {
       direction.z = static_cast<float>(sin(elevation));
       direction.x = static_cast<float>(cos(azimuth) * cos_elevation);
       direction.y = static_cast<float>(sin(azimuth) * cos_elevation);
     }
 
-    if (negative) {
+    if (negative)
+    {
       direction = -direction;
     }
   }
@@ -78,4 +90,4 @@ inline bool azimuthElevationSliders(glm::vec3 &direction, bool negative,
   return changed;
 }
 
-} // namespace app
+}  // namespace app

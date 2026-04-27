@@ -16,17 +16,19 @@ class FrameSynchronizationManager;
 class SwapchainRenderManager;
 struct GLFWwindow;
 
-namespace core {
+namespace core
+{
 class IAppElement;
 }
 
-class ImGuiVulkanSystem : public app::IGUISystem, public IRenderable {
+class ImGuiVulkanSystem : public app::IGUISystem, public IRenderable
+{
 public:
   ImGuiVulkanSystem() = default;
   ~ImGuiVulkanSystem() override;
 
   // Lifecycle
-  void init(const app::ApplicationCreateInfo &info) override;
+  void init(const app::ApplicationCreateInfo& info) override;
   void deinit() override;
 
   // Frame Operations
@@ -35,32 +37,32 @@ public:
   void render() override;
 
   // UI Rendering
-  void renderMenu(const std::vector<app::IAppElementPtr> &elements) override;
-  bool getWindowSize(const std::string &windowName, WindowSize &size) override;
-  void setWindowSize(const WindowSize &size) override;
+  void renderMenu(const std::vector<app::IAppElementPtr>& elements) override;
+  bool getWindowSize(const std::string& windowName, WindowSize& size) override;
+  void setWindowSize(const WindowSize& size) override;
 
   // Configuration
   void setConfigFlags(unsigned int flags) override;
-  void loadSettings(const char *filename) override;
-  void saveSettings(const char *filename) override;
+  void loadSettings(const char* filename) override;
+  void saveSettings(const char* filename) override;
 
   // Vulkan Backend
-  void initVulkanBackend(VulkanContextManager &coreManager,
+  void initVulkanBackend(VulkanContextManager& coreManager,
                          uint maxFramesInFlight, VkFormat imageFormat,
-                         GLFWwindow *windowHandle);
+                         GLFWwindow* windowHandle);
 
-  void onRender(const IRenderContext &ctx) override;
+  void onRender(const IRenderContext& ctx) override;
 
 private:
   // Initialization Helpers
-  void setupImGui(const app::ApplicationCreateInfo &info);
+  void setupImGui(const app::ApplicationCreateInfo& info);
   void destroyContext();
-  void configureImGuiIO(const app::ApplicationCreateInfo &info);
+  void configureImGuiIO(const app::ApplicationCreateInfo& info);
   void initializeFonts();
 
   // Vulkan Backend Helpers
-  void initializeGlfwBackend(GLFWwindow *windowHandle);
-  void initializeVulkanBackend(VulkanContextManager &coreManager,
+  void initializeGlfwBackend(GLFWwindow* windowHandle);
+  void initializeVulkanBackend(VulkanContextManager& coreManager,
                                uint maxFramesInFlight, VkFormat imageFormat);
 
   void shutdownVulkanBackend();

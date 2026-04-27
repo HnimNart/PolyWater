@@ -1,21 +1,23 @@
 #pragma once
 
-#include <algorithm>
-
 #include <imgui.h>
+
+#include <algorithm>
 
 #include "core/string_utils.h"
 #include "renderer/interfaces/IRenderer.hpp"
 #include "scene/SceneResources.hpp"
 #include "tooltip.hpp"
 
-namespace app {
+namespace app
+{
 
 template <typename ImageType>
-void renderTextureItem(const std::string &name, const ImageType &image,
-                       const std::string &searchStr,
-                       const std::shared_ptr<IDeviceAssets> &deviceResources,
-                       TextureID &textureToDelete) {
+void renderTextureItem(const std::string& name, const ImageType& image,
+                       const std::string& searchStr,
+                       const std::shared_ptr<IDeviceAssets>& deviceResources,
+                       TextureID& textureToDelete)
+{
   if (!image.isValid())
     return;
 
@@ -28,11 +30,13 @@ void renderTextureItem(const std::string &name, const ImageType &image,
                  ::tolower);
 
   if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos &&
-      fileLower.find(searchStr) == std::string::npos) {
+      fileLower.find(searchStr) == std::string::npos)
+  {
     return;
   }
 
-  if (ImGui::TreeNode(name.c_str())) {
+  if (ImGui::TreeNode(name.c_str()))
+  {
     // --- HEADER INFO ---
     std::string fileName = core::getFileName(image.filename);
     ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "Source: %s",
@@ -42,7 +46,8 @@ void renderTextureItem(const std::string &name, const ImageType &image,
 
     // --- OUTER LAYOUT TABLE ---
     if (ImGui::BeginTable("##ImageAndMeta", 2,
-                          ImGuiTableFlags_SizingStretchProp)) {
+                          ImGuiTableFlags_SizingStretchProp))
+    {
       ImGui::TableNextRow();
 
       // --- LEFT COLUMN: IMAGE PREVIEW ---
@@ -50,24 +55,29 @@ void renderTextureItem(const std::string &name, const ImageType &image,
       ImTextureID gpuHandle =
           deviceResources->getTextureHandle(image.textureId);
 
-      if (gpuHandle) {
+      if (gpuHandle)
+      {
         float availWidth = ImGui::GetContentRegionAvail().x;
-        float ratio =
-            (image.width > 0) ? (float)image.height / (float)image.width : 1.0f;
+        float ratio = (image.width > 0)
+                          ? (float) image.height / (float) image.width
+                          : 1.0f;
 
         float displayWidth = std::min(availWidth * 0.9f, 200.0f);
         ImVec2 displaySize = ImVec2(displayWidth, displayWidth * ratio);
 
         ImGui::Image(gpuHandle, displaySize, ImVec2(0, 0), ImVec2(1, 1),
                      ImVec4(1, 1, 1, 1), ImVec4(1, 1, 1, 0.3f));
-      } else {
+      }
+      else
+      {
         ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Invalid GPU State");
       }
 
       // --- RIGHT COLUMN: METADATA ---
       ImGui::TableNextColumn();
 
-      if (ImGui::BeginTable("##TexSpecs", 2, ImGuiTableFlags_SizingFixedFit)) {
+      if (ImGui::BeginTable("##TexSpecs", 2, ImGuiTableFlags_SizingFixedFit))
+      {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::TextDisabled("Resolution:");
@@ -92,7 +102,8 @@ void renderTextureItem(const std::string &name, const ImageType &image,
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,
                               ImVec4(0.9f, 0.1f, 0.1f, 1.0f));
 
-        if (ImGui::Button(("Delete ##" + name).c_str(), ImVec2(-FLT_MIN, 0))) {
+        if (ImGui::Button(("Delete ##" + name).c_str(), ImVec2(-FLT_MIN, 0)))
+        {
           textureToDelete = image.textureId;
         }
         ImGui::PopStyleColor(3);
@@ -100,17 +111,18 @@ void renderTextureItem(const std::string &name, const ImageType &image,
         ImGui::EndTable();
       }
 
-      ImGui::EndTable(); // End Outer Table
+      ImGui::EndTable();  // End Outer Table
     }
 
     ImGui::TreePop();
   }
 }
 
-bool textureEditor(SceneResourcesManager &resourceManager,
-                   const std::shared_ptr<IDeviceAssets> &deviceResources) {
+bool textureEditor(SceneResourcesManager& resourceManager,
+                   const std::shared_ptr<IDeviceAssets>& deviceResources)
+{
 
-  const auto &textureMap = resourceManager.textureImageMap();
+  const auto& textureMap = resourceManager.textureImageMap();
 
   static char filter[128] = "";
   ImGui::InputTextWithHint("##Filter", "Filter textures...", filter,
@@ -123,16 +135,19 @@ bool textureEditor(SceneResourcesManager &resourceManager,
 
   TextureID textureToDelete = -1;
 
-  for (const auto &[name, image] : textureMap) {
+  for (const auto& [name, image] : textureMap)
+  {
     renderTextureItem(name, image, searchStr, deviceResources, textureToDelete);
   }
 
-  if (textureToDelete != -1) {
-    if (!resourceManager.destroyTexture(textureToDelete)) {
+  if (textureToDelete != -1)
+  {
+    if (!resourceManager.destroyTexture(textureToDelete))
+    {
       printf("Failed to destroy texture %d\n", textureToDelete);
     }
   }
   return false;
 }
 
-} // namespace app
+}  // namespace app
