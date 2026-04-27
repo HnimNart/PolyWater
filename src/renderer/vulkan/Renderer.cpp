@@ -51,7 +51,7 @@ void VulkanRenderer::clear()
 {
   m_context->waitForDeviceIdle();
   m_resources->clear();
-  m_graph->deinit(m_context);
+  m_graph->deinit();
 }
 
 /**********************************************************/
@@ -59,7 +59,7 @@ void VulkanRenderer::deinit()
 /**********************************************************/
 {
   m_context->waitForDeviceIdle();
-  m_graph->deinit(m_context);
+  m_graph->deinit();
   m_gBuffers->deinit();
   m_accel.reset();
   m_resources->deinit();
@@ -138,7 +138,7 @@ void VulkanRenderer::buildGraph(const std::string &name)
   SCOPED_TIMER_FUNC();
   m_context->waitForDeviceIdle();
   if (m_graph) {
-    m_graph->deinit(m_context);
+    m_graph->deinit();
   }
 
   // Prepare settings for the manager
@@ -152,7 +152,7 @@ void VulkanRenderer::buildGraph(const std::string &name)
   };
 
   m_graph = m_pipelineManager.buildGraph(settings, name);
-  m_graph->init(m_context);
+  m_graph->init();
   m_graph->compile();
 }
 

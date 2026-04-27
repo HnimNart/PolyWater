@@ -10,11 +10,13 @@
 #include "scene/Scene.h"
 
 /**********************************************************/
-void SkyPass::init(VulkanContextManager *core)
+SkyPass::SkyPass(VulkanContextManager *context) : m_core(context) {}
+
+/**********************************************************/
+void SkyPass::init()
 /**********************************************************/
 {
-  m_core = core;
-  m_device = core->getDevice();
+  m_device = m_core->getDevice();
 
   // 1. Descriptor Set Layout (Push Descriptors)
   const auto layoutBindings = std::to_array<VkDescriptorSetLayoutBinding>({
@@ -123,7 +125,7 @@ void SkyPass::execute(const IRenderContext &ctx)
 }
 
 /**********************************************************/
-void SkyPass::deinit(VulkanContextManager *core)
+void SkyPass::deinit()
 /**********************************************************/
 {
   vkDestroyShaderEXT(m_device, m_shader, nullptr);

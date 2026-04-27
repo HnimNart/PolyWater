@@ -14,13 +14,13 @@
 
 class ToneMapPass : public IToneMapper, public IRenderPass {
 public:
-  ToneMapPass(RenderOutput input);
+  ToneMapPass(VulkanContextManager *core, RenderOutput input);
   ~ToneMapPass() override;
 
-  void init(VulkanContextManager *core) override;
+  void init() override;
 
   void setup(PassBuilder &builder) override;
-  void deinit(VulkanContextManager *core) override;
+  void deinit() override;
   void execute(const IRenderContext &ctx) override;
 
   // Explicitly non-copyable
@@ -37,6 +37,7 @@ public:
                   const VkDescriptorImageInfo &outImage);
 
 private:
+  VulkanContextManager *m_core = nullptr;
   RenderOutput m_input;
   void runAutoExposureHistogram(VkCommandBuffer cmd, const VkExtent2D &size,
                                 const VkDescriptorImageInfo &inImage);

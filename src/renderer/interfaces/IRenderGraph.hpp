@@ -11,10 +11,10 @@
 class IRenderPass {
 public:
   virtual ~IRenderPass() = default;
-  virtual void init(class VulkanContextManager *core) = 0;
+  virtual void init() = 0;
   virtual void setup(PassBuilder &builder) = 0;
   virtual void execute(const IRenderContext &ctx) = 0;
-  virtual void deinit(class VulkanContextManager *core) = 0;
+  virtual void deinit() = 0;
 };
 
 class RenderGraph {
@@ -26,15 +26,15 @@ public:
     m_passes.push_back(std::move(pass));
   }
 
-  void init(class VulkanContextManager *core) {
+  void init() {
     for (auto &p : m_passes) {
-      p->init(core);
+      p->init();
     }
   }
 
-  void deinit(class VulkanContextManager *core) {
+  void deinit() {
     for (auto &p : m_passes) {
-      p->deinit(core);
+      p->deinit();
     }
     m_passes.clear();
   }

@@ -7,8 +7,8 @@
 #include "backend/vulkan/core/RenderContext.hpp"
 
 /**********************************************************/
-ToneMapPass::ToneMapPass(RenderOutput input)
-    : m_input(input)
+ToneMapPass::ToneMapPass(VulkanContextManager *core, RenderOutput input)
+    : m_core(core), m_input(input)
 /**********************************************************/
 {}
 
@@ -18,7 +18,7 @@ ToneMapPass::~ToneMapPass()
 {}
 
 /**********************************************************/
-void ToneMapPass::init(VulkanContextManager *core)
+void ToneMapPass::init()
 /**********************************************************/
 {
   if (m_initialized) {
@@ -26,7 +26,7 @@ void ToneMapPass::init(VulkanContextManager *core)
   }
 
   // Initialize the tonemapper using the shader bytecode from the autogen header
-  init(&core->getAllocator(),
+  init(&m_core->getAllocator(),
        std::span<const uint32_t>(tonemapper_slang,
                                  sizeof(tonemapper_slang) / sizeof(uint32_t)));
 
@@ -47,7 +47,7 @@ void ToneMapPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void ToneMapPass::deinit(VulkanContextManager * /* core */)
+void ToneMapPass::deinit()
 /**********************************************************/
 {
   deinit();

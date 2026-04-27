@@ -6,16 +6,19 @@
 #include <backend/vulkan/core/ContextManager.hpp>
 
 /**********************************************************/
-void DenoisePass::init(VulkanContextManager *contextManager)
+DenoisePass::DenoisePass(VulkanContextManager *contextManager)
+    : m_context_manager(contextManager) {}
+
+/**********************************************************/
+void DenoisePass::init()
 /**********************************************************/
 {
-  m_context_manager = contextManager;
   createDescriptorLayout();
   createComputePipeline();
 }
 
 /**********************************************************/
-void DenoisePass::deinit(VulkanContextManager * /*contextManager*/)
+void DenoisePass::deinit()
 /**********************************************************/
 {
   VkDevice device = m_context_manager->getDevice();

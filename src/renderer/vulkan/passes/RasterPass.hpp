@@ -21,12 +21,13 @@ struct PushConstant;
 
 class RasterPass : public IRenderPass {
 public:
-  RasterPass(const nvvk::DescriptorPack &descPack,
+  RasterPass(VulkanContextManager *contextManager,
+             const nvvk::DescriptorPack &descPack,
              const VulkanSceneAssetManager *assetManager);
   ~RasterPass() = default;
 
-  void init(VulkanContextManager *coreManager) override;
-  void deinit(VulkanContextManager *coreManager) override;
+  void init() override;
+  void deinit() override;
 
   void setup(PassBuilder &builder) override;
 

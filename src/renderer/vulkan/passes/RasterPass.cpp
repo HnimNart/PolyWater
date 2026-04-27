@@ -23,26 +23,28 @@
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
-RasterPass::RasterPass(const nvvk::DescriptorPack &descPack,
+RasterPass::RasterPass(VulkanContextManager *contextManager,
+                       const nvvk::DescriptorPack &descPack,
                        const VulkanSceneAssetManager *assetManager)
-    : m_descPack(descPack), m_assetManager(assetManager)
+    : m_context_manager(contextManager), m_descPack(descPack),
+      m_assetManager(assetManager)
 /**********************************************************/
 {}
 
 /**********************************************************/
-void RasterPass::init(VulkanContextManager *contextManager)
+void RasterPass::init()
 /**********************************************************/
 {
-  m_context_manager = contextManager;
   createPipelineLayout(m_context_manager->getDevice());
   compileShaders();
 }
 
 /**********************************************************/
-void RasterPass::deinit(VulkanContextManager *coreManager)
+void RasterPass::deinit()
 /**********************************************************/
 {
-  vkDestroyPipelineLayout(coreManager->getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
+                          nullptr);
   clearShaders();
 }
 
