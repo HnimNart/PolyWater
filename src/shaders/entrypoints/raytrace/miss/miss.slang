@@ -6,7 +6,9 @@
 //-----------------------------------------------------------------------
 // MISS SHADER - Called when ray doesn't hit any geometry (background/sky)
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("miss")] void rmissMain(inout HitPayload payload)
+/**********************************************************/
 {
   SceneInfo* sceneInfo = pushConst.sceneInfoAddress.get();
 

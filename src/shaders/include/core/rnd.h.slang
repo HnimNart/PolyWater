@@ -5,7 +5,9 @@
 // HELPERS (RNG)
 // Tiny Encryption Algorithm (TEA) - Fast, good enough for GPU RNG
 //-----------------------------------------------------------------------
+/**********************************************************/
 uint tea(uint val0, uint val1)
+/**********************************************************/
 {
   uint v0 = val0;
   uint v1 = val1;
@@ -22,7 +24,9 @@ uint tea(uint val0, uint val1)
 // ------------------------------------------------------------------
 // PCG Hash: Fast, minimal artifacts, excellent for Monte Carlo
 // ------------------------------------------------------------------
+/**********************************************************/
 uint pcg_hash(inout uint seed)
+/**********************************************************/
 {
   uint state = seed * 747796405u + 2891336453u;
   uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
@@ -34,7 +38,9 @@ uint pcg_hash(inout uint seed)
 // Returns a random float in range [0, 1)
 // Usage: float val = rnd(seed);
 // ------------------------------------------------------------------
+/**********************************************************/
 float rnd(inout uint seed)
+/**********************************************************/
 {
   // 1. Get a random integer
   uint r = pcg_hash(seed);

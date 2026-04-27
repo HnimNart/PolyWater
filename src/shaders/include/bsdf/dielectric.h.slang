@@ -7,15 +7,26 @@ struct DielectricEvaluator : IBSDF {
   float ior;
   float3 albedo;
 
-  __init(float3 albedo, float ior) {
+  /**********************************************************/
+  __init(float3 albedo, float ior)
+  /**********************************************************/
+  {
     this.albedo = albedo;
     this.ior = ior;
   }
 
-  float3 eval(float3 L, float3 N) { return float3(0.0); }
+  /**********************************************************/
+  float3 eval(float3 L, float3 N)
+  /**********************************************************/
+  {
+    return float3(0.0);
+  }
 
+  /**********************************************************/
   float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
-                inout float3 outDir) {
+                inout float3 outDir)
+  /**********************************************************/
+  {
     float3 N = worldNormal;
     float eta = 1.0 / ior;
 

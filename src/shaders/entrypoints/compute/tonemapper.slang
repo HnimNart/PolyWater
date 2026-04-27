@@ -59,9 +59,11 @@ groupshared uint  g_localUintData[EXPOSURE_HISTOGRAM_SIZE];   // shared memory f
 // Tonemapping
 /////////////////////////////////////////////////////////////////////////////
 
+/**********************************************************/
 [shader("compute")]
 [numthreads(TONEMAP_WORKGROUP_SIZE, TONEMAP_WORKGROUP_SIZE, 1)]
 void Tonemap(uint2 globalThreadID: SV_DispatchThreadID)
+/**********************************************************/
 {
   uint2 imageSize;
   outImage.GetDimensions(imageSize.x, imageSize.y);
@@ -112,7 +114,9 @@ Histogram Construction:
 
 
 // This function classifies a pixel into a histogram bucket based on its luminance.
+/**********************************************************/
 uint inputToHistogramBucket(const float3 inputColor)
+/**********************************************************/
 {
   const float inputLuminance = bt709Luminance(inputColor);
 
@@ -134,7 +138,9 @@ uint inputToHistogramBucket(const float3 inputColor)
 
 // This function calculates a weight for a pixel based on its distance from the center of the screen.
 // It is used to weight the pixels in the histogram calculation.
+/**********************************************************/
 float centerMeteringWeight(float2 screenUV, float aspect)
+/**********************************************************/
 {
   if(tm.enableCenterMetering == 0)
   {
@@ -151,9 +157,11 @@ float centerMeteringWeight(float2 screenUV, float aspect)
 // The histogram is a 1D texture with 256 bins, each bin representing a range of EV100 values.
 // The histogram is then used to determine the target luminance for the auto-exposure algorithm.
 // The target luminance is calculated by finding the median of the histogram.
+/**********************************************************/
 [shader("compute")]
 [numthreads(TONEMAP_WORKGROUP_SIZE, TONEMAP_WORKGROUP_SIZE, 1)]
 void Histogram(uint2 threadId: SV_DispatchThreadID, uint linearIndex: SV_GroupIndex)
+/**********************************************************/
 {
   g_localUintData[linearIndex] = 0;
 
@@ -208,7 +216,9 @@ Auto-Exposure Calculation:
 
 // This function maps a normalized EV100 value to a histogram bucket index.
 // It is used to map the exposure value to a histogram bucket.
+/**********************************************************/
 float normalizedEVToHistogramOffset(float normalizedEV)
+/**********************************************************/
 {
   // Map normalized EV100 [0,1] to histogram bucket index [1, size-2]
   // Bucket 0 reserved for near-black pixels, bucket size-1 for overexposed
@@ -224,7 +234,9 @@ float normalizedEVToHistogramOffset(float normalizedEV)
 // This approach is much faster than having each thread sum all previous values by itself.
 // Note that this is not the standard Hillis-Steele short-span prefix sum; that one requires double-buffering
 // the data array to avoid race conditions, while this one doesn't.
+/**********************************************************/
 float computePrefixSum(float val, const uint linearIndex)
+/**********************************************************/
 {
   // Wait for all threads to finish their local calculations
   GroupMemoryBarrierWithGroupSync();
@@ -257,7 +269,9 @@ float computePrefixSum(float val, const uint linearIndex)
 
 // This function returns a weight for a histogram bucket.
 // It is used to weight the pixels in the histogram calculation.
+/**********************************************************/
 float getHistogramWeight(uint index)
+/**********************************************************/
 {
   return 1.0;
   // float weightUV = (index + 0.5) / float(EXPOSURE_HISTOGRAM_SIZE);
@@ -266,7 +280,9 @@ float getHistogramWeight(uint index)
 
 // This function converts a histogram bucket index to a normalized EV100 value.
 // It is used to convert the exposure value to a normalized EV100 value.
+/**********************************************************/
 float histogramOffsetToNormalizedEV(float offset)
+/**********************************************************/
 {
   // Inverse mapping: histogram bucket index -> normalized EV100 [0,1]
   return saturate((offset - 1) / float(EXPOSURE_HISTOGRAM_SIZE - 2));
@@ -274,9 +290,11 @@ float histogramOffsetToNormalizedEV(float offset)
 
 // This function calculates the target luminance for the auto-exposure algorithm.
 // linearIndex is the index of the thread in the group.
+/**********************************************************/
 [shader("compute")]
 [numthreads(EXPOSURE_HISTOGRAM_SIZE, 1, 1)]
 void AutoExposure(uint2 threadId: SV_DispatchThreadID, uint linearIndex: SV_GroupIndex)
+/**********************************************************/
 {
   // Apply optional exposure compensation weighting to histogram bins
   float weight                 = 1.0;  // (tm.useExposureCompensation == 1) ? getHistogramWeight(linearIndex) : 1.0f;

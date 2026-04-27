@@ -74,7 +74,9 @@ struct PbrMaterial
 Default PBR material with all properties set to default values.
 This function initializes a PbrMaterial structure with typical values for a diffuse material.
 */
+/**********************************************************/
 PbrMaterial defaultPbrMaterial()
+/**********************************************************/
 {
   PbrMaterial mat;
   mat.baseColor = float3(1.0F);
@@ -122,7 +124,9 @@ PbrMaterial defaultPbrMaterial()
 Default PBR material with all properties set to default values.
 This function initializes a PbrMaterial structure with typical values for a diffuse material.
 */
+/**********************************************************/
 PbrMaterial defaultPbrMaterial(float3 baseColor, float metallic, float roughness, float3 N, float3 Ng)
+/**********************************************************/
 {
   PbrMaterial mat = defaultPbrMaterial();
   mat.baseColor   = baseColor;

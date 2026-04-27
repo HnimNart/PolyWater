@@ -2,9 +2,12 @@
 #define VERTEX_FETCH_H_SLANG 1
 
 // Generic function to retrieve vertex attributes from GLTF buffer data
+/**********************************************************/
 __generic<T : IFloat> T getAttribute(DevicePtr<uint8_t> dataBufferAddress,
                                      BufferView bufferView,
-                                     uint attributeIndex) {
+                                     uint attributeIndex)
+/**********************************************************/
+{
   if (bufferView.count > 0) {
     // glTF spec: If byteStride is 0, the data is tightly packed.
     // So the actual stride is the size of the data type (T).
@@ -21,9 +24,12 @@ __generic<T : IFloat> T getAttribute(DevicePtr<uint8_t> dataBufferAddress,
 }
 
 // Retrieve triangle vertex indices from the mesh index buffer
+/**********************************************************/
 __generic<T> int3 getTriangleIndices(DevicePtr<uint8_t> dataBufferAddress,
                                      const TriangleMesh mesh, int primitiveID,
-                                     int indexType) {
+                                     int indexType)
+/**********************************************************/
+{
   // 0 == VK_INDEX_TYPE_UINT16, 1 == VK_INDEX_TYPE_UINT32
   if (indexType == 0) {
     // 16-bit indices
@@ -38,10 +44,13 @@ __generic<T> int3 getTriangleIndices(DevicePtr<uint8_t> dataBufferAddress,
 }
 
 // Interpolate vertex attributes across a triangle using barycentric coordinates
+/**********************************************************/
 __generic<T : IFloat>
     T getTriangleAttribute(DevicePtr<uint8_t> dataBufferAddress,
                            BufferView bufferView, uint3 attributeIndex,
-                           float3 barycentrics) {
+                           float3 barycentrics)
+/**********************************************************/
+{
   T attr0 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.x);
   T attr1 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.y);
   T attr2 = getAttribute<T>(dataBufferAddress, bufferView, attributeIndex.z);
@@ -51,8 +60,11 @@ __generic<T : IFloat>
 }
 
 // Helper to fetch the GPUMeshlet struct from the raw buffer
+/**********************************************************/
 GPUMeshlet getMeshlet(DevicePtr<uint8_t> dataBufferAddress,
-                      BufferView bufferView, uint meshletIndex) {
+                      BufferView bufferView, uint meshletIndex)
+/**********************************************************/
+{
   // Removed C-style cast, directly using Ptr<GPUMeshlet> from .at()
   Ptr<GPUMeshlet> ptr = (Ptr<GPUMeshlet>)dataBufferAddress.at(
       bufferView.offset + meshletIndex * bufferView.byteStride);
@@ -60,16 +72,22 @@ GPUMeshlet getMeshlet(DevicePtr<uint8_t> dataBufferAddress,
 }
 
 // Helper to fetch the 32-bit global vertex index
+/**********************************************************/
 uint getMeshletVertex(DevicePtr<uint8_t> dataBufferAddress,
-                      BufferView bufferView, uint elementIndex) {
+                      BufferView bufferView, uint elementIndex)
+/**********************************************************/
+{
   Ptr<uint> ptr = dataBufferAddress.at<uint>(
       bufferView.offset + elementIndex * bufferView.byteStride);
   return *ptr;
 }
 
 // Helper to fetch the tightly packed 8-bit local triangle index
+/**********************************************************/
 uint8_t getMeshletTriangle(DevicePtr<uint8_t> dataBufferAddress,
-                           BufferView bufferView, uint elementIndex) {
+                           BufferView bufferView, uint elementIndex)
+/**********************************************************/
+{
   Ptr<uint8_t> ptr = dataBufferAddress.at(bufferView.offset + elementIndex);
   return ptr[0];
 }
@@ -86,7 +104,10 @@ struct HitState {
 };
 
 // Helper to unpack everything
-HitState getHitState(BuiltInTriangleIntersectionAttributes attr) {
+/**********************************************************/
+HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
   HitState s;
 
   // Barycentrics

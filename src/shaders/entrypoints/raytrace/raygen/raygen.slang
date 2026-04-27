@@ -1,6 +1,8 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
 
+/**********************************************************/
 [shader("raygeneration")] void rgenMain()
+/**********************************************************/
 {
   // --- CONFIG ---
   RenderParams params = pushConst.renderParams;

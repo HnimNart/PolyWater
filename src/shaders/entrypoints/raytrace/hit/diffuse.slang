@@ -4,9 +4,12 @@
 //-----------------------------------------------------------------------
 // DIFFUSE CLOSEST HIT SHADER - Path Tracing + NEE
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("closesthit")] void
 rchit_diffuse(inout HitPayload payload,
-              in BuiltInTriangleIntersectionAttributes attr) {
+              in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;

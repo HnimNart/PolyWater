@@ -25,28 +25,38 @@
 
 NAMESPACE_SHADERIO_BEGIN()
 
+/**********************************************************/
 inline float square(float x)
+/**********************************************************/
 {
   return x * x;
 }
 
+/**********************************************************/
 inline float saturate(float x)
+/**********************************************************/
 {
   return clamp(x, 0.0F, 1.0F);
 }
 
+/**********************************************************/
 inline float3 saturate(float3 x)
+/**********************************************************/
 {
   return clamp(x, float3(0.0F), float3(1.0F));
 }
 
 // Return the luminance of a color
+/**********************************************************/
 inline float luminance(float3 color)
+/**********************************************************/
 {
   return color.x * 0.2126F + color.y * 0.7152F + color.z * 0.0722F;
 }
 
+/**********************************************************/
 inline float3 slerp(float3 a, float3 b, float angle, float t)
+/**********************************************************/
 {
   t             = saturate(t);
   float  sin1   = sin(angle * t);
@@ -56,13 +66,17 @@ inline float3 slerp(float3 a, float3 b, float angle, float t)
   return normalize(result);
 }
 
+/**********************************************************/
 inline float clampedDot(float3 x, float3 y)
+/**********************************************************/
 {
   return clamp(dot(x, y), 0.0F, 1.0F);
 }
 
 // Use IFloat to ensure this works for float, float2, float3, etc.
+/**********************************************************/
 T safe_div<T : IFloat>(T x, T y)
+/**********************************************************/
 {
   T min_val = T(1e-6f);
   return x / (y < min_val ? min_val : y);
@@ -78,7 +92,9 @@ T safe_div<T : IFloat>(T x, T y)
 // when operating on a sphere (due to the hairy ball theorem); this has a
 // small ring-shaped discontinuity at normal.z == -0.99998796.
 //-----------------------------------------------------------------------------
+/**********************************************************/
 inline void orthonormalBasis(float3 normal, NVSHADERS_OUT_TYPE(float3) tangent, NVSHADERS_OUT_TYPE(float3) bitangent)
+/**********************************************************/
 {
   if(normal.z < -0.99998796F)  // Handle the singularity
   {
@@ -95,7 +111,9 @@ inline void orthonormalBasis(float3 normal, NVSHADERS_OUT_TYPE(float3) tangent, 
 //-----------------------------------------------------------------------------
 // Like orthonormalBasis(), but returns a tangent and tangent sign that matches
 // the glTF convention.
+/**********************************************************/
 inline float4 makeFastTangent(float3 normal)
+/**********************************************************/
 {
   float3 tangent, unused;
   orthonormalBasis(normal, tangent, unused);
@@ -106,7 +124,9 @@ inline float4 makeFastTangent(float3 normal)
   return float4(tangent, 1.f);
 }
 
+/**********************************************************/
 inline float3 rotate(float3 v, float3 k, float theta)
+/**********************************************************/
 {
   float cos_theta = cos(theta);
   float sin_theta = sin(theta);
@@ -118,7 +138,9 @@ inline float3 rotate(float3 v, float3 k, float theta)
 //-----------------------------------------------------------------------
 // Return the UV in a lat-long HDR map
 //-----------------------------------------------------------------------
+/**********************************************************/
 inline float2 getSphericalUv(float3 v)
+/**********************************************************/
 {
   float gamma = asin(-v.y);
   float theta = atan2(v.z, v.x);
@@ -130,17 +152,23 @@ inline float2 getSphericalUv(float3 v)
 //-----------------------------------------------------------------------
 // Return the interpolated value between 3 values and the barycentrics
 //-----------------------------------------------------------------------
+/**********************************************************/
 inline float2 mixBary(float2 a, float2 b, float2 c, float3 bary)
+/**********************************************************/
 {
   return a * bary.x + b * bary.y + c * bary.z;
 }
 
+/**********************************************************/
 inline float3 mixBary(float3 a, float3 b, float3 c, float3 bary)
+/**********************************************************/
 {
   return a * bary.x + b * bary.y + c * bary.z;
 }
 
+/**********************************************************/
 inline float4 mixBary(float4 a, float4 b, float4 c, float3 bary)
+/**********************************************************/
 {
   return a * bary.x + b * bary.y + c * bary.z;
 }
@@ -153,7 +181,9 @@ inline float4 mixBary(float4 a, float4 b, float4 c, float3 bary)
 // hash your input before passing it to this function.
 // The lower 23 bits of `val` will be used to avoid issues with int-to-float
 // rounding.
+/**********************************************************/
 inline float3 IntegerToColor(uint val)
+/**********************************************************/
 {
   // This is equivalent to fract(0.5 + lower23Bits(val) * (-1/a, -1/a^2, -1/a^3)),
   // where a is the positive root of a^4 = a + 1.
@@ -167,7 +197,9 @@ inline float3 IntegerToColor(uint val)
 
 See equation 9.13 of https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 inline float powerHeuristic(float a, float b)
+/**********************************************************/
 {
   const float t = a * a;
   return t / (b * b + t);
@@ -175,7 +207,9 @@ inline float powerHeuristic(float a, float b)
 
 // Tests a local-space bounding sphere against 6 world-space frustum planes.
 // Returns true if the sphere is visible (inside or intersecting the frustum), false if culled.
+/**********************************************************/
 bool frustumCullSphere(float3 localCenter, float localRadius, float4x4 transform, float4 frustumPlanes[6])
+/**********************************************************/
 {
     // 1. Transform Center to World Space
     float3 worldCenter = mul(float4(localCenter, 1.0), transform).xyz;

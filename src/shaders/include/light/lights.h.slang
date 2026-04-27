@@ -17,7 +17,10 @@ struct LightSample {
   float3 color; // Light Color (RGB)
 };
 
-uint selectLightIndex(float randomValue, float *cdfBuffer, uint count) {
+/**********************************************************/
+uint selectLightIndex(float randomValue, float *cdfBuffer, uint count)
+/**********************************************************/
+{
   uint first = 0;
   uint len = count;
 
@@ -38,9 +41,11 @@ uint selectLightIndex(float randomValue, float *cdfBuffer, uint count) {
 //-----------------------------------------------------------------------
 // HELPER: LIGHT SAMPLING FUNCTION
 //-----------------------------------------------------------------------
+/**********************************************************/
 LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
                         float3 worldPos,      // Surface position being shaded
                         int lightIndex = 0)   // Index of light to sample
+/**********************************************************/
 {
   LightSample result;
 
@@ -120,8 +125,11 @@ LightSample sampleLight(SceneInfo *sceneInfo, // Pointer to scene data
 // ------------------------------------------------------------------
 // Main Sampling Function
 // ------------------------------------------------------------------
+/**********************************************************/
 LightSample sampleAreaLight(SceneInfo *sceneInfo, float3 refPoint,
-                            inout int seed) {
+                            inout int seed)
+/**********************************************************/
+{
   LightSample ls;
 
   // Initialize defaults (invalid sample)
@@ -202,8 +210,11 @@ struct LightRaySample {
 }
 
 LightRaySample
+/**********************************************************/
 sampleDirectLightingPowerCDF(SceneInfo *sceneInfo, float3 worldPos,
-                             float3 worldNormal, IBSDF bsdf, inout int seed) {
+                             float3 worldNormal, IBSDF bsdf, inout int seed)
+/**********************************************************/
+{
   LightRaySample sample;
   sample.light = float3(0.0f);
   sample.valid = false;
@@ -334,8 +345,11 @@ sampleDirectLightingPowerCDF(SceneInfo *sceneInfo, float3 worldPos,
   return sample;
 }
 
+/**********************************************************/
 float3 sampleDirectLighting(SceneInfo *sceneInfo, float3 worldPos,
-                            float3 worldNormal, IBSDF bsdf) {
+                            float3 worldNormal, IBSDF bsdf)
+/**********************************************************/
+{
   float3 color = float3(0);
   // Loop over all lights
   for (int i = 0; i < sceneInfo->numLights; i++) {
@@ -357,8 +371,11 @@ float3 sampleDirectLighting(SceneInfo *sceneInfo, float3 worldPos,
   return color;
 }
 
+/**********************************************************/
 float3 sampleAreaLight(SceneInfo *sceneInfo, float3 worldPos,
-                       float3 worldNormal, IBSDF bsdf, inout int seed) {
+                       float3 worldNormal, IBSDF bsdf, inout int seed)
+/**********************************************************/
+{
 
   float3 directLighting = float3(0.0f);
   if (sceneInfo->areaLight.nTriangles > 0) {

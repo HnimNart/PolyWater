@@ -26,8 +26,11 @@ struct VSin {
 };
 
 // Vertex  Shader
+/**********************************************************/
 [shader("vertex")] FragmentInput vertexMain(VSin input, uint vertexIndex
-                                            : SV_VertexID) {
+                                            : SV_VertexID)
+/**********************************************************/
+{
   int instanceIndex = pushConst.instanceIndex;
 
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();

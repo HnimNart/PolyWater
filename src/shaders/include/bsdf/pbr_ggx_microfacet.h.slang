@@ -32,19 +32,25 @@ includes Fresnel, shadowing-masking, sheen, and thin-film functions as well.
 
 
 // Schlick Fresnel approximation
+/**********************************************************/
 float schlickFresnel(float F0, float F90, float VdotH)
+/**********************************************************/
 {
   return F0 + (F90 - F0) * pow(1.0F - VdotH, 5.0F);
 }
 
 // Schlick Fresnel approximation for vectors
+/**********************************************************/
 float3 schlickFresnel(float3 F0, float3 F90, float VdotH)
+/**********************************************************/
 {
   return F0 + (F90 - F0) * pow(1.0F - VdotH, 5.0F);
 }
 
 // Schlick Fresnel approximation for float
+/**********************************************************/
 float schlickFresnel(float ior, float VdotH)
+/**********************************************************/
 {
   // Calculate reflectance at normal incidence (R0)
   float R0 = pow((1.0F - ior) / (1.0F + ior), 2.0F);
@@ -59,20 +65,26 @@ float schlickFresnel(float ior, float VdotH)
 //-----------------------------------------------------------------------
 
 // Mix two colors with a factor
+/**********************************************************/
 float3 mix_rgb(const float3 base, const float3 layer, const float3 factor)
+/**********************************************************/
 {
   return (1.0f - max(factor.x, max(factor.y, factor.z))) * base + factor * layer;
 }
 
 // Square the input
+/**********************************************************/
 float sqr(float x)
+/**********************************************************/
 {
   return x * x;
 }
 
 // Check for total internal reflection. `kh` is the dot product of the view
 // vector and the half vector.
+/**********************************************************/
 bool isTIR(const float2 ior, const float kh)
+/**********************************************************/
 {
   const float b = ior.x / ior.y;
   return (1.0f < (b * b * (1.0f - kh * kh)));
@@ -84,8 +96,10 @@ bool isTIR(const float2 ior, const float kh)
 > Evaluates anisotropic GGX distribution on the non-projected hemisphere (i.e.
 > +z is up)
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float hvd_ggx_eval(const float2 invRoughness,
                    const float3 h)  // == float3(dot(tangent, h), dot(bitangent, h), dot(normal, h))
+/**********************************************************/
 {
   const float x     = h.x * invRoughness.x;
   const float y     = h.y * invRoughness.y;
@@ -104,7 +118,9 @@ See Eric Heitz, "A Simpler and Exact Sampling Routine for the GGX Distribution o
 The input and output will be in local space:
 `float3(dot(T, k1), dot(B, k1), dot(N, k1))`.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float3 hvd_ggx_sample_vndf(float3 k, float2 roughness, float2 xi)
+/**********************************************************/
 {
   const float3 v = normalize(float3(k.x * roughness.x, k.y * roughness.y, k.z));
 
@@ -128,7 +144,9 @@ float3 hvd_ggx_sample_vndf(float3 k, float2 roughness, float2 xi)
   return normalize(h);
 }
 
+/**********************************************************/
 float smith_shadow_or_mask(const float3 k, const float2 roughness)
+/**********************************************************/
 {
   float kz2 = k.z * k.z;
   if(kz2 == 0.0f)
@@ -148,7 +166,9 @@ float smith_shadow_or_mask(const float3 k, const float2 roughness)
 
 Note that the joint Smith shadowing-masking function may be more realistic.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float ggx_smith_shadow_mask(NVSHADERS_OUT_TYPE(float) G1, NVSHADERS_OUT_TYPE(float) G2, const float3 k1, const float3 k2, const float2 roughness)
+/**********************************************************/
 {
   G1 = smith_shadow_or_mask(k1, roughness);
   G2 = smith_shadow_or_mask(k2, roughness);
@@ -163,6 +183,7 @@ float ggx_smith_shadow_mask(NVSHADERS_OUT_TYPE(float) G1, NVSHADERS_OUT_TYPE(flo
 //
 // This comes from MDL, and is a different approach than the example
 // implementation in KHR_materials_iridescence.
+/**********************************************************/
 float2 fresnel_conductor(NVSHADERS_OUT_TYPE(float2) phase_shift_sin,
                          NVSHADERS_OUT_TYPE(float2) phase_shift_cos,
                          const float n_a,
@@ -170,6 +191,7 @@ float2 fresnel_conductor(NVSHADERS_OUT_TYPE(float2) phase_shift_sin,
                          const float k_b,
                          const float cos_a,
                          const float sin_a_sqd)
+/**********************************************************/
 {
   const float k_b2   = k_b * k_b;
   const float n_b2   = n_b * n_b;
@@ -209,7 +231,9 @@ float2 fresnel_conductor(NVSHADERS_OUT_TYPE(float2) phase_shift_sin,
 
 
 // Simplified for dielectric, no phase shift computation.
+/**********************************************************/
 float2 fresnel_dielectric(const float n_a, const float n_b, const float cos_a, const float cos_b)
+/**********************************************************/
 {
   const float naca = n_a * cos_a;
   const float nbcb = n_b * cos_b;
@@ -223,7 +247,9 @@ float2 fresnel_dielectric(const float n_a, const float n_b, const float cos_a, c
 }
 
 
+/**********************************************************/
 float3 thin_film_factor(float coating_thickness, const float coating_ior, const float base_ior, const float incoming_ior, const float kh)
+/**********************************************************/
 {
   coating_thickness = max(0.0f, coating_thickness);
 
@@ -299,7 +325,9 @@ float3 thin_film_factor(float coating_thickness, const float coating_ior, const 
 
 
 // Compute half vector (convention: pointing to outgoing direction, like shading normal)
+/**********************************************************/
 float3 compute_half_vector(const float3 k1, const float3 k2, const float3 normal, const float2 ior, const float nk2, const bool transmission, const bool thinwalled)
+/**********************************************************/
 {
   float3 h;
 
@@ -327,11 +355,13 @@ float3 compute_half_vector(const float3 k1, const float3 k2, const float3 normal
   return normalize(h);
 }
 
+/**********************************************************/
 float3 refract(const float3 k,                // direction (pointing from surface)
                const float3 n,                // normal
                const float  b,                // (reflected side IOR) / (transmitted side IOR)
                const float  nk,               // dot(n, k)
                NVSHADERS_OUT_TYPE(bool) tir)  // total internal reflection
+/**********************************************************/
 {
   const float refraction = b * b * (1.0f - nk * nk);
 
@@ -345,8 +375,10 @@ float3 refract(const float3 k,                // direction (pointing from surfac
 # Function `ior_fresnel`
 > Fresnel equation for an equal mix of polarization.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float ior_fresnel(const float eta,  // refracted / reflected ior
                   const float kh)   // cosine of angle between normal/half-vector and direction
+/**********************************************************/
 {
   float costheta = 1.0f - (1.0f - kh * kh) / (eta * eta);
 
@@ -373,8 +405,10 @@ float ior_fresnel(const float eta,  // refracted / reflected ior
 # Function `hvd_sheen_eval`
 > Evaluates the anisotropic sheen half-vector distribution on the non-projected hemisphere.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float hvd_sheen_eval(const float invRoughness,
                      const float nh)  // dot(shading_normal, h)
+/**********************************************************/
 {
   const float sinTheta2 = max(0.0f, 1.0f - nh * nh);
   const float sinTheta  = sqrt(sinTheta2);
@@ -384,9 +418,11 @@ float hvd_sheen_eval(const float invRoughness,
 
 
 // Just the masking term for the v-cavity model.
+/**********************************************************/
 float vcavities_mask(const float nh,  // abs(dot(normal, half))
                      const float kh,  // abs(dot(dir, half))
                      const float nk)  // abs(dot(normal, dir))
+/**********************************************************/
 {
   return min(2.0f * nh * nk / kh, 1.0f);
 }
@@ -395,6 +431,7 @@ float vcavities_mask(const float nh,  // abs(dot(normal, half))
 # Function `vcavities_shadow_mask`
 > Cook-Torrance style v-cavities shadowing-masking term.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float vcavities_shadow_mask(NVSHADERS_OUT_TYPE(float) G1,
                             NVSHADERS_OUT_TYPE(float) G2,
                             const float  nh,
@@ -402,6 +439,7 @@ float vcavities_shadow_mask(NVSHADERS_OUT_TYPE(float) G1,
                             const float  k1h,
                             const float3 k2,
                             const float  k2h)
+/**********************************************************/
 {
   G1 = vcavities_mask(nh, k1h, k1.z);  // In my renderer the z-coordinate is the normal!
   G2 = vcavities_mask(nh, k2h, k2.z);
@@ -415,7 +453,9 @@ float vcavities_shadow_mask(NVSHADERS_OUT_TYPE(float) G1,
 # Function `hvd_sheen_sample`
 > Samples a half-vector according to an anisotropic sheen distribution.
 -------------------------------------------------------------------------------------------------*/
+/**********************************************************/
 float3 hvd_sheen_sample(const float2 xi, const float invRoughness)
+/**********************************************************/
 {
   const float phi = 2.0f * M_PI * xi.x;
 
@@ -429,7 +469,9 @@ float3 hvd_sheen_sample(const float2 xi, const float invRoughness)
                           cosTheta));  // In my renderer the z-coordinate is the normal!
 }
 
+/**********************************************************/
 float3 flip(const float3 h, const float3 k, float xi)
+/**********************************************************/
 {
   const float a = h.z * k.z;
   const float b = h.x * k.x + h.y * k.y;

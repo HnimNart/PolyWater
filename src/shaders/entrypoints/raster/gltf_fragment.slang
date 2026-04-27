@@ -5,7 +5,10 @@
 #include "include/light/lights.h.slang"
 #include "shared/structs.h"
 
-[shader("pixel")] PSout fragmentMain(FragmentInput stage) {
+/**********************************************************/
+[shader("pixel")] PSout fragmentMain(FragmentInput stage)
+/**********************************************************/
+{
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
   SceneResources *sceneResources = pushConst.resourcesAddress.get();
   Instance instance = sceneResources->instances[stage.instanceIndex];

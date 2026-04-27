@@ -3,7 +3,10 @@
 #include "shared/tonemapper_io.h.slang"
 
 // Helper: Binary search to find the lower bound index in a float array
-int findLowerBound(float *cdf, int size, float u) {
+/**********************************************************/
+int findLowerBound(float *cdf, int size, float u)
+/**********************************************************/
+{
   int low = 0;
   int high = size - 1;
   while (low < high) {
@@ -18,8 +21,11 @@ int findLowerBound(float *cdf, int size, float u) {
 
 struct EnvmapSampler {
   // 1. Pick a direction based on two random numbers [0, 1)
+  /**********************************************************/
   void sample(EnvmapLight light, float2 randomSample, out float3 wi,
-              out float pdf, out float3 radiance, Sampler2D envTextures[]) {
+              out float pdf, out float3 radiance, Sampler2D envTextures[])
+  /**********************************************************/
+  {
 
     // A. Find Row (V) using Marginal CDF
     int vIdx =
@@ -50,7 +56,10 @@ struct EnvmapSampler {
   }
 
   // 2. Evaluate radiance for a given world-space direction
-  float3 evalRadiance(EnvmapLight light, float3 wi, Sampler2D envTextures[]) {
+  /**********************************************************/
+  float3 evalRadiance(EnvmapLight light, float3 wi, Sampler2D envTextures[])
+  /**********************************************************/
+  {
     float3 localDir = normalize(mul((float3x3)transpose(light.rotation), wi));
 
     float theta = acos(clamp(localDir.y, -1.0f, 1.0f));
@@ -70,7 +79,10 @@ struct EnvmapSampler {
   }
 
   // 3. Evaluate PDF for MIS
-  float evalPdf(EnvmapLight light, float3 wi, float3 radiance) {
+  /**********************************************************/
+  float evalPdf(EnvmapLight light, float3 wi, float3 radiance)
+  /**********************************************************/
+  {
 
     uint width = light.dims.x;
     uint height = light.dims.y;

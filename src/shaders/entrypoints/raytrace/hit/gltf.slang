@@ -5,9 +5,12 @@
 //-----------------------------------------------------------------------
 // CLOSEST HIT SHADER - PBR Path Tracer + NEE
 //-----------------------------------------------------------------------
+/**********************************************************/
 [shader("closesthit")] void
 rchit_gltf(inout HitPayload payload,
-           in BuiltInTriangleIntersectionAttributes attr) {
+           in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
   HitState hit = getHitState(attr);
 
   const float3 worldPos = hit.worldPos;

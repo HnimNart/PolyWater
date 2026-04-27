@@ -5,9 +5,17 @@
 
 struct MirrorBSDF : IBSDF {
 
-    float3 eval(float3 L, float3 N) { return 0.0f; }
+    /**********************************************************/
+    float3 eval(float3 L, float3 N)
+    /**********************************************************/
+    {
+      return 0.0f;
+    }
 
-    float3 sample(float3 vDir, float3 worldNormal, inout uint seed, inout float3 outDir) {
+    /**********************************************************/
+    float3 sample(float3 vDir, float3 worldNormal, inout uint seed, inout float3 outDir)
+    /**********************************************************/
+    {
         if (dot(vDir, worldNormal) < 0) {
             return float3(0.0f);
         }

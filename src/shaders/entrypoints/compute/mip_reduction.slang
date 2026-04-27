@@ -15,7 +15,9 @@ ConstantBuffer<PushData> pushConst;
 [[vk::binding(1, 0)]] RWTexture2D<float> outDepthMip;
 
 // Helper to perform the specific reduction
+/**********************************************************/
 float reduce(float d0, float d1, float d2, float d3, int op)
+/**********************************************************/
 {
     switch(op)
     {
@@ -29,9 +31,11 @@ float reduce(float d0, float d1, float d2, float d3, int op)
     }
 }
 
+/**********************************************************/
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID) 
+/**********************************************************/
 {
     uint2 outDim;
     outDepthMip.GetDimensions(outDim.x, outDim.y);

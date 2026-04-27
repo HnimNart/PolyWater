@@ -5,7 +5,9 @@
 //-----------------------------------------------------------------------
 // Returns 1.0 if visible (lit), 0.0 if occluded (shadow)
 //-----------------------------------------------------------------------
+/**********************************************************/
 float testShadow(float3 worldPos, float3 dirToLight, float distance)
+/**********************************************************/
 {
   RayDesc shadowRay;
   // Push the origin slightly out along the normal to prevent self-intersection

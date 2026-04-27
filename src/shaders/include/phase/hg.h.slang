@@ -9,17 +9,26 @@
 struct HenyeyGreensteinPhase : IPhaseFunc {
     float g; // Anisotropy (-1.0 to 1.0)
 
-    __init(float g) {
+    /**********************************************************/
+    __init(float g)
+    /**********************************************************/
+    {
         this.g = g;
     }
 
-    float3 eval(float3 inDir, float3 outDir) {
+    /**********************************************************/
+    float3 eval(float3 inDir, float3 outDir)
+    /**********************************************************/
+    {
         float cosTheta = dot(-inDir, outDir);
         float denom = 1.0 + g * g - 2.0 * g * cosTheta;
         return float3((1.0 - g * g) / (4.0 * M_PI * pow(max(0.001, denom), 1.5)));
     }
 
-    float3 sample(float3 inDir, inout int seed) {
+    /**********************************************************/
+    float3 sample(float3 inDir, inout int seed)
+    /**********************************************************/
+    {
         float2 u = float2(rnd(seed), rnd(seed));
         float cosTheta;
 

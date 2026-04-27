@@ -1,8 +1,11 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
 #include "include/bsdf/mirror.h.slang"
 
+/**********************************************************/
 [shader("closesthit")] 
-void rchit_mirror(inout HitPayload payload, in BuiltInTriangleIntersectionAttributes attr) {
+void rchit_mirror(inout HitPayload payload, in BuiltInTriangleIntersectionAttributes attr)
+/**********************************************************/
+{
     HitState hit = getHitState(attr);
     const Material material = hit.material;
 

@@ -10,7 +10,9 @@
 // Generates a Cosine-Weighted random direction
 // Returns: A normalized World Space direction centered around 'normal'
 // -----------------------------------------------------------------------
+/**********************************************************/
 float3 sampleCosineWeightedHemisphere(float3 normal, inout uint seed)
+/**********************************************************/
 {
   // A. Generate Random Numbers
   float r1 = rnd(seed);
@@ -30,7 +32,9 @@ float3 sampleCosineWeightedHemisphere(float3 normal, inout uint seed)
 // https://www.realtimerendering.com/raytracinggems/unofficial_RayTracingGems_v1.4.pdf
 // 16.6.1 COSINE-WEIGHTED HEMISPHERE ORIENTED TO THE Z-AXIS
 //-----------------------------------------------------------------------
+/**********************************************************/
 inline float3 cosineSampleHemisphere(float r1, float r2)
+/**********************************************************/
 {
   float  r   = sqrt(r1);
   float  phi = M_TWO_PI * r2;

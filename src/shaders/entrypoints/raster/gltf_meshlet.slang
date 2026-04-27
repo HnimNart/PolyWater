@@ -10,6 +10,7 @@
 #include "shared/slang_types.h"
 #include "shared/structs.h"
 
+/**********************************************************/
 [shader("mesh")]
     [numthreads(64, 1, 1)] // 64 threads per workgroup (matches max vertices per
                            // meshlet)
@@ -17,7 +18,9 @@
     meshMain(in payload MeshTaskPayload taskPayload, uint threadId
              : SV_GroupIndex, uint groupId
              : SV_GroupID, out indices uint3 triangles[124],
-               out vertices FragmentInput outVertices[64]) {
+               out vertices FragmentInput outVertices[64])
+/**********************************************************/
+{
       SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
       SceneResources *sceneResources = pushConst.resourcesAddress.get();
 
