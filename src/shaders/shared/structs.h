@@ -75,8 +75,6 @@ struct ShadowPayload {
   bool isHit;
 };
 
-
-
 struct BoundingBox {
   float3 min;
   float3 max;
@@ -145,26 +143,21 @@ struct GlobalMeshletRef {
 CHECK_STRUCT_ALIGNMENT(GlobalMeshletRef)
 
 struct MeshletTopology {
-  BufferView meshlets; // Points to an array of GPUMeshlet structs
-  BufferView
-      meshletVertices; // Points to an array of uint32_t (global vertex indices)
-  BufferView meshletTriangles; // Points to an array of uint8_t (local triangle
-                               // indices)
-  BufferView tmp; // Points to an array of uint8_t (local triangle indices)
+  BufferView meshlets;         // Points to an array of GPUMeshlet structs
+  BufferView meshletVertices;  // Points to an array of uint32_t
+  BufferView meshletTriangles; // Points to an array of uint8_t
+  BufferView pad;
 };
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
 
 struct MeshPrimitive {
-  DevicePointer buffer = 0; // GPU device address of the raw mesh data buffer
+  DevicePtr<uint8_t> buffer =
+      {0};                  // GPU device address of the raw mesh data buffer
   TriangleMesh triMesh;    // Mesh data
   MeshletTopology meshlet; // Meshlet data
   uint32_t rawBufferIndex; // Index into raw data buffers
   int indexType;           // Index type (uint16_t or uint32_t)
   BoundingBox bbox;        // Local space bbox
-  // Workaround for an issue on a Radeon(TM) RX 7900 XT, driver version
-  // 32.0.22021.1009, where although GltfMesh has an ArrayStride of 88 (due to
-  // the pointer), the GPU treats it as though it has a stride of 84.
-  int padWorkaround;
 };
 CHECK_STRUCT_ALIGNMENT(MeshPrimitive)
 
@@ -260,8 +253,8 @@ struct RenderParams {
 
   uint denoise = 0; // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
   // --- Denoiser Settings ---
-  float denoiseRadius = 2.0f;        // Cast to int in shader
-  float denoiseSpatialSigma = 2.0f;  
+  float denoiseRadius = 2.0f; // Cast to int in shader
+  float denoiseSpatialSigma = 2.0f;
   float denoiseLuminanceSigma = 0.5f;
 };
 
@@ -283,7 +276,7 @@ struct SceneInfo {
   float4x4 projInvMatrix;  // Inverse projection matrix for the scene
   float4x4 viewInvMatrix;  // Inverse view matrix for the scene
   float3 cameraPosition;   // Camera position in world space
-  float nearZ;   
+  float nearZ;
   float4 frustumPlanes[6]; // Frustum planes
 
   // Light info
@@ -303,9 +296,10 @@ CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
 struct PushConstant {
   float3x3 normalMatrix;
-  int instanceIndex;                // Instance index for the current draw call
-  SceneInfo *sceneInfoAddress;      // Address of the scene information buffer
-  SceneResources *resourcesAddress; //
+  int instanceIndex; // Instance index for the current draw call
+  DevicePtr<SceneInfo>
+      sceneInfoAddress; // Address of the scene information buffer
+  DevicePtr<SceneResources> resourcesAddress; //
   RenderParams renderParams;
   RasterParams rasterParams;
 

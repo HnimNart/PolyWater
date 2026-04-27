@@ -79,10 +79,10 @@ public:
   void update(const std::vector<shaderio::Instance> &) override;
   void update(const std::vector<shaderio::Material> &) override;
 
-  shaderio::SceneInfo *update(VkCommandBuffer cmd,
-                              const shaderio::SceneInfo &sceneInfo) const;
+  VkDeviceAddress update(VkCommandBuffer cmd,
+                         const shaderio::SceneInfo &sceneInfo) const;
   void updateSceneResources() const;
-  shaderio::SceneResources *getSceneResources() const;
+  VkDeviceAddress getSceneResources() const;
 
   // -------------------------------------------------------------------------
   // 4. Texture & Bindless Descriptor Management

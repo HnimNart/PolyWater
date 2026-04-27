@@ -69,8 +69,8 @@ bool hiZCullSphere(float3 localCenter, float localRadius, float4x4 transform, Sc
 [numthreads(TASK_WORKGROUP_SIZE, 1, 1)] 
 void taskMain(uint threadId : SV_GroupIndex, uint groupId : SV_GroupID) 
 {
-  SceneInfo *sceneInfo = pushConst.sceneInfoAddress;
-  SceneResources *sceneResources = pushConst.resourcesAddress;
+  SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
+  SceneResources *sceneResources = pushConst.resourcesAddress.get();
 
   // Calculate the absolute global thread ID across the entire scene
   uint globalThreadId = (groupId * TASK_WORKGROUP_SIZE) + threadId;

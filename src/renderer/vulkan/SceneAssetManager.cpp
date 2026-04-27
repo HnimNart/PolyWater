@@ -353,7 +353,7 @@ void VulkanSceneAssetManager::update(
 }
 
 /**********************************************************/
-shaderio::SceneInfo *
+VkDeviceAddress
 VulkanSceneAssetManager::update(VkCommandBuffer cmd,
                                 const shaderio::SceneInfo &sceneInfo) const
 /**********************************************************/
@@ -367,7 +367,7 @@ VulkanSceneAssetManager::update(VkCommandBuffer cmd,
   nvvk::cmdBufferMemoryBarrier(cmd, {m_data.bSceneInfo.buffer,
                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                                      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT});
-  return reinterpret_cast<shaderio::SceneInfo *>(m_data.bSceneInfo.address);
+  return m_data.bSceneInfo.address;
 }
 
 /**********************************************************/
@@ -404,11 +404,10 @@ void VulkanSceneAssetManager::updateSceneResources(VkCommandBuffer cmd) const
 }
 
 /**********************************************************/
-shaderio::SceneResources *VulkanSceneAssetManager::getSceneResources() const
+VkDeviceAddress VulkanSceneAssetManager::getSceneResources() const
 /**********************************************************/
 {
-  return reinterpret_cast<shaderio::SceneResources *>(
-      m_data.bSceneResources.address);
+  return m_data.bSceneResources.address;
 }
 
 // -------------------------------------------------------------------------

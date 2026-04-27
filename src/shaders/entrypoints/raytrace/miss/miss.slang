@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------
 [shader("miss")] void rmissMain(inout HitPayload payload)
 {
-  SceneInfo* sceneInfo = pushConst.sceneInfoAddress;
+  SceneInfo* sceneInfo = pushConst.sceneInfoAddress.get();
 
   if (payload.emit == 0)
   {

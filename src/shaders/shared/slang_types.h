@@ -41,7 +41,9 @@ using namespace glm; // import all of glm into the shaderio namespace
 // On the C++ side this is a plain uint64_t (matches VkDeviceAddress).
 // On the GPU/Slang side it is typedef'd to uint8_t* so that byte-level
 // pointer arithmetic and pointer casts work naturally in shader code.
-using DevicePointer = uint64_t;
+template <typename T> struct DevicePtr {
+  uint64_t address;
+};
 
 // Type aliases to match Slang shader types with C++ GLM types
 using float4x4 = glm::mat4;
@@ -165,9 +167,24 @@ mat3 mul(mat3 a, mat3 b) { return b * a; }
 #define NAMESPACE_SHADERIO_BEGIN()
 #define NAMESPACE_SHADERIO_END()
 
-// GPU device address: a byte pointer on the Slang side so that arithmetic and
-// casts to typed pointers (e.g. (float*)(addr + offset)) work naturally.
-typealias DevicePointer = uint64_t;
+struct DevicePtr<T> {
+  uint64_t address;
+
+  __init() { address = 0u; }
+  __init(uint64_t addr) { address = addr; }
+
+  // --- GET METHODS ---
+  Ptr<T> get() { return reinterpret<Ptr<T>>(address); }
+  __generic<U> Ptr<U> get() { return reinterpret<Ptr<U>>(address); }
+
+  // --- AT METHODS ---
+  Ptr<T> at(uint64_t byteOffset) {
+    return reinterpret<Ptr<T>>(address + byteOffset);
+  }
+  __generic<U> Ptr<U> at(uint64_t byteOffset) {
+    return reinterpret<Ptr<U>>(address + byteOffset);
+  }
+}
 
 #define SLANG_DEFAULT(x) = (x)
 __intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(

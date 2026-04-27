@@ -145,13 +145,13 @@ AccelerationStructures::primitiveToGeometry(const shaderio::MeshPrimitive &mesh)
       .sType =
           VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
       .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT, // vec3 vertex position data
-      .vertexData = {.deviceAddress = VkDeviceAddress(mesh.buffer) +
+      .vertexData = {.deviceAddress = VkDeviceAddress(mesh.buffer.address) +
                                       triMesh.positions.offset},
       .vertexStride = triMesh.positions.byteStride,
       .maxVertex = triMesh.positions.count - 1,
       .indexType = VkIndexType(mesh.indexType),
-      .indexData = {.deviceAddress =
-                        VkDeviceAddress(mesh.buffer) + triMesh.indices.offset},
+      .indexData = {.deviceAddress = VkDeviceAddress(mesh.buffer.address) +
+                                     triMesh.indices.offset},
   };
 
   // Identify the above data as containing opaque triangles.

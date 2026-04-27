@@ -166,13 +166,13 @@ void VulkanRenderer::render(IRenderContext &ctx)
   vkCtx.gBuffers = m_gBuffers.get();
 
   // 2. Update GPU Resources (Uploads & Barriers)
-  auto *sceneInfoAddress =
+  VkDeviceAddress sceneInfoAddress =
       m_resources->update(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
-  auto *resourcesAddress = m_resources->getSceneResources();
+  VkDeviceAddress resourcesAddress = m_resources->getSceneResources();
 
   // 3. Configure Frame Global State (Push Constants)
-  vkCtx.pushValues.sceneInfoAddress = sceneInfoAddress;
-  vkCtx.pushValues.resourcesAddress = resourcesAddress;
+  vkCtx.pushValues.sceneInfoAddress = {.address = sceneInfoAddress};
+  vkCtx.pushValues.resourcesAddress = {.address = resourcesAddress};
   vkCtx.pushValues.renderParams = m_renderParams;
   vkCtx.pushValues.renderParams.frameIdx = m_frameIndex;
   vkCtx.pushValues.rasterParams = m_rasterParams;
