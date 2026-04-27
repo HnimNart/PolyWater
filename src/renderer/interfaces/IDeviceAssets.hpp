@@ -17,7 +17,7 @@ class IDeviceAssets {
 public:
   using MeshID = uint32_t;
   using TextureID = uint32_t;
-  using BufferAddr = uint8_t *;
+  using BufferAddr = uint64_t; // GPU buffer device address (matches VkDeviceAddress)
   using BufferID = uint32_t;
 
   struct BufferHandle {
@@ -25,9 +25,9 @@ public:
     BufferID id = 0;        // Index for the Asset Manager's vector
 
     // Optional: helper to check if valid
-    bool isValid() const { return address != nullptr; }
+    bool isValid() const { return address != 0; }
     template <typename T> T *as() const {
-      return reinterpret_cast<T *>(address);
+      return reinterpret_cast<T *>(static_cast<uintptr_t>(address));
     }
   };
 

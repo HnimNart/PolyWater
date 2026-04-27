@@ -35,6 +35,12 @@ NAMESPACE_SHADERIO_BEGIN()
 
 using namespace glm;  // import all of glm into the shaderio namespace
 
+// GPU device address: a 64-bit integer holding a Vulkan buffer device address.
+// On the C++ side this is a plain uint64_t (matches VkDeviceAddress).
+// On the GPU/Slang side it is typedef'd to uint8_t* so that byte-level
+// pointer arithmetic and pointer casts work naturally in shader code.
+using DevicePointer = uint64_t;
+
 // Type aliases to match Slang shader types with C++ GLM types
 using float4x4 = glm::mat4;
 using float4x3 = glm::mat4x3;
@@ -164,6 +170,10 @@ mat3 mul(mat3 a, mat3 b)
 
 #define NAMESPACE_SHADERIO_BEGIN()
 #define NAMESPACE_SHADERIO_END()
+
+// GPU device address: a byte pointer on the Slang side so that arithmetic and
+// casts to typed pointers (e.g. (float*)(addr + offset)) work naturally.
+typealias DevicePointer = uint8_t*;
 
 #define SLANG_DEFAULT(x) = (x)
 __intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(vector<T, N> x, vector<T, N> y);

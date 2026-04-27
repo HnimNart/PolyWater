@@ -260,7 +260,7 @@ VulkanSceneAssetManager::upload(const std::span<const uint8_t> &data)
     m_data.bDatas.push_back(bData);
   }
 
-  return {(uint8_t *)bData.address, bufferIndex};
+  return {bData.address, bufferIndex};
 }
 
 /**********************************************************/

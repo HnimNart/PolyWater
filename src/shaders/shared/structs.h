@@ -155,8 +155,7 @@ struct MeshletTopology {
 CHECK_STRUCT_ALIGNMENT(MeshletTopology)
 
 struct MeshPrimitive {
-  uint8_t *buffer =
-      nullptr;             // Buffer to the data (index, position, normal, ...)
+  DevicePointer buffer = 0; // GPU device address of the raw mesh data buffer
   TriangleMesh triMesh;    // Mesh data
   MeshletTopology meshlet; // Meshlet data
   uint32_t rawBufferIndex; // Index into raw data buffers

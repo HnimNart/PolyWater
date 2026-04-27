@@ -2,7 +2,7 @@
 #define VERTEX_FETCH_H_SLANG 1
 
 // Generic function to retrieve vertex attributes from GLTF buffer data
-__generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
+__generic<T : IFloat> T getAttribute(DevicePointer dataBufferAddress,
                                      BufferView bufferView, uint attributeIndex)
 {
   if (bufferView.count > 0)
@@ -20,7 +20,7 @@ __generic<T : IFloat> T getAttribute(uint8_t* dataBufferAddress,
 }
 
 // Retrieve triangle vertex indices from the mesh index buffer
-int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
+int3 getTriangleIndices(DevicePointer dataBufferAddress, const TriangleMesh mesh,
                         int primitiveID, int indexType)
 {
   // 0 == VK_INDEX_TYPE_UINT16, 1 == VK_INDEX_TYPE_UINT32
@@ -40,7 +40,7 @@ int3 getTriangleIndices(uint8_t* dataBufferAddress, const TriangleMesh mesh,
 }
 
 // Interpolate vertex attributes across a triangle using barycentric coordinates
-__generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress,
+__generic<T : IFloat> T getTriangleAttribute(DevicePointer dataBufferAddress,
                                              BufferView bufferView,
                                              uint3 attributeIndex,
                                              float3 barycentrics)
@@ -54,21 +54,21 @@ __generic<T : IFloat> T getTriangleAttribute(uint8_t* dataBufferAddress,
 }
 
 // Helper to fetch the GPUMeshlet struct from the raw buffer
-GPUMeshlet getMeshlet(uint8_t* dataBufferAddress, BufferView bufferView, uint meshletIndex)
+GPUMeshlet getMeshlet(DevicePointer dataBufferAddress, BufferView bufferView, uint meshletIndex)
 {
     GPUMeshlet* ptr = (GPUMeshlet*)(dataBufferAddress + bufferView.offset + meshletIndex * bufferView.byteStride);
     return ptr[0];
 }
 
 // Helper to fetch the 32-bit global vertex index
-uint getMeshletVertex(uint8_t* dataBufferAddress, BufferView bufferView, uint elementIndex)
+uint getMeshletVertex(DevicePointer dataBufferAddress, BufferView bufferView, uint elementIndex)
 {
     uint* ptr = (uint*)(dataBufferAddress + bufferView.offset + elementIndex * bufferView.byteStride);
     return ptr[0];
 }
 
 // Helper to fetch the tightly packed 8-bit local triangle index
-uint8_t getMeshletTriangle(uint8_t* dataBufferAddress, BufferView bufferView, uint elementIndex)
+uint8_t getMeshletTriangle(DevicePointer dataBufferAddress, BufferView bufferView, uint elementIndex)
 {
     uint8_t* ptr = (uint8_t*)(dataBufferAddress + bufferView.offset + elementIndex);
     return ptr[0];
