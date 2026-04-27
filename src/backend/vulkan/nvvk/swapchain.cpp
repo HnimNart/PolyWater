@@ -17,15 +17,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core/logger.hpp"
+#include "swapchain.hpp"
 
 #include "barriers.hpp"
 #include "check_error.hpp"
 #include "commands.hpp"
+#include "core/logger.hpp"
 #include "debug_util.hpp"
-#include "swapchain.hpp"
 
-VkResult nvvk::Swapchain::init(const InitInfo &info) {
+VkResult nvvk::Swapchain::init(const InitInfo& info)
+{
   m_physicalDevice = info.physicalDevice;
   m_device = info.device;
   m_queue = info.queue;
@@ -41,7 +42,8 @@ VkResult nvvk::Swapchain::init(const InitInfo &info) {
       info.physicalDevice, info.queue.familyIndex, info.surface,
       &supportsPresent));
 
-  if (supportsPresent != VK_TRUE) {
+  if (supportsPresent != VK_TRUE)
+  {
     LOGW("Selected queue family %d cannot present on surface %px. Swapchain "
          "creation failed.\n",
          info.queue.familyIndex, info.surface);
@@ -51,14 +53,17 @@ VkResult nvvk::Swapchain::init(const InitInfo &info) {
   return VK_SUCCESS;
 }
 
-void nvvk::Swapchain::deinit() {
-  if (m_device) {
+void nvvk::Swapchain::deinit()
+{
+  if (m_device)
+  {
     deinitResources();
   }
   *this = {};
 }
 
-VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
+VkResult nvvk::Swapchain::initResources(VkExtent2D& outWindowSize, bool vSync)
+{
   // Query the physical device's capabilities for the given surface.
   const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo2{
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
@@ -92,7 +97,8 @@ VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
   // Set the number of images in flight, respecting the GPU's maxImageCount
   // limit. If maxImageCount is equal to 0, then there is no limit other than
   // memory, so don't change m_maxFramesInFlight.
-  if (capabilities2.surfaceCapabilities.maxImageCount > 0) {
+  if (capabilities2.surfaceCapabilities.maxImageCount > 0)
+  {
     m_maxFramesInFlight = std::min(
         m_maxFramesInFlight, capabilities2.surfaceCapabilities.maxImageCount);
   }
@@ -150,7 +156,8 @@ VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
                            .baseArrayLayer = 0,
                            .layerCount = 1},
   };
-  for (uint32_t i = 0; i < m_maxFramesInFlight; i++) {
+  for (uint32_t i = 0; i < m_maxFramesInFlight; i++)
+  {
     m_images[i].image = swapImages[i];
     NVVK_DBG_NAME(m_images[i].image);
     imageViewCreateInfo.image = m_images[i].image;
@@ -161,7 +168,8 @@ VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
 
   // Initialize frame resources for each swapchain image
   m_frameResources.resize(m_maxFramesInFlight);
-  for (size_t i = 0; i < m_maxFramesInFlight; ++i) {
+  for (size_t i = 0; i < m_maxFramesInFlight; ++i)
+  {
     /*--
        * The sync objects are used to synchronize the rendering with the
       presentation.
@@ -187,7 +195,8 @@ VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
   {
     VkCommandBuffer cmd{};
     NVVK_FAIL_RETURN(nvvk::beginSingleTimeCommands(cmd, m_device, m_cmdPool));
-    for (uint32_t i = 0; i < m_maxFramesInFlight; i++) {
+    for (uint32_t i = 0; i < m_maxFramesInFlight; i++)
+    {
       cmdImageMemoryBarrier(cmd, {m_images[i].image, VK_IMAGE_LAYOUT_UNDEFINED,
                                   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
     }
@@ -198,8 +207,8 @@ VkResult nvvk::Swapchain::initResources(VkExtent2D &outWindowSize, bool vSync) {
   return VK_SUCCESS;
 }
 
-VkResult nvvk::Swapchain::reinitResources(VkExtent2D &outWindowSize,
-                                          bool vSync) {
+VkResult nvvk::Swapchain::reinitResources(VkExtent2D& outWindowSize, bool vSync)
+{
   // Wait for all frames to finish rendering before recreating the swapchain
   vkQueueWaitIdle(m_queue.queue);
 
@@ -209,27 +218,31 @@ VkResult nvvk::Swapchain::reinitResources(VkExtent2D &outWindowSize,
   return initResources(outWindowSize, vSync);
 }
 
-void nvvk::Swapchain::deinitResources() {
+void nvvk::Swapchain::deinitResources()
+{
   vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
-  for (auto &frameRes : m_frameResources) {
+  for (auto& frameRes : m_frameResources)
+  {
     vkDestroySemaphore(m_device, frameRes.imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(m_device, frameRes.renderFinishedSemaphore, nullptr);
   }
   m_frameResources.clear();
-  for (auto &image : m_images) {
+  for (auto& image : m_images)
+  {
     vkDestroyImageView(m_device, image.imageView, nullptr);
   }
   m_images.clear();
 }
 
-VkResult nvvk::Swapchain::acquireNextImage(VkDevice device) {
+VkResult nvvk::Swapchain::acquireNextImage(VkDevice device)
+{
   assert((m_needRebuild == false) &&
          "Swapbuffer need to call reinitResources()");
 
   // Get the frame resources for the current frame
   // We use m_currentFrame here because we want to ensure we don't overwrite
   // resources that are still in use by previous frames
-  auto &frame = m_frameResources[m_frameResourceIndex];
+  auto& frame = m_frameResources[m_frameResourceIndex];
 
   // Acquire the next image from the swapchain
   // This will signal frame.imageAvailableSemaphore when the image is ready
@@ -238,46 +251,52 @@ VkResult nvvk::Swapchain::acquireNextImage(VkDevice device) {
       device, m_swapChain, std::numeric_limits<uint64_t>::max(),
       frame.imageAvailableSemaphore, VK_NULL_HANDLE, &m_frameImageIndex);
 
-  switch (result) {
-  case VK_SUCCESS:
-  case VK_SUBOPTIMAL_KHR: // Still valid for presentation
-    return result;
+  switch (result)
+  {
+    case VK_SUCCESS:
+    case VK_SUBOPTIMAL_KHR:  // Still valid for presentation
+      return result;
 
-  case VK_ERROR_OUT_OF_DATE_KHR: // The swapchain is no longer compatible with
-                                 // the surface and needs to be recreated
-    m_needRebuild = true;
-    return result;
+    case VK_ERROR_OUT_OF_DATE_KHR:  // The swapchain is no longer compatible
+                                    // with the surface and needs to be
+                                    // recreated
+      m_needRebuild = true;
+      return result;
 
-  default:
-    LOGW("Failed to acquire swapchain image: %d\n", result);
-    return result;
+    default:
+      LOGW("Failed to acquire swapchain image: %d\n", result);
+      return result;
   }
 }
 
-void nvvk::Swapchain::presentFrame(VkQueue queue) {
+void nvvk::Swapchain::presentFrame(VkQueue queue)
+{
   // Get the frame resources for the current image
   // We use m_nextImageIndex here because we want to signal the semaphore
   // associated with the image we just finished rendering
-  auto &frame = m_frameResources[m_frameImageIndex];
+  auto& frame = m_frameResources[m_frameImageIndex];
 
   // Setup the presentation info, linking the swapchain and the image index
   const VkPresentInfoKHR presentInfo{
       .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-      .waitSemaphoreCount = 1, // Wait for rendering to finish
+      .waitSemaphoreCount = 1,  // Wait for rendering to finish
       .pWaitSemaphores =
-          &frame.renderFinishedSemaphore,  // Synchronize presentation
-      .swapchainCount = 1,                 // Swapchain to present the image
-      .pSwapchains = &m_swapChain,         // Pointer to the swapchain
-      .pImageIndices = &m_frameImageIndex, // Index of the image to present
+          &frame.renderFinishedSemaphore,   // Synchronize presentation
+      .swapchainCount = 1,                  // Swapchain to present the image
+      .pSwapchains = &m_swapChain,          // Pointer to the swapchain
+      .pImageIndices = &m_frameImageIndex,  // Index of the image to present
   };
 
   // Present the image and handle potential resizing issues
   const VkResult result = vkQueuePresentKHR(queue, &presentInfo);
   // If the swapchain is out of date (e.g., window resized), it needs to be
   // rebuilt
-  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+  if (result == VK_ERROR_OUT_OF_DATE_KHR)
+  {
     m_needRebuild = true;
-  } else {
+  }
+  else
+  {
     assert((result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) &&
            "Couldn't present swapchain image");
   }
@@ -287,11 +306,13 @@ void nvvk::Swapchain::presentFrame(VkQueue queue) {
 }
 
 VkSurfaceFormat2KHR nvvk::Swapchain::selectSwapSurfaceFormat(
-    const std::vector<VkSurfaceFormat2KHR> &availableFormats) const {
+    const std::vector<VkSurfaceFormat2KHR>& availableFormats) const
+{
   // If there's only one available format and it's undefined, return a default
   // format.
   if (availableFormats.size() == 1 &&
-      availableFormats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED) {
+      availableFormats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED)
+  {
     VkSurfaceFormat2KHR result{
         .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR,
         .surfaceFormat = {VK_FORMAT_B8G8R8A8_UNORM,
@@ -309,13 +330,16 @@ VkSurfaceFormat2KHR nvvk::Swapchain::selectSwapSurfaceFormat(
                             VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
 
   // Check available formats against the preferred formats.
-  for (const auto &preferredFormat : preferredFormats) {
-    for (const auto &availableFormat : availableFormats) {
+  for (const auto& preferredFormat : preferredFormats)
+  {
+    for (const auto& availableFormat : availableFormats)
+    {
       if (availableFormat.surfaceFormat.format ==
               preferredFormat.surfaceFormat.format &&
           availableFormat.surfaceFormat.colorSpace ==
-              preferredFormat.surfaceFormat.colorSpace) {
-        return availableFormat; // Return the first matching preferred format.
+              preferredFormat.surfaceFormat.colorSpace)
+      {
+        return availableFormat;  // Return the first matching preferred format.
       }
     }
   }
@@ -326,11 +350,13 @@ VkSurfaceFormat2KHR nvvk::Swapchain::selectSwapSurfaceFormat(
 }
 
 VkPresentModeKHR nvvk::Swapchain::selectSwapPresentMode(
-    const std::vector<VkPresentModeKHR> &availablePresentModes,
-    bool vSync) const {
+    const std::vector<VkPresentModeKHR>& availablePresentModes,
+    bool vSync) const
+{
   bool mailboxSupported = false, immediateSupported = false;
 
-  for (VkPresentModeKHR mode : availablePresentModes) {
+  for (VkPresentModeKHR mode : availablePresentModes)
+  {
     if (vSync && (mode == m_preferredVsyncOnMode))
       return mode;
 
@@ -343,11 +369,13 @@ VkPresentModeKHR nvvk::Swapchain::selectSwapPresentMode(
       immediateSupported = true;
   }
 
-  if (!vSync && immediateSupported) {
-    return VK_PRESENT_MODE_IMMEDIATE_KHR; // Best mode for low latency
+  if (!vSync && immediateSupported)
+  {
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;  // Best mode for low latency
   }
 
-  if (mailboxSupported) {
+  if (mailboxSupported)
+  {
     return VK_PRESENT_MODE_MAILBOX_KHR;
   }
 

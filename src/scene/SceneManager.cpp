@@ -31,7 +31,7 @@ void SceneManager::onPreRender()
 }
 
 /**********************************************************/
-Scene *SceneManager::getScenePtr()
+Scene* SceneManager::getScenePtr()
 /**********************************************************/
 {
   return &gltfResources();
@@ -43,13 +43,14 @@ Scene *SceneManager::getScenePtr()
 
 /**********************************************************/
 void SceneManager::buildSceneFromData(
-    const SceneData &data, const std::vector<std::filesystem::path> &searchDirs)
+    const SceneData& data, const std::vector<std::filesystem::path>& searchDirs)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
   // 1. Load Meshes & Keep ID Mapping
   std::vector<MeshID> meshIdMap;
-  for (const auto &val : data.meshPaths) {
+  for (const auto& val : data.meshPaths)
+  {
     std::string fullPath = core::findFile(val.path, searchDirs);
     std::vector<MeshID> newMeshIds =
         m_scene_resources.loadModel(fullPath, val.name);
@@ -57,13 +58,15 @@ void SceneManager::buildSceneFromData(
   }
 
   // 2. Load Textures & Keep ID Mapping
-  for (const auto &val : data.texturePaths) {
+  for (const auto& val : data.texturePaths)
+  {
     std::string fullPath = core::findFile(val.path, searchDirs);
     m_scene_resources.addTexture(val.name, fullPath);
   }
 
   // 3. Create Materials & Keep ID Mapping
-  for (const auto &matData : data.materials) {
+  for (const auto& matData : data.materials)
+  {
     shaderio::Material info{};
     info.baseColorFactor = matData.baseColor;
     info.metallicFactor = fmaxf(1e-4f, matData.metallic);
@@ -72,7 +75,8 @@ void SceneManager::buildSceneFromData(
     info.ior = matData.ior;
 
     // Resolve Texture Index
-    if (!matData.textureId.empty()) {
+    if (!matData.textureId.empty())
+    {
       info.baseColorTextureIndex =
           m_scene_resources.getTextureIDFromName(matData.textureId);
     }
@@ -80,7 +84,8 @@ void SceneManager::buildSceneFromData(
   }
 
   // 4. Create Instances
-  for (const auto &instData : data.instances) {
+  for (const auto& instData : data.instances)
+  {
     shaderio::Instance inst{};
     inst.translation = instData.translation;
     inst.scale = instData.scale;
@@ -89,7 +94,8 @@ void SceneManager::buildSceneFromData(
 
     // Resolve Mesh ID
     inst.meshIndex = m_scene_resources.getMeshIDFromName(instData.meshId);
-    if (inst.meshIndex == -1) {
+    if (inst.meshIndex == -1)
+    {
       std::cerr << "Invalid Mesh Index for instance: " << instData.name
                 << "[Skipping]" << std::endl;
       continue;
@@ -108,12 +114,14 @@ void SceneManager::buildSceneFromData(
   sceneInfo.backgroundColor = data.backgroundColor;
   sceneInfo.numLights = 0;
 
-  for (const auto &l : data.lights) {
-    if (sceneInfo.numLights >= MAX_LIGHTS) {
+  for (const auto& l : data.lights)
+  {
+    if (sceneInfo.numLights >= MAX_LIGHTS)
+    {
       break;
     }
 
-    auto &light = sceneInfo.punctualLights[sceneInfo.numLights];
+    auto& light = sceneInfo.punctualLights[sceneInfo.numLights];
     light.position = l.position;
     light.color = l.color;
     light.intensity = l.intensity;
@@ -123,7 +131,8 @@ void SceneManager::buildSceneFromData(
   }
   sceneInfo.numLights = std::max(1, sceneInfo.numLights);
 
-  if (data.envmap.useEnvMap) {
+  if (data.envmap.useEnvMap)
+  {
     m_scene_resources.addEnvmap(
         core::findFile(data.envmap.path, searchDirs).string(),
         data.envmap.scale, data.envmap.rotation);
@@ -139,35 +148,35 @@ void SceneManager::buildSceneFromData(
 }
 
 /**********************************************************/
-Scene &SceneManager::gltfResources()
+Scene& SceneManager::gltfResources()
 /**********************************************************/
 {
   return m_scene_resources.data();
 }
 
 /**********************************************************/
-const Scene &SceneManager::gltfResources() const
+const Scene& SceneManager::gltfResources() const
 /**********************************************************/
 {
   return m_scene_resources.data();
 }
 
 /**********************************************************/
-SceneResourcesManager &SceneManager::sceneResourceManager()
+SceneResourcesManager& SceneManager::sceneResourceManager()
 /**********************************************************/
 {
   return m_scene_resources;
 }
 
 /**********************************************************/
-const SceneResourcesManager &SceneManager::sceneResourceManager() const
+const SceneResourcesManager& SceneManager::sceneResourceManager() const
 /**********************************************************/
 {
   return m_scene_resources;
 }
 
 /**********************************************************/
-shaderio::SceneInfo &SceneManager::sceneInfo()
+shaderio::SceneInfo& SceneManager::sceneInfo()
 /**********************************************************/
 {
   return m_scene_resources.sceneInfo();

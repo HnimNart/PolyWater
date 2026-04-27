@@ -7,13 +7,17 @@
 
 #include "timers.hpp"
 
-class ProgressBar {
+class ProgressBar
+{
 public:
   // width: Visual width of the bar graphic
-  explicit ProgressBar(const std::string &name, int width = 50)
-      : m_name(name), m_width(width) {}
+  explicit ProgressBar(const std::string& name, int width = 50) :
+      m_name(name), m_width(width)
+  {
+  }
 
-  void update(uint32_t current, uint32_t total) {
+  void update(uint32_t current, uint32_t total)
+  {
     float progress = 0.0f;
     if (total > 0)
       progress = std::clamp(
@@ -23,7 +27,8 @@ public:
     double elapsed = m_timer.getSeconds();
     double eta = 0.0;
 
-    if (current > 0 && elapsed > 0.001) {
+    if (current > 0 && elapsed > 0.001)
+    {
       double rate = static_cast<double>(current) / elapsed;
       double remainingItems = static_cast<double>(total - current);
       eta = remainingItems / rate;
@@ -35,7 +40,8 @@ public:
     // \r resets the line, then we print the name first
     std::printf("\r%s [", m_name.c_str());
 
-    for (int i = 0; i < m_width; ++i) {
+    for (int i = 0; i < m_width; ++i)
+    {
       if (i < pos)
         std::printf("=");
       else if (i == pos)
@@ -54,7 +60,8 @@ public:
     std::fflush(stdout);
   }
 
-  void finish() {
+  void finish()
+  {
     double totalTime = m_timer.getSeconds();
 
     // Ensure the final line also has the name so it looks consistent
@@ -72,7 +79,8 @@ private:
   int m_width;
   core::PerformanceTimer m_timer;
 
-  static std::string formatTime(double s) {
+  static std::string formatTime(double s)
+  {
     int totalSeconds = static_cast<int>(s);
     int minutes = totalSeconds / 60;
     int seconds = totalSeconds % 60;

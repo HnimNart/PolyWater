@@ -1,16 +1,19 @@
 #include "SkyPass.hpp"
 
+#include <shaders/shared/structs.h>
+
 #include <backend/vulkan/core/RenderContext.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
-#include <shaders/shared/structs.h>
 
 // Shader bytecode
 #include "_autogen/sky_simple.slang.h"
 #include "scene/Scene.h"
 
 /**********************************************************/
-SkyPass::SkyPass(VulkanContextManager *context) : m_core(context) {}
+SkyPass::SkyPass(VulkanContextManager* context) : m_core(context)
+{
+}
 
 /**********************************************************/
 void SkyPass::init()
@@ -70,7 +73,7 @@ void SkyPass::init()
 }
 
 /**********************************************************/
-void SkyPass::setup(PassBuilder &builder)
+void SkyPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   builder.write(RenderOutput::Linear, PipelineStage::Compute,
@@ -78,11 +81,11 @@ void SkyPass::setup(PassBuilder &builder)
 }
 
 /**********************************************************/
-void SkyPass::execute(const IRenderContext &ctx)
+void SkyPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
-  const auto &sceneInfo = vkCtx.sceneResources->sceneInfo;
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
+  const auto& sceneInfo = vkCtx.sceneResources->sceneInfo;
 
   if (!sceneInfo.useSky)
     return;

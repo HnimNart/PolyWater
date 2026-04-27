@@ -1,7 +1,8 @@
 #pragma once
 
-#include <filesystem>
 #include <fmt/format.h>
+
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -18,7 +19,8 @@ using MaterialID = uint32_t;
 using MeshID = IDeviceAssets::MeshID;
 using TextureID = IDeviceAssets::TextureID;
 
-enum LightChangedBitMask {
+enum LightChangedBitMask
+{
   NoneChanged = 0,
   EnvmapChanged = (1 << 0),
   AreaLightChanged = (1 << 1),
@@ -26,7 +28,8 @@ enum LightChangedBitMask {
   All = (EnvmapChanged | AreaLightChanged | PunctualLightChanged)
 };
 
-class SceneResourcesManager {
+class SceneResourcesManager
+{
 public:
   // --- Lifecycle ---
   SceneResourcesManager() = default;
@@ -34,24 +37,24 @@ public:
   void clear();
 
   // --- Asset Loading & Deduplication ---
-  std::vector<MeshID> loadModel(const std::string &filename,
+  std::vector<MeshID> loadModel(const std::string& filename,
                                 std::string name = "");
-  TextureID addTexture(const std::string &name, const std::string &filename);
+  TextureID addTexture(const std::string& name, const std::string& filename);
   bool destroyTexture(TextureID id);
-  void addEnvmap(const std::filesystem::path &filename, float scale = 1.0f,
+  void addEnvmap(const std::filesystem::path& filename, float scale = 1.0f,
                  float rotation = 0.0f);
 
   // Process queued CPU assets and move to GPU
   void finalizeSceneResources();
 
   // --- Scene Composition ---
-  InstanceID addInstance(shaderio::Instance &&instance, std::string name = "");
-  MaterialID addMaterial(shaderio::Material &&material, std::string name = "");
+  InstanceID addInstance(shaderio::Instance&& instance, std::string name = "");
+  MaterialID addMaterial(shaderio::Material&& material, std::string name = "");
   void setSceneInfo(shaderio::SceneInfo sceneInfo);
 
   // --- Runtime Updates ---
-  void update(const CameraPtr &camera);
-  void updateSceneInfo(const CameraPtr &camera);
+  void update(const CameraPtr& camera);
+  void updateSceneInfo(const CameraPtr& camera);
 
   void onMaterialChange();
   void onLightChange(LightChangedBitMask mask);
@@ -64,81 +67,99 @@ public:
   void setDirty(bool val) { m_dirty = val; }
 
   // --- Data Accessors (Mutable) ---
-  Scene &data() { return m_scene_resources; }
-  shaderio::SceneInfo &sceneInfo() { return m_scene_resources.sceneInfo; }
+  Scene& data() { return m_scene_resources; }
+  shaderio::SceneInfo& sceneInfo() { return m_scene_resources.sceneInfo; }
 
-  std::vector<shaderio::Instance> &getInstances() {
+  std::vector<shaderio::Instance>& getInstances()
+  {
     return m_scene_resources.instances;
   }
-  std::vector<shaderio::Material> &getMaterials() {
+  std::vector<shaderio::Material>& getMaterials()
+  {
     return m_scene_resources.materials;
   }
 
   // --- Data Accessors (Const) ---
-  const Scene &data() const { return m_scene_resources; }
-  const shaderio::SceneInfo &sceneInfo() const {
+  const Scene& data() const { return m_scene_resources; }
+  const shaderio::SceneInfo& sceneInfo() const
+  {
     return m_scene_resources.sceneInfo;
   }
-  const core::Image &getEnvmap() { return m_envmapImage; }
+  const core::Image& getEnvmap() { return m_envmapImage; }
 
-  const std::vector<shaderio::Instance> &getInstances() const {
+  const std::vector<shaderio::Instance>& getInstances() const
+  {
     return m_scene_resources.instances;
   }
-  const std::vector<shaderio::Material> &getMaterials() const {
+  const std::vector<shaderio::Material>& getMaterials() const
+  {
     return m_scene_resources.materials;
   }
-  const std::vector<shaderio::MeshPrimitive> &getMeshes() const {
+  const std::vector<shaderio::MeshPrimitive>& getMeshes() const
+  {
     return m_scene_resources.meshes;
   }
 
   // --- Map Accessors (Name Lookups) ---
-  const std::unordered_map<std::string, MaterialID> &materialMap() const {
+  const std::unordered_map<std::string, MaterialID>& materialMap() const
+  {
     return m_materialMap;
   }
-  const std::unordered_map<std::string, InstanceID> &instanceMap() const {
+  const std::unordered_map<std::string, InstanceID>& instanceMap() const
+  {
     return m_instanceMap;
   }
-  const std::unordered_map<std::string, MeshID> &meshMap() const {
+  const std::unordered_map<std::string, MeshID>& meshMap() const
+  {
     return m_meshMap;
   }
-  const std::unordered_map<std::string, TextureID> &textureMap() const {
+  const std::unordered_map<std::string, TextureID>& textureMap() const
+  {
     return m_textureMap;
   }
-  const std::unordered_map<std::string, core::Image> &textureImageMap() const {
+  const std::unordered_map<std::string, core::Image>& textureImageMap() const
+  {
     return m_textureImageMap;
   }
 
   // --- Safe Resource Fetching ---
-  shaderio::Material *getMaterialFromName(const std::string &name);
-  MeshID getMeshIDFromName(const std::string &name) const;
-  TextureID getTextureIDFromName(const std::string &name) const;
-  const shaderio::MeshPrimitive &getMeshFromIdx(uint32_t index) const;
+  shaderio::Material* getMaterialFromName(const std::string& name);
+  MeshID getMeshIDFromName(const std::string& name) const;
+  TextureID getTextureIDFromName(const std::string& name) const;
+  const shaderio::MeshPrimitive& getMeshFromIdx(uint32_t index) const;
 
 private:
   // Internal Loading Helpers
-  std::vector<MeshID> loadGltf(const std::string &name,
-                               const std::string &filename);
-  std::vector<MeshID> loadObj(const std::string &name,
-                              const std::string &filename);
+  std::vector<MeshID> loadGltf(const std::string& name,
+                               const std::string& filename);
+  std::vector<MeshID> loadObj(const std::string& name,
+                              const std::string& filename);
 
-  void uploadOptimizedMesh(const OptimizedPayload &payload);
+  void uploadOptimizedMesh(const OptimizedPayload& payload);
   void uploadLights(LightChangedBitMask mask);
   void uploadPendingTextures(bool immediate);
   MeshID getNextFreeMeshID();
 
   // CPU Side Storage for Pending GPU Uploads
-  struct PendingMeshTask {
-    enum class Type { GLTF, PRIMITIVE } type;
+  struct PendingMeshTask
+  {
+    enum class Type
+    {
+      GLTF,
+      PRIMITIVE
+    } type;
     size_t index;
   };
 
-  struct PendingEnvMap {
+  struct PendingEnvMap
+  {
     std::filesystem::path filepath;
     float scale = 1.0f;
     float rotation = 0.0f;
   };
 
-  struct PendingTexture {
+  struct PendingTexture
+  {
     std::string name;
     std::string filename;
     TextureID id;

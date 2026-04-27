@@ -1,19 +1,19 @@
 #include "MipReductionPass.hpp"
 
 #include <algorithm>
+
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
+#include "_autogen/mip_reduction.slang.h"
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
 #include "core/timers.hpp"
 
-#include "_autogen/mip_reduction.slang.h"
-
 /**********************************************************/
-MipReductionPass::MipReductionPass(VulkanContextManager *contextManager,
-                                   nvvk::Image *texture)
-    : m_contextManager(contextManager), m_mipTexture(texture)
+MipReductionPass::MipReductionPass(VulkanContextManager* contextManager,
+                                   nvvk::Image* texture) :
+    m_contextManager(contextManager), m_mipTexture(texture)
 /**********************************************************/
 {
   assert(m_mipTexture && "MipReductionPass requires a valid texture pointer.");
@@ -32,7 +32,8 @@ void MipReductionPass::init()
 void MipReductionPass::deinit()
 /**********************************************************/
 {
-  for (VkImageView view : m_mipViews) {
+  for (VkImageView view : m_mipViews)
+  {
     vkDestroyImageView(m_contextManager->getDevice(), view, nullptr);
   }
   m_mipViews.clear();
@@ -45,7 +46,7 @@ void MipReductionPass::deinit()
 }
 
 /**********************************************************/
-void MipReductionPass::setup(PassBuilder &builder)
+void MipReductionPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   builder.read(RenderOutput::DepthBuffer, PipelineStage::Compute,
@@ -117,10 +118,10 @@ void MipReductionPass::compileShaders()
 }
 
 /**********************************************************/
-void MipReductionPass::execute(const IRenderContext &ctx)
+void MipReductionPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
 
   if (!m_mipTexture || m_mipTexture->image == VK_NULL_HANDLE)
@@ -143,7 +144,7 @@ void MipReductionPass::execute(const IRenderContext &ctx)
 
   ReductionPushConstants pc;
   pc.isFirstPass = 1;
-  pc.reductionOp = 0; // Default to MAX (Change this if you need MIN/AVG)
+  pc.reductionOp = 0;  // Default to MAX (Change this if you need MIN/AVG)
 
   vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                      sizeof(ReductionPushConstants), &pc);
@@ -166,7 +167,8 @@ void MipReductionPass::execute(const IRenderContext &ctx)
   uint32_t w = m_mipTexture->extent.width;
   uint32_t h = m_mipTexture->extent.height;
 
-  for (uint32_t i = 0; i < m_mipTexture->mipLevels - 1; ++i) {
+  for (uint32_t i = 0; i < m_mipTexture->mipLevels - 1; ++i)
+  {
     w = std::max(1u, w / 2);
     h = std::max(1u, h / 2);
 
@@ -195,7 +197,8 @@ void MipReductionPass::updateMipViews()
     vkDestroyImageView(m_contextManager->getDevice(), view, nullptr);
   m_mipViews.clear();
 
-  for (uint32_t i = 0; i < m_mipTexture->mipLevels; ++i) {
+  for (uint32_t i = 0; i < m_mipTexture->mipLevels; ++i)
+  {
     VkImageViewCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
     info.image = m_mipTexture->image;
     info.viewType = VK_IMAGE_VIEW_TYPE_2D;

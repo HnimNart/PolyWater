@@ -20,21 +20,22 @@
 
 #ifdef __unix__
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_X11
-#include <GLFW/glfw3native.h>
+#  define GLFW_INCLUDE_NONE
+#  include <GLFW/glfw3.h>
+#  define GLFW_EXPOSE_NATIVE_X11
+#  include <GLFW/glfw3native.h>
 
-#include <cassert>
-#include <string>
-#include <vector>
+#  include <cassert>
+#  include <string>
+#  include <vector>
 
-#include "file_dialog.hpp"
-#include "linux_file_dialog/linux_file_dialog.h"
+#  include "file_dialog.hpp"
+#  include "linux_file_dialog/linux_file_dialog.h"
 
-static void fixSingleFilter(std::string *pFilter);
+static void fixSingleFilter(std::string* pFilter);
 
-static std::vector<std::string> toFilterArgs(const char *exts) {
+static std::vector<std::string> toFilterArgs(const char* exts)
+{
   // Convert exts list to filter format recognized by portable-file-dialogs
   // Try to match implemented nvpsystem on Windows behavior:
   // Alternate between human-readable descriptions and filter strings.
@@ -44,7 +45,8 @@ static std::vector<std::string> toFilterArgs(const char *exts) {
 
   // Split strings by |
   std::vector<std::string> filterArgs(1);
-  for (const char *pC = exts; pC != nullptr && *pC != '\0'; ++pC) {
+  for (const char* pC = exts; pC != nullptr && *pC != '\0'; ++pC)
+  {
     char c = *pC;
     if (c == '|')
       filterArgs.emplace_back();
@@ -53,24 +55,30 @@ static std::vector<std::string> toFilterArgs(const char *exts) {
   }
 
   // Default arguments
-  if (filterArgs.size() < 2) {
+  if (filterArgs.size() < 2)
+  {
     filterArgs = {"All files", "*"};
   }
 
   // Split filters by ; and fix those filters.
-  for (size_t i = 1; i < filterArgs.size(); i += 2) {
-    std::string &arg = filterArgs[i];
+  for (size_t i = 1; i < filterArgs.size(); i += 2)
+  {
+    std::string& arg = filterArgs[i];
     std::string newArg;
     std::string singleFilter;
-    for (char c : arg) {
-      if (c == ';') {
+    for (char c : arg)
+    {
+      if (c == ';')
+      {
         fixSingleFilter(&singleFilter);
         newArg += std::move(singleFilter);
         singleFilter.clear();
-        newArg +=
-            ' '; // portable-file-dialogs uses spaces to separate... win32 wants
-                 // no spaces in filters at all so presumably this is fine.
-      } else {
+        newArg += ' ';  // portable-file-dialogs uses spaces to separate...
+                        // win32 wants no spaces in filters at all so presumably
+                        // this is fine.
+      }
+      else
+      {
         singleFilter.push_back(c);
       }
     }
@@ -82,35 +90,41 @@ static std::vector<std::string> toFilterArgs(const char *exts) {
   return filterArgs;
 }
 
-static void fixSingleFilter(std::string *pFilter) {
+static void fixSingleFilter(std::string* pFilter)
+{
   // Make case insensitive.
   std::string newFilter;
-  for (char c : *pFilter) {
-    if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
+  for (char c : *pFilter)
+  {
+    if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))
+    {
       // replace c with [cC] to make case-insensitive. TODO: Unicode support,
       // not sure how to implement for multibyte utf-8 characters.
       newFilter.push_back('[');
       newFilter.push_back(c);
       newFilter.push_back(char(c ^ 32));
       newFilter.push_back(']');
-    } else {
+    }
+    else
+    {
       newFilter.push_back(c);
     }
   }
   *pFilter = std::move(newFilter);
 }
 
-std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow *glfwin,
-                                                 const char *title,
-                                                 const char *exts) {
+std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow* glfwin,
+                                                const char* title,
+                                                const char* exts)
+{
   std::filesystem::path initialDir;
   return windowOpenFileDialog(glfwin, title, exts, initialDir);
 }
 
 std::filesystem::path
-app::windowOpenFileDialog(struct GLFWwindow *glfwin, const char *title,
-                           const char *exts,
-                           std::filesystem::path &initialDir) {
+app::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title,
+                          const char* exts, std::filesystem::path& initialDir)
+{
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
 
@@ -123,16 +137,18 @@ app::windowOpenFileDialog(struct GLFWwindow *glfwin, const char *title,
       resultVector.empty() ? "" : std::move(resultVector[0]);
 
   // Update the initial directory to the directory of the selected file
-  if (!result.empty()) {
+  if (!result.empty())
+  {
     initialDir = result.parent_path();
   }
 
   return result;
 }
 
-std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow *glfwin,
-                                                 const char *title,
-                                                 const char *exts) {
+std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow* glfwin,
+                                                const char* title,
+                                                const char* exts)
+{
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
 
@@ -140,8 +156,9 @@ std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow *glfwin,
   return save_file(title, ".", filterArgs).result();
 }
 
-std::filesystem::path app::windowOpenFolderDialog(struct GLFWwindow *glfwin,
-                                                   const char *title) {
+std::filesystem::path app::windowOpenFolderDialog(struct GLFWwindow* glfwin,
+                                                  const char* title)
+{
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
 

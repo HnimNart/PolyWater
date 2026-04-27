@@ -23,13 +23,14 @@
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
-RasterPass::RasterPass(VulkanContextManager *contextManager,
-                       const nvvk::DescriptorPack &descPack,
-                       const VulkanSceneAssetManager *assetManager)
-    : m_context_manager(contextManager), m_descPack(descPack),
-      m_assetManager(assetManager)
+RasterPass::RasterPass(VulkanContextManager* contextManager,
+                       const nvvk::DescriptorPack& descPack,
+                       const VulkanSceneAssetManager* assetManager) :
+    m_context_manager(contextManager), m_descPack(descPack),
+    m_assetManager(assetManager)
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
 void RasterPass::init()
@@ -49,7 +50,7 @@ void RasterPass::deinit()
 }
 
 /**********************************************************/
-void RasterPass::setup(PassBuilder &builder)
+void RasterPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   // Declare intention to write to the Linear color buffer as a render target
@@ -64,27 +65,28 @@ void RasterPass::setup(PassBuilder &builder)
 /**********************************************************/
 void RasterPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
-void RasterPass::execute(const IRenderContext &ctx)
+void RasterPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
-  const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const Scene *sceneResources = vkCtx.sceneResources;
-  const shaderio::SceneInfo &scene_info = sceneResources->sceneInfo;
-  const VkExtent2D &size = gBuffers->getSize();
-  const shaderio::RasterParams &rasterParams = constants.rasterParams;
+  const Scene* sceneResources = vkCtx.sceneResources;
+  const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
+  const VkExtent2D& size = gBuffers->getSize();
+  const shaderio::RasterParams& rasterParams = constants.rasterParams;
 
   NVVK_DBG_SCOPE(cmd);
 
   // --- CULLING SETUP ---
-  const glm::mat4 &viewProj = scene_info.viewProjMatrix;
+  const glm::mat4& viewProj = scene_info.viewProjMatrix;
   core::Frustum cameraFrustum = core::extractFrustumPlanes(viewProj);
   uint32_t culledCount = 0;
 
@@ -147,7 +149,8 @@ void RasterPass::execute(const IRenderContext &ctx)
       rasterParams.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
   vkCmdSetPolygonModeEXT(cmd, polyMode);
 
-  if (rasterParams.wireframe) {
+  if (rasterParams.wireframe)
+  {
     vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
   }
 
@@ -162,13 +165,13 @@ void RasterPass::execute(const IRenderContext &ctx)
       VK_SHADER_STAGE_MESH_BIT_EXT};
 
   const VkShaderEXT shaders[] = {
-      m_vertexShader,   // Maps to VERTEX
-      VK_NULL_HANDLE,   // Maps to TESS_CONTROL (Disabled)
-      VK_NULL_HANDLE,   // Maps to TESS_EVALUATION (Disabled)
-      VK_NULL_HANDLE,   // Maps to GEOMETRY (Disabled)
-      m_fragmentShader, // Maps to FRAGMENT
-      VK_NULL_HANDLE,   // Maps to TASK (Disabled)
-      VK_NULL_HANDLE    // Maps to MESH (Disabled)
+      m_vertexShader,    // Maps to VERTEX
+      VK_NULL_HANDLE,    // Maps to TESS_CONTROL (Disabled)
+      VK_NULL_HANDLE,    // Maps to TESS_EVALUATION (Disabled)
+      VK_NULL_HANDLE,    // Maps to GEOMETRY (Disabled)
+      m_fragmentShader,  // Maps to FRAGMENT
+      VK_NULL_HANDLE,    // Maps to TASK (Disabled)
+      VK_NULL_HANDLE     // Maps to MESH (Disabled)
   };
 
   // 3. Bind all 7 explicitly
@@ -178,19 +181,21 @@ void RasterPass::execute(const IRenderContext &ctx)
   vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // Draw Loop
-  for (size_t i = 0; i < sceneResources->instances.size(); i++) {
+  for (size_t i = 0; i < sceneResources->instances.size(); i++)
+  {
 
-    const shaderio::Instance &instance = sceneResources->instances[i];
+    const shaderio::Instance& instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
-    const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
+    const shaderio::MeshPrimitive& meshPrim = sceneResources->meshes[meshIndex];
 
     if (!core::isAABBInsideFrustum(cameraFrustum, meshPrim.bbox.min,
-                                   meshPrim.bbox.max, instance.transform)) {
+                                   meshPrim.bbox.max, instance.transform))
+    {
       culledCount++;
-      continue; // Skip drawing this instance!
+      continue;  // Skip drawing this instance!
     }
 
-    const shaderio::TriangleMesh &triMesh = meshPrim.triMesh;
+    const shaderio::TriangleMesh& triMesh = meshPrim.triMesh;
     // Push constants
     constants.normalMatrix =
         glm::transpose(glm::inverse(glm::mat3(instance.transform)));
@@ -198,7 +203,7 @@ void RasterPass::execute(const IRenderContext &ctx)
     vkCmdPushConstants2(cmd, &pushInfo);
 
     // Index Buffer
-    const nvvk::Buffer &v = m_assetManager->getBufferFromIndex(meshIndex);
+    const nvvk::Buffer& v = m_assetManager->getBufferFromIndex(meshIndex);
     vkCmdBindIndexBuffer(cmd, v.buffer, triMesh.indices.offset,
                          VkIndexType(meshPrim.indexType));
 
@@ -206,7 +211,8 @@ void RasterPass::execute(const IRenderContext &ctx)
     vkCmdDrawIndexed(cmd, triMesh.indices.count, 1, 0, 0, 0);
   }
 
-  if (culledCount > 0) {
+  if (culledCount > 0)
+  {
     LOGD("Rasterizer: Culled %u / %zu instances", culledCount,
          sceneResources->instances.size());
   }

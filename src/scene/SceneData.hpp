@@ -1,35 +1,40 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <string>
 #include <vector>
+
+#include <glm/glm.hpp>
 
 #include "shaders/shared/structs.h"
 
 // Lightweight structs to hold Scene data temporarily
-struct DataMesh {
+struct DataMesh
+{
   std::string name;
   std::string path;
 };
 
-struct DataTexture {
+struct DataTexture
+{
   std::string name;
   std::string path;
 };
 
-struct DataMaterial {
+struct DataMaterial
+{
   std::string name;
   glm::vec4 baseColor{1.0f};
   float metallic{1.0f};
   float roughness{1.0f};
   glm::vec3 emission{0.0f};
   glm::vec3 ior{1.5f};
-  std::string textureId = ""; // name of texture
+  std::string textureId = "";  // name of texture
 };
 
-struct DataInstance {
+struct DataInstance
+{
   std::string name;
-  std::string meshId = ""; // name of mesh
+  std::string meshId = "";  // name of mesh
   std::string materialId = "";
   glm::vec3 translation{0.0f};
   glm::vec3 scale{1.0f};
@@ -37,21 +42,24 @@ struct DataInstance {
   MaterialType hitGroup = MaterialType::eDieletrics;
 };
 
-struct DataLight {
+struct DataLight
+{
   shaderio::LightType type;
   glm::vec3 position;
   glm::vec3 color;
   float intensity;
 };
 
-struct DataEnvmap {
+struct DataEnvmap
+{
   std::string path;
   float scale = 1.0f;
   float rotation = 0.0f;
   bool useEnvMap = false;
 };
 
-struct DataCamera {
+struct DataCamera
+{
   glm::vec3 eye, center, up;
   glm::vec2 clip;
 };
@@ -59,7 +67,8 @@ struct DataCamera {
 // --------------------------------------------------------
 // The Intermediate Representation
 // --------------------------------------------------------
-struct SceneData {
+struct SceneData
+{
   // Assets to be loaded (files)
   std::vector<DataMesh> meshPaths;
   std::vector<DataTexture> texturePaths;
@@ -75,7 +84,8 @@ struct SceneData {
   glm::vec3 backgroundColor{0.0f};
   bool useSky = false;
 
-  void clear() {
+  void clear()
+  {
     meshPaths.clear();
     texturePaths.clear();
     materials.clear();
@@ -83,13 +93,15 @@ struct SceneData {
     lights.clear();
   }
 
-  int addMesh(const std::string &name, const std::string &path) {
+  int addMesh(const std::string& name, const std::string& path)
+  {
     meshPaths.push_back({name, path});
-    return (int)meshPaths.size() - 1;
+    return (int) meshPaths.size() - 1;
   }
-  int addTexture(const std::string &name, const std::string &path) {
+  int addTexture(const std::string& name, const std::string& path)
+  {
     texturePaths.push_back({name, path});
-    return (int)texturePaths.size() - 1;
+    return (int) texturePaths.size() - 1;
   }
 
   void dump() const;

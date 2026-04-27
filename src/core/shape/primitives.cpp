@@ -21,6 +21,7 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -30,31 +31,36 @@
 #include "hash_operations.hpp"
 #include "primitives.hpp"
 
-namespace core {
-static uint32_t addPos(PrimitiveMesh &mesh, glm::vec3 p) {
+namespace core
+{
+static uint32_t addPos(PrimitiveMesh& mesh, glm::vec3 p)
+{
   PrimitiveVertex v{};
   v.pos = p;
   mesh.vertices.emplace_back(v);
   return static_cast<uint32_t>(mesh.vertices.size()) - 1;
 }
 
-static void addTriangle(PrimitiveMesh &mesh, uint32_t a, uint32_t b,
-                        uint32_t c) {
+static void addTriangle(PrimitiveMesh& mesh, uint32_t a, uint32_t b, uint32_t c)
+{
   mesh.triangles.push_back({{a, b, c}});
 }
 
-static void addTriangle(PrimitiveMesh &mesh, glm::vec3 a, glm::vec3 b,
-                        glm::vec3 c) {
+static void addTriangle(PrimitiveMesh& mesh, glm::vec3 a, glm::vec3 b,
+                        glm::vec3 c)
+{
   mesh.triangles.push_back(
       {{addPos(mesh, a), addPos(mesh, b), addPos(mesh, c)}});
 }
 
-static void generateFacetedNormals(PrimitiveMesh &mesh) {
+static void generateFacetedNormals(PrimitiveMesh& mesh)
+{
   auto num_indices = static_cast<int>(mesh.triangles.size());
-  for (int i = 0; i < num_indices; i++) {
-    auto &v0 = mesh.vertices[mesh.triangles[i].indices[0]];
-    auto &v1 = mesh.vertices[mesh.triangles[i].indices[1]];
-    auto &v2 = mesh.vertices[mesh.triangles[i].indices[2]];
+  for (int i = 0; i < num_indices; i++)
+  {
+    auto& v0 = mesh.vertices[mesh.triangles[i].indices[0]];
+    auto& v1 = mesh.vertices[mesh.triangles[i].indices[1]];
+    auto& v2 = mesh.vertices[mesh.triangles[i].indices[2]];
 
     glm::vec3 n = glm::normalize(glm::cross(glm::normalize(v1.pos - v0.pos),
                                             glm::normalize(v2.pos - v0.pos)));
@@ -66,8 +72,10 @@ static void generateFacetedNormals(PrimitiveMesh &mesh) {
 }
 
 // Function to generate texture coordinates
-static void generateTexCoords(PrimitiveMesh &mesh) {
-  for (auto &vertex : mesh.vertices) {
+static void generateTexCoords(PrimitiveMesh& mesh)
+{
+  for (auto& vertex : mesh.vertices)
+  {
     glm::vec3 n = normalize(vertex.pos);
     float u = 0.5f + std::atan2(n.z, n.x) / (2.0F * float(M_PI));
     float v = 0.5f - std::asin(n.y) / float(M_PI);
@@ -76,7 +84,8 @@ static void generateTexCoords(PrimitiveMesh &mesh) {
 }
 
 // Generates a tetrahedron mesh (four triangular faces)
-PrimitiveMesh createTetrahedron() {
+PrimitiveMesh createTetrahedron()
+{
   PrimitiveMesh mesh;
 
   // choose coordinates on the unit sphere
@@ -104,7 +113,8 @@ PrimitiveMesh createTetrahedron() {
 }
 
 // Generates an icosahedron mesh (twenty equilateral triangular faces)
-PrimitiveMesh createIcosahedron() {
+PrimitiveMesh createIcosahedron()
+{
   PrimitiveMesh mesh;
 
   float sq5 = sqrt(5.0F);
@@ -156,7 +166,8 @@ PrimitiveMesh createIcosahedron() {
 
 // Generates an octahedron mesh (eight faces), this is like two four-sided
 // pyramids placed base to base.
-PrimitiveMesh createOctahedron() {
+PrimitiveMesh createOctahedron()
+{
   PrimitiveMesh mesh;
 
   std::vector<glm::vec3> v;
@@ -187,12 +198,15 @@ PrimitiveMesh createOctahedron() {
 // subdivisions (steps) in both the X and Z directions. It creates vertices,
 // normals, and texture coordinates for each point on the grid and forms
 // triangles to create the plane's surface.
-PrimitiveMesh createPlane(int steps, float width, float depth) {
+PrimitiveMesh createPlane(int steps, float width, float depth)
+{
   PrimitiveMesh mesh;
 
   float increment = 1.0F / static_cast<float>(steps);
-  for (int sz = 0; sz <= steps; sz++) {
-    for (int sx = 0; sx <= steps; sx++) {
+  for (int sz = 0; sz <= steps; sz++)
+  {
+    for (int sx = 0; sx <= steps; sx++)
+    {
       PrimitiveVertex v{};
 
       v.pos = glm::vec3(-0.5F + (static_cast<float>(sx) * increment), 0.0F,
@@ -206,8 +220,10 @@ PrimitiveMesh createPlane(int steps, float width, float depth) {
     }
   }
 
-  for (int sz = 0; sz < steps; sz++) {
-    for (int sx = 0; sx < steps; sx++) {
+  for (int sz = 0; sz < steps; sz++)
+  {
+    for (int sx = 0; sx < steps; sx++)
+    {
       addTriangle(mesh, sx + sz * (steps + 1), sx + 1 + (sz + 1) * (steps + 1),
                   sx + 1 + sz * (steps + 1));
       addTriangle(mesh, sx + sz * (steps + 1), sx + (sz + 1) * (steps + 1),
@@ -222,7 +238,8 @@ PrimitiveMesh createPlane(int steps, float width, float depth) {
 // Start with 8 vertex, 6 normal and 4 uv, then 12 triangles and 24
 // unique PrimitiveVertex
 PrimitiveMesh createCube(float width /*= 1*/, float height /*= 1*/,
-                         float depth /*= 1*/) {
+                         float depth /*= 1*/)
+{
   PrimitiveMesh mesh;
 
   glm::vec3 s = glm::vec3(width, height, depth) * 0.5F;
@@ -241,7 +258,8 @@ PrimitiveMesh createCube(float width /*= 1*/, float height /*= 1*/,
                                                  {5, 4, 6, 7}, {4, 0, 2, 6},
                                                  {4, 5, 1, 0}, {2, 3, 7, 6}};
 
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 6; ++i)
+  {
     auto index = static_cast<int>(mesh.vertices.size());
     for (int j = 0; j < 4; ++j)
       mesh.vertices.push_back({pnt[cube_polygons[i][j]], nrm[i], uv[j]});
@@ -256,12 +274,13 @@ PrimitiveMesh createCube(float width /*= 1*/, float height /*= 1*/,
 // (horizontal subdivisions) and stacks (vertical subdivisions). It uses
 // latitude-longitude grid generation to create vertices with proper positions,
 // normals, and texture coordinates.
-PrimitiveMesh createSphereUv(float radius, int sectors, int stacks) {
+PrimitiveMesh createSphereUv(float radius, int sectors, int stacks)
+{
   PrimitiveMesh mesh;
 
-  float omega{0.0F};                // rotation around the X axis
-  float phi{0.0F};                  // rotation around the Y axis
-  float length_inv = 1.0F / radius; // vertex normal
+  float omega{0.0F};                 // rotation around the X axis
+  float phi{0.0F};                   // rotation around the Y axis
+  float length_inv = 1.0F / radius;  // vertex normal
 
   const float math_pi = static_cast<float>(M_PI);
   float sector_step = 2.0F * math_pi / static_cast<float>(sectors);
@@ -269,25 +288,27 @@ PrimitiveMesh createSphereUv(float radius, int sectors, int stacks) {
   float sector_angle{0.0F};
   float stack_angle{0.0F};
 
-  for (int i = 0; i <= stacks; ++i) {
+  for (int i = 0; i <= stacks; ++i)
+  {
     stack_angle =
         math_pi / 2.0F -
-        static_cast<float>(i) * stack_step; // starting from pi/2 to -pi/2
-    phi = radius * cosf(stack_angle);       // r * cos(u)
-    omega = radius * sinf(stack_angle);     // r * sin(u)
+        static_cast<float>(i) * stack_step;  // starting from pi/2 to -pi/2
+    phi = radius * cosf(stack_angle);        // r * cos(u)
+    omega = radius * sinf(stack_angle);      // r * sin(u)
 
     // add (sectorCount+1) vertices per stack
     // the first and last vertices have same position and normal, but different
     // tex coords
-    for (int j = 0; j <= sectors; ++j) {
+    for (int j = 0; j <= sectors; ++j)
+    {
       PrimitiveVertex v{};
 
       sector_angle =
-          static_cast<float>(j) * sector_step; // starting from 0 to 2pi
+          static_cast<float>(j) * sector_step;  // starting from 0 to 2pi
 
       // vertex position (x, y, z)
-      v.pos.x = phi * cosf(sector_angle); // r * cos(u) * cos(v)
-      v.pos.z = phi * sinf(sector_angle); // r * cos(u) * sin(v)
+      v.pos.x = phi * cosf(sector_angle);  // r * cos(u) * cos(v)
+      v.pos.z = phi * sinf(sector_angle);  // r * cos(u) * sin(v)
       v.pos.y = omega;
 
       // normalized vertex normal
@@ -308,18 +329,22 @@ PrimitiveMesh createSphereUv(float radius, int sectors, int stacks) {
   //  k1---k1+1
   int k1{0};
   int k2{0};
-  for (int i = 0; i < stacks; ++i) {
-    k1 = i * (sectors + 1); // beginning of current stack
-    k2 = k1 + sectors + 1;  // beginning of next stack
+  for (int i = 0; i < stacks; ++i)
+  {
+    k1 = i * (sectors + 1);  // beginning of current stack
+    k2 = k1 + sectors + 1;   // beginning of next stack
 
-    for (int j = 0; j < sectors; ++j, ++k1, ++k2) {
+    for (int j = 0; j < sectors; ++j, ++k1, ++k2)
+    {
       // 2 triangles per sector excluding 1st and last stacks
-      if (i != 0) {
-        addTriangle(mesh, k1, k1 + 1, k2); // k1---k2---k1+1
+      if (i != 0)
+      {
+        addTriangle(mesh, k1, k1 + 1, k2);  // k1---k2---k1+1
       }
 
-      if (i != (stacks - 1)) {
-        addTriangle(mesh, k1 + 1, k2 + 1, k2); // k1+1---k2---k2+1
+      if (i != (stacks - 1))
+      {
+        addTriangle(mesh, k1 + 1, k2 + 1, k2);  // k1+1---k2---k2+1
       }
     }
   }
@@ -331,7 +356,8 @@ PrimitiveMesh createSphereUv(float radius, int sectors, int stacks) {
 // radius   :Adjust this to change the size of the cone
 // height   :Adjust this to change the height of the cone
 // segments :Adjust this for the number of segments forming the base circle
-PrimitiveMesh createConeMesh(float radius, float height, int segments) {
+PrimitiveMesh createConeMesh(float radius, float height, int segments)
+{
   PrimitiveMesh mesh;
 
   float halfHeight = height * 0.5f;
@@ -349,13 +375,14 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments) {
   glm::vec3 tip = {0.0F, halfHeight, 0.0F};
 
   // Sides
-  for (int i = 0; i <= segments; ++i) {
+  for (int i = 0; i <= segments; ++i)
+  {
     PrimitiveVertex v{};
     sector_angle = static_cast<float>(i) * sector_step;
 
     // Position
-    v.pos.x = radius * cosf(sector_angle); // r * cos(u) * cos(v)
-    v.pos.z = radius * sinf(sector_angle); // r * cos(u) * sin(v)
+    v.pos.x = radius * cosf(sector_angle);  // r * cos(u) * cos(v)
+    v.pos.z = radius * sinf(sector_angle);  // r * cos(u) * sin(v)
     v.pos.y = -halfHeight;
     // Normal
     v.nrm.x = -cone_y * cosf(sector_angle);
@@ -369,7 +396,7 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments) {
     // Tip point
     v.pos = tip;
     // Normal
-    sector_angle += 0.5F * sector_step; // Half way to next triangle
+    sector_angle += 0.5F * sector_step;  // Half way to next triangle
     v.nrm.x = -cone_y * cosf(sector_angle);
     v.nrm.y = cone_x;
     v.nrm.z = -cone_y * sinf(sector_angle);
@@ -380,19 +407,21 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments) {
     mesh.vertices.emplace_back(v);
   }
 
-  for (int j = 0; j < segments; ++j) {
+  for (int j = 0; j < segments; ++j)
+  {
     int k1 = j * 2;
     addTriangle(mesh, k1, k1 + 1, k1 + 2);
   }
 
   // Bottom plate (normal are different)
-  for (int i = 0; i <= segments; ++i) {
+  for (int i = 0; i <= segments; ++i)
+  {
     PrimitiveVertex v{};
     sector_angle =
-        static_cast<float>(i) * sector_step; // starting from 0 to 2pi
+        static_cast<float>(i) * sector_step;  // starting from 0 to 2pi
 
-    v.pos.x = radius * cosf(sector_angle); // r * cos(u) * cos(v)
-    v.pos.z = radius * sinf(sector_angle); // r * cos(u) * sin(v)
+    v.pos.x = radius * cosf(sector_angle);  // r * cos(u) * cos(v)
+    v.pos.z = radius * sinf(sector_angle);  // r * cos(u) * sin(v)
     v.pos.y = -halfHeight;
     //
     v.nrm = {0.0F, -1.0F, 0.0F};
@@ -407,7 +436,8 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments) {
     mesh.vertices.emplace_back(v);
   }
 
-  for (int j = 0; j < segments; ++j) {
+  for (int j = 0; j < segments; ++j)
+  {
     int k1 = (j + segments + 1) * 2;
     addTriangle(mesh, k1, k1 + 2, k1 + 1);
   }
@@ -422,26 +452,28 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments) {
 // coordinates for each vertex and constructs triangles accordingly. Note: There
 // will be duplicated vertices with this method.
 //       Use removeDuplicateVertices to avoid duplicated vertices.
-PrimitiveMesh createSphereMesh(float radius, int subdivisions) {
+PrimitiveMesh createSphereMesh(float radius, int subdivisions)
+{
 
-  const float t = (1.0F + std::sqrt(5.0F)) / 2.0F; // Golden ratio
+  const float t = (1.0F + std::sqrt(5.0F)) / 2.0F;  // Golden ratio
   std::vector<glm::vec3> vertices = {{-1, t, 0},  {1, t, 0},   {-1, -t, 0},
                                      {1, -t, 0},  {0, -1, t},  {0, 1, t},
                                      {0, -1, -t}, {0, 1, -t},  {t, 0, -1},
                                      {t, 0, 1},   {-t, 0, -1}, {-t, 0, 1}};
 
   // Function to calculate the midpoint between two vertices
-  auto midpoint = [](const glm::vec3 &v1, const glm::vec3 &v2) {
-    return (v1 + v2) * 0.5f;
-  };
+  auto midpoint = [](const glm::vec3& v1, const glm::vec3& v2)
+  { return (v1 + v2) * 0.5f; };
 
-  auto texCoord = [](const glm::vec3 &v1) {
+  auto texCoord = [](const glm::vec3& v1)
+  {
     return glm::vec2{0.5f + std::atan2(v1.z, v1.x) / (2 * M_PI),
                      0.5f - std::asin(v1.y) / M_PI};
   };
 
   std::vector<PrimitiveVertex> primitiveVertices;
-  for (const auto &vertex : vertices) {
+  for (const auto& vertex : vertices)
+  {
     glm::vec3 n = normalize(vertex);
     primitiveVertices.push_back({n * radius, n, texCoord(n)});
   }
@@ -452,9 +484,11 @@ PrimitiveMesh createSphereMesh(float radius, int subdivisions) {
       {{3, 9, 4}},  {{3, 4, 2}},  {{3, 2, 6}},   {{3, 6, 8}},  {{3, 8, 9}},
       {{4, 9, 5}},  {{2, 4, 11}}, {{6, 2, 10}},  {{8, 6, 7}},  {{9, 8, 1}}};
 
-  for (int i = 0; i < subdivisions; ++i) {
+  for (int i = 0; i < subdivisions; ++i)
+  {
     std::vector<PrimitiveTriangle> subTriangles;
-    for (const auto &tri : triangles) {
+    for (const auto& tri : triangles)
+    {
       // Subdivide each triangle into 4 sub-triangles
       glm::vec3 mid1 = midpoint(primitiveVertices[tri.indices[0]].pos,
                                 primitiveVertices[tri.indices[1]].pos);
@@ -503,18 +537,21 @@ PrimitiveMesh createSphereMesh(float radius, int subdivisions) {
 // torus. minorSegments: The number of segments used to approximate the smaller
 // circle (tube) within the torus.
 PrimitiveMesh createTorusMesh(float majorRadius, float minorRadius,
-                              int majorSegments, int minorSegments) {
+                              int majorSegments, int minorSegments)
+{
   PrimitiveMesh mesh;
 
   float majorStep = 2.0f * float(M_PI) / float(majorSegments);
   float minorStep = 2.0f * float(M_PI) / float(minorSegments);
 
-  for (int i = 0; i <= majorSegments; ++i) {
+  for (int i = 0; i <= majorSegments; ++i)
+  {
     float angle1 = i * majorStep;
     glm::vec3 center = {majorRadius * std::cos(angle1), 0.0f,
                         majorRadius * std::sin(angle1)};
 
-    for (int j = 0; j <= minorSegments; ++j) {
+    for (int j = 0; j <= minorSegments; ++j)
+    {
       float angle2 = j * minorStep;
       glm::vec3 position = {
           center.x + minorRadius * std::cos(angle2) * std::cos(angle1),
@@ -530,8 +567,10 @@ PrimitiveMesh createTorusMesh(float majorRadius, float minorRadius,
     }
   }
 
-  for (int i = 0; i < majorSegments; ++i) {
-    for (int j = 0; j < minorSegments; ++j) {
+  for (int i = 0; i < majorSegments; ++i)
+  {
+    for (int j = 0; j < minorSegments; ++j)
+    {
       uint32_t idx1 = i * (minorSegments + 1) + j;
       uint32_t idx2 = (i + 1) * (minorSegments + 1) + j;
       uint32_t idx3 = idx1 + 1;
@@ -549,24 +588,30 @@ PrimitiveMesh createTorusMesh(float majorRadius, float minorRadius,
 // Create a vector of nodes that represent the Menger Sponge
 // Nodes have a different translation and scale, which can be used with
 // different objects.
-std::vector<Node> mengerSpongeNodes(int level, float probability, int seed) {
+std::vector<Node> mengerSpongeNodes(int level, float probability, int seed)
+{
   std::mt19937 rng(seed);
   std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
-  struct MengerSponge {
+  struct MengerSponge
+  {
     glm::vec3 m_topLeftFront;
     float m_size;
 
-    void split(std::vector<MengerSponge> &cubes) {
+    void split(std::vector<MengerSponge>& cubes)
+    {
       float size = m_size / 3.f;
       glm::vec3 topLeftFront = m_topLeftFront;
-      for (int x = 0; x < 3; x++) {
+      for (int x = 0; x < 3; x++)
+      {
         topLeftFront[0] = m_topLeftFront[0] + static_cast<float>(x) * size;
-        for (int y = 0; y < 3; y++) {
+        for (int y = 0; y < 3; y++)
+        {
           if (x == 1 && y == 1)
             continue;
           topLeftFront[1] = m_topLeftFront[1] + static_cast<float>(y) * size;
-          for (int z = 0; z < 3; z++) {
+          for (int z = 0; z < 3; z++)
+          {
             if (x == 1 && z == 1)
               continue;
             if (y == 1 && z == 1)
@@ -579,16 +624,20 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed) {
       }
     }
 
-    void splitProb(std::vector<MengerSponge> &cubes, float prob,
-                   std::mt19937 &rng,
-                   std::uniform_real_distribution<float> &dist) {
+    void splitProb(std::vector<MengerSponge>& cubes, float prob,
+                   std::mt19937& rng,
+                   std::uniform_real_distribution<float>& dist)
+    {
       float size = m_size / 3.f;
       glm::vec3 topLeftFront = m_topLeftFront;
-      for (int x = 0; x < 3; x++) {
+      for (int x = 0; x < 3; x++)
+      {
         topLeftFront[0] = m_topLeftFront[0] + static_cast<float>(x) * size;
-        for (int y = 0; y < 3; y++) {
+        for (int y = 0; y < 3; y++)
+        {
           topLeftFront[1] = m_topLeftFront[1] + static_cast<float>(y) * size;
-          for (int z = 0; z < 3; z++) {
+          for (int z = 0; z < 3; z++)
+          {
             float sample = dist(rng);
             if (sample > prob)
               continue;
@@ -609,8 +658,10 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed) {
   auto previous = &elements1;
   auto next = &elements2;
 
-  for (int i = 0; i < level; i++) {
-    for (MengerSponge &c : *previous) {
+  for (int i = 0; i < level; i++)
+  {
+    for (MengerSponge& c : *previous)
+    {
       if (probability < 0.f)
         c.split(*next);
       else
@@ -623,11 +674,12 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed) {
   }
 
   std::vector<Node> nodes;
-  for (MengerSponge &c : *previous) {
+  for (MengerSponge& c : *previous)
+  {
     Node node{};
     node.translation = c.m_topLeftFront;
     node.scale = glm::vec3(c.m_size);
-    node.mesh = 0; // default to the first mesh
+    node.mesh = 0;  // default to the first mesh
     nodes.push_back(node);
   }
 
@@ -637,11 +689,13 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed) {
 //-------------------------------------------------------------------------------------------------
 // Create a list of nodes where the seeds have the position similar as in a sun
 // flower and the seeds grow slightly the further they are from the center.
-std::vector<Node> sunflower(int seeds) {
+std::vector<Node> sunflower(int seeds)
+{
   constexpr double goldenRatio = glm::golden_ratio<double>();
 
   std::vector<Node> flower;
-  for (int i = 1; i <= seeds; ++i) {
+  for (int i = 1; i <= seeds; ++i)
+  {
     double r = pow(i, goldenRatio) / seeds;
     double theta = 2 * glm::pi<double>() * goldenRatio * i;
 
@@ -659,14 +713,16 @@ std::vector<Node> sunflower(int seeds) {
 // Merge all nodes meshes into a single one
 // - nodes: the nodes to merge
 // - meshes: the mesh array that the nodes is referring to
-PrimitiveMesh mergeNodes(const std::vector<Node> &nodes,
-                         const std::vector<PrimitiveMesh> meshes) {
+PrimitiveMesh mergeNodes(const std::vector<Node>& nodes,
+                         const std::vector<PrimitiveMesh> meshes)
+{
   PrimitiveMesh resultMesh;
 
   // Find how many triangles and vertices the merged mesh will have
   size_t nb_triangles = 0;
   size_t nb_vertices = 0;
-  for (const auto &n : nodes) {
+  for (const auto& n : nodes)
+  {
     nb_triangles += meshes[n.mesh].triangles.size();
     nb_vertices += meshes[n.mesh].vertices.size();
   }
@@ -674,17 +730,20 @@ PrimitiveMesh mergeNodes(const std::vector<Node> &nodes,
   resultMesh.vertices.reserve(nb_vertices);
 
   // Merge all nodes meshes into a single one
-  for (const auto &n : nodes) {
+  for (const auto& n : nodes)
+  {
     const glm::mat4 mat = n.localMatrix();
 
     uint32_t tIndex = static_cast<uint32_t>(resultMesh.vertices.size());
-    const PrimitiveMesh &mesh = meshes[n.mesh];
+    const PrimitiveMesh& mesh = meshes[n.mesh];
 
-    for (auto v : mesh.vertices) {
+    for (auto v : mesh.vertices)
+    {
       v.pos = glm::vec3(mat * glm::vec4(v.pos, 1));
       resultMesh.vertices.push_back(v);
     }
-    for (auto t : mesh.triangles) {
+    for (auto t : mesh.triangles)
+    {
       t.indices += tIndex;
       resultMesh.triangles.push_back(t);
     }
@@ -697,7 +756,8 @@ PrimitiveMesh mergeNodes(const std::vector<Node> &nodes,
 // displacements within a specified `amplitude` range to create a wobbling
 // effect. The intensity of the wobbling effect can be controlled by adjusting
 // the `amplitude` parameter. The function returns the modified mesh.
-PrimitiveMesh wobblePrimitive(const PrimitiveMesh &mesh, float amplitude) {
+PrimitiveMesh wobblePrimitive(const PrimitiveMesh& mesh, float amplitude)
+{
   // Seed the random number generator with a random device
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -709,7 +769,8 @@ PrimitiveMesh wobblePrimitive(const PrimitiveMesh &mesh, float amplitude) {
   auto rand = [&] { return distribution(gen); };
 
   std::vector<PrimitiveVertex> newVertices;
-  for (auto &vertex : mesh.vertices) {
+  for (auto& vertex : mesh.vertices)
+  {
     glm::vec3 originalPosition = vertex.pos;
     glm::vec3 displacement = glm::vec3(rand(), rand(), rand());
     displacement *= amplitude;
@@ -727,20 +788,25 @@ PrimitiveMesh wobblePrimitive(const PrimitiveMesh &mesh, float amplitude) {
 // vertices in uniqueVertices. We use an unordered_map called vertexIndexMap to
 // keep track of the mapping between the original vertices and their
 // corresponding indices in the uniqueVertices vector.
-PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh &mesh,
-                                      bool testNormal, bool testUv) {
-  auto hash = [&](const PrimitiveVertex &v) {
-    if (testNormal) {
+PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
+                                      bool testNormal, bool testUv)
+{
+  auto hash = [&](const PrimitiveVertex& v)
+  {
+    if (testNormal)
+    {
       if (testUv)
         return hashVal(v.pos.x, v.pos.y, v.pos.z, v.nrm.x, v.nrm.y, v.nrm.z,
                        v.tex.x, v.tex.y);
       else
         return hashVal(v.pos.x, v.pos.y, v.pos.z, v.nrm.x, v.nrm.y, v.nrm.z);
-    } else if (testUv)
+    }
+    else if (testUv)
       return hashVal(v.pos.x, v.pos.y, v.pos.z, v.tex.x, v.tex.y);
     return hashVal(v.pos.x, v.pos.y, v.pos.z);
   };
-  auto equal = [&](const PrimitiveVertex &l, const PrimitiveVertex &r) {
+  auto equal = [&](const PrimitiveVertex& l, const PrimitiveVertex& r)
+  {
     return (l.pos == r.pos) && (testNormal ? l.nrm == r.nrm : true) &&
            (testUv ? l.tex == r.tex : true);
   };
@@ -750,20 +816,25 @@ PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh &mesh,
   std::vector<PrimitiveVertex> uniqueVertices;
   std::vector<PrimitiveTriangle> uniqueTriangles;
 
-  for (const auto &triangle : mesh.triangles) {
+  for (const auto& triangle : mesh.triangles)
+  {
     PrimitiveTriangle uniqueTriangle = {};
-    for (int i = 0; i < 3; i++) {
-      const PrimitiveVertex &vertex = mesh.vertices[triangle.indices[i]];
+    for (int i = 0; i < 3; i++)
+    {
+      const PrimitiveVertex& vertex = mesh.vertices[triangle.indices[i]];
 
       // Check if the vertex is already in the uniqueVertices list
       auto it = vertexIndexMap.find(vertex);
-      if (it == vertexIndexMap.end()) {
+      if (it == vertexIndexMap.end())
+      {
         // Vertex not found, add it to uniqueVertices and update the index map
         uint32_t newIndex = static_cast<uint32_t>(uniqueVertices.size());
         vertexIndexMap[vertex] = newIndex;
         uniqueVertices.push_back(vertex);
         uniqueTriangle.indices[i] = newIndex;
-      } else {
+      }
+      else
+      {
         // Vertex found, use its index in uniqueVertices
         uniqueTriangle.indices[i] = it->second;
       }
@@ -777,4 +848,4 @@ PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh &mesh,
 
   return {std::move(uniqueVertices), std::move(uniqueTriangles)};
 }
-} // namespace core
+}  // namespace core

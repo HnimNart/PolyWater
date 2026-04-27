@@ -17,13 +17,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "gpu_monitor.hpp"
+
 #include "app/widgets/fonts.hpp"
 #include "app/widgets/property_editor.hpp"
 #include "core/logger.hpp"
 
-#include "gpu_monitor.hpp"
-
-#define SAMPLING_INTERVAL 100 // Sampling every 100 ms
+#define SAMPLING_INTERVAL 100  // Sampling every 100 ms
 
 // Time (in ms) during which a throttle reason is shown as currently happening
 #define THROTTLE_SHOW_COOLDOWN_TIME 1000
@@ -31,19 +31,24 @@
 #define THROTTLE_COOLDOWN_TIME 5000
 #define MIB_SIZE 1'000'000
 
-namespace app {
+namespace app
+{
 
 //-----------------------------------------------------------------------------
-inline int metricFormatter(double value, char *buff, int size, void *data) {
-  const char *unit = (const char *)data;
+inline int metricFormatter(double value, char* buff, int size, void* data)
+{
+  const char* unit = (const char*) data;
   static double s_value[] = {1000000000, 1000000,  1000,       1,
                              0.001,      0.000001, 0.000000001};
-  static const char *s_prefix[] = {"G", "M", "k", "", "m", "u", "n"};
-  if (value == 0) {
+  static const char* s_prefix[] = {"G", "M", "k", "", "m", "u", "n"};
+  if (value == 0)
+  {
     return snprintf(buff, size, "0 %s", unit);
   }
-  for (int i = 0; i < 7; ++i) {
-    if (fabs(value) >= s_value[i]) {
+  for (int i = 0; i < 7; ++i)
+  {
+    if (fabs(value) >= s_value[i])
+    {
       return snprintf(buff, size, "%g %s%s", value / s_value[i], s_prefix[i],
                       unit);
     }
@@ -53,11 +58,13 @@ inline int metricFormatter(double value, char *buff, int size, void *data) {
 
 namespace PE = PropertyEditor;
 
-ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show) {
+ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show)
+{
   ImPlot::CreateContext();
 }
 
-void ElementGpuMonitor::onAttach(Application *app) {
+void ElementGpuMonitor::onAttach(Application* app)
+{
   LOGI("Adding GPU Monitor (NVML)\n");
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor =
@@ -68,27 +75,33 @@ void ElementGpuMonitor::onAttach(Application *app) {
   m_settingsHandler.addImGuiHandler();
 }
 
-void ElementGpuMonitor::onDetach() {
+void ElementGpuMonitor::onDetach()
+{
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor.reset();
 #endif
 }
 
-void ElementGpuMonitor::pushThrottleTabColor() const {
-  if (m_throttleDetected) {
+void ElementGpuMonitor::pushThrottleTabColor() const
+{
+  if (m_throttleDetected)
+  {
     ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(1, 0, 0, 1));
     ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.8f, 0, 0, 1));
     ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.8f, 0, 0, 1));
   }
 }
 
-void ElementGpuMonitor::popThrottleTabColor() const {
-  if (m_throttleDetected) {
+void ElementGpuMonitor::popThrottleTabColor() const
+{
+  if (m_throttleDetected)
+  {
     ImGui::PopStyleColor(3);
   }
 }
 
-void ElementGpuMonitor::onUIRender() {
+void ElementGpuMonitor::onUIRender()
+{
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor->refresh();
 #endif
@@ -98,50 +111,59 @@ void ElementGpuMonitor::onUIRender() {
   ImGui::SetNextWindowCollapsed(false, ImGuiCond_Appearing);
   ImGui::SetNextWindowSize({400, 200}, ImGuiCond_Appearing);
   ImGui::SetNextWindowBgAlpha(0.7F);
-  if (ImGui::Begin("NVML Monitor", &showWindow)) {
+  if (ImGui::Begin("NVML Monitor", &showWindow))
+  {
 #if defined(NVML_SUPPORTED)
-    if (m_nvmlMonitor->isValid() == false) {
+    if (m_nvmlMonitor->isValid() == false)
+    {
       ImGui::Text("NVML wasn't loaded");
       ImGui::End();
       return;
     }
 
     // Averaging CPU values
-    const NvmlMonitor::SysInfo &cpuMeasure = m_nvmlMonitor->getSysInfo();
+    const NvmlMonitor::SysInfo& cpuMeasure = m_nvmlMonitor->getSysInfo();
 
-    { // Averaging the CPU sampling, but limit the
+    {  // Averaging the CPU sampling, but limit the
       static double s_refreshRate = ImGui::GetTime();
-      if ((ImGui::GetTime() - s_refreshRate) > SAMPLING_INTERVAL / 1000.0) {
+      if ((ImGui::GetTime() - s_refreshRate) > SAMPLING_INTERVAL / 1000.0)
+      {
         m_avgCpu.addValue(cpuMeasure.cpu[m_nvmlMonitor->getOffset()]);
         s_refreshRate = ImGui::GetTime();
       }
     }
 
-    if (ImGui::BeginTabBar("MonitorTabs")) {
-      if (ImGui::BeginTabItem("All")) {
+    if (ImGui::BeginTabBar("MonitorTabs"))
+    {
+      if (ImGui::BeginTabItem("All"))
+      {
         imguiProgressBars();
         ImGui::EndTabItem();
       }
 
       // Display Graphs for each GPU
       for (uint32_t gpuIndex = 0; gpuIndex < m_nvmlMonitor->getGpuCount();
-           gpuIndex++) // Number of gpu
+           gpuIndex++)  // Number of gpu
       {
         const std::string gpuTabName = fmt::format("GPU-{}", gpuIndex);
         pushThrottleTabColor();
-        if (ImGui::BeginTabItem(gpuTabName.c_str())) {
+        if (ImGui::BeginTabItem(gpuTabName.c_str()))
+        {
           popThrottleTabColor();
           const std::string gpuTabBarName =
               fmt::format("GPU-{}TabBar", gpuIndex);
-          if (ImGui::BeginTabBar(gpuTabBarName.c_str())) {
-            if (ImGui::BeginTabItem("Overview")) {
+          if (ImGui::BeginTabBar(gpuTabBarName.c_str()))
+          {
+            if (ImGui::BeginTabItem("Overview"))
+            {
               imguiGraphLines(gpuIndex);
               ImGui::EndTabItem();
             }
 
             const std::string gpuInfoTabName =
                 fmt::format("Details###GPU-{}InfoTab", gpuIndex);
-            if (ImGui::BeginTabItem(gpuInfoTabName.c_str())) {
+            if (ImGui::BeginTabItem(gpuInfoTabName.c_str()))
+            {
               imguiDeviceInfo(gpuIndex);
               ImGui::EndTabItem();
             }
@@ -149,7 +171,8 @@ void ElementGpuMonitor::onUIRender() {
             const std::string perfStateTabName = fmt::format(
                 "Performance State###PerfStateGPU - {}InfoTab", gpuIndex);
             pushThrottleTabColor();
-            if (ImGui::BeginTabItem(perfStateTabName.c_str())) {
+            if (ImGui::BeginTabItem(perfStateTabName.c_str()))
+            {
 
               imguiDevicePerformanceState(gpuIndex);
               ImGui::EndTabItem();
@@ -158,27 +181,31 @@ void ElementGpuMonitor::onUIRender() {
 
             const std::string powerStateTabName = fmt::format(
                 "Power State###PowerStateGPU - {}InfoTab", gpuIndex);
-            if (ImGui::BeginTabItem(powerStateTabName.c_str())) {
+            if (ImGui::BeginTabItem(powerStateTabName.c_str()))
+            {
               imguiDevicePowerState(gpuIndex);
               ImGui::EndTabItem();
             }
 
             const std::string utilizationTabName = fmt::format(
                 "Utilization###UtilizationGPU - {}InfoTab", gpuIndex);
-            if (ImGui::BeginTabItem(utilizationTabName.c_str())) {
+            if (ImGui::BeginTabItem(utilizationTabName.c_str()))
+            {
               imguiDeviceUtilization(gpuIndex);
               ImGui::EndTabItem();
             }
             const std::string memoryTabName =
                 fmt::format("Memory###MemoryGPU - {}InfoTab", gpuIndex);
-            if (ImGui::BeginTabItem(memoryTabName.c_str())) {
+            if (ImGui::BeginTabItem(memoryTabName.c_str()))
+            {
               imguiDeviceMemory(gpuIndex);
               ImGui::EndTabItem();
             }
 
             const std::string clockSetupTabName = fmt::format(
                 "Clock Setup###ClockSetupGPU - {}InfoTab", gpuIndex);
-            if (ImGui::BeginTabItem(clockSetupTabName.c_str())) {
+            if (ImGui::BeginTabItem(clockSetupTabName.c_str()))
+            {
               imguiClockSetup(gpuIndex);
               ImGui::EndTabItem();
             }
@@ -187,21 +214,25 @@ void ElementGpuMonitor::onUIRender() {
           }
 
           ImGui::EndTabItem();
-        } else {
+        }
+        else
+        {
           popThrottleTabColor();
         }
       }
       ImGui::EndTabBar();
     }
     for (uint32_t deviceIndex = 0; deviceIndex < m_nvmlMonitor->getGpuCount();
-         deviceIndex++) {
+         deviceIndex++)
+    {
 
-      const NvmlMonitor::DevicePerformanceState &performanceState =
+      const NvmlMonitor::DevicePerformanceState& performanceState =
           m_nvmlMonitor->getDevicePerformanceState(deviceIndex);
       uint32_t offset = m_nvmlMonitor->getOffset();
       uint64_t currentThrottleReason =
           performanceState.throttleReasons.get()[offset];
-      if (currentThrottleReason > 1) {
+      if (currentThrottleReason > 1)
+      {
         std::string message = fmt::format(
             "Throttle detected for GPU {}: {} - Performance numbers will be "
             "unreliable",
@@ -211,19 +242,27 @@ void ElementGpuMonitor::onUIRender() {
         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "%s", message.c_str());
         m_throttleDetected = true;
 
-        if (m_lastThrottleReason != currentThrottleReason) {
+        if (m_lastThrottleReason != currentThrottleReason)
+        {
           LOGW("%s\n", message.c_str());
         }
         m_lastThrottleReason = currentThrottleReason;
         m_throttleCooldownTimer.reset();
-      } else {
-        if (m_throttleDetected) {
+      }
+      else
+      {
+        if (m_throttleDetected)
+        {
           if (m_throttleCooldownTimer.getMilliseconds() >
-              THROTTLE_COOLDOWN_TIME) {
+              THROTTLE_COOLDOWN_TIME)
+          {
             m_throttleDetected = false;
-          } else {
+          }
+          else
+          {
             if (m_throttleCooldownTimer.getMilliseconds() >
-                THROTTLE_SHOW_COOLDOWN_TIME) {
+                THROTTLE_SHOW_COOLDOWN_TIME)
+            {
               ImGui::TextColored(
                   ImVec4(0.8f, 0.2f, 0.f, 1.f),
                   "Throttle detected for GPU %d: %s - %.1f s ago - Performance "
@@ -233,7 +272,9 @@ void ElementGpuMonitor::onUIRender() {
                       m_lastThrottleReason)[0]
                       .c_str(),
                   static_cast<float>(m_throttleCooldownTimer.getSeconds()));
-            } else {
+            }
+            else
+            {
               ImGui::TextColored(
                   ImVec4(1.f, 0.f, 0.f, 1.f),
                   "Throttle detected for GPU %d: %s - Performance numbers will "
@@ -255,28 +296,31 @@ void ElementGpuMonitor::onUIRender() {
   ImGui::End();
 }
 
-void ElementGpuMonitor::onUIMenu() {
-  if (ImGui::BeginMenu("View")) {
+void ElementGpuMonitor::onUIMenu()
+{
+  if (ImGui::BeginMenu("View"))
+  {
     ImGui::MenuItem(ICON_MS_BROWSE_ACTIVITY " NVML Monitor", nullptr,
                     &showWindow);
     ImGui::EndMenu();
   }
 }
 
-void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
+void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::SysInfo &cpuMeasure = m_nvmlMonitor->getSysInfo();
+  const NvmlMonitor::SysInfo& cpuMeasure = m_nvmlMonitor->getSysInfo();
 
   const int offset = m_nvmlMonitor->getOffset();
   std::string cpuString = fmt::format("CPU: {:3.1f}%", m_avgCpu.average());
 
   // Display Graphs
-  const NvmlMonitor::DeviceInfo &deviceInfo =
+  const NvmlMonitor::DeviceInfo& deviceInfo =
       m_nvmlMonitor->getDeviceInfo(gpuIndex);
 
-  const NvmlMonitor::DeviceMemory &deviceMemory =
+  const NvmlMonitor::DeviceMemory& deviceMemory =
       m_nvmlMonitor->getDeviceMemory(gpuIndex);
-  const NvmlMonitor::DeviceUtilization &deviceUtilization =
+  const NvmlMonitor::DeviceUtilization& deviceUtilization =
       m_nvmlMonitor->getDeviceUtilization(gpuIndex);
 
   std::string lineString =
@@ -297,7 +341,8 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
 
   if (ImPlot::BeginPlot(deviceInfo.deviceName.get().c_str(),
                         ImVec2(ImGui::GetContentRegionAvail().x, -1),
-                        s_plotFlags)) {
+                        s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Load",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -307,7 +352,7 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
     ImPlot::SetupAxesLimits(0, SAMPLING_NUM, 0, 100);
     ImPlot::SetupAxisLimits(ImAxis_Y2, 0,
                             float(deviceMemory.memoryTotal.get()));
-    ImPlot::SetupAxisFormat(ImAxis_Y2, metricFormatter, (void *)"iB");
+    ImPlot::SetupAxisFormat(ImAxis_Y2, metricFormatter, (void*) "iB");
 
     ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
 
@@ -315,12 +360,12 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
     ImPlot::SetNextFillStyle(s_lineColor);
     ImPlot::PlotShaded(lineString.c_str(),
                        deviceUtilization.gpuUtilization.get().data(),
-                       (int)deviceUtilization.gpuUtilization.get().size(),
+                       (int) deviceUtilization.gpuUtilization.get().size(),
                        -INFINITY, 1.0, 0.0, 0, offset + 1);
     ImPlot::SetNextLineStyle(s_lineColor);
     ImPlot::PlotLine(lineString.c_str(),
                      deviceUtilization.gpuUtilization.get().data(),
-                     (int)deviceUtilization.gpuUtilization.get().size(), 1.0,
+                     (int) deviceUtilization.gpuUtilization.get().size(), 1.0,
                      0.0, 0, offset + 1);
 
     ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
@@ -328,35 +373,36 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
     // Cast to unsigned long long for Linux compilation, where ImPlot functions
     // are not instantiated with uint64_t
     ImPlot::PlotShaded(memString.c_str(),
-                       reinterpret_cast<const unsigned long long *>(
+                       reinterpret_cast<const unsigned long long*>(
                            deviceMemory.memoryUsed.get().data()),
-                       (int)deviceMemory.memoryUsed.get().size(), -INFINITY,
+                       (int) deviceMemory.memoryUsed.get().size(), -INFINITY,
                        1.0, 0.0, 0, offset + 1);
     ImPlot::SetNextLineStyle(s_memColor);
     // Cast to unsigned long long for Linux compilation, where ImPlot functions
     // are not instantiated with uint64_t
     ImPlot::PlotLine(memString.c_str(),
-                     reinterpret_cast<const unsigned long long *>(
+                     reinterpret_cast<const unsigned long long*>(
                          deviceMemory.memoryUsed.get().data()),
-                     (int)deviceMemory.memoryUsed.get().size(), 1.0, 0.0, 0,
+                     (int) deviceMemory.memoryUsed.get().size(), 1.0, 0.0, 0,
                      offset + 1);
     ImPlot::PopStyleVar();
 
     ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
     ImPlot::SetNextLineStyle(s_cpuColor);
     ImPlot::PlotLine(cpuString.c_str(), cpuMeasure.cpu.data(),
-                     (int)cpuMeasure.cpu.size(), 1.0, 0.0, 0, offset + 1);
+                     (int) cpuMeasure.cpu.size(), 1.0, 0.0, 0, offset + 1);
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int gpuOffset =
-          (int(mouse.x) + offset) % (int)deviceMemory.memoryUsed.get().size();
-      int cpuOffset = (int(mouse.x) + offset) % (int)cpuMeasure.cpu.size();
+          (int(mouse.x) + offset) % (int) deviceMemory.memoryUsed.get().size();
+      int cpuOffset = (int(mouse.x) + offset) % (int) cpuMeasure.cpu.size();
 
       char buff[32];
       metricFormatter(
           static_cast<double>(deviceMemory.memoryUsed.get()[gpuOffset]), buff,
-          32, (void *)"iB");
+          32, (void*) "iB");
 
       ImGui::BeginTooltip();
       ImGui::Text("Load: %d%%",
@@ -371,18 +417,19 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiProgressBars() {
+void ElementGpuMonitor::imguiProgressBars()
+{
 #if defined(NVML_SUPPORTED)
   const int offset = m_nvmlMonitor->getOffset();
 
   for (uint32_t gpuIndex = 0; gpuIndex < m_nvmlMonitor->getGpuCount();
-       gpuIndex++) // Number of gpu
+       gpuIndex++)  // Number of gpu
   {
-    const NvmlMonitor::DeviceInfo &gpuInfo =
+    const NvmlMonitor::DeviceInfo& gpuInfo =
         m_nvmlMonitor->getDeviceInfo(gpuIndex);
-    const NvmlMonitor::DeviceMemory &deviceMemoryInfo =
+    const NvmlMonitor::DeviceMemory& deviceMemoryInfo =
         m_nvmlMonitor->getDeviceMemory(gpuIndex);
-    const NvmlMonitor::DeviceUtilization &deviceUtilization =
+    const NvmlMonitor::DeviceUtilization& deviceUtilization =
         m_nvmlMonitor->getDeviceUtilization(gpuIndex);
 
     // If the gpu is not supported, skip it
@@ -398,51 +445,64 @@ void ElementGpuMonitor::imguiProgressBars() {
 
     // Load
     ImGui::Text("GPU: %s", gpuInfo.deviceName.get().c_str());
-    if (PE::begin()) {
-      PE::entry("Load", [&] {
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram,
-                              (ImVec4)ImColor::HSV(0.3F, 0.5F, 0.5F));
-        ImGui::ProgressBar(deviceUtilization.gpuUtilization.get()[offset] /
-                           100.F);
-        ImGui::PopStyleColor();
-        return false;
-      });
+    if (PE::begin())
+    {
+      PE::entry(
+          "Load",
+          [&]
+          {
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram,
+                                  (ImVec4) ImColor::HSV(0.3F, 0.5F, 0.5F));
+            ImGui::ProgressBar(deviceUtilization.gpuUtilization.get()[offset] /
+                               100.F);
+            ImGui::PopStyleColor();
+            return false;
+          });
 
       // Memory
-      PE::entry("Memory", [&] {
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram,
-                              (ImVec4)ImColor::HSV(0.6F, 0.5F, 0.5F));
-        float memUsage =
-            static_cast<float>(
-                (deviceMemoryInfo.memoryUsed.get()[offset] * 1000) /
-                deviceMemoryInfo.memoryTotal.get()) /
-            1000.0F;
-        ImGui::ProgressBar(memUsage, ImVec2(-1.f, 0.f), progtext.c_str());
-        ImGui::PopStyleColor();
-        return false;
-      });
+      PE::entry(
+          "Memory",
+          [&]
+          {
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram,
+                                  (ImVec4) ImColor::HSV(0.6F, 0.5F, 0.5F));
+            float memUsage =
+                static_cast<float>(
+                    (deviceMemoryInfo.memoryUsed.get()[offset] * 1000) /
+                    deviceMemoryInfo.memoryTotal.get()) /
+                1000.0F;
+            ImGui::ProgressBar(memUsage, ImVec2(-1.f, 0.f), progtext.c_str());
+            ImGui::PopStyleColor();
+            return false;
+          });
 
       PE::end();
     }
   }
 
-  if (PE::begin()) {
-    PE::entry("CPU", [&] {
-      ImGui::ProgressBar(m_avgCpu.average() / 100.F);
-      return false;
-    });
+  if (PE::begin())
+  {
+    PE::entry("CPU",
+              [&]
+              {
+                ImGui::ProgressBar(m_avgCpu.average() / 100.F);
+                return false;
+              });
     PE::end();
   }
 #endif
 }
 
-void ElementGpuMonitor::imguiCopyableText(const std::string &text,
-                                          uint64_t uniqueId) {
+void ElementGpuMonitor::imguiCopyableText(const std::string& text,
+                                          uint64_t uniqueId)
+{
   std::string textString = fmt::format("{}###{}", text, uniqueId);
   ImGui::Text("%s", text.c_str());
-  if (ImGui::BeginPopupContextItem(textString.c_str())) {
+  if (ImGui::BeginPopupContextItem(textString.c_str()))
+  {
     if (ImGui::Button(
-            fmt::format("Copy###CopyTextToClipboard{}", uniqueId).c_str())) {
+            fmt::format("Copy###CopyTextToClipboard{}", uniqueId).c_str()))
+    {
       ImGui::SetClipboardText(text.c_str());
       ImGui::CloseCurrentPopup();
     }
@@ -450,15 +510,17 @@ void ElementGpuMonitor::imguiCopyableText(const std::string &text,
   }
 }
 
-void ElementGpuMonitor::imguiDeviceInfo(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiDeviceInfo(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DeviceInfo &deviceInfo =
+  const NvmlMonitor::DeviceInfo& deviceInfo =
       m_nvmlMonitor->getDeviceInfo(deviceIndex);
 
   if (ImGui::BeginTable(
           fmt::format("Device Info###DevInfo{}", deviceIndex).c_str(), 2,
           ImGuiTableFlags_Borders | ImGuiTableFlags_HighlightHoveredColumn |
-              ImGuiTableFlags_RowBg)) {
+              ImGuiTableFlags_RowBg))
+  {
     imguiNvmlField(deviceInfo.deviceName, "Device name");
     imguiNvmlField(deviceInfo.brand, "Brand");
     imguiNvmlField(deviceInfo.computeCapabilityMajor,
@@ -531,9 +593,10 @@ void ElementGpuMonitor::imguiDeviceInfo(uint32_t deviceIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DeviceMemory &memory =
+  const NvmlMonitor::DeviceMemory& memory =
       m_nvmlMonitor->getDeviceMemory(deviceIndex);
 
   const int offset = m_nvmlMonitor->getOffset();
@@ -558,7 +621,8 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
   // Ensure minimum height to avoid overly squished graphics
   plotSize.y = std::max(plotSize.y, ImGui::GetTextLineHeight() * 5);
 
-  if (ImPlot::BeginPlot("Memory", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Memory", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Bytes",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -571,16 +635,17 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
     // Cast to unsigned long long for Linux compilation, where ImPlot functions
     // are not instantiated with uint64_t
     ImPlot::PlotShaded(memLine.c_str(),
-                       reinterpret_cast<const unsigned long long *>(
+                       reinterpret_cast<const unsigned long long*>(
                            memory.memoryUsed.get().data()),
-                       (int)memory.memoryUsed.get().size(), -INFINITY, 1.0, 0.0,
-                       0, offset + 1);
+                       (int) memory.memoryUsed.get().size(), -INFINITY, 1.0,
+                       0.0, 0, offset + 1);
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset =
-          (int(mouse.x) + offset) % (int)memory.memoryUsed.get().size();
+          (int(mouse.x) + offset) % (int) memory.memoryUsed.get().size();
       ImGui::BeginTooltip();
       ImGui::Text("%s",
                   fmt::format("Used Memory: {}MiB",
@@ -592,7 +657,8 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
     ImPlot::EndPlot();
   }
 
-  if (ImPlot::BeginPlot("BAR1", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("BAR1", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Bytes",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -606,16 +672,17 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
     // Cast to unsigned long long for Linux compilation, where ImPlot functions
     // are not instantiated with uint64_t
     ImPlot::PlotShaded(bar1Line.c_str(),
-                       reinterpret_cast<const unsigned long long *>(
+                       reinterpret_cast<const unsigned long long*>(
                            memory.bar1Used.get().data()),
-                       (int)memory.bar1Used.get().size(), -INFINITY, 1.0, 0.0,
+                       (int) memory.bar1Used.get().size(), -INFINITY, 1.0, 0.0,
                        0, offset + 1);
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset =
-          (int(mouse.x) + offset) % (int)memory.bar1Used.get().size();
+          (int(mouse.x) + offset) % (int) memory.bar1Used.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("%s",
@@ -631,11 +698,12 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DevicePerformanceState &performanceState =
+  const NvmlMonitor::DevicePerformanceState& performanceState =
       m_nvmlMonitor->getDevicePerformanceState(deviceIndex);
-  const NvmlMonitor::DeviceInfo &deviceInfo =
+  const NvmlMonitor::DeviceInfo& deviceInfo =
       m_nvmlMonitor->getDeviceInfo(deviceIndex);
 
   uint32_t generalMaxClock = std::max(
@@ -670,7 +738,8 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
               .size());
 
   if (ImPlot::BeginPlot("Graphics, Compute and Video clocks", plotSize,
-                        s_plotFlags)) {
+                        s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Frequency",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -682,23 +751,25 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(graphicsClockLine.c_str(),
                        performanceState.clockGraphics.get().data(),
-                       (int)performanceState.clockGraphics.get().size(),
+                       (int) performanceState.clockGraphics.get().size(),
                        -INFINITY, 1.0, 0.0, 0, offset + 1);
     ImPlot::SetNextLineStyle(s_smColor);
     ImPlot::PlotLine(smClockLine.c_str(), performanceState.clockSM.get().data(),
-                     (int)performanceState.clockSM.get().size(), 1.0, 0.0, 0,
+                     (int) performanceState.clockSM.get().size(), 1.0, 0.0, 0,
                      offset + 1);
     ImPlot::SetNextLineStyle(s_videoColor);
-    ImPlot::PlotLine(
-        videoClockLine.c_str(), performanceState.clockVideo.get().data(),
-        (int)performanceState.clockVideo.get().size(), 1.0, 0.0, 0, offset + 1);
+    ImPlot::PlotLine(videoClockLine.c_str(),
+                     performanceState.clockVideo.get().data(),
+                     (int) performanceState.clockVideo.get().size(), 1.0, 0.0,
+                     0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int clockOffset = (int(mouse.x) + offset) %
-                        (int)performanceState.clockGraphics.get().size();
+                        (int) performanceState.clockGraphics.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Graphics: %dMHz",
@@ -714,7 +785,8 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
 
   std::string memClockLine =
       fmt::format("Memory: {}MHz", performanceState.clockMem.get()[offset]);
-  if (ImPlot::BeginPlot("Memory Clock", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Memory Clock", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Frequency",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -726,15 +798,16 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(memClockLine.c_str(),
                        performanceState.clockMem.get().data(),
-                       (int)performanceState.clockMem.get().size(), -INFINITY,
+                       (int) performanceState.clockMem.get().size(), -INFINITY,
                        1.0, 0.0, 0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
-      int clockOffset =
-          (int(mouse.x) + offset) % (int)performanceState.clockMem.get().size();
+      int clockOffset = (int(mouse.x) + offset) %
+                        (int) performanceState.clockMem.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Memory: %dMHz",
@@ -749,7 +822,8 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
       fmt::format("Throttle reason: {}",
                   NvmlMonitor::DevicePerformanceState::getThrottleReasonStrings(
                       performanceState.throttleReasons.get()[offset])[0]);
-  if (ImPlot::BeginPlot("Throttle reason", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Throttle reason", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, nullptr,
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -758,9 +832,10 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
     throttleValues.resize(
         NvmlMonitor::DevicePerformanceState::getAllThrottleReasonList().size());
     std::vector<std::string> throttleStrings(throttleValues.size());
-    std::vector<char *> throttleCharPtr(throttleValues.size());
+    std::vector<char*> throttleCharPtr(throttleValues.size());
     uint64_t maxValue = 0;
-    for (size_t i = 0; i < throttleValues.size(); i++) {
+    for (size_t i = 0; i < throttleValues.size(); i++)
+    {
       uint64_t r =
           NvmlMonitor::DevicePerformanceState::getAllThrottleReasonList()[i];
       throttleValues[i] = static_cast<double>(r);
@@ -783,17 +858,18 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
     // Cast to unsigned long long for Linux compilation, where ImPlot functions
     // are not instantiated with uint64_t
     ImPlot::PlotShaded(throttleLine.c_str(),
-                       reinterpret_cast<const unsigned long long *>(
+                       reinterpret_cast<const unsigned long long*>(
                            performanceState.throttleReasons.get().data()),
-                       (int)performanceState.throttleReasons.get().size(),
+                       (int) performanceState.throttleReasons.get().size(),
                        -INFINITY, 1.0, 0.0, 0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int throttleOffset = (int(mouse.x) + offset) %
-                           (int)performanceState.throttleReasons.get().size();
+                           (int) performanceState.throttleReasons.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Throttle reason: %s",
@@ -809,12 +885,13 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DevicePowerState &powerState =
+  const NvmlMonitor::DevicePowerState& powerState =
       m_nvmlMonitor->getDevicePowerState(deviceIndex);
 
-  const NvmlMonitor::DeviceInfo &info =
+  const NvmlMonitor::DeviceInfo& info =
       m_nvmlMonitor->getDeviceInfo(deviceIndex);
 
   const int offset = m_nvmlMonitor->getOffset();
@@ -839,7 +916,8 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
   // Ensure minimum height to avoid overly squished graphics
   plotSize.y = std::max(plotSize.y, ImGui::GetTextLineHeight() * 5);
 
-  if (ImPlot::BeginPlot("Temperature", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Temperature", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Celsius",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -852,15 +930,16 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(temperatureLine.c_str(),
                        powerState.temperature.get().data(),
-                       (int)powerState.temperature.get().size(), -INFINITY, 1.0,
-                       0.0, 0, offset + 1);
+                       (int) powerState.temperature.get().size(), -INFINITY,
+                       1.0, 0.0, 0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset =
-          (int(mouse.x) + offset) % (int)powerState.temperature.get().size();
+          (int(mouse.x) + offset) % (int) powerState.temperature.get().size();
       ImGui::BeginTooltip();
       ImGui::Text("Temperature: %dC",
                   powerState.temperature.get()[mouseOffset]);
@@ -870,7 +949,8 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
     ImPlot::EndPlot();
   }
 
-  if (ImPlot::BeginPlot("Power", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Power", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Watt",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -881,15 +961,16 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
     ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(powerLine.c_str(), powerState.power.get().data(),
-                       (int)powerState.power.get().size(), -INFINITY, 1.0, 0.0,
+                       (int) powerState.power.get().size(), -INFINITY, 1.0, 0.0,
                        0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset =
-          (int(mouse.x) + offset) % (int)powerState.power.get().size();
+          (int(mouse.x) + offset) % (int) powerState.power.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Power: %dW", powerState.power.get()[mouseOffset]);
@@ -899,7 +980,8 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
     ImPlot::EndPlot();
   }
 
-  if (ImPlot::BeginPlot("Fan Speed", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("Fan Speed", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "%%",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -910,15 +992,16 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
     ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(fanSpeedLine.c_str(), powerState.fanSpeed.get().data(),
-                       (int)powerState.fanSpeed.get().size(), -INFINITY, 1.0,
+                       (int) powerState.fanSpeed.get().size(), -INFINITY, 1.0,
                        0.0, 0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset =
-          (int(mouse.x) + offset) % (int)powerState.fanSpeed.get().size();
+          (int(mouse.x) + offset) % (int) powerState.fanSpeed.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Power: %dW", powerState.fanSpeed.get()[mouseOffset]);
@@ -930,9 +1013,10 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DeviceUtilization &utilization =
+  const NvmlMonitor::DeviceUtilization& utilization =
       m_nvmlMonitor->getDeviceUtilization(deviceIndex);
 
   const int offset = m_nvmlMonitor->getOffset();
@@ -961,7 +1045,8 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
   // Ensure minimum height to avoid overly squished graphics
   plotSize.y = std::max(plotSize.y, ImGui::GetTextLineHeight() * 5);
 
-  if (ImPlot::BeginPlot("GPU and Memory Utilization", plotSize, s_plotFlags)) {
+  if (ImPlot::BeginPlot("GPU and Memory Utilization", plotSize, s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Celsius",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -973,20 +1058,21 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(gpuUtilizationLine.c_str(),
                        utilization.gpuUtilization.get().data(),
-                       (int)utilization.gpuUtilization.get().size(), -INFINITY,
+                       (int) utilization.gpuUtilization.get().size(), -INFINITY,
                        1.0, 0.0, 0, offset + 1);
     ImPlot::SetNextFillStyle(s_smColor);
     ImPlot::PlotShaded(memUtilizationLine.c_str(),
                        utilization.memUtilization.get().data(),
-                       (int)utilization.memUtilization.get().size(), -INFINITY,
+                       (int) utilization.memUtilization.get().size(), -INFINITY,
                        1.0, 0.0, 0, offset + 1);
 
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset = (int(mouse.x) + offset) %
-                        (int)utilization.gpuUtilization.get().size();
+                        (int) utilization.gpuUtilization.get().size();
       ImGui::BeginTooltip();
       ImGui::Text("GPU: %d%%", utilization.gpuUtilization.get()[mouseOffset]);
       ImGui::Text("Memory: %d%%",
@@ -998,7 +1084,8 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
   }
 
   if (ImPlot::BeginPlot("Graphics and Compute Processes", plotSize,
-                        s_plotFlags)) {
+                        s_plotFlags))
+  {
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_NoButtons);
     ImPlot::SetupAxes(nullptr, "Processes",
                       s_axesFlags | ImPlotAxisFlags_NoDecorations, s_axesFlags);
@@ -1010,19 +1097,20 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
     ImPlot::SetNextFillStyle(s_graphicsColor);
     ImPlot::PlotShaded(graphicsProcessLine.c_str(),
                        utilization.graphicsProcesses.get().data(),
-                       (int)utilization.graphicsProcesses.get().size(),
+                       (int) utilization.graphicsProcesses.get().size(),
                        -INFINITY, 1.0, 0.0, 0, offset + 1);
     ImPlot::SetNextFillStyle(s_smColor);
     ImPlot::PlotShaded(computeProcessLine.c_str(),
                        utilization.computeProcesses.get().data(),
-                       (int)utilization.computeProcesses.get().size(),
+                       (int) utilization.computeProcesses.get().size(),
                        -INFINITY, 1.0, 0.0, 0, offset + 1);
     ImPlot::PopStyleVar();
 
-    if (ImPlot::IsPlotHovered()) {
+    if (ImPlot::IsPlotHovered())
+    {
       ImPlotPoint mouse = ImPlot::GetPlotMousePos();
       int mouseOffset = (int(mouse.x) + offset) %
-                        (int)utilization.graphicsProcesses.get().size();
+                        (int) utilization.graphicsProcesses.get().size();
 
       ImGui::BeginTooltip();
       ImGui::Text("Graphics: %d",
@@ -1038,12 +1126,14 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex) {
 #endif
 }
 
-void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
+void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex)
+{
 #if defined(NVML_SUPPORTED)
-  const NvmlMonitor::DeviceInfo &deviceInfo =
+  const NvmlMonitor::DeviceInfo& deviceInfo =
       m_nvmlMonitor->getDeviceInfo(deviceIndex);
   if (deviceInfo.supportedGraphicsClocks.isSupported &&
-      !deviceInfo.supportedGraphicsClocks.get().empty()) {
+      !deviceInfo.supportedGraphicsClocks.get().empty())
+  {
     ImGui::Text("Supported clocks ");
 
     float comboWidth = ImGui::GetContentRegionAvail().x / 3.f;
@@ -1057,13 +1147,15 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
             fmt::format(
                 "{}MHz",
                 deviceInfo.supportedMemoryClocks.get()[m_selectedMemClock])
-                .c_str())) {
-      for (size_t i = 0; i < deviceInfo.supportedMemoryClocks.get().size();
-           i++) {
+                .c_str()))
+    {
+      for (size_t i = 0; i < deviceInfo.supportedMemoryClocks.get().size(); i++)
+      {
         uint32_t memClock = deviceInfo.supportedMemoryClocks.get()[i];
         bool selected = false;
         if (ImGui::Selectable(fmt::format("{}MHz", memClock).c_str(),
-                              &selected)) {
+                              &selected))
+        {
           m_selectedMemClock = static_cast<uint32_t>(i);
         }
       }
@@ -1077,7 +1169,8 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
         deviceInfo.supportedMemoryClocks.get()[m_selectedMemClock];
 
     auto it = deviceInfo.supportedGraphicsClocks.get().find(activeMemClock);
-    if (it == deviceInfo.supportedGraphicsClocks.get().end()) {
+    if (it == deviceInfo.supportedGraphicsClocks.get().end())
+    {
       assert(!"Invalid memory clock selected");
       return;
     }
@@ -1086,13 +1179,16 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
     ImGui::SetNextItemWidth(comboWidth);
     if (ImGui::BeginCombo(
             fmt::format("###DevSupportedGraphicsClocks{}", deviceIndex).c_str(),
-            fmt::format("{}MHz", defaultClock).c_str())) {
+            fmt::format("{}MHz", defaultClock).c_str()))
+    {
       auto clocks =
           deviceInfo.supportedGraphicsClocks.get().find(activeMemClock)->second;
-      for (size_t i = 0; i < clocks.size(); i++) {
+      for (size_t i = 0; i < clocks.size(); i++)
+      {
         bool selected = false;
         if (ImGui::Selectable(fmt::format("{}MHz", clocks[i]).c_str(),
-                              &selected)) {
+                              &selected))
+        {
           m_selectedGraphicsClock = static_cast<uint32_t>(i);
         }
       }
@@ -1121,7 +1217,8 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
                 .c_str(),
             2,
             ImGuiTableFlags_Borders | ImGuiTableFlags_HighlightHoveredColumn |
-                ImGuiTableFlags_RowBg)) {
+                ImGuiTableFlags_RowBg))
+    {
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
       ImGui::Text("Memory clock lock");
@@ -1158,7 +1255,8 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
 
       ImGui::EndTable();
     }
-    if (ImGui::BeginItemTooltip()) {
+    if (ImGui::BeginItemTooltip())
+    {
       ImGui::Text("Copy these commands into an \nAdministrator console to "
                   "setup\nthe GPU clocks");
       ImGui::EndTooltip();
@@ -1169,4 +1267,4 @@ void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex) {
 #endif
 }
 
-} // namespace app
+}  // namespace app

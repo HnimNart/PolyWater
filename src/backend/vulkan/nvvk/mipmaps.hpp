@@ -19,13 +19,13 @@
 
 #pragma once
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "vulkan/vulkan_core.h"
 
-
-namespace nvvk {
+namespace nvvk
+{
 
 inline uint32_t mipLevels(uint32_t extent)
 {
@@ -34,23 +34,30 @@ inline uint32_t mipLevels(uint32_t extent)
 
 inline uint32_t mipLevels(VkExtent2D extent)
 {
-  return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height)))) + 1;
+  return static_cast<uint32_t>(
+             std::floor(std::log2(std::max(extent.width, extent.height)))) +
+         1;
 }
 
 inline uint32_t mipLevels(VkExtent3D extent)
 {
-  return static_cast<uint32_t>(std::floor(std::log2(std::max(std::max(extent.width, extent.height), extent.depth)))) + 1;
+  return static_cast<uint32_t>(std::floor(std::log2(
+             std::max(std::max(extent.width, extent.height), extent.depth)))) +
+         1;
 }
 
 // To get the number of mip levels, use the helper functions
 //      uint32_t levelCount = nvvk::mipLevels(extent);
 //
-// The current layout of the image is the layout of the image before the mipmaps are generated.
-void cmdGenerateMipmaps(VkCommandBuffer   cmd,                // Command buffer to record the command
-                        VkImage           image,              // Image to generate mipmaps for
-                        const VkExtent2D& size,               // Size of the image
-                        uint32_t          levelCount,         // Level is the mip level to generate
-                        uint32_t          layerCount    = 1,  // Number of layers in the image (2D: 1, 3D: Z, Cube: 6)
-                        VkImageLayout     currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+// The current layout of the image is the layout of the image before the mipmaps
+// are generated.
+void cmdGenerateMipmaps(
+    VkCommandBuffer cmd,     // Command buffer to record the command
+    VkImage image,           // Image to generate mipmaps for
+    const VkExtent2D& size,  // Size of the image
+    uint32_t levelCount,     // Level is the mip level to generate
+    uint32_t layerCount =
+        1,  // Number of layers in the image (2D: 1, 3D: Z, Cube: 6)
+    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 }  // namespace nvvk

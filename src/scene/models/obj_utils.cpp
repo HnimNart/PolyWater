@@ -1,36 +1,41 @@
 #include "obj_utils.hpp"
 
+#include <fmt/format.h>
+
 #include <cstring>
 #include <unordered_map>
 
 #include "backend/interfaces/RHI_definitions.hpp"
-#include <fmt/format.h>
-
 #include "core/logger.hpp"
 #include "core/string_utils.h"
 #include "core/timers.hpp"
 
-namespace obj {
+namespace obj
+{
 
 /**********************************************************/
-core::PrimitiveMesh flattenObjData(const tinyobj::attrib_t &attrib,
-                                   const std::vector<tinyobj::shape_t> &shapes)
+core::PrimitiveMesh flattenObjData(const tinyobj::attrib_t& attrib,
+                                   const std::vector<tinyobj::shape_t>& shapes)
 /**********************************************************/
 {
   core::PrimitiveMesh result;
   std::unordered_map<core::PrimitiveVertex, uint32_t> uniqueVertices;
 
-  for (const auto &shape : shapes) {
+  for (const auto& shape : shapes)
+  {
     size_t index_offset = 0;
-    for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
+    for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
+    {
       int fv = shape.mesh.num_face_vertices[f];
-      if (fv != 3) {
+      if (fv != 3)
+      {
         index_offset += fv;
         continue;
       }
 
       core::PrimitiveTriangle triangle;
-      for (size_t v = 0; v < 3; v++) {
+      for (size_t v = 0; v < 3; v++)
+      {
         tinyobj::index_t idx = shape.mesh.indices[index_offset + v];
         core::PrimitiveVertex vertex{};
 
@@ -38,18 +43,21 @@ core::PrimitiveMesh flattenObjData(const tinyobj::attrib_t &attrib,
                       attrib.vertices[3 * idx.vertex_index + 1],
                       attrib.vertices[3 * idx.vertex_index + 2]};
 
-        if (idx.normal_index >= 0) {
+        if (idx.normal_index >= 0)
+        {
           vertex.nrm = {attrib.normals[3 * idx.normal_index + 0],
                         attrib.normals[3 * idx.normal_index + 1],
                         attrib.normals[3 * idx.normal_index + 2]};
         }
 
-        if (idx.texcoord_index >= 0) {
+        if (idx.texcoord_index >= 0)
+        {
           vertex.tex = {attrib.texcoords[2 * idx.texcoord_index + 0],
                         1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]};
         }
 
-        if (uniqueVertices.count(vertex) == 0) {
+        if (uniqueVertices.count(vertex) == 0)
+        {
           uint32_t newIndex = static_cast<uint32_t>(result.vertices.size());
           uniqueVertices[vertex] = newIndex;
           result.vertices.push_back(vertex);
@@ -64,7 +72,7 @@ core::PrimitiveMesh flattenObjData(const tinyobj::attrib_t &attrib,
 }
 
 /**********************************************************/
-ObjLoaderResult loadObjPrimitives(const std::string &filename)
+ObjLoaderResult loadObjPrimitives(const std::string& filename)
 /**********************************************************/
 {
 
@@ -82,13 +90,15 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename)
     LOGD("OBJ Warning: %s\n", warn.c_str());
   if (!err.empty())
     LOGE("OBJ Error: %s\n", err.c_str());
-  if (!ret) {
+  if (!ret)
+  {
     LOGE("Failed to load OBJ file: %s\n", filename.c_str());
     return {};
   }
 
   ObjLoaderResult result;
-  for (const auto &tm : materials) {
+  for (const auto& tm : materials)
+  {
     ObjMaterial temp;
     temp.name = tm.name;
     temp.diffuseTexturePath = tm.diffuse_texname;
@@ -108,12 +118,14 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename)
     result.materials.push_back(std::move(temp));
   }
 
-  for (const auto &shape : shapes) {
+  for (const auto& shape : shapes)
+  {
     std::vector<tinyobj::shape_t> singleShapeList = {shape};
     core::PrimitiveMesh meshData = flattenObjData(attrib, singleShapeList);
 
     int matIdx = -1;
-    if (!shape.mesh.material_ids.empty()) {
+    if (!shape.mesh.material_ids.empty())
+    {
       matIdx = shape.mesh.material_ids[0];
     }
 
@@ -126,7 +138,7 @@ ObjLoaderResult loadObjPrimitives(const std::string &filename)
 
 /**********************************************************/
 shaderio::MeshPrimitive
-createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData)
+createGpuMeshFromPrimitive(const core::PrimitiveMesh& meshData)
 /**********************************************************/
 {
   shaderio::MeshPrimitive gpuMesh = {};
@@ -134,18 +146,19 @@ createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData)
   size_t vSize = meshData.vertices.size() * sizeof(core::PrimitiveVertex);
 
   gpuMesh.triMesh.positions = {.offset = 0,
-                               .count = (uint32_t)meshData.vertices.size(),
+                               .count = (uint32_t) meshData.vertices.size(),
                                .byteStride = stride};
-  gpuMesh.triMesh.normals = {.offset =
-                                 (uint32_t)offsetof(core::PrimitiveVertex, nrm),
-                             .count = (uint32_t)meshData.vertices.size(),
-                             .byteStride = stride};
-  gpuMesh.triMesh.texCoords = {
-      .offset = (uint32_t)offsetof(core::PrimitiveVertex, tex),
-      .count = (uint32_t)meshData.vertices.size(),
+  gpuMesh.triMesh.normals = {
+      .offset = (uint32_t) offsetof(core::PrimitiveVertex, nrm),
+      .count = (uint32_t) meshData.vertices.size(),
       .byteStride = stride};
-  gpuMesh.triMesh.indices = {.offset = (uint32_t)vSize,
-                             .count = (uint32_t)(meshData.triangles.size() * 3),
+  gpuMesh.triMesh.texCoords = {
+      .offset = (uint32_t) offsetof(core::PrimitiveVertex, tex),
+      .count = (uint32_t) meshData.vertices.size(),
+      .byteStride = stride};
+  gpuMesh.triMesh.indices = {.offset = (uint32_t) vSize,
+                             .count =
+                                 (uint32_t) (meshData.triangles.size() * 3),
                              .byteStride = sizeof(uint32_t)};
   gpuMesh.indexType = IndexType32;
 
@@ -153,21 +166,23 @@ createGpuMeshFromPrimitive(const core::PrimitiveMesh &meshData)
 }
 
 /**********************************************************/
-shaderio::BoundingBox computeMeshBounds(const core::PrimitiveMesh &mesh)
+shaderio::BoundingBox computeMeshBounds(const core::PrimitiveMesh& mesh)
 /**********************************************************/
 {
-  if (mesh.vertices.empty()) {
+  if (mesh.vertices.empty())
+  {
     return {glm::vec3(0.0f), glm::vec3(0.0f)};
   }
   shaderio::BoundingBox bbox;
-  for (const auto &vertex : mesh.vertices) {
+  for (const auto& vertex : mesh.vertices)
+  {
     bbox.add(vertex.pos);
   }
   return bbox;
 }
 
 /**********************************************************/
-std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh &meshData)
+std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh& meshData)
 /**********************************************************/
 {
   size_t vSize = meshData.vertices.size() * sizeof(core::PrimitiveVertex);
@@ -182,4 +197,4 @@ std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh &meshData)
   return buffer;
 }
 
-} // namespace obj
+}  // namespace obj

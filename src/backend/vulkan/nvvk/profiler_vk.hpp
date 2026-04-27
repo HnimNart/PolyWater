@@ -19,81 +19,91 @@
 
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
 #include <atomic>
 
 #include <core/profiler.hpp>
-#include <vulkan/vulkan_core.h>
 
-namespace nvvk {
-class ProfilerGpuTimer {
+namespace nvvk
+{
+class ProfilerGpuTimer
+{
 public:
   ProfilerGpuTimer() = default;
   ~ProfilerGpuTimer();
 
   // `profilerTimeline` pointer is copied and must be kept alive during this
   // class lifetime
-  void init(core::ProfilerTimeline *profilerTimeline, VkDevice device,
+  void init(core::ProfilerTimeline* profilerTimeline, VkDevice device,
             VkPhysicalDevice physicalDevice, int queueFamilyIndex,
             bool useLabels);
   void deinit();
 
   // not thread-safe
   core::ProfilerTimeline::FrameSectionID
-  cmdFrameBeginSection(VkCommandBuffer cmd, const std::string &name);
+  cmdFrameBeginSection(VkCommandBuffer cmd, const std::string& name);
   void cmdFrameEndSection(VkCommandBuffer cmd,
                           core::ProfilerTimeline::FrameSectionID slot);
 
   // thread-safe
   core::ProfilerTimeline::AsyncSectionID
-  cmdAsyncBeginSection(VkCommandBuffer cmd, const std::string &name);
+  cmdAsyncBeginSection(VkCommandBuffer cmd, const std::string& name);
   void cmdAsyncEndSection(VkCommandBuffer cmd,
                           core::ProfilerTimeline::AsyncSectionID slot);
 
   //////////////////////////////////////////////////////////////////////////
 
   // utility class to call begin/end within local scope
-  class FrameSection {
+  class FrameSection
+  {
   public:
-    FrameSection(ProfilerGpuTimer &profilerGpuTimer,
-                 core::ProfilerTimeline::FrameSectionID id, VkCommandBuffer cmd)
-        : m_profilerGpuTimer(profilerGpuTimer), m_cmd(cmd), m_id(id){};
+    FrameSection(ProfilerGpuTimer& profilerGpuTimer,
+                 core::ProfilerTimeline::FrameSectionID id,
+                 VkCommandBuffer cmd) :
+        m_profilerGpuTimer(profilerGpuTimer), m_cmd(cmd), m_id(id){};
     ~FrameSection() { m_profilerGpuTimer.cmdFrameEndSection(m_cmd, m_id); }
 
   private:
-    ProfilerGpuTimer &m_profilerGpuTimer;
+    ProfilerGpuTimer& m_profilerGpuTimer;
     VkCommandBuffer m_cmd;
     core::ProfilerTimeline::FrameSectionID m_id;
   };
 
   // frame section must be within beginFrame/endFrame
   // not thread-safe
-  FrameSection cmdFrameSection(VkCommandBuffer cmd, const std::string &name) {
+  FrameSection cmdFrameSection(VkCommandBuffer cmd, const std::string& name)
+  {
     return FrameSection(*this, cmdFrameBeginSection(cmd, name), cmd);
   }
 
   // utility class to call begin/end within local scope
-  class AsyncSection {
+  class AsyncSection
+  {
   public:
-    AsyncSection(ProfilerGpuTimer &profilerGpuTimer,
-                 core::ProfilerTimeline::AsyncSectionID id, VkCommandBuffer cmd)
-        : m_profilerGpuTimer(profilerGpuTimer), m_cmd(cmd), m_id(id){};
+    AsyncSection(ProfilerGpuTimer& profilerGpuTimer,
+                 core::ProfilerTimeline::AsyncSectionID id,
+                 VkCommandBuffer cmd) :
+        m_profilerGpuTimer(profilerGpuTimer), m_cmd(cmd), m_id(id){};
     ~AsyncSection() { m_profilerGpuTimer.cmdAsyncEndSection(m_cmd, m_id); }
 
   private:
-    ProfilerGpuTimer &m_profilerGpuTimer;
+    ProfilerGpuTimer& m_profilerGpuTimer;
     VkCommandBuffer m_cmd;
     core::ProfilerTimeline::AsyncSectionID m_id;
   };
 
   // thread-safe
-  AsyncSection cmdAsyncSection(VkCommandBuffer cmd, const std::string &name) {
+  AsyncSection cmdAsyncSection(VkCommandBuffer cmd, const std::string& name)
+  {
     return AsyncSection(*this, cmdAsyncBeginSection(cmd, name), cmd);
   }
 
   //////////////////////////////////////////////////////////////////////////
 
 protected:
-  struct PoolContainer {
+  struct PoolContainer
+  {
     // to keep the thread-safe locking operations quick,
     // we have a virtual array of queries distributed over
     // N VkQueryPools. Each query pool contains POOL_QUERY_COUNT
@@ -106,16 +116,16 @@ protected:
     uint32_t queryPoolSize = 0;
   };
 
-  bool provideTime(const PoolContainer &container, uint32_t idx,
-                   double &time) const;
+  bool provideTime(const PoolContainer& container, uint32_t idx,
+                   double& time) const;
 
-  VkQueryPool getPool(PoolContainer &container, uint32_t idx,
-                      uint32_t &idxInPool);
-  VkQueryPool getPool(const PoolContainer &container, uint32_t idx,
-                      uint32_t &idxInPool) const;
-  void resizePool(PoolContainer &container, uint32_t requiredSize);
+  VkQueryPool getPool(PoolContainer& container, uint32_t idx,
+                      uint32_t& idxInPool);
+  VkQueryPool getPool(const PoolContainer& container, uint32_t idx,
+                      uint32_t& idxInPool) const;
+  void resizePool(PoolContainer& container, uint32_t requiredSize);
 
-  core::ProfilerTimeline *m_profilerTimeline{};
+  core::ProfilerTimeline* m_profilerTimeline{};
   core::ProfilerTimeline::GpuTimeProvider m_timeProvider;
 
   VkDevice m_device = {VK_NULL_HANDLE};
@@ -128,4 +138,4 @@ protected:
   mutable std::mutex m_asyncMutex;
 };
 
-} // namespace nvvk
+}  // namespace nvvk

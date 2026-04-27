@@ -20,25 +20,29 @@
 #include "tonemapper.hpp"
 
 #include <app/widgets/IconsMaterialSymbols.h>
-#include <app/widgets/property_editor.hpp>
 #include <fmt/format.h>
 
-namespace core {
+#include <app/widgets/property_editor.hpp>
+
+namespace core
+{
 namespace PE = app::PropertyEditor;
 
-bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
+bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
+{
   bool changed{false};
 
-  const char *items[] = {"Filmic", "Uncharted 2", "Clip",
+  const char* items[] = {"Filmic", "Uncharted 2", "Clip",
                          "ACES",   "AgX",         "Khronos PBR"};
 
-  if (PE::begin()) {
+  if (PE::begin())
+  {
     changed |=
         PE::Combo("Method", &tonemapper.method, items, IM_ARRAYSIZE(items), 0,
                   "Tone mapping algorithm to compress high dynamic range (HDR) "
                   "to standard dynamic range (SDR)");
     changed |=
-        PE::Checkbox("Active", reinterpret_cast<bool *>(&tonemapper.isActive),
+        PE::Checkbox("Active", reinterpret_cast<bool*>(&tonemapper.isActive),
                      "Enable/disable tone mapping post-processing");
     ImGui::BeginDisabled(!tonemapper.isActive);
 
@@ -57,14 +61,16 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
         ImGui::GetContentRegionAvail().x - resetButtonWidth - itemSpacing;
     PE::entry(
         "Temperature",
-        [&]() {
+        [&]()
+        {
           ImGui::SetNextItemWidth(whiteBalanceSliderWidth);
           changed |=
               ImGui::SliderFloat("##Temperature", &tonemapper.temperature,
                                  2000.0F, 15000.0F, "%.0f K");
           ImGui::SameLine(0, itemSpacing);
           ImGui::SetNextItemWidth(-FLT_MIN);
-          if (ImGui::Button(ICON_MS_RESET_WHITE_BALANCE)) {
+          if (ImGui::Button(ICON_MS_RESET_WHITE_BALANCE))
+          {
             tonemapper.temperature = shaderio::TonemapperData().temperature;
             changed = true;
           }
@@ -76,13 +82,15 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
 
     PE::entry(
         "Tint",
-        [&]() {
+        [&]()
+        {
           ImGui::SetNextItemWidth(whiteBalanceSliderWidth);
           changed |= ImGui::SliderFloat("##Tint", &tonemapper.tint, -.03F, .03F,
                                         "%.5f");
           ImGui::SameLine(0, itemSpacing);
           ImGui::SetNextItemWidth(-FLT_MIN);
-          if (ImGui::Button(ICON_MS_RESET_WHITE_BALANCE)) {
+          if (ImGui::Button(ICON_MS_RESET_WHITE_BALANCE))
+          {
             tonemapper.tint = shaderio::TonemapperData().tint;
             changed = true;
           }
@@ -110,11 +118,12 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
         "Darkens image edges (-1 = very bright, 0 = none, 1 = very dark)");
 
     changed |= PE::Checkbox(
-        "Auto Exposure", reinterpret_cast<bool *>(&tonemapper.autoExposure),
+        "Auto Exposure", reinterpret_cast<bool*>(&tonemapper.autoExposure),
         "Automatically adjust exposure based on scene brightness");
-    if (tonemapper.autoExposure) {
+    if (tonemapper.autoExposure)
+    {
       ImGui::Indent();
-      changed |= PE::Combo("Average Mode", (int *)&tonemapper.averageMode,
+      changed |= PE::Combo("Average Mode", (int*) &tonemapper.averageMode,
                            "Mean\0Median", 0,
                            "Method for calculating scene brightness (Mean = "
                            "average, Median = value where 50% of pixels are "
@@ -135,7 +144,7 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
                                "stops (-24 = very dark, +24 = very bright)");
 
       changed |= PE::Checkbox(
-          "Center Weighted Metering", (bool *)&tonemapper.enableCenterMetering,
+          "Center Weighted Metering", (bool*) &tonemapper.enableCenterMetering,
           "Use center area for exposure calculation instead of full frame");
       ImGui::BeginDisabled(!tonemapper.enableCenterMetering);
       changed |=
@@ -146,14 +155,16 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
       ImGui::EndDisabled();
     }
     changed |=
-        PE::Checkbox("Dither", reinterpret_cast<bool *>(&tonemapper.dither));
+        PE::Checkbox("Dither", reinterpret_cast<bool*>(&tonemapper.dither));
 
     ImGui::EndDisabled();
-    if (ImGui::SmallButton("reset")) {
+    if (ImGui::SmallButton("reset"))
+    {
       tonemapper = {};
       changed = true;
     }
-    if (ImGui::IsItemHovered()) {
+    if (ImGui::IsItemHovered())
+    {
       ImGui::SetTooltip("Reset all tonemapper settings to default values");
     }
     PE::end();
@@ -161,4 +172,4 @@ bool tonemapperWidget(shaderio::TonemapperData &tonemapper) {
   return changed;
 }
 
-} // namespace core
+}  // namespace core

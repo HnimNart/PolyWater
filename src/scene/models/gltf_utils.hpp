@@ -21,27 +21,29 @@
 
 #include <tiny_gltf.h>
 
-#include <core/shape/primitives.hpp>
 #include <filesystem>
+
+#include <core/shape/primitives.hpp>
 #include <glm/glm.hpp>
 
 #include "shaders/shared/structs.h"
 
-namespace gltf {
+namespace gltf
+{
 
 // This is a utility function to load a GLTF file and return the model data.
-tinygltf::Model loadModel(const std::filesystem::path &filename);
-shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model &model,
+tinygltf::Model loadModel(const std::filesystem::path& filename);
+shaderio::MeshPrimitive extractGltfMesh(const tinygltf::Model& model,
                                         uint meshIdx);
 std::pair<glm::vec3, glm::vec3>
-computeModelBounds(const tinygltf::Model &model);
+computeModelBounds(const tinygltf::Model& model);
 
-shaderio::BoundingBox getMeshBounds(const tinygltf::Model &model, uint meshIdx);
+shaderio::BoundingBox getMeshBounds(const tinygltf::Model& model, uint meshIdx);
 
 template <typename T>
-bool getGltfAttribute(const tinygltf::Model &model,
-                      const tinygltf::Primitive &primitive,
-                      const std::string &attributeName, const uint8_t *&dataPtr,
-                      size_t &stride, size_t &count);
+bool getGltfAttribute(const tinygltf::Model& model,
+                      const tinygltf::Primitive& primitive,
+                      const std::string& attributeName, const uint8_t*& dataPtr,
+                      size_t& stride, size_t& count);
 
-} // namespace gltf
+}  // namespace gltf

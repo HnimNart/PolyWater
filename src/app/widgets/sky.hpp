@@ -21,22 +21,24 @@
 
 #include <glm/glm.hpp>
 
-#include "shaders/shared/sky_io.h.slang"
-
 #include "azimuth_sliders.hpp"
 #include "property_editor.hpp"
+#include "shaders/shared/sky_io.h.slang"
 
-namespace app {
+namespace app
+{
 
 inline bool
-skySimpleParametersUI(shaderio::SkySimpleParameters &params,
-                      const char *label = "PE::Table",
+skySimpleParametersUI(shaderio::SkySimpleParameters& params,
+                      const char* label = "PE::Table",
                       ImGuiTableFlags flag = ImGuiTableFlags_BordersOuter |
-                                             ImGuiTableFlags_Resizable) {
+                                             ImGuiTableFlags_Resizable)
+{
   namespace PE = app::PropertyEditor;
 
   bool changed{false};
-  if (PE::begin(label, flag)) {
+  if (PE::begin(label, flag))
+  {
 
     changed |= app::azimuthElevationSliders(params.sunDirection, false,
                                             params.directionUp.y >=
@@ -58,7 +60,8 @@ skySimpleParametersUI(shaderio::SkySimpleParameters &params,
     float lightRadiance = params.sunIntensity / lightSolidAngle;
     params.lightRadiance = params.sunColor * lightRadiance;
 
-    if (PE::treeNode("Extra")) {
+    if (PE::treeNode("Extra"))
+    {
       changed |= PE::SliderFloat("Brightness", &params.brightness, 0.F, 1.F);
       changed |= PE::SliderAngle("Glow Size", &params.glowSize, 0.F, 20.F);
       changed |=
@@ -80,13 +83,15 @@ skySimpleParametersUI(shaderio::SkySimpleParameters &params,
   return changed;
 }
 
-inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
+inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters& params)
+{
   namespace PE = app::PropertyEditor;
   bool changed{false};
-  if (PE::begin()) {
+  if (PE::begin())
+  {
     if (PE::entry(
-            "", [&] { return ImGui::SmallButton("reset"); },
-            "Default values")) {
+            "", [&] { return ImGui::SmallButton("reset"); }, "Default values"))
+    {
       params = shaderio::SkyPhysicalParameters();
       changed = true;
     }
@@ -99,7 +104,8 @@ inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
     changed |= PE::SliderFloat("Sun Glow Intensity", &params.sunGlowIntensity,
                                0.F, 5.F);
 
-    if (PE::treeNode("Extra")) {
+    if (PE::treeNode("Extra"))
+    {
       changed |= PE::SliderFloat("Haze", &params.haze, 0.F, 15.F);
       changed |=
           PE::SliderFloat("Red Blue Shift", &params.redblueshift, -1.F, 1.F);
@@ -118,4 +124,4 @@ inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters &params) {
   return changed;
 }
 
-} // namespace app
+}  // namespace app

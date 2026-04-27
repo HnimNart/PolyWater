@@ -22,9 +22,11 @@
 
 #include "resource_allocator.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 
-//--- GBuffer ------------------------------------------------------------------------------------------------------------
+//--- GBuffer
+//------------------------------------------------------------------------------------------------------------
 
 // Usage:
 //   see usage_GBuffer in gbuffers.cpp
@@ -35,18 +37,23 @@ namespace nvvk {
 -*/
 struct GBufferInitInfo
 {
-  nvvk::ResourceAllocator* allocator{};     // Allocator for the images
-  std::vector<VkFormat>    colorFormats{};  // Array of formats for each color attachment (as many GBuffers as formats)
-  VkFormat                 depthFormat{VK_FORMAT_UNDEFINED};    // Depth buffer (VK_FORMAT_UNDEFINED for no depth)
-  VkSampleCountFlagBits    sampleCount{VK_SAMPLE_COUNT_1_BIT};  // MSAA sample count (default: no MSAA)
-  VkSampler                imageSampler{};                      // Linear sampler for displaying the images (ImGui)
-  VkDescriptorPool         descriptorPool{};                    // Pool for the ImGui descriptors
+  nvvk::ResourceAllocator* allocator{};  // Allocator for the images
+  std::vector<VkFormat>
+      colorFormats{};  // Array of formats for each color attachment (as many
+                       // GBuffers as formats)
+  VkFormat depthFormat{
+      VK_FORMAT_UNDEFINED};  // Depth buffer (VK_FORMAT_UNDEFINED for no depth)
+  VkSampleCountFlagBits sampleCount{
+      VK_SAMPLE_COUNT_1_BIT};  // MSAA sample count (default: no MSAA)
+  VkSampler imageSampler{};  // Linear sampler for displaying the images (ImGui)
+  VkDescriptorPool descriptorPool{};  // Pool for the ImGui descriptors
 };
 
 /*--
  * GBuffer - Multiple render targets with depth management
- * 
- * This class manages multiple color buffers and a depth buffer for deferred rendering or 
+ *
+ * This class manages multiple color buffers and a depth buffer for deferred
+rendering or
  * other multi-target rendering techniques. It supports:
  * - Multiple color attachments with configurable formats
  * - Optional depth buffer
@@ -63,8 +70,8 @@ struct GBufferInitInfo
 class GBuffer
 {
 public:
-  GBuffer()                          = default;
-  GBuffer(const GBuffer&)            = delete;   // Prevent copying
+  GBuffer() = default;
+  GBuffer(const GBuffer&) = delete;              // Prevent copying
   GBuffer& operator=(const GBuffer&) = delete;   // Prevent assignment
   GBuffer(GBuffer&& other) noexcept;             // Allow moving
   GBuffer& operator=(GBuffer&& other) noexcept;  // Move assignment
@@ -79,19 +86,19 @@ public:
   // Set or reset the size of the G-Buffers
   VkResult update(VkCommandBuffer cmd, VkExtent2D newSize);
 
-
   //--- Getters for the GBuffer resources -------------------------
-  VkDescriptorSet              getDescriptorSet(uint32_t i = 0) const;  // Can be use as ImTextureID for ImGui
-  VkExtent2D                   getSize() const;
-  VkImage                      getColorImage(uint32_t i = 0) const;
-  VkImage                      getDepthImage() const;
-  VkImageView                  getColorImageView(uint32_t i = 0) const;
+  VkDescriptorSet getDescriptorSet(
+      uint32_t i = 0) const;  // Can be use as ImTextureID for ImGui
+  VkExtent2D getSize() const;
+  VkImage getColorImage(uint32_t i = 0) const;
+  VkImage getDepthImage() const;
+  VkImageView getColorImageView(uint32_t i = 0) const;
   const VkDescriptorImageInfo& getDescriptorImageInfo(uint32_t i = 0) const;
-  VkImageView                  getDepthImageView() const;
-  VkFormat                     getColorFormat(uint32_t i = 0) const;
-  VkFormat                     getDepthFormat() const;
-  VkSampleCountFlagBits        getSampleCount() const;
-  float                        getAspectRatio() const;
+  VkImageView getDepthImageView() const;
+  VkFormat getColorFormat(uint32_t i = 0) const;
+  VkFormat getDepthFormat() const;
+  VkSampleCountFlagBits getSampleCount() const;
+  float getAspectRatio() const;
 
 private:
   /*--
@@ -102,7 +109,7 @@ private:
    * - Sampled bit                : For sampling in shaders
    * - Storage bit                : For compute shader access
    * - Transfer dst bit           : For clearing/copying
-   * 
+   *
    * The depth buffer is created with:
    * - Depth/Stencil attachment   : For depth testing
    * - Sampled bit                : For sampling in shaders
@@ -117,28 +124,27 @@ private:
    * - Images and image views
    * - Samplers
    * - ImGui descriptors
-   * 
+   *
    * This must be called before destroying the GBuffer or when
    * recreating with different parameters
   -*/
   void deinitResources();
 
-
   // Resources holds all Vulkan objects for the GBuffer
   // This separation makes it easier to cleanup and recreate resources
   struct Resources
   {
-    std::vector<nvvk::Image>     gBufferColor{};      // Color attachments
-    nvvk::Image                  gBufferDepth{};      // Optional depth attachment
-    std::vector<VkImageView>     uiImageViews{};      // Special views for ImGui (alpha=1)
+    std::vector<nvvk::Image> gBufferColor{};  // Color attachments
+    nvvk::Image gBufferDepth{};               // Optional depth attachment
+    std::vector<VkImageView>
+        uiImageViews{};  // Special views for ImGui (alpha=1)
     std::vector<VkDescriptorSet> uiDescriptorSets{};  // ImGui descriptor sets
   } m_res;                                            // All Vulkan resources
 
   VkExtent2D m_size{};  // Width and height of the buffers
 
-  GBufferInitInfo       m_info{};        // Configuration
+  GBufferInitInfo m_info{};              // Configuration
   VkDescriptorSetLayout m_descLayout{};  // Layout for the ImGui descriptors
 };
-
 
 }  // namespace nvvk

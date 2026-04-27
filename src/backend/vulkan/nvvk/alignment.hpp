@@ -24,11 +24,12 @@ Contains functions for aligning numbers to power-of-two boundaries.
 #pragma once
 
 #ifndef NVH_ALIGNMENT_HPP
-#define NVH_ALIGNMENT_HPP 1
+#  define NVH_ALIGNMENT_HPP 1
 
-#include <stddef.h>  // for size_t
+#  include <stddef.h>  // for size_t
 
-namespace nvutils {
+namespace nvutils
+{
 /*-------------------------------------------------------------------------------------------------
 # Function `is_aligned<integral>(x, a)`
 Returns whether `x` is a multiple of `a`. `a` must be a power of two.

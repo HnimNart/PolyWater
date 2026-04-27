@@ -21,71 +21,84 @@ PipelineManager::PipelineManager()
   // ---------------------------------------------------------
   // 1. Raster Pipeline
   // ---------------------------------------------------------
-  registerPipeline("Raster", [](const BuildSettings &settings) {
-    auto graph = std::make_unique<RenderGraph>("Raster");
-    auto &descriptorPack = settings.assetManager->getDesriptorPack();
+  registerPipeline(
+      "Raster",
+      [](const BuildSettings& settings)
+      {
+        auto graph = std::make_unique<RenderGraph>("Raster");
+        auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
-    graph->addPass(std::make_unique<SkyPass>(settings.context));
-    graph->addPass(std::make_unique<RasterPass>(settings.context, descriptorPack,
-                                                settings.assetManager));
-    graph->addPass(
-        std::make_unique<ToneMapPass>(settings.context, RenderOutput::Linear));
+        graph->addPass(std::make_unique<SkyPass>(settings.context));
+        graph->addPass(std::make_unique<RasterPass>(
+            settings.context, descriptorPack, settings.assetManager));
+        graph->addPass(std::make_unique<ToneMapPass>(settings.context,
+                                                     RenderOutput::Linear));
 
-    if (settings.swapchainManager) {
-      graph->addPass(
-          std::make_unique<UIPass>(settings.swapchainManager->getUICallback()));
-    }
-    return graph;
-  });
+        if (settings.swapchainManager)
+        {
+          graph->addPass(std::make_unique<UIPass>(
+              settings.swapchainManager->getUICallback()));
+        }
+        return graph;
+      });
 
   // ---------------------------------------------------------
   // 2. Meshlet Pipeline
   // ---------------------------------------------------------
-  registerPipeline("Meshlet", [](const BuildSettings &settings) {
-    auto graph = std::make_unique<RenderGraph>("Meshlet");
-    auto &descriptorPack = settings.assetManager->getDesriptorPack();
+  registerPipeline(
+      "Meshlet",
+      [](const BuildSettings& settings)
+      {
+        auto graph = std::make_unique<RenderGraph>("Meshlet");
+        auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
-    graph->addPass(std::make_unique<SkyPass>(settings.context));
-    graph->addPass(std::make_unique<MeshletPass>(
-        settings.context, descriptorPack, settings.hiZTexture));
-    graph->addPass(
-        std::make_unique<MipReductionPass>(settings.context, settings.hiZTexture));
-    graph->addPass(
-        std::make_unique<ToneMapPass>(settings.context, RenderOutput::Linear));
+        graph->addPass(std::make_unique<SkyPass>(settings.context));
+        graph->addPass(std::make_unique<MeshletPass>(
+            settings.context, descriptorPack, settings.hiZTexture));
+        graph->addPass(std::make_unique<MipReductionPass>(settings.context,
+                                                          settings.hiZTexture));
+        graph->addPass(std::make_unique<ToneMapPass>(settings.context,
+                                                     RenderOutput::Linear));
 
-    if (settings.swapchainManager) {
-      graph->addPass(
-          std::make_unique<UIPass>(settings.swapchainManager->getUICallback()));
-    }
-    return graph;
-  });
+        if (settings.swapchainManager)
+        {
+          graph->addPass(std::make_unique<UIPass>(
+              settings.swapchainManager->getUICallback()));
+        }
+        return graph;
+      });
 
-  registerPipeline("Raytrace", [](const BuildSettings &settings) {
-    auto graph = std::make_unique<RenderGraph>("Raytrace");
-    auto &descriptorPack = settings.assetManager->getDesriptorPack();
+  registerPipeline(
+      "Raytrace",
+      [](const BuildSettings& settings)
+      {
+        auto graph = std::make_unique<RenderGraph>("Raytrace");
+        auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
-    // 1. Trace the rays (outputs noisy HDR image to RenderOutput::Linear)
-    graph->addPass(std::make_unique<RayTracePass>(settings.context,
-        descriptorPack, settings.shaderManager, settings.accel));
+        // 1. Trace the rays (outputs noisy HDR image to RenderOutput::Linear)
+        graph->addPass(std::make_unique<RayTracePass>(
+            settings.context, descriptorPack, settings.shaderManager,
+            settings.accel));
 
-    // 2. Denoise the image
-    graph->addPass(std::make_unique<DenoisePass>(settings.context));
+        // 2. Denoise the image
+        graph->addPass(std::make_unique<DenoisePass>(settings.context));
 
-    // 3. Tone Mapping
-    graph->addPass(
-        std::make_unique<ToneMapPass>(settings.context, RenderOutput::Denoised));
+        // 3. Tone Mapping
+        graph->addPass(std::make_unique<ToneMapPass>(settings.context,
+                                                     RenderOutput::Denoised));
 
-    // 4. UI Layer
-    if (settings.swapchainManager) {
-      graph->addPass(
-          std::make_unique<UIPass>(settings.swapchainManager->getUICallback()));
-    }
-    return graph;
-  });
+        // 4. UI Layer
+        if (settings.swapchainManager)
+        {
+          graph->addPass(std::make_unique<UIPass>(
+              settings.swapchainManager->getUICallback()));
+        }
+        return graph;
+      });
 }
 
 /**********************************************************/
-void PipelineManager::registerPipeline(const std::string &mode,
+void PipelineManager::registerPipeline(const std::string& mode,
                                        PipelineFactoryFunc factory)
 /**********************************************************/
 {
@@ -96,7 +109,8 @@ void PipelineManager::registerPipeline(const std::string &mode,
   m_availableGraphsCache.clear();
   m_availableGraphsCache.reserve(m_registry.size());
 
-  for (const auto &[name, _] : m_registry) {
+  for (const auto& [name, _] : m_registry)
+  {
     m_availableGraphsCache.push_back(name);
   }
 
@@ -105,12 +119,13 @@ void PipelineManager::registerPipeline(const std::string &mode,
 
 /**********************************************************/
 std::unique_ptr<RenderGraph>
-PipelineManager::buildGraph(const BuildSettings &settings,
-                            const std::string &mode) const
+PipelineManager::buildGraph(const BuildSettings& settings,
+                            const std::string& mode) const
 /**********************************************************/
 {
   auto it = m_registry.find(mode);
-  if (it == m_registry.end()) {
+  if (it == m_registry.end())
+  {
     throw std::runtime_error("PipelineManager: Requested RenderMode '" + mode +
                              "' is not registered.");
   }
@@ -120,7 +135,7 @@ PipelineManager::buildGraph(const BuildSettings &settings,
 }
 
 /**********************************************************/
-const std::vector<std::string> &PipelineManager::getAvailableGraphs() const
+const std::vector<std::string>& PipelineManager::getAvailableGraphs() const
 /**********************************************************/
 {
   return m_availableGraphsCache;

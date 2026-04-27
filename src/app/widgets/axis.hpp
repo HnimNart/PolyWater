@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
 #include <imgui/imgui.h>
+
+#include <glm/glm.hpp>
 
 /*  @DOC_START -------------------------------------------------------
 
@@ -42,13 +43,15 @@ Example
 --- @DOC_END ------------------------------------------------------- */
 
 // The API
-namespace app {
+namespace app
+{
 
 // This utility is adding the 3D axis at `pos`, using the matrix `modelView`
-void Axis(ImVec2 pos, const glm::mat4 &modelView, float size = 20.f);
+void Axis(ImVec2 pos, const glm::mat4& modelView, float size = 20.f);
 
 // Place the axis at the bottom right corner of the window
-inline void drawAxis(const glm::mat4 &modelView, float size = 50.f) {
+inline void drawAxis(const glm::mat4& modelView, float size = 50.f)
+{
   ImVec2 windowPos = ImGui::GetWindowPos();
   ImVec2 windowSize = ImGui::GetWindowSize();
   float dpiScale = ImGui::GetWindowDpiScale();
@@ -75,4 +78,4 @@ inline void drawAxis(const glm::mat4 &modelView, float size = 50.f) {
   Axis(pos, pureRotationMatrix, scaledSize);
 }
 
-}; // namespace app
+};  // namespace app

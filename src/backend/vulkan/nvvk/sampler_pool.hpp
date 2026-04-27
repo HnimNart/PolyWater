@@ -18,15 +18,16 @@
  */
 
 #pragma once
+#include <vulkan/vulkan_core.h>
+
 #include <cstring>
 #include <mutex>
 #include <unordered_map>
 
-#include <vulkan/vulkan_core.h>
-
 #include <core/hash_operations.hpp>
 
-namespace nvvk {
+namespace nvvk
+{
 
 //-----------------------------------------------------------------
 // Samplers are limited in Vulkan.
@@ -36,18 +37,19 @@ namespace nvvk {
 // Usage:
 //      see usage_SamplerPool in sampler_pool.cpp
 //-----------------------------------------------------------------
-class SamplerPool {
+class SamplerPool
+{
 public:
   SamplerPool() = default;
   ~SamplerPool();
 
   // Delete copy constructor and copy assignment operator
-  SamplerPool(const SamplerPool &) = delete;
-  SamplerPool &operator=(const SamplerPool &) = delete;
+  SamplerPool(const SamplerPool&) = delete;
+  SamplerPool& operator=(const SamplerPool&) = delete;
 
   // Allow move constructor and move assignment operator
-  SamplerPool(SamplerPool &&other) noexcept;
-  SamplerPool &operator=(SamplerPool &&other) noexcept;
+  SamplerPool(SamplerPool&& other) noexcept;
+  SamplerPool& operator=(SamplerPool&& other) noexcept;
 
   // Initialize the sampler pool with the device reference, then we can later
   // acquire samplers
@@ -57,8 +59,8 @@ public:
   // Get or create VkSampler based on VkSamplerCreateInfo
   // The pNext chain may contain VkSamplerReductionModeCreateInfo as well as
   // VkSamplerYcbcrConversionCreateInfo, but no other structs are supported.
-  VkResult acquireSampler(VkSampler &sampler,
-                          const VkSamplerCreateInfo &createInfo = {
+  VkResult acquireSampler(VkSampler& sampler,
+                          const VkSamplerCreateInfo& createInfo = {
                               .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
                               .magFilter = VK_FILTER_LINEAR,
                               .minFilter = VK_FILTER_LINEAR});
@@ -68,12 +70,14 @@ public:
 private:
   VkDevice m_device{};
 
-  struct SamplerState {
+  struct SamplerState
+  {
     VkSamplerCreateInfo createInfo{};
     VkSamplerReductionModeCreateInfo reduction{};
     VkSamplerYcbcrConversionCreateInfo ycbr{};
 
-    bool operator==(const SamplerState &other) const {
+    bool operator==(const SamplerState& other) const
+    {
       return other.createInfo.flags == createInfo.flags &&
              other.createInfo.magFilter == createInfo.magFilter &&
              other.createInfo.minFilter == createInfo.minFilter &&
@@ -107,8 +111,10 @@ private:
     }
   };
 
-  struct SamplerStateHashFn {
-    std::size_t operator()(const SamplerState &s) const {
+  struct SamplerStateHashFn
+  {
+    std::size_t operator()(const SamplerState& s) const
+    {
       return core::hashVal(
           s.createInfo.flags, s.createInfo.magFilter, s.createInfo.minFilter,
           s.createInfo.mipmapMode, s.createInfo.addressModeU,
@@ -125,7 +131,8 @@ private:
     }
   };
 
-  struct SamplerEntry {
+  struct SamplerEntry
+  {
     VkSampler sampler;
     uint32_t refCount;
   };
@@ -143,4 +150,4 @@ private:
   mutable std::mutex m_mutex;
 };
 
-} // namespace nvvk
+}  // namespace nvvk

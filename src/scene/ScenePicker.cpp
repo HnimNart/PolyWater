@@ -1,8 +1,9 @@
 #include "ScenePicker.hpp"
 
-#include "Scene.h"
 #include <backend/interfaces/RHI_definitions.hpp>
 #include <core/timers.hpp>
+
+#include "Scene.h"
 
 // BVH Implementation Headers
 #include <bvh/v2/bbox.h>
@@ -18,12 +19,13 @@ using BBox = bvh::v2::BBox<Scalar, 3>;
 using Ray = bvh::v2::Ray<Scalar, 3>;
 
 /**********************************************************/
-bool InstanceAccelerator::build(const Scene &scene)
+bool InstanceAccelerator::build(const Scene& scene)
 /**********************************************************/
 {
   SCOPED_TIMER("Build BVH");
 
-  if (scene.instances.empty()) {
+  if (scene.instances.empty())
+  {
     return false;
   }
 
@@ -38,20 +40,22 @@ bool InstanceAccelerator::build(const Scene &scene)
   bvh::v2::DefaultBuilder<Node>::Config config;
   config.quality = bvh::v2::DefaultBuilder<Node>::Quality::High;
 
-  for (size_t i = 0; i < scene.meshes.size(); ++i) {
-    const auto &mesh = scene.meshes[i];
+  for (size_t i = 0; i < scene.meshes.size(); ++i)
+  {
+    const auto& mesh = scene.meshes[i];
 
     // Validation check
     if (mesh.rawBufferIndex >= scene.meshData.size())
       continue;
 
-    const uint8_t *bufferPtr = scene.meshData[mesh.rawBufferIndex].data();
+    const uint8_t* bufferPtr = scene.meshData[mesh.rawBufferIndex].data();
     uint32_t triCount = mesh.triMesh.indices.count / 3;
 
     std::vector<BBox> triBboxes(triCount);
     std::vector<Vec3> triCenters(triCount);
 
-    for (uint32_t t = 0; t < triCount; ++t) {
+    for (uint32_t t = 0; t < triCount; ++t)
+    {
       glm::uvec3 idx = getTriangleIndices(mesh, bufferPtr, t);
 
       // Note: Since getAttribute is private and defined in this file,
@@ -77,9 +81,10 @@ bool InstanceAccelerator::build(const Scene &scene)
   std::vector<BBox> instBboxes(scene.instances.size());
   std::vector<Vec3> instCenters(scene.instances.size());
 
-  for (size_t i = 0; i < scene.instances.size(); ++i) {
-    const auto &inst = scene.instances[i];
-    const auto &mesh = scene.meshes[inst.meshIndex];
+  for (size_t i = 0; i < scene.instances.size(); ++i)
+  {
+    const auto& inst = scene.instances[i];
+    const auto& mesh = scene.meshes[inst.meshIndex];
 
     glm::vec3 min = mesh.bbox.min;
     glm::vec3 max = mesh.bbox.max;
@@ -91,7 +96,8 @@ bool InstanceAccelerator::build(const Scene &scene)
                             {max.x, max.y, min.z}, {max.x, max.y, max.z}};
 
     glm::vec3 wMin(FLT_MAX), wMax(-FLT_MAX);
-    for (auto &c : corners) {
+    for (auto& c : corners)
+    {
       glm::vec3 wc = glm::vec3(trans * glm::vec4(c, 1.0f));
       wMin = glm::min(wMin, wc);
       wMax = glm::max(wMax, wc);
@@ -112,14 +118,16 @@ bool InstanceAccelerator::build(const Scene &scene)
 // --------------------------------------------------------------------------
 
 /**********************************************************/
-std::optional<RayHit>
-InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
-                               float tmin, float tmax) const
+std::optional<RayHit> InstanceAccelerator::intersect(const glm::vec3& origin,
+                                                     const glm::vec3& dir,
+                                                     float tmin,
+                                                     float tmax) const
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
-  if (!m_scene || m_tlas.nodes.empty()) {
+  if (!m_scene || m_tlas.nodes.empty())
+  {
     return std::nullopt;
   }
 
@@ -136,17 +144,20 @@ InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
 
   // 1. Traverse TLAS (Instances)
   m_tlas.intersect<false, true>(
-      ray, m_tlas.get_root().index, tlasStack, [&](size_t begin, size_t end) {
-        for (size_t i = begin; i < end; ++i) {
+      ray, m_tlas.get_root().index, tlasStack,
+      [&](size_t begin, size_t end)
+      {
+        for (size_t i = begin; i < end; ++i)
+        {
           size_t instanceId = m_tlas.prim_ids[i];
-          const auto &instance = m_scene->instances[instanceId];
-          const auto &mesh = m_scene->meshes[instance.meshIndex];
+          const auto& instance = m_scene->instances[instanceId];
+          const auto& mesh = m_scene->meshes[instance.meshIndex];
 
-          const auto &blas = m_meshBvhs[instance.meshIndex];
+          const auto& blas = m_meshBvhs[instance.meshIndex];
           if (blas.nodes.empty())
             continue;
 
-          const uint8_t *bufferPtr =
+          const uint8_t* bufferPtr =
               m_scene->meshData[mesh.rawBufferIndex].data();
 
           // Inverse transform ray to local space
@@ -162,9 +173,11 @@ InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
           // 2. Traverse BLAS (Triangles)
           blas.intersect<false, true>(
               localRay, blas.get_root().index, blasStack,
-              [&](size_t bBegin, size_t bEnd) {
+              [&](size_t bBegin, size_t bEnd)
+              {
                 bool blasHit = false;
-                for (size_t k = bBegin; k < bEnd; ++k) {
+                for (size_t k = bBegin; k < bEnd; ++k)
+                {
                   uint32_t primID = blas.prim_ids[k];
 
                   glm::uvec3 indices =
@@ -181,7 +194,8 @@ InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
                                                       Vec3(v1.x, v1.y, v1.z),
                                                       Vec3(v2.x, v2.y, v2.z));
 
-                  if (auto hit = tri.intersect(localRay)) {
+                  if (auto hit = tri.intersect(localRay))
+                  {
                     auto [localT, u, v] = *hit;
 
                     // Transform back to world for correct depth comparison
@@ -193,12 +207,13 @@ InstanceAccelerator::intersect(const glm::vec3 &origin, const glm::vec3 &dir,
                         glm::vec3(ray.org[0], ray.org[1], ray.org[2]),
                         worldHitPos);
 
-                    if (worldT < ray.tmax) {
+                    if (worldT < ray.tmax)
+                    {
                       ray.tmax = worldT;
-                      localRay.tmax = localT; // Optimize local traversal
+                      localRay.tmax = localT;  // Optimize local traversal
                       hitAny = true;
                       blasHit = true;
-                      bestHit = {(uint32_t)instanceId, primID, worldT, u, v};
+                      bestHit = {(uint32_t) instanceId, primID, worldT, u, v};
                     }
                   }
                 }

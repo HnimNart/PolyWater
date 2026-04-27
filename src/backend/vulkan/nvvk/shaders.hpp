@@ -22,14 +22,20 @@
 
 #include "check_error.hpp"
 
-namespace nvvk {
+namespace nvvk
+{
 
-inline VkResult createShaderModule(VkShaderModule& shaderModule, VkDevice device, const std::span<const uint32_t>& code)
+inline VkResult createShaderModule(VkShaderModule& shaderModule,
+                                   VkDevice device,
+                                   const std::span<const uint32_t>& code)
 {
   const VkShaderModuleCreateInfo createInfo{
-      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, .codeSize = code.size_bytes(), .pCode = code.data()};
+      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      .codeSize = code.size_bytes(),
+      .pCode = code.data()};
 
-  NVVK_FAIL_RETURN(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
+  NVVK_FAIL_RETURN(
+      vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
   return VK_SUCCESS;
 }
 

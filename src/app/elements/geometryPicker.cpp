@@ -1,19 +1,21 @@
 #include "geometryPicker.hpp"
-#include "shaders/shared/structs.h" // For Instance definition
 
-#include "core/Camera.hpp"
-#include "core/timers.hpp"
-#include <app/widgets/window.hpp>
-#include <core/logger.hpp>
-#include <glm/gtc/matrix_inverse.hpp> // For inverse transpose
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <app/widgets/window.hpp>
+#include <core/logger.hpp>
+#include <glm/gtc/matrix_inverse.hpp>  // For inverse transpose
+
+#include "core/Camera.hpp"
+#include "core/timers.hpp"
+#include "shaders/shared/structs.h"  // For Instance definition
+
 /**********************************************************/
 app::GeometryPickerElement::GeometryPickerElement(
-    const SceneResourcesManager &sceneResources,
-    std::shared_ptr<core::CameraManipulator> camera)
-    : m_sceneResources(sceneResources), m_camera(std::move(camera))
+    const SceneResourcesManager& sceneResources,
+    std::shared_ptr<core::CameraManipulator> camera) :
+    m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
 {
   m_accel.build(sceneResources.data());
@@ -21,14 +23,14 @@ app::GeometryPickerElement::GeometryPickerElement(
 
 /**********************************************************/
 void app::GeometryPickerElement::onSceneUpdate(
-    const SceneResourcesManager &scene)
+    const SceneResourcesManager& scene)
 /**********************************************************/
 {
   m_accel.build(scene.data());
 }
 
 /**********************************************************/
-void app::GeometryPickerElement::onAttach(Application *app)
+void app::GeometryPickerElement::onAttach(Application* app)
 /**********************************************************/
 {
   m_app = app;
@@ -46,16 +48,19 @@ void app::GeometryPickerElement::onUIRender()
   bool left = ImGui::IsMouseClicked(0) && !ImGui::IsMouseDragging(0);
   bool right = ImGui::IsMouseClicked(1) && !ImGui::IsMouseDragging(1);
 
-  if (left || right) {
+  if (left || right)
+  {
     auto hitIndex =
         pickObject(glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y));
 
-    if (m_onSelect) {
+    if (m_onSelect)
+    {
       // If right click, or left click missed (-1), pass -1
       m_onSelect(right ? -1 : hitIndex.value_or(-1));
     }
 
-    if (left && hitIndex.has_value()) {
+    if (left && hitIndex.has_value())
+    {
       LOGI("Picked %d\n", hitIndex.value());
     }
   }
@@ -76,9 +81,9 @@ std::optional<InstanceID>
 app::GeometryPickerElement::pickObject(glm::vec2 mouseAbs)
 /**********************************************************/
 {
-  ImGuiWindow *viewport = ImGui::FindWindowByName("Viewport");
+  ImGuiWindow* viewport = ImGui::FindWindowByName("Viewport");
   if (!viewport || !core::isWindowHovered(viewport))
-    return std::nullopt; // Using nullopt instead of -1 for optional
+    return std::nullopt;  // Using nullopt instead of -1 for optional
 
   float relX = mouseAbs.x - viewport->Pos.x;
   float relY = mouseAbs.y - viewport->Pos.y;
@@ -120,17 +125,18 @@ math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
 void app::GeometryPickerElement::drawGeometryModifier()
 /**********************************************************/
 {
-  if (m_instanceSelected == static_cast<uint>(-1)) {
+  if (m_instanceSelected == static_cast<uint>(-1))
+  {
     return;
   }
 
-  auto &instances = m_sceneResources.getInstances();
-  auto &inst = instances[m_instanceSelected];
+  auto& instances = m_sceneResources.getInstances();
+  auto& inst = instances[m_instanceSelected];
   drawRotationBall(inst.translation, 1.0f);
 }
 
 /**********************************************************/
-void app::GeometryPickerElement::drawRotationBall(const glm::vec3 &center,
+void app::GeometryPickerElement::drawRotationBall(const glm::vec3& center,
                                                   float radius)
 /**********************************************************/
 {

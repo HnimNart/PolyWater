@@ -18,13 +18,13 @@
  */
 
 #pragma once
-#include <numeric>
-#include <type_traits>
-
 #include <fmt/core.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <implot/implot.h>
+
+#include <numeric>
+#include <type_traits>
 
 #include "app/Application.hpp"
 #include "app/widgets/settings_handler.hpp"
@@ -39,21 +39,27 @@ monitoring. It is using the `NVML` library to get information about the GPU and
 display it in the application.
 -------------------------------------------------------------------------------------------------*/
 
-namespace app {
+namespace app
+{
 
-#define SAMPLING_NUM 100 // Show 100 measurements
+#define SAMPLING_NUM 100  // Show 100 measurements
 
 /// utility structure for averaging values
-template <typename T> struct AverageCircularBuffer {
+template <typename T> struct AverageCircularBuffer
+{
   int offset = 0;
   T totValue = 0;
   std::vector<T> data;
   AverageCircularBuffer(int max_size = 100) { data.reserve(max_size); }
-  void addValue(T x) {
-    if (data.size() < data.capacity()) {
+  void addValue(T x)
+  {
+    if (data.size() < data.capacity())
+    {
       data.push_back(x);
       totValue += x;
-    } else {
+    }
+    else
+    {
       totValue -= data[offset];
       totValue += x;
       data[offset] = x;
@@ -64,13 +70,14 @@ template <typename T> struct AverageCircularBuffer {
   T average() { return totValue / data.size(); }
 };
 
-struct ElementGpuMonitor : public IAppElement {
+struct ElementGpuMonitor : public IAppElement
+{
   explicit ElementGpuMonitor(bool show = false);
   virtual ~ElementGpuMonitor() = default;
 
   void onUIRender() override;
   void onUIMenu() override;
-  void onAttach(Application *app) override;
+  void onAttach(Application* app) override;
   void onDetach() override;
 
   // attribute set public on purpose so external parameter parser and UI widgets
@@ -81,11 +88,11 @@ private:
   void pushThrottleTabColor() const;
   void popThrottleTabColor() const;
 
-  static void imguiCopyableText(const std::string &text, uint64_t uniqueId);
+  static void imguiCopyableText(const std::string& text, uint64_t uniqueId);
 
   template <typename T>
-  void imguiNvmlField(const NvmlMonitor::NVMLField<T> &field,
-                      const std::string &name, const std::string &unit = "");
+  void imguiNvmlField(const NvmlMonitor::NVMLField<T>& field,
+                      const std::string& name, const std::string& unit = "");
   void imguiDeviceInfo(uint32_t deviceIndex);
   void imguiDeviceMemory(uint32_t deviceIndex);
   void imguiDevicePerformanceState(uint32_t deviceIndex);
@@ -109,10 +116,12 @@ private:
 };
 
 template <typename T>
-void ElementGpuMonitor::imguiNvmlField(const NvmlMonitor::NVMLField<T> &field,
-                                       const std::string &name,
-                                       const std::string &unit /*= ""*/) {
-  if (field.isSupported) {
+void ElementGpuMonitor::imguiNvmlField(const NvmlMonitor::NVMLField<T>& field,
+                                       const std::string& name,
+                                       const std::string& unit /*= ""*/)
+{
+  if (field.isSupported)
+  {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
@@ -123,4 +132,4 @@ void ElementGpuMonitor::imguiNvmlField(const NvmlMonitor::NVMLField<T> &field,
   }
 }
 
-} // namespace app
+}  // namespace app

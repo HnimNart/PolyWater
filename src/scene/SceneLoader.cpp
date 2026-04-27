@@ -1,9 +1,10 @@
 #include "SceneLoader.hpp"
 
+#include <fmt/format.h>
+
 #include <fstream>
 #include <unordered_map>
 
-#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "SceneData.hpp"
@@ -22,46 +23,55 @@ using json = nlohmann::json;
 using IDMap = std::unordered_map<std::string, int>;
 
 /**********************************************************/
-bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
+bool SceneLoader::load(const std::string& filepath, SceneData& outScene)
 /**********************************************************/
 {
   SCOPED_TIMER(
       fmt::format("Loaded scene file: {}", core::getFilename(filepath)));
   std::ifstream file(filepath);
-  if (!file.is_open()) {
+  if (!file.is_open())
+  {
     LOGE("[SceneLoader] Error: Could not open file %s\n", filepath.c_str());
     return false;
-  } else {
+  }
+  else
+  {
   }
 
   // Clear any old data
   outScene.clear();
 
-  try {
+  try
+  {
     json j;
     file >> j;
 
     // 1. Assets (Populates meshMap and texMap)
-    if (j.contains("assets")) {
+    if (j.contains("assets"))
+    {
       parseAssets(j["assets"], outScene);
     }
 
     // 2. Materials (Uses texMap, populates matMap)
-    if (j.contains("materials")) {
+    if (j.contains("materials"))
+    {
       parseMaterials(j["materials"], outScene);
     }
 
     // 3. Instances (Uses meshMap and matMap)
-    if (j.contains("instances")) {
+    if (j.contains("instances"))
+    {
       parseInstances(j["instances"], outScene);
     }
 
     // 4. Global Scene Info
-    if (j.contains("sceneInfo")) {
+    if (j.contains("sceneInfo"))
+    {
       parseSceneInfo(j["sceneInfo"], outScene);
     }
-
-  } catch (const json::parse_error &e) {
+  }
+  catch (const json::parse_error& e)
+  {
     LOGE("[SceneLoader] JSON Parse Error in %s: %s\n", filepath.c_str(),
          e.what());
     return false;
@@ -71,20 +81,24 @@ bool SceneLoader::load(const std::string &filepath, SceneData &outScene)
 }
 
 /**********************************************************/
-void SceneLoader::parseAssets(const json &j, SceneData &scene)
+void SceneLoader::parseAssets(const json& j, SceneData& scene)
 /**********************************************************/
 {
   // 1. Meshes
-  if (j.contains("meshes")) {
-    for (auto &[key, val] : j["meshes"].items()) {
+  if (j.contains("meshes"))
+  {
+    for (auto& [key, val] : j["meshes"].items())
+    {
       std::string path = val.get<std::string>();
       int id = scene.addMesh(key, path);
     }
   }
 
   // 2. Textures
-  if (j.contains("textures")) {
-    for (auto &[key, val] : j["textures"].items()) {
+  if (j.contains("textures"))
+  {
+    for (auto& [key, val] : j["textures"].items())
+    {
       std::string path = val.get<std::string>();
       int id = scene.addTexture(key, path);
     }
@@ -92,10 +106,11 @@ void SceneLoader::parseAssets(const json &j, SceneData &scene)
 }
 
 /**********************************************************/
-void SceneLoader::parseMaterials(const json &j, SceneData &scene)
+void SceneLoader::parseMaterials(const json& j, SceneData& scene)
 /**********************************************************/
 {
-  for (const auto &matJson : j) {
+  for (const auto& matJson : j)
+  {
     DataMaterial mat;
 
     // Basic Properties
@@ -109,7 +124,8 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene)
     mat.ior = parseVec3(matJson.value("ior", json::array()), glm::vec3(1.5f));
 
     // Texture Resolution
-    if (matJson.contains("textureId")) {
+    if (matJson.contains("textureId"))
+    {
       std::string texName = matJson["textureId"];
       mat.textureId = texName;
     }
@@ -120,10 +136,11 @@ void SceneLoader::parseMaterials(const json &j, SceneData &scene)
 }
 
 /**********************************************************/
-void SceneLoader::parseInstances(const json &j, SceneData &scene)
+void SceneLoader::parseInstances(const json& j, SceneData& scene)
 /**********************************************************/
 {
-  for (const auto &instJson : j) {
+  for (const auto& instJson : j)
+  {
     DataInstance inst;
     inst.name = JSON_VAL(instJson, "name", std::string("Instance"));
 
@@ -135,8 +152,9 @@ void SceneLoader::parseInstances(const json &j, SceneData &scene)
     inst.materialId = JSON_VAL(instJson, "materialId", std::string(""));
 
     // Transforms
-    if (instJson.contains("transform")) {
-      const auto &t = instJson["transform"];
+    if (instJson.contains("transform"))
+    {
+      const auto& t = instJson["transform"];
       inst.translation =
           parseVec3(t.value("translate", json::array()), glm::vec3(0.0f));
       inst.scale = parseVec3(t.value("scale", json::array()), glm::vec3(1.0f));
@@ -154,18 +172,20 @@ void SceneLoader::parseInstances(const json &j, SceneData &scene)
 }
 
 /**********************************************************/
-void SceneLoader::parseSceneInfo(const json &j, SceneData &scene)
+void SceneLoader::parseSceneInfo(const json& j, SceneData& scene)
 /**********************************************************/
 {
   scene.useSky = JSON_VAL(j, "useSky", false);
 
-  if (j.contains("backgroundColor")) {
+  if (j.contains("backgroundColor"))
+  {
     scene.backgroundColor = parseVec3(j["backgroundColor"]);
   }
 
   // Camera
-  if (j.contains("camera")) {
-    const auto &c = j["camera"];
+  if (j.contains("camera"))
+  {
+    const auto& c = j["camera"];
     scene.camera.eye =
         parseVec3(c.value("eye", json::array()), glm::vec3(0, 0, 5));
     scene.camera.center =
@@ -177,8 +197,9 @@ void SceneLoader::parseSceneInfo(const json &j, SceneData &scene)
   }
 
   // --- Environment Map ---
-  if (j.contains("envmap")) {
-    const auto &env = j["envmap"];
+  if (j.contains("envmap"))
+  {
+    const auto& env = j["envmap"];
     scene.envmap.path = JSON_VAL(env, "file", std::string(""));
     scene.envmap.scale = JSON_VAL(env, "scale", 1.0f);
 
@@ -187,14 +208,17 @@ void SceneLoader::parseSceneInfo(const json &j, SceneData &scene)
     scene.envmap.rotation = JSON_VAL(env, "rotation", 0.0f);
 
     // Ensure we flag that an envmap should be loaded/used
-    if (!scene.envmap.path.empty()) {
+    if (!scene.envmap.path.empty())
+    {
       scene.envmap.useEnvMap = true;
     }
   }
 
   // Lights
-  if (j.contains("lights")) {
-    for (const auto &l : j["lights"]) {
+  if (j.contains("lights"))
+  {
+    for (const auto& l : j["lights"])
+    {
       DataLight light;
       light.position = parseVec3(l.value("position", json::array()));
       light.color = parseVec3(l.value("color", json::array()), glm::vec3(1.0f));
@@ -213,30 +237,33 @@ void SceneLoader::parseSceneInfo(const json &j, SceneData &scene)
 // -------------------------------------------------------------------------
 
 /**********************************************************/
-glm::vec3 SceneLoader::parseVec3(const json &j, const glm::vec3 &defaultValue)
+glm::vec3 SceneLoader::parseVec3(const json& j, const glm::vec3& defaultValue)
 /**********************************************************/
 {
-  if (j.is_array() && j.size() >= 3) {
+  if (j.is_array() && j.size() >= 3)
+  {
     return glm::vec3(j[0], j[1], j[2]);
   }
   return defaultValue;
 }
 
 /**********************************************************/
-glm::vec4 SceneLoader::parseVec4(const json &j, const glm::vec4 &defaultValue)
+glm::vec4 SceneLoader::parseVec4(const json& j, const glm::vec4& defaultValue)
 /**********************************************************/
 {
-  if (j.is_array() && j.size() >= 4) {
+  if (j.is_array() && j.size() >= 4)
+  {
     return glm::vec4(j[0], j[1], j[2], j[3]);
   }
   return defaultValue;
 }
 
 /**********************************************************/
-glm::vec2 SceneLoader::parseVec2(const json &j, const glm::vec2 &defaultValue)
+glm::vec2 SceneLoader::parseVec2(const json& j, const glm::vec2& defaultValue)
 /**********************************************************/
 {
-  if (j.is_array() && j.size() >= 2) {
+  if (j.is_array() && j.size() >= 2)
+  {
     return glm::vec2(j[0], j[1]);
   }
   return defaultValue;
@@ -246,7 +273,7 @@ glm::vec2 SceneLoader::parseVec2(const json &j, const glm::vec2 &defaultValue)
 #include <string>
 
 /**********************************************************/
-MaterialType SceneLoader::parseHitGroup(const std::string &type)
+MaterialType SceneLoader::parseHitGroup(const std::string& type)
 /**********************************************************/
 {
   if (type == "Mirror")
@@ -268,7 +295,7 @@ MaterialType SceneLoader::parseHitGroup(const std::string &type)
 }
 
 /**********************************************************/
-shaderio::LightType SceneLoader::parseLightType(const std::string &type)
+shaderio::LightType SceneLoader::parseLightType(const std::string& type)
 /**********************************************************/
 {
   if (type == "Point")

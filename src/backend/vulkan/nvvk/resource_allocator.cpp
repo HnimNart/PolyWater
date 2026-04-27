@@ -17,23 +17,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <core/logger.hpp>
-#include <fmt/format.h>
-
-#include "check_error.hpp"
 #include "resource_allocator.hpp"
 
+#include <fmt/format.h>
 #include <volk.h>
 
+#include <core/logger.hpp>
+
+#include "check_error.hpp"
+
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <debugapi.h>
+#  define WIN32_LEAN_AND_MEAN
+#  include <Windows.h>
+#  include <debugapi.h>
 #elif defined(__unix__)
-#include <signal.h>
+#  include <signal.h>
 #endif
 
-nvvk::ResourceAllocator::ResourceAllocator(ResourceAllocator &&other) noexcept {
+nvvk::ResourceAllocator::ResourceAllocator(ResourceAllocator&& other) noexcept
+{
   std::swap(m_allocator, other.m_allocator);
   std::swap(m_device, other.m_device);
   std::swap(m_physicalDevice, other.m_physicalDevice);
@@ -41,9 +43,11 @@ nvvk::ResourceAllocator::ResourceAllocator(ResourceAllocator &&other) noexcept {
   std::swap(m_maxMemoryAllocationSize, other.m_maxMemoryAllocationSize);
 }
 
-nvvk::ResourceAllocator &
-nvvk::ResourceAllocator::operator=(ResourceAllocator &&other) noexcept {
-  if (this != &other) {
+nvvk::ResourceAllocator&
+nvvk::ResourceAllocator::operator=(ResourceAllocator&& other) noexcept
+{
+  if (this != &other)
+  {
     assert(m_allocator == nullptr && "Missing deinit()");
 
     std::swap(m_allocator, other.m_allocator);
@@ -56,25 +60,31 @@ nvvk::ResourceAllocator::operator=(ResourceAllocator &&other) noexcept {
   return *this;
 }
 
-nvvk::ResourceAllocator::~ResourceAllocator() {
+nvvk::ResourceAllocator::~ResourceAllocator()
+{
   assert(m_allocator == nullptr && "Missing deinit()");
 }
 
-nvvk::ResourceAllocator::operator VmaAllocator() const { return m_allocator; }
+nvvk::ResourceAllocator::operator VmaAllocator() const
+{
+  return m_allocator;
+}
 
-VkResult nvvk::ResourceAllocator::init(VmaAllocatorCreateInfo allocatorInfo) {
+VkResult nvvk::ResourceAllocator::init(VmaAllocatorCreateInfo allocatorInfo)
+{
   assert(m_allocator == nullptr);
 
   // #TODO : VK_EXT_memory_priority ?
   // VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT
 
   allocatorInfo.flags |=
-      VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT; // allow querying for the
-                                                      // GPU address of a buffer
+      VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;  // allow querying for the
+                                                       // GPU address of a
+                                                       // buffer
   allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
   allocatorInfo.flags |=
-      VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT; // allow using
-                                                 // VkBufferUsageFlags2CreateInfoKHR
+      VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;  // allow using
+                                                  // VkBufferUsageFlags2CreateInfoKHR
 
   VkPhysicalDeviceVulkan11Properties props11{
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES,
@@ -99,7 +109,8 @@ VkResult nvvk::ResourceAllocator::init(VmaAllocatorCreateInfo allocatorInfo) {
   return vmaCreateAllocator(&allocatorInfo, &m_allocator);
 }
 
-void nvvk::ResourceAllocator::deinit() {
+void nvvk::ResourceAllocator::deinit()
+{
   if (!m_allocator)
     return;
 
@@ -110,10 +121,13 @@ void nvvk::ResourceAllocator::deinit() {
   m_leakID = ~0;
 }
 
-void nvvk::ResourceAllocator::addLeakDetection(VmaAllocation allocation) const {
-  if (m_leakID == m_allocationCounter) {
+void nvvk::ResourceAllocator::addLeakDetection(VmaAllocation allocation) const
+{
+  if (m_leakID == m_allocationCounter)
+  {
 #ifdef _WIN32
-    if (IsDebuggerPresent()) {
+    if (IsDebuggerPresent())
+    {
       DebugBreak();
     }
 #elif defined(__unix__)
@@ -126,9 +140,10 @@ void nvvk::ResourceAllocator::addLeakDetection(VmaAllocation allocation) const {
 }
 
 VkResult nvvk::ResourceAllocator::createBuffer(
-    nvvk::Buffer &buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
+    nvvk::Buffer& buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
     VmaMemoryUsage memoryUsage, VmaAllocationCreateFlags flags,
-    VkDeviceSize minAlignment, std::span<const uint32_t> queueFamilies) const {
+    VkDeviceSize minAlignment, std::span<const uint32_t> queueFamilies) const
+{
   const VkBufferUsageFlags2CreateInfo bufferUsageFlags2CreateInfo{
       .sType = VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO,
       .usage = usage | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT |
@@ -152,8 +167,9 @@ VkResult nvvk::ResourceAllocator::createBuffer(
 }
 
 VkResult nvvk::ResourceAllocator::createBuffer(
-    nvvk::Buffer &resultBuffer, const VkBufferCreateInfo &bufferInfo,
-    const VmaAllocationCreateInfo &allocInfo, VkDeviceSize minAlignment) const {
+    nvvk::Buffer& resultBuffer, const VkBufferCreateInfo& bufferInfo,
+    const VmaAllocationCreateInfo& allocInfo, VkDeviceSize minAlignment) const
+{
   resultBuffer = {};
 
   // Create the buffer
@@ -163,14 +179,15 @@ VkResult nvvk::ResourceAllocator::createBuffer(
       m_allocator, &bufferInfo, &allocInfo, minAlignment, &resultBuffer.buffer,
       &resultBuffer.allocation, &allocInfoOut);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     // Handle allocation failure
     LOGW("Failed to create buffer");
     return result;
   }
 
   resultBuffer.bufferSize = bufferInfo.size;
-  resultBuffer.mapping = static_cast<uint8_t *>(allocInfoOut.pMappedData);
+  resultBuffer.mapping = static_cast<uint8_t*>(allocInfoOut.pMappedData);
 
   // Get the GPU address of the buffer
   const VkBufferDeviceAddressInfo info = {
@@ -183,23 +200,26 @@ VkResult nvvk::ResourceAllocator::createBuffer(
   return result;
 }
 
-void nvvk::ResourceAllocator::destroyBuffer(nvvk::Buffer &buffer) const {
+void nvvk::ResourceAllocator::destroyBuffer(nvvk::Buffer& buffer) const
+{
   vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
   buffer = {};
 }
 
 VkResult nvvk::ResourceAllocator::createLargeBuffer(
-    LargeBuffer &largeBuffer, const VkBufferCreateInfo &bufferInfo,
-    const VmaAllocationCreateInfo &allocInfo, VkQueue sparseBindingQueue,
+    LargeBuffer& largeBuffer, const VkBufferCreateInfo& bufferInfo,
+    const VmaAllocationCreateInfo& allocInfo, VkQueue sparseBindingQueue,
     VkFence sparseBindingFence, VkDeviceSize maxChunkSize,
-    VkDeviceSize minAlignment) const {
+    VkDeviceSize minAlignment) const
+{
   assert(sparseBindingQueue);
 
   largeBuffer = {};
 
   maxChunkSize = std::min(m_maxMemoryAllocationSize, maxChunkSize);
 
-  if (bufferInfo.size <= maxChunkSize) {
+  if (bufferInfo.size <= maxChunkSize)
+  {
     Buffer buffer;
     NVVK_FAIL_RETURN(createBuffer(buffer, bufferInfo, allocInfo, minAlignment));
 
@@ -209,7 +229,9 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
     largeBuffer.allocations = {buffer.allocation};
 
     return VK_SUCCESS;
-  } else {
+  }
+  else
+  {
     VkBufferCreateInfo createInfo = bufferInfo;
 
     createInfo.flags |= VK_BUFFER_CREATE_SPARSE_BINDING_BIT;
@@ -248,14 +270,16 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
     VkResult result = vmaAllocateMemoryPages(
         m_allocator, &memReqs.memoryRequirements, &allocInfo, fullChunkCount,
         largeBuffer.allocations.data(), allocationInfos.data());
-    if (result != VK_SUCCESS) {
+    if (result != VK_SUCCESS)
+    {
       vkDestroyBuffer(m_device, largeBuffer.buffer, nullptr);
       largeBuffer = {};
       return result;
     }
 
     // tail chunk last
-    if (fullChunkCount != totalChunkCount) {
+    if (fullChunkCount != totalChunkCount)
+    {
       memReqs.memoryRequirements.size =
           createInfo.size - fullChunkCount * maxChunkSize;
       memReqs.memoryRequirements.size =
@@ -266,7 +290,8 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
           m_allocator, &memReqs.memoryRequirements, &allocInfo, 1,
           largeBuffer.allocations.data() + fullChunkCount,
           allocationInfos.data() + fullChunkCount);
-      if (result != VK_SUCCESS) {
+      if (result != VK_SUCCESS)
+      {
         vmaFreeMemoryPages(m_allocator, fullChunkCount,
                            largeBuffer.allocations.data());
         vkDestroyBuffer(m_device, largeBuffer.buffer, nullptr);
@@ -277,8 +302,9 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
 
     std::vector<VkSparseMemoryBind> sparseBinds(totalChunkCount);
 
-    for (uint32_t i = 0; i < totalChunkCount; i++) {
-      VkSparseMemoryBind &sparseBind = sparseBinds[i];
+    for (uint32_t i = 0; i < totalChunkCount; i++)
+    {
+      VkSparseMemoryBind& sparseBind = sparseBinds[i];
       sparseBind.flags = 0;
       sparseBind.memory = allocationInfos[i].deviceMemory;
       sparseBind.memoryOffset = allocationInfos[i].offset;
@@ -302,7 +328,8 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
 
     result = NVVK_FAIL_REPORT(vkQueueBindSparse(
         sparseBindingQueue, 1, &bindSparseInfo, sparseBindingFence));
-    if (result != VK_SUCCESS) {
+    if (result != VK_SUCCESS)
+    {
       vkDestroyBuffer(m_device, largeBuffer.buffer, nullptr);
       vmaFreeMemoryPages(m_allocator, largeBuffer.allocations.size(),
                          largeBuffer.allocations.data());
@@ -310,10 +337,13 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
       return result;
     }
 
-    if (!sparseBindingFence) {
+    if (!sparseBindingFence)
+    {
       result = NVVK_FAIL_REPORT(vkQueueWaitIdle(sparseBindingQueue));
-      if (result != VK_SUCCESS) {
-        if (result != VK_ERROR_DEVICE_LOST) {
+      if (result != VK_SUCCESS)
+      {
+        if (result != VK_ERROR_DEVICE_LOST)
+        {
           vkDestroyBuffer(m_device, largeBuffer.buffer, nullptr);
           vmaFreeMemoryPages(m_allocator, largeBuffer.allocations.size(),
                              largeBuffer.allocations.data());
@@ -336,12 +366,13 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
 }
 
 VkResult nvvk::ResourceAllocator::createLargeBuffer(
-    LargeBuffer &largeBuffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
+    LargeBuffer& largeBuffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
     VkQueue sparseBindingQueue, VkFence sparseBindingFence /*= VK_NULL_HANDLE*/,
     VkDeviceSize maxChunkSize /*= DEFAULT_LARGE_CHUNK_SIZE*/,
     VmaMemoryUsage memoryUsage /*= VMA_MEMORY_USAGE_AUTO*/,
     VmaAllocationCreateFlags flags /*= {}*/, VkDeviceSize minAlignment /*= 0*/,
-    std::span<const uint32_t> queueFamilies /*= {}*/) const {
+    std::span<const uint32_t> queueFamilies /*= {}*/) const
+{
   const VkBufferUsageFlags2CreateInfo bufferUsageFlags2CreateInfo{
       .sType = VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO,
       .usage = usage | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT |
@@ -372,7 +403,8 @@ VkResult nvvk::ResourceAllocator::createLargeBuffer(
                            minAlignment);
 }
 
-void nvvk::ResourceAllocator::destroyLargeBuffer(LargeBuffer &buffer) const {
+void nvvk::ResourceAllocator::destroyLargeBuffer(LargeBuffer& buffer) const
+{
   vkDestroyBuffer(m_device, buffer.buffer, nullptr);
   vmaFreeMemoryPages(m_allocator, buffer.allocations.size(),
                      buffer.allocations.data());
@@ -380,8 +412,9 @@ void nvvk::ResourceAllocator::destroyLargeBuffer(LargeBuffer &buffer) const {
 }
 
 VkResult nvvk::ResourceAllocator::createImage(
-    nvvk::Image &image, const VkImageCreateInfo &imageInfo,
-    const VmaAllocationCreateInfo &allocInfo) const {
+    nvvk::Image& image, const VkImageCreateInfo& imageInfo,
+    const VmaAllocationCreateInfo& allocInfo) const
+{
   image = {};
 
   VmaAllocationInfo allocInfoOut{};
@@ -389,7 +422,8 @@ VkResult nvvk::ResourceAllocator::createImage(
       vmaCreateImage(m_allocator, &imageInfo, &allocInfo, &image.image,
                      &image.allocation, &allocInfoOut);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     // Handle allocation failure
     LOGW("Failed to create image\n");
   }
@@ -406,8 +440,9 @@ VkResult nvvk::ResourceAllocator::createImage(
 }
 
 VkResult
-nvvk::ResourceAllocator::createImage(nvvk::Image &image,
-                                     const VkImageCreateInfo &imageInfo) const {
+nvvk::ResourceAllocator::createImage(nvvk::Image& image,
+                                     const VkImageCreateInfo& imageInfo) const
+{
   const VmaAllocationCreateInfo allocInfo{
       .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE};
 
@@ -415,8 +450,9 @@ nvvk::ResourceAllocator::createImage(nvvk::Image &image,
 }
 
 VkResult nvvk::ResourceAllocator::createImage(
-    Image &image, const VkImageCreateInfo &imageInfo,
-    const VkImageViewCreateInfo &imageViewInfo) const {
+    Image& image, const VkImageCreateInfo& imageInfo,
+    const VkImageViewCreateInfo& imageViewInfo) const
+{
   const VmaAllocationCreateInfo allocInfo{
       .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE};
 
@@ -424,16 +460,18 @@ VkResult nvvk::ResourceAllocator::createImage(
 }
 
 VkResult nvvk::ResourceAllocator::createImage(
-    Image &image, const VkImageCreateInfo &_imageInfo,
-    const VkImageViewCreateInfo &_imageViewInfo,
-    const VmaAllocationCreateInfo &vmaInfo) const {
+    Image& image, const VkImageCreateInfo& _imageInfo,
+    const VkImageViewCreateInfo& _imageViewInfo,
+    const VmaAllocationCreateInfo& vmaInfo) const
+{
   VkResult result{};
   // Create image in GPU memory
   VkImageCreateInfo imageInfo = _imageInfo;
   imageInfo.usage |=
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT; // We will copy data to this image
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT;  // We will copy data to this image
   result = createImage(image, imageInfo, vmaInfo);
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     return result;
   }
 
@@ -447,17 +485,19 @@ VkResult nvvk::ResourceAllocator::createImage(
   return VK_SUCCESS;
 }
 
-void nvvk::ResourceAllocator::destroyImage(Image &image) const {
+void nvvk::ResourceAllocator::destroyImage(Image& image) const
+{
   vkDestroyImageView(m_device, image.descriptor.imageView, nullptr);
   vmaDestroyImage(m_allocator, image.image, image.allocation);
   image = {};
 }
 
 VkResult nvvk::ResourceAllocator::createAcceleration(
-    nvvk::AccelerationStructure &resultAccel,
-    const VkAccelerationStructureCreateInfoKHR &accInfo,
-    const VmaAllocationCreateInfo &vmaInfo,
-    std::span<const uint32_t> queueFamilies) const {
+    nvvk::AccelerationStructure& resultAccel,
+    const VkAccelerationStructureCreateInfoKHR& accInfo,
+    const VmaAllocationCreateInfo& vmaInfo,
+    std::span<const uint32_t> queueFamilies) const
+{
   resultAccel = {};
   VkAccelerationStructureCreateInfoKHR accelStruct = accInfo;
 
@@ -481,7 +521,8 @@ VkResult nvvk::ResourceAllocator::createAcceleration(
   // Step 1: Create the buffer to hold the acceleration structure
   VkResult result = createBuffer(resultAccel.buffer, bufferInfo, vmaInfo);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     return result;
   }
 
@@ -490,7 +531,8 @@ VkResult nvvk::ResourceAllocator::createAcceleration(
   result = vkCreateAccelerationStructureKHR(m_device, &accelStruct, nullptr,
                                             &resultAccel.accel);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     destroyBuffer(resultAccel.buffer);
     LOGW("Failed to create acceleration structure");
     return result;
@@ -509,8 +551,9 @@ VkResult nvvk::ResourceAllocator::createAcceleration(
 }
 
 VkResult nvvk::ResourceAllocator::createAcceleration(
-    nvvk::AccelerationStructure &accel,
-    const VkAccelerationStructureCreateInfoKHR &inAccInfo) const {
+    nvvk::AccelerationStructure& accel,
+    const VkAccelerationStructureCreateInfoKHR& inAccInfo) const
+{
   const VmaAllocationCreateInfo allocInfo{
       .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE};
 
@@ -518,18 +561,20 @@ VkResult nvvk::ResourceAllocator::createAcceleration(
 }
 
 void nvvk::ResourceAllocator::destroyAcceleration(
-    nvvk::AccelerationStructure &accel) const {
+    nvvk::AccelerationStructure& accel) const
+{
   destroyBuffer(accel.buffer);
   vkDestroyAccelerationStructureKHR(m_device, accel.accel, nullptr);
   accel = {};
 }
 
 VkResult nvvk::ResourceAllocator::createLargeAcceleration(
-    LargeAccelerationStructure &resultAccel,
-    const VkAccelerationStructureCreateInfoKHR &accInfo,
-    const VmaAllocationCreateInfo &vmaInfo, VkQueue sparseBindingQueue,
+    LargeAccelerationStructure& resultAccel,
+    const VkAccelerationStructureCreateInfoKHR& accInfo,
+    const VmaAllocationCreateInfo& vmaInfo, VkQueue sparseBindingQueue,
     VkFence sparseBindingFence, VkDeviceSize maxChunkSize,
-    std::span<const uint32_t> queueFamilies) const {
+    std::span<const uint32_t> queueFamilies) const
+{
   resultAccel = {};
   VkAccelerationStructureCreateInfoKHR accelStruct = accInfo;
 
@@ -556,7 +601,8 @@ VkResult nvvk::ResourceAllocator::createLargeAcceleration(
       createLargeBuffer(resultAccel.buffer, bufferInfo, vmaInfo,
                         sparseBindingQueue, sparseBindingFence, maxChunkSize);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     return result;
   }
 
@@ -565,7 +611,8 @@ VkResult nvvk::ResourceAllocator::createLargeAcceleration(
   result = vkCreateAccelerationStructureKHR(m_device, &accelStruct, nullptr,
                                             &resultAccel.accel);
 
-  if (result != VK_SUCCESS) {
+  if (result != VK_SUCCESS)
+  {
     destroyLargeBuffer(resultAccel.buffer);
     LOGW("Failed to create acceleration structure");
     return result;
@@ -584,10 +631,11 @@ VkResult nvvk::ResourceAllocator::createLargeAcceleration(
 }
 
 VkResult nvvk::ResourceAllocator::createLargeAcceleration(
-    LargeAccelerationStructure &accel,
-    const VkAccelerationStructureCreateInfoKHR &accInfo,
+    LargeAccelerationStructure& accel,
+    const VkAccelerationStructureCreateInfoKHR& accInfo,
     VkQueue sparseBindingQueue, VkFence sparseBindingFence,
-    VkDeviceSize maxChunkSize) const {
+    VkDeviceSize maxChunkSize) const
+{
   VmaAllocationCreateInfo allocInfo = {.usage =
                                            VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE};
 
@@ -596,60 +644,77 @@ VkResult nvvk::ResourceAllocator::createLargeAcceleration(
 }
 
 void nvvk::ResourceAllocator::destroyLargeAcceleration(
-    LargeAccelerationStructure &accel) const {
+    LargeAccelerationStructure& accel) const
+{
   vkDestroyAccelerationStructureKHR(m_device, accel.accel, nullptr);
   destroyLargeBuffer(accel.buffer);
 
   accel = {};
 }
 
-void nvvk::ResourceAllocator::setLeakID(uint32_t id) { m_leakID = id; }
+void nvvk::ResourceAllocator::setLeakID(uint32_t id)
+{
+  m_leakID = id;
+}
 
 VkDeviceMemory
-nvvk::ResourceAllocator::getDeviceMemory(VmaAllocation allocation) const {
+nvvk::ResourceAllocator::getDeviceMemory(VmaAllocation allocation) const
+{
   VmaAllocationInfo allocationInfo;
   vmaGetAllocationInfo(*this, allocation, &allocationInfo);
   return allocationInfo.deviceMemory;
 }
 
 VkResult
-nvvk::ResourceAllocator::flushBuffer(const nvvk::Buffer &buffer,
+nvvk::ResourceAllocator::flushBuffer(const nvvk::Buffer& buffer,
                                      VkDeviceSize offset /*= 0*/,
-                                     VkDeviceSize size /*= VK_WHOLE_SIZE*/) {
+                                     VkDeviceSize size /*= VK_WHOLE_SIZE*/)
+{
   assert(buffer.mapping);
   return vmaFlushAllocation(m_allocator, buffer.allocation, offset, size);
 }
 
-VkResult nvvk::ResourceAllocator::invalidateBuffer(
-    const nvvk::Buffer &buffer, VkDeviceSize offset /*= 0*/,
-    VkDeviceSize size /*= VK_WHOLE_SIZE*/) {
+VkResult
+nvvk::ResourceAllocator::invalidateBuffer(const nvvk::Buffer& buffer,
+                                          VkDeviceSize offset /*= 0*/,
+                                          VkDeviceSize size /*= VK_WHOLE_SIZE*/)
+{
   assert(buffer.mapping);
   return vmaInvalidateAllocation(m_allocator, buffer.allocation, offset, size);
 }
 
-VkResult nvvk::ResourceAllocator::autoFlushBuffer(
-    const nvvk::Buffer &buffer, VkDeviceSize offset /*= 0*/,
-    VkDeviceSize size /*= VK_WHOLE_SIZE*/) {
+VkResult
+nvvk::ResourceAllocator::autoFlushBuffer(const nvvk::Buffer& buffer,
+                                         VkDeviceSize offset /*= 0*/,
+                                         VkDeviceSize size /*= VK_WHOLE_SIZE*/)
+{
   assert(buffer.mapping);
   VkMemoryPropertyFlags memFlags{};
   vmaGetAllocationMemoryProperties(m_allocator, buffer.allocation, &memFlags);
-  if (!(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+  if (!(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+  {
     return vmaFlushAllocation(m_allocator, buffer.allocation, offset, size);
-  } else {
+  }
+  else
+  {
     return VK_SUCCESS;
   }
 }
 
 VkResult nvvk::ResourceAllocator::autoInvalidateBuffer(
-    const nvvk::Buffer &buffer, VkDeviceSize offset /*= 0*/,
-    VkDeviceSize size /*= VK_WHOLE_SIZE*/) {
+    const nvvk::Buffer& buffer, VkDeviceSize offset /*= 0*/,
+    VkDeviceSize size /*= VK_WHOLE_SIZE*/)
+{
   assert(buffer.mapping);
   VkMemoryPropertyFlags memFlags{};
   vmaGetAllocationMemoryProperties(m_allocator, buffer.allocation, &memFlags);
-  if (!(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+  if (!(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+  {
     return vmaInvalidateAllocation(m_allocator, buffer.allocation, offset,
                                    size);
-  } else {
+  }
+  else
+  {
     return VK_SUCCESS;
   }
 }
@@ -659,9 +724,10 @@ VkResult nvvk::ResourceAllocator::autoInvalidateBuffer(
 
 // This creates the buffer with the export flag
 VkResult nvvk::ResourceAllocatorExport::createBufferExport(
-    Buffer &buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
+    Buffer& buffer, VkDeviceSize size, VkBufferUsageFlags2KHR usage,
     VmaMemoryUsage memoryUsage, VmaAllocationCreateFlags flags,
-    VkDeviceSize minAlignment, std::span<const uint32_t> queueFamilies) {
+    VkDeviceSize minAlignment, std::span<const uint32_t> queueFamilies)
+{
   const VkBufferUsageFlags2CreateInfo bufferUsageFlags2CreateInfo{
       .sType = VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO,
       .usage = usage | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT |
@@ -676,7 +742,7 @@ VkResult nvvk::ResourceAllocatorExport::createBufferExport(
       .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT,
 #else
       .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
-#endif // _WIN32
+#endif  // _WIN32
   };
 
   // Adding export flag capability to buffer create info
@@ -701,8 +767,9 @@ VkResult nvvk::ResourceAllocatorExport::createBufferExport(
 }
 
 VkResult nvvk::ResourceAllocatorExport::createImageExport(
-    Image &image, const VkImageCreateInfo &imageInfo,
-    const VkImageViewCreateInfo &imageViewInfo) {
+    Image& image, const VkImageCreateInfo& imageInfo,
+    const VkImageViewCreateInfo& imageViewInfo)
+{
   // Structure for image creation with export flag capability
   const VkExternalMemoryImageCreateInfo externalMemCreateInfo{
       .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
@@ -710,7 +777,7 @@ VkResult nvvk::ResourceAllocatorExport::createImageExport(
       .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT,
 #else
       .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
-#endif // _WIN32
+#endif  // _WIN32
   };
 
   // Adding export flag capability to image create info
@@ -728,8 +795,9 @@ VkResult nvvk::ResourceAllocatorExport::createImageExport(
 // Returns the VmaAllocationCreateInfo with the export flag and using the export
 // memory pool
 VkResult nvvk::ResourceAllocatorExport::getAllocInfo(
-    VmaAllocationCreateInfo &allocCreateInfo, VmaAllocationCreateFlags flags,
-    VmaMemoryUsage usage, const VkBufferCreateInfo &bufferInfo) {
+    VmaAllocationCreateInfo& allocCreateInfo, VmaAllocationCreateFlags flags,
+    VmaMemoryUsage usage, const VkBufferCreateInfo& bufferInfo)
+{
   VkResult result = VK_SUCCESS;
   uint32_t memTypeIndex = UINT32_MAX;
 
@@ -748,8 +816,9 @@ VkResult nvvk::ResourceAllocatorExport::getAllocInfo(
 // Returns the VmaAllocationCreateInfo with the export flag and using the export
 // memory pool
 VkResult nvvk::ResourceAllocatorExport::getAllocInfo(
-    VmaAllocationCreateInfo &allocCreateInfo, VmaAllocationCreateFlags flags,
-    VmaMemoryUsage usage, const VkImageCreateInfo &imageInfo) {
+    VmaAllocationCreateInfo& allocCreateInfo, VmaAllocationCreateFlags flags,
+    VmaMemoryUsage usage, const VkImageCreateInfo& imageInfo)
+{
   VkResult result = VK_SUCCESS;
   uint32_t memTypeIndex = UINT32_MAX;
 
@@ -767,7 +836,8 @@ VkResult nvvk::ResourceAllocatorExport::getAllocInfo(
 
 // Returns the VmaPool with the export flag and using the export memory pool
 VkResult nvvk::ResourceAllocatorExport::getPool(uint32_t memoryTypeIndex,
-                                                VmaPool &pool) {
+                                                VmaPool& pool)
+{
   constexpr static VkExportMemoryAllocateInfo exportMemAllocInfo{
       .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR,
       .pNext = nullptr,
@@ -775,15 +845,16 @@ VkResult nvvk::ResourceAllocatorExport::getPool(uint32_t memoryTypeIndex,
       .handleTypes = {VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT},
 #else
       .handleTypes = {VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT},
-#endif // _WIN32
+#endif  // _WIN32
   };
 
   std::lock_guard<std::mutex> lock(m_mutex);
-  if (m_pools[memoryTypeIndex] == VK_NULL_HANDLE) {
+  if (m_pools[memoryTypeIndex] == VK_NULL_HANDLE)
+  {
 
     VmaPoolCreateInfo poolCreateInfo = {};
     poolCreateInfo.memoryTypeIndex = memoryTypeIndex;
-    poolCreateInfo.pMemoryAllocateNext = (void *)&exportMemAllocInfo;
+    poolCreateInfo.pMemoryAllocateNext = (void*) &exportMemAllocInfo;
 
     vmaCreatePool(*this, &poolCreateInfo, &m_pools[memoryTypeIndex]);
   }
@@ -794,7 +865,8 @@ VkResult nvvk::ResourceAllocatorExport::getPool(uint32_t memoryTypeIndex,
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
-[[maybe_unused]] static void usage_ResourceAllocator() {
+[[maybe_unused]] static void usage_ResourceAllocator()
+{
   VkResult result{};
   VkDevice device{};
   VkPhysicalDevice physicalDevice{};
@@ -807,7 +879,7 @@ VkResult nvvk::ResourceAllocatorExport::getPool(uint32_t memoryTypeIndex,
       .device = device,
       .instance = instance,
       .vulkanApiVersion = VK_API_VERSION_1_4,
-  }); // Allocator
+  });  // Allocator
 
   nvvk::Buffer buffer;
   result = m_allocator.createBuffer(buffer, 1024,

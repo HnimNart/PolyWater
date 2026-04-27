@@ -3,16 +3,17 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
 
-class SkyPass : public IRenderPass {
+class SkyPass : public IRenderPass
+{
 public:
-  SkyPass(VulkanContextManager *context);
+  SkyPass(VulkanContextManager* context);
   void init() override;
-  void setup(PassBuilder &builder) override;
+  void setup(PassBuilder& builder) override;
   void deinit() override;
-  void execute(const IRenderContext &ctx) override;
+  void execute(const IRenderContext& ctx) override;
 
 private:
-  VulkanContextManager *m_core = nullptr;
+  VulkanContextManager* m_core = nullptr;
   VkDevice m_device = VK_NULL_HANDLE;
 
   // Combined Vulkan Resources

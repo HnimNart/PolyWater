@@ -18,35 +18,44 @@
  */
 //--------------------------------------------------------------------
 
+#include "Camera.hpp"
+
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <fmt/format.h>
 #include <iostream>
 
-#include "Camera.hpp"
-
 #ifdef _MSC_VER
-#define SAFE_SSCANF sscanf_s
+#  define SAFE_SSCANF sscanf_s
 #else
-#define SAFE_SSCANF sscanf
+#  define SAFE_SSCANF sscanf
 #endif
 
-namespace core {
+namespace core
+{
 
 //--------------------------------------------------------------------------------------------------
-CameraManipulator::CameraManipulator() { updateLookatMatrix(); }
+CameraManipulator::CameraManipulator()
+{
+  updateLookatMatrix();
+}
 
 //--------------------------------------------------------------------------------------------------
 // Set the new camera as a goal
 // instantSet = true will not interpolate to the new position
-void CameraManipulator::setCamera(Camera camera, bool instantSet /*=true*/) {
+void CameraManipulator::setCamera(Camera camera, bool instantSet /*=true*/)
+{
   m_animDone = true;
 
-  if (instantSet || m_duration == 0.0) {
+  if (instantSet || m_duration == 0.0)
+  {
     m_current = camera;
     updateLookatMatrix();
-  } else if (camera != m_current) {
+  }
+  else if (camera != m_current)
+  {
     m_goal = camera;
     m_snapshot = m_current;
     m_animDone = false;
@@ -59,15 +68,17 @@ void CameraManipulator::setCamera(Camera camera, bool instantSet /*=true*/) {
 // Creates a viewing matrix derived from an eye point, a reference point
 // indicating the center of the scene, and an up vector
 //
-void CameraManipulator::setLookat(const glm::vec3 &eye, const glm::vec3 &center,
-                                  const glm::vec3 &up, bool instantSet) {
+void CameraManipulator::setLookat(const glm::vec3& eye, const glm::vec3& center,
+                                  const glm::vec3& up, bool instantSet)
+{
   setCamera({eye, center, up, m_current.fov, m_current.clip}, instantSet);
 }
 
 //-----------------------------------------------------------------------------
 // Get the current camera's look-at parameters.
-void CameraManipulator::getLookat(glm::vec3 &eye, glm::vec3 &center,
-                                  glm::vec3 &up) const {
+void CameraManipulator::getLookat(glm::vec3& eye, glm::vec3& center,
+                                  glm::vec3& up) const
+{
   eye = m_current.eye;
   center = m_current.ctr;
   up = m_current.up;
@@ -75,14 +86,16 @@ void CameraManipulator::getLookat(glm::vec3 &eye, glm::vec3 &center,
 
 //--------------------------------------------------------------------------------------------------
 // Pan the camera perpendicularly to the light of sight.
-void CameraManipulator::pan(glm::vec2 displacement) {
-  if (m_mode == Fly) {
+void CameraManipulator::pan(glm::vec2 displacement)
+{
+  if (m_mode == Fly)
+  {
     displacement *= -1.f;
   }
 
   glm::vec3 viewDirection(m_current.eye - m_current.ctr);
   float viewDistance =
-      static_cast<float>(glm::length(viewDirection)) / 0.785f; // 45 degrees
+      static_cast<float>(glm::length(viewDirection)) / 0.785f;  // 45 degrees
   viewDirection = glm::normalize(viewDirection);
   glm::vec3 rightVector = glm::cross(m_current.up, viewDirection);
   glm::vec3 upVector = glm::cross(viewDirection, rightVector);
@@ -100,7 +113,8 @@ void CameraManipulator::pan(glm::vec2 displacement) {
 // Orbit the camera around the center of interest. If 'invert' is true,
 // then the camera stays in place and the interest orbit around the camera.
 //
-void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/) {
+void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/)
+{
   if (displacement == glm::vec2(0.f, 0.f))
     return;
 
@@ -139,10 +153,13 @@ void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/) {
   // Finding the new position
   glm::vec3 newPosition = centerToEye + origin;
 
-  if (!invert) {
-    m_current.eye = newPosition; // Normal: change the position of the camera
-  } else {
-    m_current.ctr = newPosition; // Inverted: change the interest point
+  if (!invert)
+  {
+    m_current.eye = newPosition;  // Normal: change the position of the camera
+  }
+  else
+  {
+    m_current.ctr = newPosition;  // Inverted: change the interest point
   }
 }
 
@@ -150,7 +167,8 @@ void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/) {
 // Move the camera toward the interest point, but don't cross it
 //
 void CameraManipulator::dolly(glm::vec2 displacement,
-                              bool keepCenterFixed /*= false*/) {
+                              bool keepCenterFixed /*= false*/)
+{
   glm::vec3 directionVec = m_current.ctr - m_current.eye;
   float length = static_cast<float>(glm::length(directionVec));
 
@@ -170,7 +188,8 @@ void CameraManipulator::dolly(glm::vec2 displacement,
   directionVec *= largerDisplacement;
 
   // Not going up
-  if (m_mode == Walk) {
+  if (m_mode == Walk)
+  {
     if (m_current.up.y > m_current.up.z)
       directionVec.y = 0;
     else
@@ -180,7 +199,8 @@ void CameraManipulator::dolly(glm::vec2 displacement,
   m_current.eye += directionVec;
 
   // In fly mode, the interest moves with us.
-  if ((m_mode == Fly || m_mode == Walk) && !keepCenterFixed) {
+  if ((m_mode == Fly || m_mode == Walk) && !keepCenterFixed)
+  {
     m_current.ctr += directionVec;
   }
 }
@@ -193,7 +213,8 @@ void CameraManipulator::dolly(glm::vec2 displacement,
 // - A new position of the camera is defined and the camera will reach that
 // position
 //   over time.
-void CameraManipulator::updateAnim() {
+void CameraManipulator::updateAnim()
+{
   auto elapse = static_cast<float>(getSystemTime() - m_startTime) / 1000.f;
 
   // Camera moving to new position
@@ -203,7 +224,8 @@ void CameraManipulator::updateAnim() {
   float t = std::min(elapse / float(m_duration), 1.0f);
   // Evaluate polynomial (smoother step from Perlin)
   t = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
-  if (t >= 1.0f) {
+  if (t >= 1.0f)
+  {
     m_current = m_goal;
     m_animDone = true;
     updateLookatMatrix();
@@ -224,8 +246,9 @@ void CameraManipulator::updateAnim() {
 
 //--------------------------------------------------------------------------------------------------
 //
-void CameraManipulator::setMatrix(const glm::mat4 &matrix, bool instantSet,
-                                  float centerDistance) {
+void CameraManipulator::setMatrix(const glm::mat4& matrix, bool instantSet,
+                                  float centerDistance)
+{
   Camera camera;
   camera.eye = matrix[3];
 
@@ -237,9 +260,12 @@ void CameraManipulator::setMatrix(const glm::mat4 &matrix, bool instantSet,
 
   m_animDone = instantSet;
 
-  if (instantSet) {
+  if (instantSet)
+  {
     m_current = camera;
-  } else {
+  }
+  else
+  {
     m_goal = camera;
     m_snapshot = m_current;
     m_startTime = getSystemTime();
@@ -250,28 +276,30 @@ void CameraManipulator::setMatrix(const glm::mat4 &matrix, bool instantSet,
 
 //--------------------------------------------------------------------------------------------------
 // Low level function for when the camera move.
-void CameraManipulator::motion(const glm::vec2 &screenDisplacement,
-                               Actions action /*= 0*/) {
+void CameraManipulator::motion(const glm::vec2& screenDisplacement,
+                               Actions action /*= 0*/)
+{
   glm::vec2 displacement = {
       float(screenDisplacement.x - m_mouse[0]) / float(m_windowSize.x),
       float(screenDisplacement.y - m_mouse[1]) / float(m_windowSize.y),
   };
 
-  switch (action) {
-  case Orbit:
-    orbit(displacement, false);
-    break;
-  case CameraManipulator::Dolly:
-    dolly(displacement);
-    break;
-  case CameraManipulator::Pan:
-    pan(displacement);
-    break;
-  case CameraManipulator::LookAround:
-    orbit({displacement.x, -displacement.y}, true);
-    break;
-  case CameraManipulator::NoAction:
-    break;
+  switch (action)
+  {
+    case Orbit:
+      orbit(displacement, false);
+      break;
+    case CameraManipulator::Dolly:
+      dolly(displacement);
+      break;
+    case CameraManipulator::Pan:
+      pan(displacement);
+      break;
+    case CameraManipulator::LookAround:
+      orbit({displacement.x, -displacement.y}, true);
+      break;
+    case CameraManipulator::NoAction:
+      break;
   }
 
   // Resetting animation and update the camera
@@ -284,23 +312,28 @@ void CameraManipulator::motion(const glm::vec2 &screenDisplacement,
 //--------------------------------------------------------------------------------------------------
 // Function for when the camera move with keys (ex. WASD).
 // Note: dx and dy are the speed of the camera movement.
-void CameraManipulator::keyMotion(glm::vec2 delta, Actions action) {
+void CameraManipulator::keyMotion(glm::vec2 delta, Actions action)
+{
   float movementSpeed = m_speed;
 
   auto directionVector = glm::normalize(
-      m_current.ctr - m_current.eye); // Vector from eye to center
+      m_current.ctr - m_current.eye);  // Vector from eye to center
   delta *= movementSpeed;
 
   glm::vec3 keyboardMovementVector{0, 0, 0};
-  if (action == Dolly) {
+  if (action == Dolly)
+  {
     keyboardMovementVector = directionVector * delta.x;
-    if (m_mode == Walk) {
+    if (m_mode == Walk)
+    {
       if (m_current.up.y > m_current.up.z)
         keyboardMovementVector.y = 0;
       else
         keyboardMovementVector.z = 0;
     }
-  } else if (action == Pan) {
+  }
+  else if (action == Pan)
+  {
     auto rightVector = glm::cross(directionVector, m_current.up);
     keyboardMovementVector = rightVector * delta.x + m_current.up * delta.y;
   }
@@ -321,15 +354,17 @@ void CameraManipulator::keyMotion(glm::vec2 delta, Actions action) {
 // Returns the action that was activated
 //
 CameraManipulator::Actions
-CameraManipulator::mouseMove(glm::vec2 screenDisplacement,
-                             const Inputs &inputs) {
-  if (!inputs.lmb && !inputs.rmb && !inputs.mmb) {
+CameraManipulator::mouseMove(glm::vec2 screenDisplacement, const Inputs& inputs)
+{
+  if (!inputs.lmb && !inputs.rmb && !inputs.mmb)
+  {
     setMousePosition(screenDisplacement);
-    return NoAction; // no mouse button pressed
+    return NoAction;  // no mouse button pressed
   }
 
   Actions curAction = NoAction;
-  if (inputs.lmb) {
+  if (inputs.lmb)
+  {
     if (((inputs.ctrl) && (inputs.shift)) || inputs.alt)
       curAction = m_mode == Examine ? LookAround : Orbit;
     else if (inputs.shift)
@@ -338,7 +373,8 @@ CameraManipulator::mouseMove(glm::vec2 screenDisplacement,
       curAction = Pan;
     else
       curAction = m_mode == Examine ? Orbit : LookAround;
-  } else if (inputs.mmb)
+  }
+  else if (inputs.mmb)
     curAction = Pan;
   else if (inputs.rmb)
     curAction = Dolly;
@@ -353,12 +389,16 @@ CameraManipulator::mouseMove(glm::vec2 screenDisplacement,
 // Trigger a dolly when the wheel change, or change the FOV if the shift key was
 // pressed
 //
-void CameraManipulator::wheel(float value, const Inputs &inputs) {
+void CameraManipulator::wheel(float value, const Inputs& inputs)
+{
   float deltaX = (value * fabsf(value)) / static_cast<float>(m_windowSize.x);
 
-  if (inputs.shift) {
+  if (inputs.shift)
+  {
     setFov(m_current.fov + value);
-  } else {
+  }
+  else
+  {
     // Dolly in or out. CTRL key keeps center fixed, which has for side effect
     // to adjust the speed for fly/walk mode
     dolly(glm::vec2(deltaX), inputs.ctrl);
@@ -367,24 +407,27 @@ void CameraManipulator::wheel(float value, const Inputs &inputs) {
 }
 
 // Set and clamp FOV between 0.01 and 179 degrees
-void CameraManipulator::setFov(float fovDegree) {
+void CameraManipulator::setFov(float fovDegree)
+{
   m_current.fov = std::min(std::max(fovDegree, 0.01f), 179.0f);
 }
 
-glm::vec3 CameraManipulator::computeBezier(float t, glm::vec3 &p0,
-                                           glm::vec3 &p1, glm::vec3 &p2) {
+glm::vec3 CameraManipulator::computeBezier(float t, glm::vec3& p0,
+                                           glm::vec3& p1, glm::vec3& p2)
+{
   float u = 1.f - t;
   float tt = t * t;
   float uu = u * u;
 
-  glm::vec3 p = uu * p0; // first term
-  p += 2 * u * t * p1;   // second term
-  p += tt * p2;          // third term
+  glm::vec3 p = uu * p0;  // first term
+  p += 2 * u * t * p1;    // second term
+  p += tt * p2;           // third term
 
   return p;
 }
 
-void CameraManipulator::findBezierPoints() {
+void CameraManipulator::findBezierPoints()
+{
   glm::vec3 p0 = m_current.eye;
   glm::vec3 p2 = m_goal.eye;
   glm::vec3 p1, pc;
@@ -392,14 +435,14 @@ void CameraManipulator::findBezierPoints() {
   // point of interest
   glm::vec3 pi = (m_goal.ctr + m_current.ctr) * 0.5f;
 
-  glm::vec3 p02 = (p0 + p2) * 0.5f;                          // mid p0-p2
-  float radius = (length(p0 - pi) + length(p2 - pi)) * 0.5f; // Radius for p1
-  glm::vec3 p02pi(p02 - pi); // Vector from interest to mid point
+  glm::vec3 p02 = (p0 + p2) * 0.5f;                           // mid p0-p2
+  float radius = (length(p0 - pi) + length(p2 - pi)) * 0.5f;  // Radius for p1
+  glm::vec3 p02pi(p02 - pi);  // Vector from interest to mid point
   p02pi = glm::normalize(p02pi);
   p02pi *= radius;
-  pc = pi + p02pi;                       // Calculated point to go through
-  p1 = 2.f * pc - p0 * 0.5f - p2 * 0.5f; // Computing p1 for t=0.5
-  p1.y = p02.y; // Clamping the P1 to be in the same height as p0-p2
+  pc = pi + p02pi;                        // Calculated point to go through
+  p1 = 2.f * pc - p0 * 0.5f - p2 * 0.5f;  // Computing p1 for t=0.5
+  p1.y = p02.y;  // Clamping the P1 to be in the same height as p0-p2
 
   m_bezier[0] = p0;
   m_bezier[1] = p1;
@@ -409,7 +452,8 @@ void CameraManipulator::findBezierPoints() {
 //--------------------------------------------------------------------------------------------------
 // Return the time in fraction of milliseconds
 //
-double CameraManipulator::getSystemTime() {
+double CameraManipulator::getSystemTime()
+{
   auto now(std::chrono::system_clock::now());
   auto duration = now.time_since_epoch();
   return std::chrono::duration_cast<std::chrono::microseconds>(duration)
@@ -420,7 +464,8 @@ double CameraManipulator::getSystemTime() {
 //--------------------------------------------------------------------------------------------------
 // Return a string which can be included in help dialogs
 //
-const std::string &CameraManipulator::getHelp() {
+const std::string& CameraManipulator::getHelp()
+{
   static std::string helpText = "LMB: rotate around the target\n"
                                 "RMB: Dolly in/out\n"
                                 "MMB: Pan along view plane\n"
@@ -442,9 +487,10 @@ const std::string &CameraManipulator::getHelp() {
 // tight - true: fit exactly the corner, false: fit to radius (larger view, will
 // not get closer or further away) aspect - aspect ratio of the window.
 //
-void CameraManipulator::fit(const glm::vec3 &boxMin, const glm::vec3 &boxMax,
+void CameraManipulator::fit(const glm::vec3& boxMin, const glm::vec3& boxMax,
                             bool instantFit /*= true*/,
-                            bool tightFit /*=false*/, float aspect /*=1.0f*/) {
+                            bool tightFit /*=false*/, float aspect /*=1.0f*/)
+{
   // Calculate the half extents of the bounding box
   const glm::vec3 boxHalfSize = 0.5f * (boxMax - boxMin);
 
@@ -457,19 +503,21 @@ void CameraManipulator::fit(const glm::vec3 &boxMin, const glm::vec3 &boxMax,
   // Calculate the ideal distance for a tight fit or fit to radius
   float idealDistance = 0;
 
-  if (tightFit) {
+  if (tightFit)
+  {
     // Get only the rotation matrix
     glm::mat3 mView = glm::lookAt(m_current.eye, boxCenter, m_current.up);
 
     // Check each 8 corner of the cube
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
       // Rotate the bounding box in the camera view
-      glm::vec3 vct(i & 1 ? boxHalfSize.x : -boxHalfSize.x,  //
-                    i & 2 ? boxHalfSize.y : -boxHalfSize.y,  //
-                    i & 4 ? boxHalfSize.z : -boxHalfSize.z); //
+      glm::vec3 vct(i & 1 ? boxHalfSize.x : -boxHalfSize.x,   //
+                    i & 2 ? boxHalfSize.y : -boxHalfSize.y,   //
+                    i & 4 ? boxHalfSize.z : -boxHalfSize.z);  //
       vct = mView * vct;
 
-      if (vct.z < 0) // Take only points in front of the center
+      if (vct.z < 0)  // Take only points in front of the center
       {
         // Keep the largest offset to see that vertex
         idealDistance =
@@ -478,7 +526,8 @@ void CameraManipulator::fit(const glm::vec3 &boxMin, const glm::vec3 &boxMax,
             std::max(fabsf(vct.x) / xfov + fabsf(vct.z), idealDistance);
       }
     }
-  } else // Using the bounding sphere
+  }
+  else  // Using the bounding sphere
   {
     const float radius = glm::length(boxHalfSize);
     idealDistance = std::max(radius / xfov, radius / yfov);
@@ -492,16 +541,18 @@ void CameraManipulator::fit(const glm::vec3 &boxMin, const glm::vec3 &boxMax,
   setLookat(newEye, boxCenter, m_current.up, instantFit);
 }
 
-std::string CameraManipulator::Camera::getString() const {
+std::string CameraManipulator::Camera::getString() const
+{
   return fmt::format(
-      "{{{}, {}, {}}}, {{{}, {}, {}}}, {{{}, {}, {}}}, {{{}}}, {{{}, {}}}", //
-      eye.x, eye.y, eye.z,                                                  //
-      ctr.x, ctr.y, ctr.z,                                                  //
-      up.x, up.y, up.z,                                                     //
+      "{{{}, {}, {}}}, {{{}, {}, {}}}, {{{}, {}, {}}}, {{{}}}, {{{}, {}}}",  //
+      eye.x, eye.y, eye.z,                                                   //
+      ctr.x, ctr.y, ctr.z,                                                   //
+      up.x, up.y, up.z,                                                      //
       fov, clip.x, clip.y);
 }
 
-bool CameraManipulator::Camera::setFromString(const std::string &text) {
+bool CameraManipulator::Camera::setFromString(const std::string& text)
+{
   if (text.empty())
     return false;
 
@@ -511,7 +562,7 @@ bool CameraManipulator::Camera::setFromString(const std::string &text) {
       &val[0], &val[1], &val[2], &val[3], &val[4], &val[5], &val[6], &val[7],
       &val[8], &val[9], &val[10], &val[11]);
   if (result >=
-      9) // Before 2025-09-03, this format didn't include the FOV at the end
+      9)  // Before 2025-09-03, this format didn't include the FOV at the end
   {
     eye = glm::vec3{val[0], val[1], val[2]};
     ctr = glm::vec3{val[3], val[4], val[5]};
@@ -526,4 +577,4 @@ bool CameraManipulator::Camera::setFromString(const std::string &text) {
   return false;
 }
 
-} // namespace core
+}  // namespace core

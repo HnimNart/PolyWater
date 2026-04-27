@@ -4,40 +4,42 @@
 
 #include "glm/gtc/type_ptr.hpp"
 #include "property_editor.hpp"
-
 #include "scene/SceneResources.hpp"
 
-namespace app {
+namespace app
+{
 
 /**********************************************************/
-inline bool materialEditor(SceneResourcesManager &resources)
+inline bool materialEditor(SceneResourcesManager& resources)
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
-  auto &materials = resources.getMaterials();
-  const auto &materialMap = resources.materialMap();
+  auto& materials = resources.getMaterials();
+  const auto& materialMap = resources.materialMap();
   bool changed = false;
 
   // Static buffer to persist search text between frames
   static char materialSearch[128] = "";
 
-  if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen))
+  {
     // 1. Search Bar
     ImGui::InputTextWithHint("##MatSearch", "Filter by name...", materialSearch,
                              IM_ARRAYSIZE(materialSearch));
     ImGui::SameLine();
 
-    if (ImGui::Button("+ Add")) {
+    if (ImGui::Button("+ Add"))
+    {
 
       shaderio::Material newMat{};
-      newMat.baseColorFactor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f); // Light grey
+      newMat.baseColorFactor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);  // Light grey
       newMat.metallicFactor = 0.0f;
       newMat.roughnessFactor = 0.5f;
       newMat.emission = glm::vec3(0.0f);
-      newMat.ior = glm::vec3(1.5f); // Standard glass/plastic IOR
+      newMat.ior = glm::vec3(1.5f);  // Standard glass/plastic IOR
       newMat.sigma_t = glm::vec3(0.0f);
       newMat.asymmetry = glm::vec3(0.0f);
-      newMat.baseColorTextureIndex = -1; // Assuming -1 or 0 means "no texture"
+      newMat.baseColorTextureIndex = -1;  // Assuming -1 or 0 means "no texture"
 
       resources.addMaterial(std::move(newMat));
       changed = true;
@@ -50,7 +52,8 @@ inline bool materialEditor(SceneResourcesManager &resources)
                    ::tolower);
 
     // 2. Iterate through the map (already alphabetical)
-    for (const auto &[name, id] : materialMap) {
+    for (const auto& [name, id] : materialMap)
+    {
       if (id >= materials.size())
         continue;
 
@@ -58,16 +61,17 @@ inline bool materialEditor(SceneResourcesManager &resources)
       std::string nameLower = name;
       std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
                      ::tolower);
-      if (!searchStr.empty() &&
-          nameLower.find(searchStr) == std::string::npos) {
+      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
+      {
         continue;
       }
 
       // Use name and ID for a unique ImGui ID
       std::string label = fmt::format("{} (ID: {})", name, id);
 
-      if (ImGui::TreeNode(label.c_str())) {
-        auto &mat = materials[id];
+      if (ImGui::TreeNode(label.c_str()))
+      {
+        auto& mat = materials[id];
         PE::begin();
 
         changed |=
@@ -85,36 +89,45 @@ inline bool materialEditor(SceneResourcesManager &resources)
         changed |= PE::SliderFloat3("Asymmetry", glm::value_ptr(mat.asymmetry),
                                     0.0f, 1.0f);
 
-        const auto &textureMap = resources.textureMap();
+        const auto& textureMap = resources.textureMap();
         std::string currentName = "None";
-        for (const auto &[name, id] : textureMap) {
-          if (id == mat.baseColorTextureIndex) {
+        for (const auto& [name, id] : textureMap)
+        {
+          if (id == mat.baseColorTextureIndex)
+          {
             currentName = name;
             break;
           }
         }
 
-        PE::entry("Base Color Texture", [&]() {
-          bool itemChanged = false;
-          if (ImGui::BeginCombo("##BaseColorTex", currentName.c_str())) {
-            for (const auto &[name, id] : textureMap) {
-              const bool isSelected = (currentName == name);
+        PE::entry(
+            "Base Color Texture",
+            [&]()
+            {
+              bool itemChanged = false;
+              if (ImGui::BeginCombo("##BaseColorTex", currentName.c_str()))
+              {
+                for (const auto& [name, id] : textureMap)
+                {
+                  const bool isSelected = (currentName == name);
 
-              if (ImGui::Selectable(name.c_str(), isSelected)) {
-                mat.baseColorTextureIndex = id;
-                itemChanged = true;
-                changed = true;
-                resources.onMaterialChange();
-              }
+                  if (ImGui::Selectable(name.c_str(), isSelected))
+                  {
+                    mat.baseColorTextureIndex = id;
+                    itemChanged = true;
+                    changed = true;
+                    resources.onMaterialChange();
+                  }
 
-              if (isSelected) {
-                ImGui::SetItemDefaultFocus();
+                  if (isSelected)
+                  {
+                    ImGui::SetItemDefaultFocus();
+                  }
+                }
+                ImGui::EndCombo();
               }
-            }
-            ImGui::EndCombo();
-          }
-          return itemChanged;
-        });
+              return itemChanged;
+            });
 
         PE::end();
         ImGui::TreePop();
@@ -124,4 +137,4 @@ inline bool materialEditor(SceneResourcesManager &resources)
   return changed;
 }
 
-} // namespace app
+}  // namespace app

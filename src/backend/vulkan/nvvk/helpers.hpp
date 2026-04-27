@@ -19,29 +19,22 @@
 
 #pragma once
 
-#include <filesystem>
-
 #include <vulkan/vulkan_core.h>
 
+#include <filesystem>
 
-namespace nvvk {
+namespace nvvk
+{
 
 //-----------------------------------
 // Image helpers
-VkResult imageToLinear(VkCommandBuffer  cmd,
-                       VkDevice         device,
-                       VkPhysicalDevice physicalDevice,
-                       VkImage          srcImage,
-                       VkExtent2D       size,
-                       VkImage&         dstImage,
-                       VkDeviceMemory&  dstImageMemory,
-                       VkFormat         format);
+VkResult imageToLinear(VkCommandBuffer cmd, VkDevice device,
+                       VkPhysicalDevice physicalDevice, VkImage srcImage,
+                       VkExtent2D size, VkImage& dstImage,
+                       VkDeviceMemory& dstImageMemory, VkFormat format);
 
-void saveImageToFile(VkDevice                     device,
-                     VkImage                      dstImage,
-                     VkDeviceMemory               dstImageMemory,
-                     VkExtent2D                   size,
-                     const std::filesystem::path& filename,
-                     int                          quality = 100);
+void saveImageToFile(VkDevice device, VkImage dstImage,
+                     VkDeviceMemory dstImageMemory, VkExtent2D size,
+                     const std::filesystem::path& filename, int quality = 100);
 
 }  // namespace nvvk

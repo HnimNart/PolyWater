@@ -18,23 +18,25 @@
  */
 
 #pragma once
+#include <imgui/imgui.h>
+
 #include <cmath>
 #include <vector>
 
-#include <imgui/imgui.h>
-
-namespace app {
+namespace app
+{
 
 //--------------------------------------------------------------------------------------------------
 // Setting a dark style for the GUI
 // The colors were coded in sRGB color space, set the useLinearColor
 // flag to convert to linear color space.
-inline void setStyle(bool useLinearColor) {
+inline void setStyle(bool useLinearColor)
+{
   typedef ImVec4 (*srgbFunction)(float, float, float, float);
-  srgbFunction passthrough = [](float r, float g, float b, float a) -> ImVec4 {
-    return ImVec4(r, g, b, a);
-  };
-  srgbFunction toLinear = [](float r, float g, float b, float a) -> ImVec4 {
+  srgbFunction passthrough = [](float r, float g, float b, float a) -> ImVec4
+  { return ImVec4(r, g, b, a); };
+  srgbFunction toLinear = [](float r, float g, float b, float a) -> ImVec4
+  {
     auto toLinearScalar = [](float u) -> float {
       return u <= 0.04045 ? 25 * u / 323.f : powf((200 * u + 11) / 211.f, 2.4f);
     };
@@ -44,7 +46,7 @@ inline void setStyle(bool useLinearColor) {
 
   ImGui::StyleColorsDark();
 
-  ImGuiStyle &style = ImGui::GetStyle();
+  ImGuiStyle& style = ImGui::GetStyle();
   style.WindowRounding = 0.0f;
   style.WindowBorderSize = 0.0f;
   style.ColorButtonPosition = ImGuiDir_Right;
@@ -70,7 +72,8 @@ inline void setStyle(bool useLinearColor) {
   to_change_nrm.push_back(ImGuiCol_TextSelectedBg);
   to_change_nrm.push_back(ImGuiCol_Separator);
   to_change_nrm.push_back(ImGuiCol_FrameBgActive);
-  for (auto c : to_change_nrm) {
+  for (auto c : to_change_nrm)
+  {
     style.Colors[c] = normal_color;
   }
 
@@ -82,7 +85,8 @@ inline void setStyle(bool useLinearColor) {
   to_change_act.push_back(ImGuiCol_ButtonActive);
   to_change_act.push_back(ImGuiCol_ResizeGripActive);
   to_change_act.push_back(ImGuiCol_SeparatorActive);
-  for (auto c : to_change_act) {
+  for (auto c : to_change_act)
+  {
     style.Colors[c] = active_color;
   }
 
@@ -94,7 +98,8 @@ inline void setStyle(bool useLinearColor) {
   to_change_hover.push_back(ImGuiCol_FrameBgHovered);
   to_change_hover.push_back(ImGuiCol_ResizeGripHovered);
   to_change_hover.push_back(ImGuiCol_SeparatorHovered);
-  for (auto c : to_change_hover) {
+  for (auto c : to_change_hover)
+  {
     style.Colors[c] = hovered_color;
   }
 
@@ -112,4 +117,4 @@ inline void setStyle(bool useLinearColor) {
                              ImGuiColorEditFlags_PickerHueWheel);
 }
 
-} // namespace app
+}  // namespace app

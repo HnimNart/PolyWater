@@ -1,14 +1,18 @@
 #include "MeshletPass.hpp"
 
 // Implementation Includes
+#include <shaders/shared/structs.h>
+
 #include <core/Camera.hpp>
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
-#include <shaders/shared/structs.h>
 
+#include "_autogen/gltf_fragment.slang.h"
+#include "_autogen/gltf_meshlet.slang.h"
+#include "_autogen/gltf_task.slang.h"
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "compiler/slang.hpp"
@@ -17,18 +21,15 @@
 #include "renderer/interfaces/IRenderer.hpp"
 #include "renderer/vulkan/SceneAssetManager.hpp"
 
-#include "_autogen/gltf_fragment.slang.h"
-#include "_autogen/gltf_meshlet.slang.h"
-#include "_autogen/gltf_task.slang.h"
-
 /**********************************************************/
-MeshletPass::MeshletPass(VulkanContextManager *contextManager,
-                         const nvvk::DescriptorPack &descPack,
-                         const nvvk::Image *hizTexture)
-    : m_context_manager(contextManager), m_descPack(descPack),
-      m_hiZTexture(hizTexture)
+MeshletPass::MeshletPass(VulkanContextManager* contextManager,
+                         const nvvk::DescriptorPack& descPack,
+                         const nvvk::Image* hizTexture) :
+    m_context_manager(contextManager), m_descPack(descPack),
+    m_hiZTexture(hizTexture)
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
 void MeshletPass::init()
@@ -55,13 +56,14 @@ void MeshletPass::init()
 }
 
 /**********************************************************/
-void MeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator &allocator)
+void MeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator& allocator)
 /**********************************************************/
 {
   VkDeviceSize bufferSize =
       sizeof(shaderio::GlobalMeshletRef) * MAX_SCENE_MESHLETS;
 
-  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i)
+  {
     m_context_manager->getAllocator().createBuffer(
         m_globalMeshletRefsBuffers[i], bufferSize,
         VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT_KHR,
@@ -78,7 +80,8 @@ void MeshletPass::deinit()
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
   clearShaders();
-  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+  for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i)
+  {
     m_context_manager->getAllocator().destroyBuffer(
         m_globalMeshletRefsBuffers[i]);
   }
@@ -88,7 +91,7 @@ void MeshletPass::deinit()
 }
 
 /**********************************************************/
-void MeshletPass::setup(PassBuilder &builder)
+void MeshletPass::setup(PassBuilder& builder)
 /**********************************************************/
 {
   builder.write(RenderOutput::Linear, PipelineStage::RenderTarget,
@@ -101,27 +104,28 @@ void MeshletPass::setup(PassBuilder &builder)
 /**********************************************************/
 void MeshletPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 /**********************************************************/
-{}
+{
+}
 
 /**********************************************************/
-void MeshletPass::execute(const IRenderContext &ctx)
+void MeshletPass::execute(const IRenderContext& ctx)
 /**********************************************************/
 {
-  const auto &vkCtx = VulkanRenderContext::get(ctx);
+  const auto& vkCtx = VulkanRenderContext::get(ctx);
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
-  const nvvk::GBuffer *gBuffers = vkCtx.gBuffers;
+  const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const Scene *sceneResources = vkCtx.sceneResources;
-  const shaderio::SceneInfo &scene_info = sceneResources->sceneInfo;
-  const VkExtent2D &size = gBuffers->getSize();
-  const shaderio::RasterParams &rasterParams = constants.rasterParams;
+  const Scene* sceneResources = vkCtx.sceneResources;
+  const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
+  const VkExtent2D& size = gBuffers->getSize();
+  const shaderio::RasterParams& rasterParams = constants.rasterParams;
 
   NVVK_DBG_SCOPE(cmd);
 
   // --- CULLING SETUP ---
-  const glm::mat4 &viewProj = scene_info.viewProjMatrix;
+  const glm::mat4& viewProj = scene_info.viewProjMatrix;
   core::Frustum cameraFrustum = core::extractFrustumPlanes(viewProj);
   uint32_t culledCount = 0;
 
@@ -168,7 +172,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
   // --- PUSH SET 1 (Hi-Z Pass Data) ---
-  if (m_hiZTexture && m_hiZTexture->image != VK_NULL_HANDLE) {
+  if (m_hiZTexture && m_hiZTexture->image != VK_NULL_HANDLE)
+  {
     VkDescriptorImageInfo hizTexInfo = {
         VK_NULL_HANDLE, m_hiZTexture->descriptor.imageView,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
@@ -206,7 +211,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
   VkPolygonMode polyMode =
       rasterParams.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
   vkCmdSetPolygonModeEXT(cmd, polyMode);
-  if (rasterParams.wireframe) {
+  if (rasterParams.wireframe)
+  {
     vkCmdSetLineWidth(cmd, rasterParams.wireframeLineWidth);
   }
 
@@ -221,10 +227,10 @@ void MeshletPass::execute(const IRenderContext &ctx)
       VK_SHADER_STAGE_MESH_BIT_EXT};
 
   const VkShaderEXT shaders[] = {
-      VK_NULL_HANDLE, // No vertex shader
-      VK_NULL_HANDLE, // No Tessellation Control
-      VK_NULL_HANDLE, // No Tessellation Eval
-      VK_NULL_HANDLE, // No Geometry
+      VK_NULL_HANDLE,  // No vertex shader
+      VK_NULL_HANDLE,  // No Tessellation Control
+      VK_NULL_HANDLE,  // No Tessellation Eval
+      VK_NULL_HANDLE,  // No Geometry
       m_fragmentShader, m_taskShader, m_meshShader,
   };
   vkCmdBindShadersEXT(cmd, 7, stages, shaders);
@@ -237,30 +243,35 @@ void MeshletPass::execute(const IRenderContext &ctx)
   std::vector<shaderio::GlobalMeshletRef> globalMeshlets;
   globalMeshlets.reserve(MAX_SCENE_MESHLETS / 10);
 
-  for (size_t i = 0; i < sceneResources->instances.size(); i++) {
-    const shaderio::Instance &instance = sceneResources->instances[i];
+  for (size_t i = 0; i < sceneResources->instances.size(); i++)
+  {
+    const shaderio::Instance& instance = sceneResources->instances[i];
     uint32_t meshIndex = instance.meshIndex;
-    const shaderio::MeshPrimitive &meshPrim = sceneResources->meshes[meshIndex];
+    const shaderio::MeshPrimitive& meshPrim = sceneResources->meshes[meshIndex];
 
     // CPU Frustum Culling (Instance Level)
     if (!core::isAABBInsideFrustum(cameraFrustum, meshPrim.bbox.min,
-                                   meshPrim.bbox.max, instance.transform)) {
+                                   meshPrim.bbox.max, instance.transform))
+    {
       culledCount++;
       continue;
     }
 
     uint32_t count = meshPrim.meshlet.meshlets.count;
-    for (uint32_t m = 0; m < count; m++) {
+    for (uint32_t m = 0; m < count; m++)
+    {
       globalMeshlets.push_back({static_cast<uint32_t>(i), m});
     }
   }
 
-  if (globalMeshlets.empty()) {
+  if (globalMeshlets.empty())
+  {
     vkCmdEndRendering(cmd);
     return;
   }
 
-  if (globalMeshlets.size() > MAX_SCENE_MESHLETS) {
+  if (globalMeshlets.size() > MAX_SCENE_MESHLETS)
+  {
     LOGE("Too many meshlets! Max: %u, Trying to draw: %zu", MAX_SCENE_MESHLETS,
          globalMeshlets.size());
     vkCmdEndRendering(cmd);
@@ -276,7 +287,7 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // --- 3. Push constants & Dispatch ---
   constants.totalSceneMeshlets = static_cast<uint32_t>(globalMeshlets.size());
   constants.globalMeshletRefsAddress =
-      reinterpret_cast<shaderio::GlobalMeshletRef *>(
+      reinterpret_cast<shaderio::GlobalMeshletRef*>(
           m_globalMeshletRefsBuffers[m_currentFrameIndex].address);
 
   // Issue the push constants right before the draw call
@@ -289,7 +300,8 @@ void MeshletPass::execute(const IRenderContext &ctx)
   // Advance frame index for the next execute
   m_currentFrameIndex = (m_currentFrameIndex + 1) % FRAMES_IN_FLIGHT;
 
-  if (culledCount > 0) {
+  if (culledCount > 0)
+  {
     LOGD("MeshletPass: CPU Culled %u / %zu instances", culledCount,
          sceneResources->instances.size());
   }

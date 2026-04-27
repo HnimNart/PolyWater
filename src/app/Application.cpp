@@ -20,23 +20,25 @@
 #include "backend/interfaces/IRenderContext.hpp"
 #include "core/progress_bar.hpp"
 
-namespace app {
+namespace app
+{
 
 /**********************************************************/
-Application::Application(ApplicationCreateInfo const &info,
+Application::Application(ApplicationCreateInfo const& info,
                          std::unique_ptr<IRenderBackend> backend,
-                         std::shared_ptr<IGUISystem> gui)
-    : m_backend(std::move(backend)), m_gui(std::move(gui))
+                         std::shared_ptr<IGUISystem> gui) :
+    m_backend(std::move(backend)), m_gui(std::move(gui))
 /**********************************************************/
 {
-  if (glfwInit() != GLFW_TRUE) {
+  if (glfwInit() != GLFW_TRUE)
+  {
     throw std::runtime_error("failed to initialize GLFW");
   }
   init(info);
 }
 
 /**********************************************************/
-void Application::init(ApplicationCreateInfo const &info)
+void Application::init(ApplicationCreateInfo const& info)
 /**********************************************************/
 {
   m_useMenubar = info.useMenu;
@@ -47,7 +49,8 @@ void Application::init(ApplicationCreateInfo const &info)
   // Window setup
   testAndSetWindowSizeAndPos(info.windowSize);
 
-  if (!m_headless) {
+  if (!m_headless)
+  {
     initGlfw(info);
   }
 
@@ -58,7 +61,7 @@ void Application::init(ApplicationCreateInfo const &info)
 }
 
 /**********************************************************/
-void Application::initializeBackend(const ApplicationCreateInfo &info)
+void Application::initializeBackend(const ApplicationCreateInfo& info)
 /**********************************************************/
 {
   assert(m_backend);
@@ -88,37 +91,43 @@ void Application::shutdown()
   LOGI("Shutting down application\n");
   m_running = false;
 
-  if (!m_headless) {
+  if (!m_headless)
+  {
     // Save window state before destruction
     assert(m_windowHandle);
     glfwGetWindowPos(m_windowHandle, &m_winPos.x, &m_winPos.y);
     int w, h;
     glfwGetWindowSize(m_windowHandle, &w, &h);
-    m_winSize = {(uint32_t)w, (uint32_t)h};
+    m_winSize = {(uint32_t) w, (uint32_t) h};
   }
 
-  for (auto &e : m_elements) {
+  for (auto& e : m_elements)
+  {
     e->onDetach();
   }
   m_elements.clear();
 
   // Shutdown order: GUI -> Backend -> GLFW
-  if (m_gui) {
+  if (m_gui)
+  {
     m_gui->deinit();
   }
 
-  if (m_backend) {
+  if (m_backend)
+  {
     m_backend->deinit();
   }
 
 #ifdef PROFILE_APP
-  if (m_profilerManager) {
+  if (m_profilerManager)
+  {
     m_profilerManager->destroyTimeline(m_profileTimeline);
     m_profilerManager.reset();
   }
 #endif
 
-  if (!m_headless) {
+  if (!m_headless)
+  {
     glfwDestroyWindow(m_windowHandle);
     m_windowHandle = nullptr;
   }
@@ -126,7 +135,7 @@ void Application::shutdown()
 }
 
 /**********************************************************/
-IRenderBackend *Application::getBackend() const
+IRenderBackend* Application::getBackend() const
 /**********************************************************/
 {
   return m_backend.get();
@@ -162,7 +171,7 @@ bool Application::isPaused() const
 }
 
 /**********************************************************/
-void Application::addElement(const std::shared_ptr<IAppElement> &element)
+void Application::addElement(const std::shared_ptr<IAppElement>& element)
 /**********************************************************/
 {
   m_elements.emplace_back(element);
@@ -176,11 +185,13 @@ void Application::run()
   LOGI("Running application\n");
 
   // Handle headless mode
-  if (m_headless) {
+  if (m_headless)
+  {
     headlessRun();
     return;
   }
-  while (!glfwWindowShouldClose(m_windowHandle) && m_running) {
+  while (!glfwWindowShouldClose(m_windowHandle) && m_running)
+  {
     runOneFrame();
   }
 }
@@ -197,24 +208,28 @@ void Application::headlessRun()
   // updated state.
   {
     m_gui->beginFrame();
-    for (std::shared_ptr<IAppElement> &e : m_elements) {
+    for (std::shared_ptr<IAppElement>& e : m_elements)
+    {
       e->onUIRender();
     }
     m_gui->render();
     m_gui->endFrame();
   }
 
-  for (const std::shared_ptr<app::IAppElement> &e : m_elements) {
+  for (const std::shared_ptr<app::IAppElement>& e : m_elements)
+  {
     e->onPreRender();
   }
 
   // Rendering n-times the scene
   ProgressBar progress("Rendering");
   for (uint32_t frameID = 0; frameID < m_headlessFrameCount && !m_headlessClose;
-       frameID++) {
+       frameID++)
+  {
     progress.update(frameID, m_headlessFrameCount);
-    IRenderContext *frameCtx = nullptr;
-    if ((frameCtx = m_backend->beginFrame())) {
+    IRenderContext* frameCtx = nullptr;
+    if ((frameCtx = m_backend->beginFrame()))
+    {
       m_backend->renderFrame(m_elements, *frameCtx);
       m_backend->endFrame(*frameCtx);
       m_backend->advance();
@@ -226,7 +241,8 @@ void Application::headlessRun()
 
   // Call back the application, such that it can do something with the
   // rendered image
-  for (std::shared_ptr<IAppElement> &e : m_elements) {
+  for (std::shared_ptr<IAppElement>& e : m_elements)
+  {
     e->onLastHeadlessFrame();
   }
 }
@@ -240,13 +256,15 @@ void Application::runOneFrame()
   const auto profiledSection = m_profileTimeline->frameSection(__func__);
 #endif
 
-  if (m_vsyncWanted) {
+  if (m_vsyncWanted)
+  {
     m_framePacer.pace();
   }
   glfwPollEvents();
 
   // Skip rendering when minimized
-  if (glfwGetWindowAttrib(m_windowHandle, GLFW_ICONIFIED)) {
+  if (glfwGetWindowAttrib(m_windowHandle, GLFW_ICONIFIED))
+  {
     return;
   }
 
@@ -258,9 +276,12 @@ void Application::runOneFrame()
 void Application::close()
 /**********************************************************/
 {
-  if (m_headless) {
+  if (m_headless)
+  {
     m_headlessClose = true;
-  } else {
+  }
+  else
+  {
     glfwSetWindowShouldClose(m_windowHandle, true);
   }
 }
@@ -277,7 +298,8 @@ void Application::runFrame()
   m_gui->beginFrame();
 
   // 2. Docking & Menus
-  if (m_useMenubar) {
+  if (m_useMenubar)
+  {
     m_gui->renderMenu(m_elements);
   }
 
@@ -286,21 +308,25 @@ void Application::runFrame()
   bool ok = m_gui->getWindowSize("Viewport", viewportSize);
 
   // Update viewport if size changed
-  if (m_backend->getViewportSize() != viewportSize) {
+  if (m_backend->getViewportSize() != viewportSize)
+  {
     onResize(viewportSize);
   }
 
-  for (auto &e : m_elements) {
+  for (auto& e : m_elements)
+  {
     e->onUIRender();
   }
 
-  for (const std::shared_ptr<app::IAppElement> &e : m_elements) {
+  for (const std::shared_ptr<app::IAppElement>& e : m_elements)
+  {
     e->onPreRender();
   }
 
   m_gui->render();
-  IRenderContext *frameCtx = nullptr;
-  if ((frameCtx = m_backend->beginFrame())) {
+  IRenderContext* frameCtx = nullptr;
+  if ((frameCtx = m_backend->beginFrame()))
+  {
     m_backend->renderFrame(m_elements, *frameCtx);
     m_backend->endFrame(*frameCtx);
     m_backend->present();
@@ -326,27 +352,29 @@ bool Application::isHeadless() const noexcept
 }
 
 /**********************************************************/
-void Application::onResize(const WindowSize &size)
+void Application::onResize(const WindowSize& size)
 /**********************************************************/
 {
   m_backend->onResize(size);
-  for (const std::shared_ptr<IAppElement> &e : m_elements) {
+  for (const std::shared_ptr<IAppElement>& e : m_elements)
+  {
     e->onResize(size);
   }
 }
 
 /**********************************************************/
-void Application::onFileDrop(const std::filesystem::path &filename,
+void Application::onFileDrop(const std::filesystem::path& filename,
                              glm::vec2 mousePos)
 /**********************************************************/
 {
-  for (std::shared_ptr<IAppElement> &e : m_elements) {
+  for (std::shared_ptr<IAppElement>& e : m_elements)
+  {
     e->onFileDrop(filename, mousePos);
   }
 }
 
 /**********************************************************/
-void Application::initGlfw(const ApplicationCreateInfo &info)
+void Application::initGlfw(const ApplicationCreateInfo& info)
 /**********************************************************/
 {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -356,61 +384,74 @@ void Application::initGlfw(const ApplicationCreateInfo &info)
 
   glfwSetWindowSize(
       m_windowHandle, m_windowSize.width,
-      m_windowSize.height); // Sets the size of the window using the DPI scaling
+      m_windowSize
+          .height);  // Sets the size of the window using the DPI scaling
   glfwSetWindowPos(m_windowHandle, m_winPos.x, m_winPos.y);
 
   // Link to file drop callback (standard GLFW logic)
   glfwSetWindowUserPointer(m_windowHandle, this);
-  glfwSetDropCallback(m_windowHandle, [](GLFWwindow *window, int count,
-                                         const char **paths) {
-    auto *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    for (int i = 0; i < count; i++) {
-      app->onFileDrop(paths[i], {xpos, ypos});
-    }
-  });
+  glfwSetDropCallback(m_windowHandle,
+                      [](GLFWwindow* window, int count, const char** paths)
+                      {
+                        auto* app = static_cast<Application*>(
+                            glfwGetWindowUserPointer(window));
+                        double xpos, ypos;
+                        glfwGetCursorPos(window, &xpos, &ypos);
+                        for (int i = 0; i < count; i++)
+                        {
+                          app->onFileDrop(paths[i], {xpos, ypos});
+                        }
+                      });
 }
 
 /**********************************************************/
-void Application::testAndSetWindowSizeAndPos(const glm::uvec2 &winSize)
+void Application::testAndSetWindowSizeAndPos(const glm::uvec2& winSize)
 /**********************************************************/
 {
   bool centerWindow = false;
   // If winSize is provided, use it
-  if (winSize.x != 0 && winSize.y != 0) {
+  if (winSize.x != 0 && winSize.y != 0)
+  {
     m_winSize = winSize;
     centerWindow =
-        true; // When the window size is requested, it will be centered
+        true;  // When the window size is requested, it will be centered
   }
 
   // If m_winSize is still (0,0), set defaults
   // Could be not zero if the user set it in the settings (see loading of
   // the ini file)
-  if (m_winSize.x == 0 && m_winSize.y == 0) {
-    if (m_headless) {
+  if (m_winSize.x == 0 && m_winSize.y == 0)
+  {
+    if (m_headless)
+    {
       m_winSize = {800, 600};
-    } else {
+    }
+    else
+    {
       // Get 80% of primary monitor
-      const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+      const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
       m_winSize.x = static_cast<int>(mode->width * 0.8f);
       m_winSize.y = static_cast<int>(mode->height * 0.8f);
     }
     // Center the window
-    if (!m_headless) {
+    if (!m_headless)
+    {
       int monX, monY;
       glfwGetMonitorPos(glfwGetPrimaryMonitor(), &monX, &monY);
-      const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+      const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
       m_winPos.x = monX + (mode->width - m_winSize.x) / 2;
       m_winPos.y = monY + (mode->height - m_winSize.y) / 2;
     }
-  } else if (!m_headless) {
+  }
+  else if (!m_headless)
+  {
     // If m_winPos was retrieved, check if it is valid
-    if (!isWindowPosValid(m_winPos) || centerWindow) {
+    if (!isWindowPosValid(m_winPos) || centerWindow)
+    {
       // Center the window
       int monX, monY;
       glfwGetMonitorPos(glfwGetPrimaryMonitor(), &monX, &monY);
-      const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+      const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
       m_winPos.x = monX + (mode->width - m_winSize.x) / 2;
       m_winPos.y = monY + (mode->height - m_winSize.y) / 2;
     }
@@ -421,16 +462,17 @@ void Application::testAndSetWindowSizeAndPos(const glm::uvec2 &winSize)
 
 /**********************************************************/
 // Check if window position is within visible monitor bounds
-bool Application::isWindowPosValid(const glm::ivec2 &winPos)
+bool Application::isWindowPosValid(const glm::ivec2& winPos)
 /**********************************************************/
 {
   int monitorCount;
-  GLFWmonitor **monitors = glfwGetMonitors(&monitorCount);
+  GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
 
   // For each connected monitor
-  for (int i = 0; i < monitorCount; i++) {
-    GLFWmonitor *monitor = monitors[i];
-    const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+  for (int i = 0; i < monitorCount; i++)
+  {
+    GLFWmonitor* monitor = monitors[i];
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
     int monX, monY;
     glfwGetMonitorPos(monitor, &monX, &monY);
@@ -438,7 +480,8 @@ bool Application::isWindowPosValid(const glm::ivec2 &winPos)
     // Check if window position is within this monitor's bounds
     // Add some margin to account for window decorations
     if (winPos.x >= monX && winPos.x < monX + mode->width && winPos.y >= monY &&
-        winPos.y < monY + mode->height) {
+        winPos.y < monY + mode->height)
+    {
       return true;
     }
   }
@@ -446,4 +489,4 @@ bool Application::isWindowPosValid(const glm::ivec2 &winPos)
   return false;
 }
 
-} // namespace app
+}  // namespace app

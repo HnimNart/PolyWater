@@ -23,23 +23,31 @@
 
 #include "app/IAppElement.hpp"
 
-namespace app {
+namespace app
+{
 
 // Element that contains a `ParameterSequencer` and advances it
 // if applicable.
 
-class ElementSequencer : public IAppElement {
+class ElementSequencer : public IAppElement
+{
 public:
-  ElementSequencer(const core::ParameterSequencer::InitInfo &sequencerInfo)
-      : m_sequencerInfo(sequencerInfo) {}
-  virtual void onAttach(Application *app) override {
+  ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
+      m_sequencerInfo(sequencerInfo)
+  {
+  }
+  virtual void onAttach(Application* app) override
+  {
     m_app = app;
     m_doSequences = m_sequencer.init(m_sequencerInfo);
   }
-  virtual void onPreRender() override {
-    if (m_doSequences) {
+  virtual void onPreRender() override
+  {
+    if (m_doSequences)
+    {
       bool finished = m_sequencer.prepareFrame();
-      if (finished) {
+      if (finished)
+      {
         m_app->close();
       }
     }
@@ -48,7 +56,7 @@ public:
 private:
   core::ParameterSequencer::InitInfo m_sequencerInfo;
   core::ParameterSequencer m_sequencer;
-  Application *m_app = nullptr;
+  Application* m_app = nullptr;
   bool m_doSequences = false;
 };
-} // namespace app
+}  // namespace app

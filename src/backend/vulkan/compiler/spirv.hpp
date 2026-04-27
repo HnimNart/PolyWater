@@ -24,23 +24,28 @@ Utilities for working with SPIR-V data.
 
 */
 
-#include <filesystem>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
 #include <span>
 
-namespace core {
+namespace core
+{
 
 // Hash the SPIR-V code
 std::size_t hashSpirv(const uint32_t* spirvData, size_t spirvSize);
 
 // Dump the SPIR-V code to a file with a hashed name
-std::filesystem::path dumpSpirvName(const std::filesystem::path& filename, const uint32_t* spirvData, size_t spirvSize);
+std::filesystem::path dumpSpirvName(const std::filesystem::path& filename,
+                                    const uint32_t* spirvData,
+                                    size_t spirvSize);
 
 // Dump the SPIR-V code to a file
-void dumpSpirv(const std::filesystem::path& filename, const uint32_t* spirvData, size_t spirvSize);
+void dumpSpirv(const std::filesystem::path& filename, const uint32_t* spirvData,
+               size_t spirvSize);
 
 // Dump the SPIR-V code to a file with a hashed name
-void dumpSpirvWithHashedName(const std::filesystem::path& sourceFile, const uint32_t* spirvData, size_t spirvSize);
+void dumpSpirvWithHashedName(const std::filesystem::path& sourceFile,
+                             const uint32_t* spirvData, size_t spirvSize);
 
 }  // namespace core

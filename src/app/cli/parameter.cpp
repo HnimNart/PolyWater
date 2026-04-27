@@ -19,36 +19,39 @@
 
 #include "parameter.hpp"
 
-namespace app::cli {
+namespace app::cli
+{
 
-const char *ParameterBase::toString(Type type) {
-  switch (type) {
-  case ParameterBase::Type::BOOL8:
-    return "bool";
-  case ParameterBase::Type::BOOL8_TRIGGER:
-    return "bool_trigger";
-  case ParameterBase::Type::FLOAT32:
-    return "float";
-  case ParameterBase::Type::INT8:
-    return "int8";
-  case ParameterBase::Type::INT16:
-    return "int16";
-  case ParameterBase::Type::INT32:
-    return "int32";
-  case ParameterBase::Type::UINT8:
-    return "uint8";
-  case ParameterBase::Type::UINT16:
-    return "uint16";
-  case ParameterBase::Type::UINT32:
-    return "uint32";
-  case ParameterBase::Type::STRING:
-    return "string";
-  case ParameterBase::Type::FILENAME:
-    return "filename";
-  case ParameterBase::Type::CUSTOM:
-    return "custom";
-  default:
-    return "";
+const char* ParameterBase::toString(Type type)
+{
+  switch (type)
+  {
+    case ParameterBase::Type::BOOL8:
+      return "bool";
+    case ParameterBase::Type::BOOL8_TRIGGER:
+      return "bool_trigger";
+    case ParameterBase::Type::FLOAT32:
+      return "float";
+    case ParameterBase::Type::INT8:
+      return "int8";
+    case ParameterBase::Type::INT16:
+      return "int16";
+    case ParameterBase::Type::INT32:
+      return "int32";
+    case ParameterBase::Type::UINT8:
+      return "uint8";
+    case ParameterBase::Type::UINT16:
+      return "uint16";
+    case ParameterBase::Type::UINT32:
+      return "uint32";
+    case ParameterBase::Type::STRING:
+      return "string";
+    case ParameterBase::Type::FILENAME:
+      return "filename";
+    case ParameterBase::Type::CUSTOM:
+      return "custom";
+    default:
+      return "";
   }
 }
-} // namespace app::cli
+}  // namespace app::cli

@@ -18,12 +18,15 @@
  */
 
 #include "parameter_sequencer.hpp"
+
 #include "core/logger.hpp"
 
-namespace app::cli {
+namespace app::cli
+{
 
 void ParameterSequencer::InitInfo::registerScriptParameters(
-    ParameterRegistry &registry, ParameterParser &parser) {
+    ParameterRegistry& registry, ParameterParser& parser)
+{
   parser.add(registry.add({.name = "sequencefile",
                            .help = "filename for text file containing "
                                    "sequences of parameters to be set."},
@@ -34,22 +37,30 @@ void ParameterSequencer::InitInfo::registerScriptParameters(
       &scriptContent));
 }
 
-bool ParameterSequencer::init(const InitInfo &info) {
+bool ParameterSequencer::init(const InitInfo& info)
+{
   m_info = info;
 
-  if (!m_info.scriptContent.empty()) {
+  if (!m_info.scriptContent.empty())
+  {
     assert(m_info.scriptFilename.empty());
 
     m_tokenizedScript.initFromString(m_info.scriptContent, {});
-  } else if (!m_info.scriptFilename.empty()) {
-    if (!m_tokenizedScript.initFromFile(m_info.scriptFilename)) {
+  }
+  else if (!m_info.scriptFilename.empty())
+  {
+    if (!m_tokenizedScript.initFromFile(m_info.scriptFilename))
+    {
       return false;
     }
-  } else {
+  }
+  else
+  {
     return false;
   }
 
-  if (strcmp(m_tokenizedScript.getArgs()[0], "SEQUENCE") != 0) {
+  if (strcmp(m_tokenizedScript.getArgs()[0], "SEQUENCE") != 0)
+  {
     return false;
   }
   // skip first SEQUENCE
@@ -57,8 +68,8 @@ bool ParameterSequencer::init(const InitInfo &info) {
 
   assert(m_info.parameterParser && "Parameter parser must be specified");
   assert(m_info.parameterRegistry && "Parameter registry must be specified");
-  ParameterParser &parser = *m_info.parameterParser;
-  ParameterRegistry &registry = *m_info.parameterRegistry;
+  ParameterParser& parser = *m_info.parameterParser;
+  ParameterRegistry& registry = *m_info.parameterRegistry;
   parser.add(
       registry.add({.name = "sequenceframes",
                     .help = "number of frames to run each parameter sequence"},
@@ -80,16 +91,20 @@ bool ParameterSequencer::init(const InitInfo &info) {
   return true;
 }
 
-bool ParameterSequencer::prepareFrame() {
+bool ParameterSequencer::prepareFrame()
+{
   if (m_completed)
     return true;
 
-  if ((m_frameCount % m_info.sequenceFrameCount) == 0) {
+  if ((m_frameCount % m_info.sequenceFrameCount) == 0)
+  {
     // print old
-    if (m_currentArgument > 2) {
+    if (m_currentArgument > 2)
+    {
       std::string statsFrame;
       std::string statsSingle;
-      if (m_info.profilerManager) {
+      if (m_info.profilerManager)
+      {
         m_info.profilerManager->appendPrint(statsFrame, statsSingle, true);
         // print old stats
         core::Logger::getInstance().log(
@@ -99,7 +114,7 @@ bool ParameterSequencer::prepareFrame() {
       }
 
       // Callback all registered functions
-      for (auto &func : m_info.postCallbacks)
+      for (auto& func : m_info.postCallbacks)
         func(m_sequenceState);
 
       m_sequenceState.index++;
@@ -108,7 +123,8 @@ bool ParameterSequencer::prepareFrame() {
     // test if done
     m_completed = (m_currentArgument >= m_tokenizedScript.getArgs().size());
 
-    if (!m_completed) {
+    if (!m_completed)
+    {
       m_sequenceState.description =
           m_tokenizedScript.getArgs(m_currentArgument)[0];
       m_currentArgument++;
@@ -117,7 +133,8 @@ bool ParameterSequencer::prepareFrame() {
       size_t stopOffset = m_info.parameterParser->parse(
           args, false, m_tokenizedScript.getFilenameBasePath(), "SEQUENCE");
 
-      if (m_info.profilerManager) {
+      if (m_info.profilerManager)
+      {
         m_info.profilerManager->setFrameAveragingCount(
             m_info.profilerAverageCount);
         m_info.profilerManager->resetFrameSections(
@@ -133,4 +150,4 @@ bool ParameterSequencer::prepareFrame() {
   return m_completed;
 }
 
-} // namespace app::cli
+}  // namespace app::cli
