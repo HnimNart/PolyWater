@@ -8,6 +8,7 @@
 #include "passes/DenoisePass.hpp"
 #include "passes/MeshletPass.hpp"
 #include "passes/MipReductionPass.hpp"
+#include "passes/OIDNDenoisePass.hpp"
 #include "passes/RasterPass.hpp"
 #include "passes/RayTracePass.hpp"
 #include "passes/SkyPass.hpp"
@@ -80,8 +81,8 @@ PipelineManager::PipelineManager()
             settings.context, descriptorPack, settings.shaderManager,
             settings.accel));
 
-        // 2. Denoise the image
-        graph->addPass(std::make_unique<DenoisePass>(settings.context));
+        // 2. Denoise the image with OIDN (GPU AI denoiser)
+        graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
 
         // 3. Tone Mapping
         graph->addPass(std::make_unique<ToneMapPass>(settings.context,

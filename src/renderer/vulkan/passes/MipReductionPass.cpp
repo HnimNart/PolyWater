@@ -118,7 +118,7 @@ void MipReductionPass::compileShaders()
 }
 
 /**********************************************************/
-void MipReductionPass::execute(const IRenderContext& ctx)
+void MipReductionPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

@@ -55,6 +55,10 @@ void RayTracePass::setup(PassBuilder& builder)
   // We use General state because it's a Storage Image write
   builder.write(RenderOutput::Linear, PipelineStage::RayTracing,
                 ResourceState::General);
+  builder.write(RenderOutput::Albedo, PipelineStage::RayTracing,
+                ResourceState::General);
+  builder.write(RenderOutput::Normal, PipelineStage::RayTracing,
+                ResourceState::General);
 
   // Ray tracing input: The TLAS is an acceleration structure (Read)
   // Note: If your PassBuilder supports buffer/AS tracking, add it here
@@ -102,6 +106,14 @@ void RayTracePass::createDescriptorLayout()
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
   bindings.addBinding({.binding = shaderio::BindRayTrace::eAccumImage,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       .descriptorCount = 1,
+                       .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eAlbedoImage,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       .descriptorCount = 1,
+                       .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eNormalImage,
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
@@ -273,7 +285,7 @@ void RayTracePass::createShaderBindingTable(
 }
 
 /**********************************************************/
-void RayTracePass::execute(const IRenderContext& ctx)
+void RayTracePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -306,6 +318,14 @@ void RayTracePass::execute(const IRenderContext& ctx)
   write.append(
       m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eAccumImage),
       gBuffers->getColorImageView(RenderOutput::AccumLinear),
+      VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eAlbedoImage),
+      gBuffers->getColorImageView(RenderOutput::Albedo),
+      VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eNormalImage),
+      gBuffers->getColorImageView(RenderOutput::Normal),
       VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                             m_pipelineLayout, 1, write.size(), write.data());

@@ -69,7 +69,7 @@ void RasterPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 }
 
 /**********************************************************/
-void RasterPass::execute(const IRenderContext& ctx)
+void RasterPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

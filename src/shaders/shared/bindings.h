@@ -19,7 +19,9 @@ enum BindRayTrace
 {
   eTlas = 0,
   eOutImage = 1,
-  eAccumImage = 2
+  eAccumImage = 2,
+  eAlbedoImage = 3,
+  eNormalImage = 4
 };
 
 // For Meshlet/Raster Shaders (.mesh / .frag)

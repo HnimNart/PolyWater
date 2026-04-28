@@ -10,7 +10,7 @@ public:
   void init() override;
   void setup(PassBuilder& builder) override;
   void deinit() override;
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
 
 private:
   VulkanContextManager* m_core = nullptr;

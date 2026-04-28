@@ -108,7 +108,7 @@ void DenoisePass::createComputePipeline()
 }
 
 /**********************************************************/
-void DenoisePass::execute(const IRenderContext& ctx)
+void DenoisePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

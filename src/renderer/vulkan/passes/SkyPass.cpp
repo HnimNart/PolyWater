@@ -82,7 +82,7 @@ void SkyPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void SkyPass::execute(const IRenderContext& ctx)
+void SkyPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

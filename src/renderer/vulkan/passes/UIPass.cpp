@@ -26,7 +26,7 @@ void UIPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void UIPass::execute(const IRenderContext& ctx)
+void UIPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

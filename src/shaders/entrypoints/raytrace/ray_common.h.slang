@@ -6,9 +6,11 @@
 #endif
 
 // --- Scene bindings --- 
-[[vk::binding(BindRayTrace::eTlas, 1)]]      RaytracingAccelerationStructure topLevelAS;
-[[vk::binding(BindRayTrace::eOutImage, 1)]]   RWTexture2D<float4> outImage;
-[[vk::binding(BindRayTrace::eAccumImage, 1)]] RWTexture2D<float4> accumImage;
+[[vk::binding(BindRayTrace::eTlas, 1)]]        RaytracingAccelerationStructure topLevelAS;
+[[vk::binding(BindRayTrace::eOutImage, 1)]]    RWTexture2D<float4> outImage;
+[[vk::binding(BindRayTrace::eAccumImage, 1)]]  RWTexture2D<float4> accumImage;
+[[vk::binding(BindRayTrace::eAlbedoImage, 1)]] RWTexture2D<float4> albedoImage;
+[[vk::binding(BindRayTrace::eNormalImage, 1)]] RWTexture2D<float4> normalImage;
 
 #include "shared/structs.h"      // Defines Material, Light, HitPayload
 #include "shared/bindings.h"     // Defines Descriptor Sets, topLevelAS

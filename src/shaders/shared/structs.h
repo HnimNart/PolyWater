@@ -73,6 +73,9 @@ struct HitPayload
   float3 nextRayOrigin;  // Where the bounce starts
   float3 nextRayDir;     // Where the bounce goes
   bool stop;             // "Did we hit the sky or a black hole?"
+  // First-hit auxiliary data for OIDN denoiser
+  float3 albedo;  // Surface albedo at first hit (base colour, no lighting)
+  float3 normal;  // World-space surface normal at first hit
 };
 
 struct ShadowPayload

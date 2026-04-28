@@ -15,6 +15,13 @@ rchit_emissive(inout HitPayload payload,
         payload.color += emission * payload.weight;
     } 
 
+    // --- First-hit auxiliary data for denoiser ---
+    if (payload.depth == 0)
+    {
+        payload.albedo = hit.material.emission.xyz;
+        payload.normal = hit.worldNormal;
+    }
+
     payload.stop = true;
     payload.emit = false; 
 }

@@ -22,7 +22,7 @@ public:
 
   void setup(PassBuilder& builder) override;
   void deinit() override;
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
 
   // Explicitly non-copyable
   ToneMapPass(const ToneMapPass&) = delete;

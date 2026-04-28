@@ -15,5 +15,11 @@ void rchit_normals(inout HitPayload payload,
     // In a path tracer, visualization shaders usually stop the ray immediately
     payload.color = normalColor;
     payload.weight = float3(0.0); 
-    payload.stop = true;          
+    payload.stop = true;
+    // --- First-hit auxiliary data for denoiser ---
+    if (payload.depth == 0)
+    {
+        payload.albedo = normalColor;
+        payload.normal = hit.worldNormal;
+    }
 }

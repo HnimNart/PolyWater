@@ -14,6 +14,13 @@ void rchit_mirror(inout HitPayload payload, in BuiltInTriangleIntersectionAttrib
     float3 bounceDir;
     
     payload.weight *= albedo * bsdf.sample(hit.viewDir, hit.worldNormal, payload.seed, bounceDir);
+
+    // --- First-hit auxiliary data for denoiser ---
+    if (payload.depth == 0)
+    {
+        payload.albedo = albedo;
+        payload.normal = hit.worldNormal;
+    }
     payload.nextRayOrigin = hit.worldPos;
     payload.nextRayDir = normalize(bounceDir);
     payload.stop = false;

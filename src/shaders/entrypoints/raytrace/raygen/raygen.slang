@@ -54,6 +54,8 @@
     payload.seed = sampleSeed;
     payload.stop = true;
     payload.emit = true;
+    payload.albedo = float3(0, 0, 0);
+    payload.normal = float3(0, 0, 0);
 
     // Path Tracing
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
@@ -90,6 +92,41 @@
   }
 
   float3 currentFrameColor = finalPixelColor / float(N_SAMPLES);
+
+  // Write first-hit albedo and normal for the OIDN denoiser (sample 0 only,
+  // these are stable across frames so we only update on frame 0 reset).
+  if (params.frameIdx == 0)
+  {
+    // Re-trace sample 0 payload to get the first-hit auxiliary data.
+    // We stored albedo/normal in the first sample's payload above.
+    // Use a dedicated single-sample trace for the auxiliary buffers.
+    float2 pixelCenter0 = (float2)launchID + float2(0.5, 0.5);
+    float2 inUV0 = pixelCenter0 / launchSize;
+    float2 d0 = inUV0 * 2.0 - 1.0;
+    float4 target0 = mul(float4(d0.x, d0.y, 1.0, 1.0), sceneInfo->projInvMatrix);
+    float4 dir0 = mul(float4(normalize(target0.xyz), 0.0), sceneInfo->viewInvMatrix);
+    float4 origin0 = mul(float4(0.0, 0.0, 0.0, 1.0), sceneInfo->viewInvMatrix);
+
+    HitPayload auxPayload;
+    auxPayload.color = float3(0, 0, 0);
+    auxPayload.weight = float3(1, 1, 1);
+    auxPayload.depth = 0;
+    auxPayload.seed = tea(launchID.y * (uint)launchSize.x + launchID.x, 0u);
+    auxPayload.stop = true;
+    auxPayload.emit = false;
+    auxPayload.albedo = float3(0, 0, 0);
+    auxPayload.normal = float3(0, 0, 0);
+
+    RayDesc auxRay;
+    auxRay.Origin = origin0.xyz;
+    auxRay.Direction = normalize(dir0.xyz);
+    auxRay.TMin = EPSILON;
+    auxRay.TMax = INFINITE;
+    TraceRay(topLevelAS, 0, 0xFF, 0, 0, 0, auxRay, auxPayload);
+
+    albedoImage[int2(launchID)] = float4(auxPayload.albedo, 1.0);
+    normalImage[int2(launchID)] = float4(auxPayload.normal * 0.5 + 0.5, 1.0);
+  }
 
   if (params.frameIdx == 0)
   {

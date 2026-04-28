@@ -50,7 +50,7 @@ void ToneMapPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void ToneMapPass::execute(const IRenderContext& ctx)
+void ToneMapPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

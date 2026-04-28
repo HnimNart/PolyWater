@@ -38,7 +38,7 @@ public:
   void setup(PassBuilder& builder) override;
 
   // Render Execution
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
