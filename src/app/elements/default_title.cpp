@@ -22,6 +22,7 @@
 #include <GLFW/glfw3.h>
 #undef APIENTRY
 #include <fmt/format.h>
+#include <imgui/imgui.h>
 
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
