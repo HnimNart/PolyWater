@@ -32,17 +32,17 @@
 #include <string>
 
 #if defined(_WIN32)
-#  define WIN32_LEAN_AND_MEAN
-#  include <Windows.h>
-#  include <debugapi.h>
-#  include <io.h>
-#  include <process.h>
-#  define ISATTY _isatty
-#  define FILENO _fileno
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <debugapi.h>
+#include <io.h>
+#include <process.h>
+#define ISATTY _isatty
+#define FILENO _fileno
 #elif defined(__APPLE__) || defined(__linux__) || defined(__unix__)
-#  include <unistd.h>
-#  define ISATTY isatty
-#  define FILENO fileno
+#include <unistd.h>
+#define ISATTY isatty
+#define FILENO fileno
 #endif
 
 #include <fmt/format.h>

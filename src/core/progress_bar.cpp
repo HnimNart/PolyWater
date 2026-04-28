@@ -1,7 +1,8 @@
 #include "progress_bar.hpp"
+
 #include <algorithm>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #include <string>
 
 void ProgressBar::update(uint32_t current, uint32_t total)

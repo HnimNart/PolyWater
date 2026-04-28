@@ -7,15 +7,15 @@
 
 // PerformanceTimer platform headers
 #if defined(_WIN32)
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <Windows.h>
-#  include <realtimeapiset.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#include <realtimeapiset.h>
 #elif defined(__unix__)
-#  include <time.h>
+#include <time.h>
 #else
-#  include <chrono>
+#include <chrono>
 #endif
 
 namespace core
@@ -37,19 +37,19 @@ PerformanceTimer::TimeValue PerformanceTimer::now() const
   return {.ticks_100ns = static_cast<int64_t>(uptime)};
 
 #elif defined(__APPLE__) || defined(__linux__) || defined(__unix__)
-  // POSIX / Apple implementation
+// POSIX / Apple implementation
 
-  // Select the best clock ID for the platform
-#  if defined(__APPLE__)
+// Select the best clock ID for the platform
+#if defined(__APPLE__)
   // On Apple, CLOCK_MONOTONIC includes sleep. CLOCK_UPTIME_RAW is the precise
   // uptime.
   const clockid_t clockID = CLOCK_UPTIME_RAW;
-#  elif defined(CLOCK_MONOTONIC_RAW)
+#elif defined(CLOCK_MONOTONIC_RAW)
   // Linux: MONOTONIC_RAW is preferred to avoid NTP frequency adjustments
   const clockid_t clockID = CLOCK_MONOTONIC_RAW;
-#  else
+#else
   const clockid_t clockID = CLOCK_MONOTONIC;
-#  endif
+#endif
 
   struct timespec tv
   {

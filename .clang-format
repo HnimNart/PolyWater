@@ -19,7 +19,7 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 NamespaceIndentation: None
 IndentCaseLabels: true
 IndentGotoLabels: false
-IndentPPDirectives: AfterHash
+IndentPPDirectives: None
 
 # Spaces
 SpaceAfterCStyleCast: true

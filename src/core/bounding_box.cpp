@@ -18,9 +18,11 @@
  */
 
 #include "bounding_box.hpp"
+
 #include <cassert>
 #include <limits>
 #include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
 

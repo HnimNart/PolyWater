@@ -34,9 +34,9 @@
 #include <tinygltf/json.hpp>
 
 #ifdef _MSC_VER
-#  define SAFE_SSCANF sscanf_s
+#define SAFE_SSCANF sscanf_s
 #else
-#  define SAFE_SSCANF sscanf
+#define SAFE_SSCANF sscanf
 #endif
 
 using nlohmann::json;
@@ -57,9 +57,7 @@ namespace PE = app::PropertyEditor;
 //
 struct CameraPresetManager
 {
-  CameraPresetManager()
-  {
-  }
+  CameraPresetManager() {}
   ~CameraPresetManager(){};
 
   static CameraPresetManager& getInstance()

@@ -20,17 +20,17 @@
 
 #ifdef __unix__
 
-#  define GLFW_INCLUDE_NONE
-#  include <GLFW/glfw3.h>
-#  define GLFW_EXPOSE_NATIVE_X11
-#  include <GLFW/glfw3native.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_X11
+#include <GLFW/glfw3native.h>
 
-#  include <cassert>
-#  include <string>
-#  include <vector>
+#include <cassert>
+#include <string>
+#include <vector>
 
-#  include "file_dialog.hpp"
-#  include "linux_file_dialog/linux_file_dialog.h"
+#include "file_dialog.hpp"
+#include "linux_file_dialog/linux_file_dialog.h"
 
 static void fixSingleFilter(std::string* pFilter);
 

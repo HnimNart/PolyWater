@@ -22,10 +22,10 @@
 #include <GLFW/glfw3.h>
 #include <volk/volk.h>
 #ifdef _WIN32
-#  define WIN32_LEAN_AND_MEAN
-#  undef APIENTRY  // GLFW defines this but Windows tries to redefine it
-#  include <Windows.h>
-#  include <timeapi.h>
+#define WIN32_LEAN_AND_MEAN
+#undef APIENTRY  // GLFW defines this but Windows tries to redefine it
+#include <Windows.h>
+#include <timeapi.h>
 #endif
 
 #include <cassert>

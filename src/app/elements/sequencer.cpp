@@ -18,6 +18,7 @@
  */
 
 #include "sequencer.hpp"
+
 #include "app/Application.hpp"
 
 namespace app

@@ -17,49 +17,49 @@
 
 #if defined(NVML_SUPPORTED)
 
-#  include <fmt/format.h>
+#include <fmt/format.h>
 
-#  include <core/timers.hpp>
+#include <core/timers.hpp>
 
-#  define NVML_NO_UNVERSIONED_FUNC_DEFS
-#  include <nvml.h>
-#  ifdef _WIN32
-#    include <Windows.h>
-// The cfgmgr32 header is necessary for interrogating driver information in the
-// registry.
-#    include <cfgmgr32.h>
-// For convenience the library is also linked in automatically using the #pragma
-// command.
-#    pragma comment(lib, "Cfgmgr32.lib")
-#  endif
+#define NVML_NO_UNVERSIONED_FUNC_DEFS
+#include <nvml.h>
+#ifdef _WIN32
+#include <Windows.h>
+// The cfgmgr32 header is necessary for interrogating driver information in
+// the registry.
+#include <cfgmgr32.h>
+// For convenience the library is also linked in automatically using the
+// #pragma command.
+#pragma comment(lib, "Cfgmgr32.lib")
+#endif
 
-#  define CHECK_NVML_CALL()                                                    \
+#define CHECK_NVML_CALL()                                                      \
+  if (res != NVML_SUCCESS)                                                     \
+  {                                                                            \
+    LOGE("NVML Error %s\n", nvmlErrorString(res));                             \
+  }
+
+#define CHECK_NVML(fun)                                                        \
+  {                                                                            \
+    nvmlReturn_t res = fun;                                                    \
     if (res != NVML_SUCCESS)                                                   \
     {                                                                          \
-      LOGE("NVML Error %s\n", nvmlErrorString(res));                           \
-    }
+      LOGE("NVML Error in %s: %s\n", #fun, nvmlErrorString(res));              \
+    }                                                                          \
+  }
 
-#  define CHECK_NVML(fun)                                                      \
+#define CHECK_NVML_SUPPORT(fun, field)                                         \
+  {                                                                            \
+    nvmlReturn_t res = fun;                                                    \
+    if (res != NVML_SUCCESS)                                                   \
     {                                                                          \
-      nvmlReturn_t res = fun;                                                  \
-      if (res != NVML_SUCCESS)                                                 \
-      {                                                                        \
-        LOGE("NVML Error in %s: %s\n", #fun, nvmlErrorString(res));            \
-      }                                                                        \
-    }
-
-#  define CHECK_NVML_SUPPORT(fun, field)                                       \
+      field.isSupported = false;                                               \
+    }                                                                          \
+    else                                                                       \
     {                                                                          \
-      nvmlReturn_t res = fun;                                                  \
-      if (res != NVML_SUCCESS)                                                 \
-      {                                                                        \
-        field.isSupported = false;                                             \
-      }                                                                        \
-      else                                                                     \
-      {                                                                        \
-        field.isSupported = true;                                              \
-      }                                                                        \
-    }
+      field.isSupported = true;                                                \
+    }                                                                          \
+  }
 
 /**********************************************************/
 static const std::string brandToString(nvmlBrandType_t brand)
@@ -230,7 +230,7 @@ static float getLoad(nvmlDevice_t device)
 static float getCpuLoad()
 /**********************************************************/
 {
-#  ifdef _WIN32
+#ifdef _WIN32
   static uint64_t s_previousTotalTicks = 0;
   static uint64_t s_previousIdleTicks = 0;
 
@@ -259,9 +259,9 @@ static float getCpuLoad()
   s_previousIdleTicks = idleTicks;
 
   return result * 100.f;
-#  else
+#else
   return 0;
-#  endif
+#endif
 }
 
 #endif
@@ -403,14 +403,14 @@ void NvmlMonitor::DeviceInfo::refresh(void* dev)
                          device, NVML_CLOCK_VIDEO, &clockBoostVideo.get()),
                      clockBoostVideo);
 
-#  ifdef _WIN32
+#ifdef _WIN32
   nvmlDriverModel_t currentDM, pendingDM;
   CHECK_NVML_SUPPORT(nvmlDeviceGetDriverModel(device, &currentDM, &pendingDM),
                      currentDriverModel);
   currentDriverModel = (currentDM == NVML_DRIVER_WDDM) ? "WDDM" : "TCC";
   pendingDriverModel = (pendingDM == NVML_DRIVER_WDDM) ? "WDDM" : "TCC";
   pendingDriverModel.isSupported = currentDriverModel.isSupported;
-#  endif
+#endif
 
   nvmlEnableState_t currentES, pendingES;
   CHECK_NVML_SUPPORT(nvmlDeviceGetEccMode(device, &currentES, &pendingES),

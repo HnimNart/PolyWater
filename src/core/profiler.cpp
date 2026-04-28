@@ -804,8 +804,8 @@ void ProfilerTimeline::frameAdvance()
 }
 
 /**********************************************************/
-ProfilerTimeline::ProfilerTimeline(ProfilerManager* profiler,
-                                   const ProfilerTimeline::CreateInfo& createInfo)
+ProfilerTimeline::ProfilerTimeline(
+    ProfilerManager* profiler, const ProfilerTimeline::CreateInfo& createInfo)
 /**********************************************************/
 {
   assert(profiler);
@@ -835,8 +835,9 @@ void ProfilerTimeline::TimeValues::add(double time)
   {
     // Averaging is performed over a window.
     // minus does remove the old value
-    valueTotal += time - times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) %
-                               MAX_LAST_FRAMES];
+    valueTotal +=
+        time -
+        times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) % MAX_LAST_FRAMES];
 
     validCount = std::min(validCount + 1, cycleCount);
   }

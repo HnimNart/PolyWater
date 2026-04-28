@@ -103,7 +103,8 @@ void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo& info)
 /**********************************************************/
 {
   ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags =
+      ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
 
   if (info.headless)
   {

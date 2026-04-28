@@ -1,4 +1,5 @@
 #include "DiscretePdf.hpp"
+
 #include <algorithm>
 #include <numeric>
 

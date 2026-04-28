@@ -20,24 +20,24 @@
 #pragma once
 
 #ifdef __cplusplus
-#  define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
+#define CHECK_STRUCT_ALIGNMENT(_s) static_assert(sizeof(_s) % 8 == 0);
 #elif defined(__SLANG__)
-#  define CHECK_STRUCT_ALIGNMENT(_s)
+#define CHECK_STRUCT_ALIGNMENT(_s)
 #else
-#  define CHECK_STRUCT_ALIGNMENT(_s)
+#define CHECK_STRUCT_ALIGNMENT(_s)
 
 // This is a utility to define a buffer reference in GLSL.
 // Usage: declare the buffer reference type with: BUFFER_REF_DECL(type), where
 // type is the type of the buffer (vec3, float, Material). Then use the buffer
-// reference in the shader with: BUFFER_REF(type, address), where address is the
-// address of the buffer in the shader.
-#  define BUFFER_REF_DECL(_type)                                               \
-    layout(buffer_reference, scalar) buffer _type##Buffer                      \
-    {                                                                          \
-      _type o[];                                                               \
-    };
+// reference in the shader with: BUFFER_REF(type, address), where address is
+// the address of the buffer in the shader.
+#define BUFFER_REF_DECL(_type)                                                 \
+  layout(buffer_reference, scalar) buffer _type##Buffer                        \
+  {                                                                            \
+    _type o[];                                                                 \
+  };
 
-#  define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
+#define BUFFER_REF(_type, _addr) _type##Buffer(_addr).o
 
 #endif
 

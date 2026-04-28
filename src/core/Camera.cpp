@@ -28,9 +28,9 @@
 #include <iostream>
 
 #ifdef _MSC_VER
-#  define SAFE_SSCANF sscanf_s
+#define SAFE_SSCANF sscanf_s
 #else
-#  define SAFE_SSCANF sscanf
+#define SAFE_SSCANF sscanf
 #endif
 
 namespace core

@@ -1,8 +1,7 @@
 #include "Application.hpp"
 
-#include <volk/volk.h>
-
 #include <fmt/ranges.h>
+#include <volk/volk.h>
 #define NVLOGGER_ENABLE_FMT
 #include <utility>
 

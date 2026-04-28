@@ -27,11 +27,11 @@
 #include "check_error.hpp"
 
 #ifdef _WIN32
-#  define WIN32_LEAN_AND_MEAN
-#  include <Windows.h>
-#  include <debugapi.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <debugapi.h>
 #elif defined(__unix__)
-#  include <signal.h>
+#include <signal.h>
 #endif
 
 nvvk::ResourceAllocator::ResourceAllocator(ResourceAllocator&& other) noexcept

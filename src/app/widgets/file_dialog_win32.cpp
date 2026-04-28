@@ -19,20 +19,20 @@
 
 #ifdef _WIN32
 
-#  include <shlobj.h>
-#  include <wrl.h>  // Microsoft::WRL::ComPtr
+#include <shlobj.h>
+#include <wrl.h>  // Microsoft::WRL::ComPtr
 
-#  include <cassert>
-#  include <filesystem>
+#include <cassert>
+#include <filesystem>
 
-#  define GLFW_INCLUDE_NONE
-#  include <GLFW/glfw3.h>
-#  define GLFW_EXPOSE_NATIVE_WIN32
-#  include <GLFW/glfw3native.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
-#  include <core/file_operations.hpp>
+#include <core/file_operations.hpp>
 
-#  include "file_dialog.hpp"
+#include "file_dialog.hpp"
 
 // Unified dialog mode enum (should match header)
 enum class DialogMode

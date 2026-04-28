@@ -1,4 +1,5 @@
 #include "IRenderGraph.hpp"
+
 #include <iostream>
 
 void RenderGraph::addPass(std::unique_ptr<IRenderPass> pass)

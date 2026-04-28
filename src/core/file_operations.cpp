@@ -18,20 +18,20 @@
  */
 
 #ifdef _WIN32
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  ifndef NOMINMAX
-#    define NOMINMAX
-#  endif
-#  include <libloaderapi.h>  // GetModuleFileNameA
-#  include <stringapiset.h>  // WideChartoMultiByte
-#  include <windows.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <libloaderapi.h>  // GetModuleFileNameA
+#include <stringapiset.h>  // WideChartoMultiByte
+#include <windows.h>
 #else
-#  include <limits.h>     // PATH_MAX
-#  include <strings.h>    // strcasecmp
-#  include <sys/types.h>  // ssize_t
-#  include <unistd.h>     // readlink
+#include <limits.h>     // PATH_MAX
+#include <strings.h>    // strcasecmp
+#include <sys/types.h>  // ssize_t
+#include <unistd.h>     // readlink
 #endif
 
 #include <fstream>
