@@ -41,9 +41,15 @@ public:
   {
     m_finalStates[resource] = {state, stage};
   }
-  const auto& getFinalStates() const { return m_finalStates; }
+  const auto& getFinalStates() const
+  {
+    return m_finalStates;
+  }
 
-  const std::vector<ResourceUsage>& getUsages() const { return m_usages; }
+  const std::vector<ResourceUsage>& getUsages() const
+  {
+    return m_usages;
+  }
 
 private:
   std::vector<ResourceUsage> m_usages;

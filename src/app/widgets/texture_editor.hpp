@@ -12,11 +12,13 @@
 namespace app
 {
 
+/**********************************************************/
 template <typename ImageType>
 void renderTextureItem(const std::string& name, const ImageType& image,
                        const std::string& searchStr,
                        const std::shared_ptr<IDeviceAssets>& deviceResources,
                        TextureID& textureToDelete)
+/**********************************************************/
 {
   if (!image.isValid())
     return;
@@ -118,8 +120,10 @@ void renderTextureItem(const std::string& name, const ImageType& image,
   }
 }
 
+/**********************************************************/
 bool textureEditor(SceneResourcesManager& resourceManager,
                    const std::shared_ptr<IDeviceAssets>& deviceResources)
+/**********************************************************/
 {
 
   const auto& textureMap = resourceManager.textureImageMap();

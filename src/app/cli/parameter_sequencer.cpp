@@ -24,8 +24,10 @@
 namespace app::cli
 {
 
+/**********************************************************/
 void ParameterSequencer::InitInfo::registerScriptParameters(
     ParameterRegistry& registry, ParameterParser& parser)
+/**********************************************************/
 {
   parser.add(registry.add({.name = "sequencefile",
                            .help = "filename for text file containing "
@@ -37,7 +39,9 @@ void ParameterSequencer::InitInfo::registerScriptParameters(
       &scriptContent));
 }
 
+/**********************************************************/
 bool ParameterSequencer::init(const InitInfo& info)
+/**********************************************************/
 {
   m_info = info;
 
@@ -91,7 +95,9 @@ bool ParameterSequencer::init(const InitInfo& info)
   return true;
 }
 
+/**********************************************************/
 bool ParameterSequencer::prepareFrame()
+/**********************************************************/
 {
   if (m_completed)
     return true;

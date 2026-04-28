@@ -75,7 +75,10 @@ public:
 
   // Prints successfully parsed parameter details or errors via `Logger::eINFO`
   // and `Logger::eERROR`
-  void setVerbose(bool verbose) { m_verbose = verbose; }
+  void setVerbose(bool verbose)
+  {
+    m_verbose = verbose;
+  }
 
   // Prints the help string to `Logger::eINFO`
   void printHelp() const;

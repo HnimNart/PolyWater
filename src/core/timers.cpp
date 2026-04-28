@@ -24,7 +24,9 @@ namespace core
 //-------------------------------------------------------------------------------------------------
 // PerformanceTimer
 
+/**********************************************************/
 PerformanceTimer::TimeValue PerformanceTimer::now() const
+/**********************************************************/
 {
 #if defined(_WIN32)
   // Windows implementation
@@ -67,10 +69,38 @@ PerformanceTimer::TimeValue PerformanceTimer::now() const
 #endif
 }
 
+/**********************************************************/
+double PerformanceTimer::getSeconds() const
+/**********************************************************/
+{
+#if defined(__unix__) || defined(__APPLE__)
+  const TimeValue t = now();
+
+  // 1. Calculate integer differences
+  int64_t diff_s = t.seconds - m_start.seconds;
+  int64_t diff_ns = t.nanoseconds - m_start.nanoseconds;
+
+  // 2. Handle the "borrow" if nanoseconds wrapped around
+  if (diff_ns < 0)
+  {
+    diff_s -= 1;
+    diff_ns += 1000000000LL;
+  }
+
+  // 3. Convert to double only at the very last step
+  return static_cast<double>(diff_s) + (static_cast<double>(diff_ns) * 1e-9);
+#else
+  const int64_t delta = now().ticks_100ns - m_start.ticks_100ns;
+  return delta >= 0 ? static_cast<double>(delta) * 1e-7 : 0.;
+#endif
+}
+
 //-------------------------------------------------------------------------------------------------
 // ScopedTimer
 
+/**********************************************************/
 ScopedTimer::ScopedTimer(const char* fmt, ...)
+/**********************************************************/
 {
   std::string str(256, '\0');  // initial guess. ideally the first try fits
   va_list args1, args2;
@@ -88,12 +118,16 @@ ScopedTimer::ScopedTimer(const char* fmt, ...)
   init_(str);
 }
 
+/**********************************************************/
 ScopedTimer::ScopedTimer(const std::string& str)
+/**********************************************************/
 {
   init_(str);
 }
 
+/**********************************************************/
 void ScopedTimer::init_(const std::string& str)
+/**********************************************************/
 {
   // If nesting timers, break the newline of the previous one
   if (s_openNewline)
@@ -116,7 +150,9 @@ void ScopedTimer::init_(const std::string& str)
   ++s_nesting;
 }
 
+/**********************************************************/
 ScopedTimer::~ScopedTimer()
+/**********************************************************/
 {
   --s_nesting;
   // If nesting timers and this is the second destructor in a row, indent and
@@ -131,6 +167,16 @@ ScopedTimer::~ScopedTimer()
   }
   LOGSTATS("-> %.3f ms\n", m_timer.getMilliseconds());
   s_openNewline = false;
+}
+
+/**********************************************************/
+std::string ScopedTimer::indent()
+/**********************************************************/
+{
+  std::string result(static_cast<size_t>(s_nesting * 2), ' ');
+  for (int i = 0; i < s_nesting * 2; i += 2)
+    result[i] = '|';
+  return result;
 }
 
 }  // namespace core

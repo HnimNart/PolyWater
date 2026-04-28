@@ -58,7 +58,8 @@ public:
 
   //
 
-  void setGeometryPicker(std::shared_ptr<app::GeometryPickerElement> picker) {
+  void setGeometryPicker(std::shared_ptr<app::GeometryPickerElement> picker)
+  {
     m_geometryPicker = std::move(picker);
   }
 

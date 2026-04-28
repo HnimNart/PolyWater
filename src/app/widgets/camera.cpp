@@ -57,7 +57,9 @@ namespace PE = app::PropertyEditor;
 //
 struct CameraPresetManager
 {
-  CameraPresetManager() {}
+  CameraPresetManager()
+  {
+  }
   ~CameraPresetManager(){};
 
   static CameraPresetManager& getInstance()
@@ -291,7 +293,9 @@ struct CameraPresetManager
 static float s_buttonSpacing = 4.0f;
 
 // Calls PropertyEditor::begin() and sets the second column to auto-stretch.
+/**********************************************************/
 static bool PeBeginAutostretch(const char* label)
+/**********************************************************/
 {
   if (!PE::begin(label, ImGuiTableFlags_SizingFixedFit))
     return false;
@@ -303,8 +307,10 @@ static bool PeBeginAutostretch(const char* label)
 //--------------------------------------------------------------------------------------------------
 // Quick Actions Bar with icon buttons
 //
+/**********************************************************/
 static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
                             core::CameraManipulator::Camera& camera)
+/**********************************************************/
 {
   bool changed = false;
 
@@ -389,8 +395,10 @@ static bool QuickActionsBar(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Camera Presets Grid with icons
 //
+/**********************************************************/
 static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
                            core::CameraManipulator::Camera& camera)
+/**********************************************************/
 {
   bool changed = false;
 
@@ -454,7 +462,9 @@ static bool PresetsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 // Navigation Settings Section: Mode (examine, fly, walk), Speed
 //
 static bool
+/**********************************************************/
 NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM)
+/**********************************************************/
 {
   bool changed = false;
 
@@ -530,9 +540,11 @@ NavigationSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM)
 //--------------------------------------------------------------------------------------------------
 // Camera Position Section : Eye, Center, Up vectors
 //
+/**********************************************************/
 static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
                             core::CameraManipulator::Camera& camera,
                             ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+/**********************************************************/
 {
   bool changed = false;
 
@@ -565,9 +577,11 @@ static bool PositionSection(std::shared_ptr<core::CameraManipulator> cameraM,
 // Projection Settings Section: field of view, Z-clip planes
 //
 static bool
+/**********************************************************/
 ProjectionSettingsSection(std::shared_ptr<core::CameraManipulator> cameraManip,
                           core::CameraManipulator::Camera& camera,
                           ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+/**********************************************************/
 {
   bool changed = false;
   if (ImGui::TreeNodeEx("Projection", flag))
@@ -599,9 +613,11 @@ ProjectionSettingsSection(std::shared_ptr<core::CameraManipulator> cameraManip,
 // Advanced Settings Section : Up vector (Y-up, Z-up), animation transition time
 //
 static bool
+/**********************************************************/
 OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
                      core::CameraManipulator::Camera& camera,
                      ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None)
+/**********************************************************/
 {
   bool changed = false;
   if (ImGui::TreeNodeEx("Other", flag))
@@ -648,8 +664,10 @@ OtherSettingsSection(std::shared_ptr<core::CameraManipulator> cameraM,
 //--------------------------------------------------------------------------------------------------
 // Unified camera widget: position, presets, navigation settings
 //
+/**********************************************************/
 bool app::cameraWidget(std::shared_ptr<core::CameraManipulator>& cameraManip,
                        bool embed, CameraWidgetSections openSections)
+/**********************************************************/
 {
   assert(cameraManip && "CameraManipulator is not set");
 
@@ -716,17 +734,23 @@ bool app::cameraWidget(std::shared_ptr<core::CameraManipulator>& cameraManip,
   return changed || instantChanged;
 }
 
+/**********************************************************/
 void app::setCameraJsonFile(const std::filesystem::path& filename)
+/**********************************************************/
 {
   CameraPresetManager::getInstance().setCameraJsonFile(filename);
 }
 
+/**********************************************************/
 void app::setHomeCamera(const core::CameraManipulator::Camera& camera)
+/**********************************************************/
 {
   CameraPresetManager::getInstance().setHomeCamera(camera);
 }
 
+/**********************************************************/
 void app::addCamera(const core::CameraManipulator::Camera& camera)
+/**********************************************************/
 {
   CameraPresetManager::getInstance().addCamera(camera);
 }

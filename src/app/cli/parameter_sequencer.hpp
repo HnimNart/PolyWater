@@ -117,7 +117,10 @@ public:
   bool init(const InitInfo& initInfo);
 
   // The user must continue to generate frames until this is true
-  bool isCompleted() const { return m_completed; }
+  bool isCompleted() const
+  {
+    return m_completed;
+  }
 
   // The main function to call every frame while the sequencer wasn't completed.
   // This function triggers the parameter parsing of the next sequence within

@@ -53,15 +53,27 @@ public:
   {
     m_options.push_back(option);
   }
-  void clearOptions() { m_options.clear(); }
-  std::vector<slang::CompilerOptionEntry>& options() { return m_options; }
+  void clearOptions()
+  {
+    m_options.clear();
+  }
+  std::vector<slang::CompilerOptionEntry>& options()
+  {
+    return m_options;
+  }
 
   void addTarget(const slang::TargetDesc& target)
   {
     m_targets.push_back(target);
   }
-  void clearTargets() { m_targets.clear(); }
-  std::vector<slang::TargetDesc>& targets() { return m_targets; }
+  void clearTargets()
+  {
+    m_targets.clear();
+  }
+  std::vector<slang::TargetDesc>& targets()
+  {
+    return m_targets;
+  }
 
   void addSearchPaths(const std::vector<std::filesystem::path>& searchPaths);
   void clearSearchPaths();
@@ -75,8 +87,14 @@ public:
   {
     m_macros.push_back(macro);
   }
-  void clearMacros() { m_macros.clear(); }
-  std::vector<slang::PreprocessorMacroDesc>& macros() { return m_macros; }
+  void clearMacros()
+  {
+    m_macros.clear();
+  }
+  std::vector<slang::PreprocessorMacroDesc>& macros()
+  {
+    return m_macros;
+  }
 
   // Compile a file or source
   bool compileFile(const std::filesystem::path& filename);
@@ -151,7 +169,10 @@ public:
                                    const std::span<const uint32_t>& spirv = {},
                                    bool useCache = true);
 
-  void clearCache() { m_binaryCacheMap.clear(); }
+  void clearCache()
+  {
+    m_binaryCacheMap.clear();
+  }
 
   // Delete Copy/Move to enforce Singleton uniqueness
   SlangCompiler(const SlangCompiler&) = delete;

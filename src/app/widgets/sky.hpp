@@ -29,10 +29,12 @@ namespace app
 {
 
 inline bool
+/**********************************************************/
 skySimpleParametersUI(shaderio::SkySimpleParameters& params,
                       const char* label = "PE::Table",
                       ImGuiTableFlags flag = ImGuiTableFlags_BordersOuter |
                                              ImGuiTableFlags_Resizable)
+/**********************************************************/
 {
   namespace PE = app::PropertyEditor;
 
@@ -83,7 +85,9 @@ skySimpleParametersUI(shaderio::SkySimpleParameters& params,
   return changed;
 }
 
+/**********************************************************/
 inline bool skyPhysicalParameterUI(shaderio::SkyPhysicalParameters& params)
+/**********************************************************/
 {
   namespace PE = app::PropertyEditor;
   bool changed{false};

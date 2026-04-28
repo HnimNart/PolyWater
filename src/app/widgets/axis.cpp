@@ -154,10 +154,40 @@ struct AxisGeom
   }
 };
 
-void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
+/**********************************************************/
+void app::drawAxis(const glm::mat4& modelView, float size /*= 50.f*/)
+/**********************************************************/
 {
-  static AxisGeom a;
+  ImVec2 windowPos = ImGui::GetWindowPos();
+  ImVec2 windowSize = ImGui::GetWindowSize();
+  float dpiScale = ImGui::GetWindowDpiScale();
 
+  // 1. Strip translation and scale to make it FOV/Distance independent
+  // We only care about how the camera is oriented.
+  glm::mat3 rotationPart = glm::mat3(modelView);
+
+  // Normalize the basis vectors to remove any scaling/zoom from the matrix
+  rotationPart[0] = glm::normalize(rotationPart[0]);
+  rotationPart[1] = glm::normalize(rotationPart[1]);
+  rotationPart[2] = glm::normalize(rotationPart[2]);
+
+  glm::mat4 pureRotationMatrix = glm::mat4(rotationPart);
+
+  // 2. Padding and Position Calculation
+  float scaledSize = size * dpiScale;
+  ImVec2 offset = ImVec2(scaledSize * 1.5f, scaledSize * 1.5f);
+
+  ImVec2 pos = ImVec2(windowPos.x + windowSize.x - offset.x,
+                      windowPos.y + windowSize.y - offset.y);
+
+  // 3. Draw using the pure rotation
+  Axis(pos, pureRotationMatrix, scaledSize);
+}
+
+/**********************************************************/
+void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
+/**********************************************************/
+{
   struct Arrow
   {
     std::vector<glm::vec3> v;
@@ -166,6 +196,7 @@ void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
 
   size *= ImGui::GetWindowDpiScale();
 
+  static AxisGeom a;
   std::array<Arrow, 3> arrow;
   arrow[0].v = a.transform(a.red, pos, modelView, size);
   arrow[0].c = IM_COL32(200, 0, 0, 255);

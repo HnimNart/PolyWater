@@ -20,7 +20,9 @@ private:
 
 public:
 <<<<<<< HEAD
+  /**********************************************************/
   void insert(const TLeft& left, const TRight& right)
+  /**********************************************************/
   {
 =======
   void insert(const TLeft &left, const TRight &right) {

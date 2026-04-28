@@ -27,10 +27,12 @@
 namespace app::cli
 {
 
+/**********************************************************/
 ParameterBase* ParameterRegistry::addNewBase(const ParameterBase::Info& info,
                                              ParameterBase::Type type,
                                              uint32_t argCount,
                                              void* destination)
+/**********************************************************/
 {
   ParameterBase* parameter = new ParameterBase;
   m_parameters.push_back(parameter);
@@ -51,8 +53,10 @@ ParameterBase* ParameterRegistry::addNewBase(const ParameterBase::Info& info,
   return parameter;
 }
 
+/**********************************************************/
 const Parameter<bool>* ParameterRegistry::add(const ParameterBase::Info& info,
                                               bool* destination)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::BOOL8, 1, destination);
@@ -60,8 +64,10 @@ const Parameter<bool>* ParameterRegistry::add(const ParameterBase::Info& info,
   return static_cast<Parameter<bool>*>(parameter);
 }
 
+/**********************************************************/
 const Parameter<bool>* ParameterRegistry::add(const ParameterBase::Info& info,
                                               bool* destination, bool value)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::BOOL8_TRIGGER, 0, destination);
@@ -72,9 +78,11 @@ const Parameter<bool>* ParameterRegistry::add(const ParameterBase::Info& info,
 }
 
 const Parameter<float>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info, float* destination,
                        float minValue /*= std::numeric_limits<float>::min*/,
                        float maxValue /*= std::numeric_limits<float>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::FLOAT32, 1, destination);
@@ -86,9 +94,11 @@ ParameterRegistry::add(const ParameterBase::Info& info, float* destination,
 }
 
 const Parameter<int8_t>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info, int8_t* destination,
                        int8_t minValue /*= std::numeric_limits<int8_t>::min*/,
                        int8_t maxValue /*= std::numeric_limits<int8_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::INT8, 1, destination);
@@ -100,9 +110,11 @@ ParameterRegistry::add(const ParameterBase::Info& info, int8_t* destination,
 }
 
 const Parameter<int16_t>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info, int16_t* destination,
                        int16_t minValue /*= std::numeric_limits<int16_t>::min*/,
                        int16_t maxValue /*= std::numeric_limits<int16_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::INT16, 1, destination);
@@ -114,9 +126,11 @@ ParameterRegistry::add(const ParameterBase::Info& info, int16_t* destination,
 }
 
 const Parameter<int32_t>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info, int32_t* destination,
                        int32_t minValue /*= std::numeric_limits<int32_t>::min*/,
                        int32_t maxValue /*= std::numeric_limits<int32_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::INT32, 1, destination);
@@ -128,9 +142,11 @@ ParameterRegistry::add(const ParameterBase::Info& info, int32_t* destination,
 }
 
 const Parameter<uint8_t>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info, uint8_t* destination,
                        uint8_t minValue /*= std::numeric_limits<uint8_t>::min*/,
                        uint8_t maxValue /*= std::numeric_limits<uint8_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::UINT8, 1, destination);
@@ -141,10 +157,12 @@ ParameterRegistry::add(const ParameterBase::Info& info, uint8_t* destination,
   return static_cast<Parameter<uint8_t>*>(parameter);
 }
 
+/**********************************************************/
 const Parameter<uint16_t>* ParameterRegistry::add(
     const ParameterBase::Info& info, uint16_t* destination,
     uint16_t minValue /*= std::numeric_limits<uint16_t>::min*/,
     uint16_t maxValue /*= std::numeric_limits<uint16_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::UINT16, 1, destination);
@@ -155,10 +173,12 @@ const Parameter<uint16_t>* ParameterRegistry::add(
   return static_cast<Parameter<uint16_t>*>(parameter);
 }
 
+/**********************************************************/
 const Parameter<uint32_t>* ParameterRegistry::add(
     const ParameterBase::Info& info, uint32_t* destination,
     uint32_t minValue /*= std::numeric_limits<uint32_t>::min*/,
     uint32_t maxValue /*= std::numeric_limits<uint32_t>::max*/)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::UINT32, 1, destination);
@@ -169,9 +189,11 @@ const Parameter<uint32_t>* ParameterRegistry::add(
   return static_cast<Parameter<uint32_t>*>(parameter);
 }
 
+/**********************************************************/
 const ParameterBase* ParameterRegistry::addArray(
     const ParameterBase::Info& info, uint32_t arrayLength, float* destination,
     const float* minValues /*= nullptr*/, const float* maxValues /*= nullptr*/)
+/**********************************************************/
 {
   assert(arrayLength <= ParameterBase::MAX_ARRAY_LENGTH);
 
@@ -189,10 +211,12 @@ const ParameterBase* ParameterRegistry::addArray(
 }
 
 const ParameterBase*
+/**********************************************************/
 ParameterRegistry::addArray(const ParameterBase::Info& info,
                             uint32_t arrayLength, int32_t* destination,
                             const int32_t* minValues /*= nullptr*/,
                             const int32_t* maxValues /*= nullptr*/)
+/**********************************************************/
 {
   assert(arrayLength <= ParameterBase::MAX_ARRAY_LENGTH);
 
@@ -210,10 +234,12 @@ ParameterRegistry::addArray(const ParameterBase::Info& info,
 }
 
 const ParameterBase*
+/**********************************************************/
 ParameterRegistry::addArray(const ParameterBase::Info& info,
                             uint32_t arrayLength, uint32_t* destination,
                             const uint32_t* minValues /*= nullptr*/,
                             const uint32_t* maxValues /*= nullptr*/)
+/**********************************************************/
 {
   assert(arrayLength <= ParameterBase::MAX_ARRAY_LENGTH);
 
@@ -231,8 +257,10 @@ ParameterRegistry::addArray(const ParameterBase::Info& info,
 }
 
 const Parameter<std::string>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info,
                        std::string* destination)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::STRING, 1, destination);
@@ -241,8 +269,10 @@ ParameterRegistry::add(const ParameterBase::Info& info,
 }
 
 const Parameter<std::filesystem::path>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info,
                        std::filesystem::path* destination)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::FILENAME, 1, destination);
@@ -251,9 +281,11 @@ ParameterRegistry::add(const ParameterBase::Info& info,
 }
 
 const Parameter<std::filesystem::path>*
+/**********************************************************/
 ParameterRegistry::add(const ParameterBase::Info& info,
                        const std::vector<std::string>& extensions,
                        std::filesystem::path* destination)
+/**********************************************************/
 {
   ParameterBase* parameter =
       addNewBase(info, ParameterBase::Type::FILENAME, 1, destination);
@@ -263,9 +295,11 @@ ParameterRegistry::add(const ParameterBase::Info& info,
 }
 
 const ParameterBase*
+/**********************************************************/
 ParameterRegistry::addCustom(const ParameterBase::Info& info, uint32_t argCount,
                              ParameterBase::CallbackCustom custom,
                              const std::vector<std::string>& extensions)
+/**********************************************************/
 {
   assert(extensions.empty() || argCount == 1);
 
@@ -277,7 +311,9 @@ ParameterRegistry::addCustom(const ParameterBase::Info& info, uint32_t argCount,
   return parameter;
 }
 
+/**********************************************************/
 ParameterRegistry::~ParameterRegistry()
+/**********************************************************/
 {
   for (auto& it : m_parameters)
   {

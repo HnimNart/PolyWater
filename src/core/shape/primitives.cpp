@@ -27,13 +27,16 @@
 #include <unordered_set>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "hash_operations.hpp"
 #include "primitives.hpp"
 
 namespace core
 {
+/**********************************************************/
 static uint32_t addPos(PrimitiveMesh& mesh, glm::vec3 p)
+/**********************************************************/
 {
   PrimitiveVertex v{};
   v.pos = p;
@@ -41,19 +44,25 @@ static uint32_t addPos(PrimitiveMesh& mesh, glm::vec3 p)
   return static_cast<uint32_t>(mesh.vertices.size()) - 1;
 }
 
+/**********************************************************/
 static void addTriangle(PrimitiveMesh& mesh, uint32_t a, uint32_t b, uint32_t c)
+/**********************************************************/
 {
   mesh.triangles.push_back({{a, b, c}});
 }
 
+/**********************************************************/
 static void addTriangle(PrimitiveMesh& mesh, glm::vec3 a, glm::vec3 b,
                         glm::vec3 c)
+/**********************************************************/
 {
   mesh.triangles.push_back(
       {{addPos(mesh, a), addPos(mesh, b), addPos(mesh, c)}});
 }
 
+/**********************************************************/
 static void generateFacetedNormals(PrimitiveMesh& mesh)
+/**********************************************************/
 {
   auto num_indices = static_cast<int>(mesh.triangles.size());
   for (int i = 0; i < num_indices; i++)
@@ -72,7 +81,9 @@ static void generateFacetedNormals(PrimitiveMesh& mesh)
 }
 
 // Function to generate texture coordinates
+/**********************************************************/
 static void generateTexCoords(PrimitiveMesh& mesh)
+/**********************************************************/
 {
   for (auto& vertex : mesh.vertices)
   {
@@ -84,7 +95,9 @@ static void generateTexCoords(PrimitiveMesh& mesh)
 }
 
 // Generates a tetrahedron mesh (four triangular faces)
+/**********************************************************/
 PrimitiveMesh createTetrahedron()
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -113,7 +126,9 @@ PrimitiveMesh createTetrahedron()
 }
 
 // Generates an icosahedron mesh (twenty equilateral triangular faces)
+/**********************************************************/
 PrimitiveMesh createIcosahedron()
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -166,7 +181,9 @@ PrimitiveMesh createIcosahedron()
 
 // Generates an octahedron mesh (eight faces), this is like two four-sided
 // pyramids placed base to base.
+/**********************************************************/
 PrimitiveMesh createOctahedron()
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -198,7 +215,9 @@ PrimitiveMesh createOctahedron()
 // subdivisions (steps) in both the X and Z directions. It creates vertices,
 // normals, and texture coordinates for each point on the grid and forms
 // triangles to create the plane's surface.
+/**********************************************************/
 PrimitiveMesh createPlane(int steps, float width, float depth)
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -237,8 +256,10 @@ PrimitiveMesh createPlane(int steps, float width, float depth)
 // Generates a cube mesh with the specified width, height, and depth
 // Start with 8 vertex, 6 normal and 4 uv, then 12 triangles and 24
 // unique PrimitiveVertex
+/**********************************************************/
 PrimitiveMesh createCube(float width /*= 1*/, float height /*= 1*/,
                          float depth /*= 1*/)
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -274,7 +295,9 @@ PrimitiveMesh createCube(float width /*= 1*/, float height /*= 1*/,
 // (horizontal subdivisions) and stacks (vertical subdivisions). It uses
 // latitude-longitude grid generation to create vertices with proper positions,
 // normals, and texture coordinates.
+/**********************************************************/
 PrimitiveMesh createSphereUv(float radius, int sectors, int stacks)
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -356,7 +379,9 @@ PrimitiveMesh createSphereUv(float radius, int sectors, int stacks)
 // radius   :Adjust this to change the size of the cone
 // height   :Adjust this to change the height of the cone
 // segments :Adjust this for the number of segments forming the base circle
+/**********************************************************/
 PrimitiveMesh createConeMesh(float radius, float height, int segments)
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -452,7 +477,9 @@ PrimitiveMesh createConeMesh(float radius, float height, int segments)
 // coordinates for each vertex and constructs triangles accordingly. Note: There
 // will be duplicated vertices with this method.
 //       Use removeDuplicateVertices to avoid duplicated vertices.
+/**********************************************************/
 PrimitiveMesh createSphereMesh(float radius, int subdivisions)
+/**********************************************************/
 {
 
   const float t = (1.0F + std::sqrt(5.0F)) / 2.0F;  // Golden ratio
@@ -536,8 +563,10 @@ PrimitiveMesh createSphereMesh(float radius, int subdivisions)
 // number of segments used to approximate the larger circle that forms the
 // torus. minorSegments: The number of segments used to approximate the smaller
 // circle (tube) within the torus.
+/**********************************************************/
 PrimitiveMesh createTorusMesh(float majorRadius, float minorRadius,
                               int majorSegments, int minorSegments)
+/**********************************************************/
 {
   PrimitiveMesh mesh;
 
@@ -588,7 +617,9 @@ PrimitiveMesh createTorusMesh(float majorRadius, float minorRadius,
 // Create a vector of nodes that represent the Menger Sponge
 // Nodes have a different translation and scale, which can be used with
 // different objects.
+/**********************************************************/
 std::vector<Node> mengerSpongeNodes(int level, float probability, int seed)
+/**********************************************************/
 {
   std::mt19937 rng(seed);
   std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -689,7 +720,9 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed)
 //-------------------------------------------------------------------------------------------------
 // Create a list of nodes where the seeds have the position similar as in a sun
 // flower and the seeds grow slightly the further they are from the center.
+/**********************************************************/
 std::vector<Node> sunflower(int seeds)
+/**********************************************************/
 {
   constexpr double goldenRatio = glm::golden_ratio<double>();
 
@@ -713,8 +746,10 @@ std::vector<Node> sunflower(int seeds)
 // Merge all nodes meshes into a single one
 // - nodes: the nodes to merge
 // - meshes: the mesh array that the nodes is referring to
+/**********************************************************/
 PrimitiveMesh mergeNodes(const std::vector<Node>& nodes,
                          const std::vector<PrimitiveMesh> meshes)
+/**********************************************************/
 {
   PrimitiveMesh resultMesh;
 
@@ -756,7 +791,9 @@ PrimitiveMesh mergeNodes(const std::vector<Node>& nodes,
 // displacements within a specified `amplitude` range to create a wobbling
 // effect. The intensity of the wobbling effect can be controlled by adjusting
 // the `amplitude` parameter. The function returns the modified mesh.
+/**********************************************************/
 PrimitiveMesh wobblePrimitive(const PrimitiveMesh& mesh, float amplitude)
+/**********************************************************/
 {
   // Seed the random number generator with a random device
   std::random_device rd;
@@ -788,8 +825,10 @@ PrimitiveMesh wobblePrimitive(const PrimitiveMesh& mesh, float amplitude)
 // vertices in uniqueVertices. We use an unordered_map called vertexIndexMap to
 // keep track of the mapping between the original vertices and their
 // corresponding indices in the uniqueVertices vector.
+/**********************************************************/
 PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
                                       bool testNormal, bool testUv)
+/**********************************************************/
 {
   auto hash = [&](const PrimitiveVertex& v)
   {
@@ -847,5 +886,13 @@ PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
   // uniqueVertices.size(), uniqueTriangles.size());
 
   return {std::move(uniqueVertices), std::move(uniqueTriangles)};
+glm::mat4 Node::localMatrix() const
+{
+  glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
+  glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
+  glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+  glm::mat4 combinedMatrix =
+      translationMatrix * rotationMatrix * scaleMatrix * matrix;
+  return combinedMatrix;
 }
 }  // namespace core

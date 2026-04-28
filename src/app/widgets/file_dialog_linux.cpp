@@ -34,7 +34,9 @@
 
 static void fixSingleFilter(std::string* pFilter);
 
+/**********************************************************/
 static std::vector<std::string> toFilterArgs(const char* exts)
+/**********************************************************/
 {
   // Convert exts list to filter format recognized by portable-file-dialogs
   // Try to match implemented nvpsystem on Windows behavior:
@@ -90,7 +92,9 @@ static std::vector<std::string> toFilterArgs(const char* exts)
   return filterArgs;
 }
 
+/**********************************************************/
 static void fixSingleFilter(std::string* pFilter)
+/**********************************************************/
 {
   // Make case insensitive.
   std::string newFilter;
@@ -113,17 +117,21 @@ static void fixSingleFilter(std::string* pFilter)
   *pFilter = std::move(newFilter);
 }
 
+/**********************************************************/
 std::filesystem::path app::windowOpenFileDialog(struct GLFWwindow* glfwin,
                                                 const char* title,
                                                 const char* exts)
+/**********************************************************/
 {
   std::filesystem::path initialDir;
   return windowOpenFileDialog(glfwin, title, exts, initialDir);
 }
 
 std::filesystem::path
+/**********************************************************/
 app::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title,
                           const char* exts, std::filesystem::path& initialDir)
+/**********************************************************/
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
@@ -145,9 +153,11 @@ app::windowOpenFileDialog(struct GLFWwindow* glfwin, const char* title,
   return result;
 }
 
+/**********************************************************/
 std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow* glfwin,
                                                 const char* title,
                                                 const char* exts)
+/**********************************************************/
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);
@@ -156,8 +166,10 @@ std::filesystem::path app::windowSaveFileDialog(struct GLFWwindow* glfwin,
   return save_file(title, ".", filterArgs).result();
 }
 
+/**********************************************************/
 std::filesystem::path app::windowOpenFolderDialog(struct GLFWwindow* glfwin,
                                                   const char* title)
+/**********************************************************/
 {
   // Not sure yet how to use this; maybe make as a child window somehow?
   [[maybe_unused]] Window hwnd = glfwGetX11Window(glfwin);

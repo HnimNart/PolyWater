@@ -28,7 +28,9 @@ namespace core
 {
 namespace PE = app::PropertyEditor;
 
+/**********************************************************/
 bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
+/**********************************************************/
 {
   bool changed{false};
 

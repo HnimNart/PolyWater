@@ -37,7 +37,9 @@ namespace core
 {
 
 //--------------------------------------------------------------------------------------------------
+/**********************************************************/
 CameraManipulator::CameraManipulator()
+/**********************************************************/
 {
   updateLookatMatrix();
 }
@@ -45,7 +47,9 @@ CameraManipulator::CameraManipulator()
 //--------------------------------------------------------------------------------------------------
 // Set the new camera as a goal
 // instantSet = true will not interpolate to the new position
+/**********************************************************/
 void CameraManipulator::setCamera(Camera camera, bool instantSet /*=true*/)
+/**********************************************************/
 {
   m_animDone = true;
 
@@ -68,16 +72,20 @@ void CameraManipulator::setCamera(Camera camera, bool instantSet /*=true*/)
 // Creates a viewing matrix derived from an eye point, a reference point
 // indicating the center of the scene, and an up vector
 //
+/**********************************************************/
 void CameraManipulator::setLookat(const glm::vec3& eye, const glm::vec3& center,
                                   const glm::vec3& up, bool instantSet)
+/**********************************************************/
 {
   setCamera({eye, center, up, m_current.fov, m_current.clip}, instantSet);
 }
 
 //-----------------------------------------------------------------------------
 // Get the current camera's look-at parameters.
+/**********************************************************/
 void CameraManipulator::getLookat(glm::vec3& eye, glm::vec3& center,
                                   glm::vec3& up) const
+/**********************************************************/
 {
   eye = m_current.eye;
   center = m_current.ctr;
@@ -86,7 +94,9 @@ void CameraManipulator::getLookat(glm::vec3& eye, glm::vec3& center,
 
 //--------------------------------------------------------------------------------------------------
 // Pan the camera perpendicularly to the light of sight.
+/**********************************************************/
 void CameraManipulator::pan(glm::vec2 displacement)
+/**********************************************************/
 {
   if (m_mode == Fly)
   {
@@ -113,7 +123,9 @@ void CameraManipulator::pan(glm::vec2 displacement)
 // Orbit the camera around the center of interest. If 'invert' is true,
 // then the camera stays in place and the interest orbit around the camera.
 //
+/**********************************************************/
 void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/)
+/**********************************************************/
 {
   if (displacement == glm::vec2(0.f, 0.f))
     return;
@@ -166,8 +178,10 @@ void CameraManipulator::orbit(glm::vec2 displacement, bool invert /*= false*/)
 //--------------------------------------------------------------------------------------------------
 // Move the camera toward the interest point, but don't cross it
 //
+/**********************************************************/
 void CameraManipulator::dolly(glm::vec2 displacement,
                               bool keepCenterFixed /*= false*/)
+/**********************************************************/
 {
   glm::vec3 directionVec = m_current.ctr - m_current.eye;
   float length = static_cast<float>(glm::length(directionVec));
@@ -213,7 +227,9 @@ void CameraManipulator::dolly(glm::vec2 displacement,
 // - A new position of the camera is defined and the camera will reach that
 // position
 //   over time.
+/**********************************************************/
 void CameraManipulator::updateAnim()
+/**********************************************************/
 {
   auto elapse = static_cast<float>(getSystemTime() - m_startTime) / 1000.f;
 
@@ -246,8 +262,10 @@ void CameraManipulator::updateAnim()
 
 //--------------------------------------------------------------------------------------------------
 //
+/**********************************************************/
 void CameraManipulator::setMatrix(const glm::mat4& matrix, bool instantSet,
                                   float centerDistance)
+/**********************************************************/
 {
   Camera camera;
   camera.eye = matrix[3];
@@ -276,8 +294,10 @@ void CameraManipulator::setMatrix(const glm::mat4& matrix, bool instantSet,
 
 //--------------------------------------------------------------------------------------------------
 // Low level function for when the camera move.
+/**********************************************************/
 void CameraManipulator::motion(const glm::vec2& screenDisplacement,
                                Actions action /*= 0*/)
+/**********************************************************/
 {
   glm::vec2 displacement = {
       float(screenDisplacement.x - m_mouse[0]) / float(m_windowSize.x),
@@ -312,7 +332,9 @@ void CameraManipulator::motion(const glm::vec2& screenDisplacement,
 //--------------------------------------------------------------------------------------------------
 // Function for when the camera move with keys (ex. WASD).
 // Note: dx and dy are the speed of the camera movement.
+/**********************************************************/
 void CameraManipulator::keyMotion(glm::vec2 delta, Actions action)
+/**********************************************************/
 {
   float movementSpeed = m_speed;
 
@@ -354,7 +376,9 @@ void CameraManipulator::keyMotion(glm::vec2 delta, Actions action)
 // Returns the action that was activated
 //
 CameraManipulator::Actions
+/**********************************************************/
 CameraManipulator::mouseMove(glm::vec2 screenDisplacement, const Inputs& inputs)
+/**********************************************************/
 {
   if (!inputs.lmb && !inputs.rmb && !inputs.mmb)
   {
@@ -389,7 +413,9 @@ CameraManipulator::mouseMove(glm::vec2 screenDisplacement, const Inputs& inputs)
 // Trigger a dolly when the wheel change, or change the FOV if the shift key was
 // pressed
 //
+/**********************************************************/
 void CameraManipulator::wheel(float value, const Inputs& inputs)
+/**********************************************************/
 {
   float deltaX = (value * fabsf(value)) / static_cast<float>(m_windowSize.x);
 
@@ -407,13 +433,17 @@ void CameraManipulator::wheel(float value, const Inputs& inputs)
 }
 
 // Set and clamp FOV between 0.01 and 179 degrees
+/**********************************************************/
 void CameraManipulator::setFov(float fovDegree)
+/**********************************************************/
 {
   m_current.fov = std::min(std::max(fovDegree, 0.01f), 179.0f);
 }
 
+/**********************************************************/
 glm::vec3 CameraManipulator::computeBezier(float t, glm::vec3& p0,
                                            glm::vec3& p1, glm::vec3& p2)
+/**********************************************************/
 {
   float u = 1.f - t;
   float tt = t * t;
@@ -426,7 +456,9 @@ glm::vec3 CameraManipulator::computeBezier(float t, glm::vec3& p0,
   return p;
 }
 
+/**********************************************************/
 void CameraManipulator::findBezierPoints()
+/**********************************************************/
 {
   glm::vec3 p0 = m_current.eye;
   glm::vec3 p2 = m_goal.eye;
@@ -452,7 +484,9 @@ void CameraManipulator::findBezierPoints()
 //--------------------------------------------------------------------------------------------------
 // Return the time in fraction of milliseconds
 //
+/**********************************************************/
 double CameraManipulator::getSystemTime()
+/**********************************************************/
 {
   auto now(std::chrono::system_clock::now());
   auto duration = now.time_since_epoch();
@@ -464,7 +498,9 @@ double CameraManipulator::getSystemTime()
 //--------------------------------------------------------------------------------------------------
 // Return a string which can be included in help dialogs
 //
+/**********************************************************/
 const std::string& CameraManipulator::getHelp()
+/**********************************************************/
 {
   static std::string helpText = "LMB: rotate around the target\n"
                                 "RMB: Dolly in/out\n"
@@ -487,9 +523,11 @@ const std::string& CameraManipulator::getHelp()
 // tight - true: fit exactly the corner, false: fit to radius (larger view, will
 // not get closer or further away) aspect - aspect ratio of the window.
 //
+/**********************************************************/
 void CameraManipulator::fit(const glm::vec3& boxMin, const glm::vec3& boxMax,
                             bool instantFit /*= true*/,
                             bool tightFit /*=false*/, float aspect /*=1.0f*/)
+/**********************************************************/
 {
   // Calculate the half extents of the bounding box
   const glm::vec3 boxHalfSize = 0.5f * (boxMax - boxMin);
@@ -541,7 +579,9 @@ void CameraManipulator::fit(const glm::vec3& boxMin, const glm::vec3& boxMax,
   setLookat(newEye, boxCenter, m_current.up, instantFit);
 }
 
+/**********************************************************/
 std::string CameraManipulator::Camera::getString() const
+/**********************************************************/
 {
   return fmt::format(
       "{{{}, {}, {}}}, {{{}, {}, {}}}, {{{}, {}, {}}}, {{{}}}, {{{}, {}}}",  //
@@ -551,7 +591,9 @@ std::string CameraManipulator::Camera::getString() const
       fov, clip.x, clip.y);
 }
 
+/**********************************************************/
 bool CameraManipulator::Camera::setFromString(const std::string& text)
+/**********************************************************/
 {
   if (text.empty())
     return false;
@@ -575,6 +617,41 @@ bool CameraManipulator::Camera::setFromString(const std::string& text)
     return true;
   }
   return false;
+}
+
+/**********************************************************/
+const glm::mat4 CameraManipulator::getPerspectiveMatrix() const
+/**********************************************************/
+{
+  glm::mat4 projMatrix = glm::perspectiveRH_ZO(
+      getRadFov(), getAspectRatio(), m_current.clip.x, m_current.clip.y);
+  projMatrix[1][1] *= -1;  // Flip the Y axis
+  return projMatrix;
+}
+
+/**********************************************************/
+const glm::mat4 CameraManipulator::getViewProjection() const
+/**********************************************************/
+{
+  auto projMatrix = getPerspectiveMatrix();
+  projMatrix[1][1] *= -1;  // Flip the Y axis
+  return projMatrix * getViewMatrix();
+}
+
+/**********************************************************/
+bool CameraManipulator::Camera::operator!=(const Camera& rhr) const
+/**********************************************************/
+{
+  return (eye != rhr.eye) || (ctr != rhr.ctr) || (up != rhr.up) ||
+         (fov != rhr.fov) || (clip != rhr.clip);
+}
+
+/**********************************************************/
+bool CameraManipulator::Camera::operator==(const Camera& rhr) const
+/**********************************************************/
+{
+  return (eye == rhr.eye) && (ctr == rhr.ctr) && (up == rhr.up) &&
+         (fov == rhr.fov) && (clip == rhr.clip);
 }
 
 }  // namespace core

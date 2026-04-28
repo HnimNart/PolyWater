@@ -28,7 +28,10 @@ public:
   {
     return static_cast<uint32_t>(m_frameData.size());
   }
-  uint32_t getCurrentFrameIndex() const { return m_frameRingCurrent; }
+  uint32_t getCurrentFrameIndex() const
+  {
+    return m_frameRingCurrent;
+  }
 
   // Semaphore management
   void addWaitSemaphore(const VkSemaphoreSubmitInfo& semaphore);

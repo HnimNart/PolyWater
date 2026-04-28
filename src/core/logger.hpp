@@ -168,7 +168,9 @@ private:
   ShowFlags m_show = eSHOW_NONE;        // Default shows no extra information
   bool m_breakOnError = true;           // Break on errors by default
 
-  Logger() {}
+  Logger()
+  {
+  }
   ~Logger();
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;

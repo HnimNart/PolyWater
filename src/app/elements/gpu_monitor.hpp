@@ -115,10 +115,12 @@ private:
   SettingsHandler m_settingsHandler;
 };
 
+/**********************************************************/
 template <typename T>
 void ElementGpuMonitor::imguiNvmlField(const NvmlMonitor::NVMLField<T>& field,
                                        const std::string& name,
                                        const std::string& unit /*= ""*/)
+/**********************************************************/
 {
   if (field.isSupported)
   {

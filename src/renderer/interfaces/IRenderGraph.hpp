@@ -22,29 +22,16 @@ class RenderGraph
 {
 public:
   RenderGraph(std::string name) : m_name(std::move(name)){};
-  const std::string& name() const { return m_name; }
-
-  void addPass(std::unique_ptr<IRenderPass> pass)
+  const std::string& name() const
   {
-    m_passes.push_back(std::move(pass));
+    return m_name;
   }
 
-  void init()
-  {
-    for (auto& p : m_passes)
-    {
-      p->init();
-    }
-  }
+  void addPass(std::unique_ptr<IRenderPass> pass);
 
-  void deinit()
-  {
-    for (auto& p : m_passes)
-    {
-      p->deinit();
-    }
-    m_passes.clear();
-  }
+  void init();
+
+  void deinit();
 
   /**
    * @brief Finds the first pass of type T in the graph.
@@ -64,124 +51,12 @@ public:
     return nullptr;
   }
 
-  void compile()
-  {
-    m_barriers.clear();
-    m_barriers.resize(m_passes.size());
-    m_finalBarriers.clear();
-    m_finalStates.clear();
-
-    struct CurrentState
-    {
-      ResourceState state = ResourceState::Undefined;
-      PipelineStage stage = PipelineStage::TopOfPipe;
-      bool hasBeenProduced = false;  // Track if someone has written to this
-    };
-
-    std::unordered_map<RenderOutput, CurrentState> globalState;
-
-    for (size_t i = 0; i < m_passes.size(); ++i)
-    {
-      PassBuilder builder;
-      m_passes[i]->setup(builder);
-
-      for (const auto& usage : builder.getUsages())
-      {
-        CurrentState& current = globalState[usage.resource];
-
-        // --- VALIDATION CHECK ---
-        // If we are reading but nobody has written to this resource yet...
-        if (!usage.isWrite() && !current.hasBeenProduced)
-        {
-          std::cerr << "[RenderGraph Warning] Pass " << i
-                    << " is reading from Resource " << (int) usage.resource
-                    << " but it has not been written to yet! (Missing Producer)"
-                    << std::endl;
-        }
-
-        // Logic to determine if a barrier is needed
-        bool stateChange = (current.state != usage.state);
-        bool hazard = usage.isWrite();
-
-        if (stateChange || hazard)
-        {
-          BarrierInfo barrier;
-          barrier.resource = usage.resource;
-          barrier.oldState = current.state;
-          barrier.srcStage = current.stage;
-          barrier.newState = usage.state;
-          barrier.dstStage = usage.stage;
-
-          m_barriers[i].push_back(barrier);
-        }
-
-        // Update the tracker
-        current.state = usage.state;
-        current.stage = usage.stage;
-
-        // Mark as produced if this usage is a write operation
-        if (usage.isWrite())
-        {
-          current.hasBeenProduced = true;
-        }
-      }
-
-      // Collect intended final states from this pass
-      for (const auto& [resource, finalIntent] : builder.getFinalStates())
-      {
-        m_finalStates[resource] = finalIntent;
-      }
-    }
-
-    // Now that we know the very last state of every resource, check if any
-    // of them need to be transitioned to a specific final exported state.
-    for (const auto& [resource, finalIntent] : m_finalStates)
-    {
-      auto it = globalState.find(resource);
-      if (it != globalState.end())
-      {
-        const CurrentState& current = it->second;
-        ResourceState finalState = finalIntent.first;
-        PipelineStage finalStage = finalIntent.second;
-
-        if (current.state != finalState)
-        {
-          BarrierInfo barrier;
-          barrier.resource = resource;
-          barrier.oldState = current.state;
-          barrier.srcStage = current.stage;
-          barrier.newState = finalState;
-          barrier.dstStage = finalStage;
-
-          m_finalBarriers.push_back(barrier);
-        }
-      }
-    }
-  }
+  void compile();
 
   // -----------------------------------------------------------------------
   // EXECUTE: Delegates to the Context
   // -----------------------------------------------------------------------
-  void execute(IRenderContext& ctx) const
-  {
-    for (size_t i = 0; i < m_passes.size(); ++i)
-    {
-      // Submit Barriers (The Context handles the API translation)
-      if (!m_barriers[i].empty())
-      {
-        ctx.submitBarriers(m_barriers[i]);
-      }
-
-      // Execute Pass
-      m_passes[i]->execute(ctx);
-    }
-
-    // Submit Final Export Barriers
-    if (!m_finalBarriers.empty())
-    {
-      ctx.submitBarriers(m_finalBarriers);
-    }
-  }
+  void execute(IRenderContext& ctx) const;
 
 private:
   std::vector<std::unique_ptr<IRenderPass>> m_passes;

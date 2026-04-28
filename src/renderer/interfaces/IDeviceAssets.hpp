@@ -28,12 +28,18 @@ public:
     BufferID id = 0;         // Index for the Asset Manager's vector
 
     // Optional: helper to check if valid
-    bool isValid() const { return address != 0; }
+    bool isValid() const
+    {
+      return address != 0;
+    }
     template <typename T> T* as() const
     {
       return reinterpret_cast<T*>(static_cast<uintptr_t>(address));
     }
-    BufferAddr get() const { return address; }
+    BufferAddr get() const
+    {
+      return address;
+    }
   };
 
   virtual ~IDeviceAssets() = default;

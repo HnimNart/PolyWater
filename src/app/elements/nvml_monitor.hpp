@@ -192,10 +192,22 @@ public:
   };
 
   void refresh();  // Take measurement
-  bool isValid() { return m_valid; }
-  uint32_t getGpuCount() { return m_physicalGpuCount; }
-  const DeviceInfo& getDeviceInfo(int gpu) { return m_deviceInfo[gpu]; }
-  const DeviceMemory& getDeviceMemory(int gpu) { return m_deviceMemory[gpu]; }
+  bool isValid()
+  {
+    return m_valid;
+  }
+  uint32_t getGpuCount()
+  {
+    return m_physicalGpuCount;
+  }
+  const DeviceInfo& getDeviceInfo(int gpu)
+  {
+    return m_deviceInfo[gpu];
+  }
+  const DeviceMemory& getDeviceMemory(int gpu)
+  {
+    return m_deviceMemory[gpu];
+  }
   const DeviceUtilization& getDeviceUtilization(int gpu)
   {
     return m_deviceUtilization[gpu];
@@ -208,8 +220,14 @@ public:
   {
     return m_devicePowerState[gpu];
   }
-  const SysInfo& getSysInfo() { return m_sysInfo; }
-  int getOffset() { return m_offset; }
+  const SysInfo& getSysInfo()
+  {
+    return m_sysInfo;
+  }
+  int getOffset()
+  {
+    return m_offset;
+  }
 
 private:
   std::vector<DeviceInfo> m_deviceInfo;

@@ -17,32 +17,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
-
-#include <app/cli/parameter_sequencer.hpp>
-
-#include "app/IAppElement.hpp"
+#include "sequencer.hpp"
+#include "app/Application.hpp"
 
 namespace app
 {
 
-// Element that contains a `ParameterSequencer` and advances it
-// if applicable.
-
-class ElementSequencer : public IAppElement
+void ElementSequencer::onAttach(Application* app)
 {
-public:
-  ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
-      m_sequencerInfo(sequencerInfo)
-  {
-  }
-  virtual void onAttach(Application* app) override;
-  virtual void onPreRender() override;
+  m_app = app;
+  m_doSequences = m_sequencer.init(m_sequencerInfo);
+}
 
-private:
-  core::ParameterSequencer::InitInfo m_sequencerInfo;
-  core::ParameterSequencer m_sequencer;
-  Application* m_app = nullptr;
-  bool m_doSequences = false;
-};
+void ElementSequencer::onPreRender()
+{
+  if (m_doSequences)
+  {
+    bool finished = m_sequencer.prepareFrame();
+    if (finished)
+    {
+      m_app->close();
+    }
+  }
+}
+
 }  // namespace app

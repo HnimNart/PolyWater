@@ -74,7 +74,10 @@ public:
     m_viewportSize = size;
   }
 
-  const WindowSize& getViewportSize() const { return m_viewportSize; }
+  const WindowSize& getViewportSize() const
+  {
+    return m_viewportSize;
+  }
   virtual void setWindow(GLFWwindow* windowHandle)
   {
     m_windowHandle = windowHandle;
@@ -83,7 +86,10 @@ public:
   {
     m_windowSize = windowSize;
   };
-  const WindowSize& getWindowSize() const { return m_windowSize; }
+  const WindowSize& getWindowSize() const
+  {
+    return m_windowSize;
+  }
 
   //----------------------------------------------------------
   // Utilities

@@ -53,7 +53,9 @@ std::string utf8FromPath(const std::filesystem::path& path) noexcept;
 // On error (such as if the string is not valid UTF-8), prints an error message
 // and returns an empty path.
 std::filesystem::path pathFromUtf8(const char* utf8) noexcept;
+/**********************************************************/
 inline std::filesystem::path pathFromUtf8(const std::string& utf8) noexcept
+/**********************************************************/
 {
   return pathFromUtf8(utf8.c_str());
 }
@@ -66,7 +68,9 @@ bool extensionMatches(const std::filesystem::path& path, const char* extension);
 // Creates a directory (and any missing parent directories).
 // Returns true if the directory exists or was successfully created.
 // Returns false if it failed (e.g., due to OS permission issues).
+/**********************************************************/
 inline bool createDirSafely(const std::filesystem::path& dirPath)
+/**********************************************************/
 {
   std::error_code ec;
   std::filesystem::create_directories(dirPath, ec);

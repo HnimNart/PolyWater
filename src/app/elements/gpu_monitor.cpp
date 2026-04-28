@@ -35,7 +35,9 @@ namespace app
 {
 
 //-----------------------------------------------------------------------------
+/**********************************************************/
 inline int metricFormatter(double value, char* buff, int size, void* data)
+/**********************************************************/
 {
   const char* unit = (const char*) data;
   static double s_value[] = {1000000000, 1000000,  1000,       1,
@@ -58,12 +60,16 @@ inline int metricFormatter(double value, char* buff, int size, void* data)
 
 namespace PE = PropertyEditor;
 
+/**********************************************************/
 ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show)
+/**********************************************************/
 {
   ImPlot::CreateContext();
 }
 
+/**********************************************************/
 void ElementGpuMonitor::onAttach(Application* app)
+/**********************************************************/
 {
   LOGI("Adding GPU Monitor (NVML)\n");
 #if defined(NVML_SUPPORTED)
@@ -75,14 +81,18 @@ void ElementGpuMonitor::onAttach(Application* app)
   m_settingsHandler.addImGuiHandler();
 }
 
+/**********************************************************/
 void ElementGpuMonitor::onDetach()
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor.reset();
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::pushThrottleTabColor() const
+/**********************************************************/
 {
   if (m_throttleDetected)
   {
@@ -92,7 +102,9 @@ void ElementGpuMonitor::pushThrottleTabColor() const
   }
 }
 
+/**********************************************************/
 void ElementGpuMonitor::popThrottleTabColor() const
+/**********************************************************/
 {
   if (m_throttleDetected)
   {
@@ -100,7 +112,9 @@ void ElementGpuMonitor::popThrottleTabColor() const
   }
 }
 
+/**********************************************************/
 void ElementGpuMonitor::onUIRender()
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   m_nvmlMonitor->refresh();
@@ -296,7 +310,9 @@ void ElementGpuMonitor::onUIRender()
   ImGui::End();
 }
 
+/**********************************************************/
 void ElementGpuMonitor::onUIMenu()
+/**********************************************************/
 {
   if (ImGui::BeginMenu("View"))
   {
@@ -306,7 +322,9 @@ void ElementGpuMonitor::onUIMenu()
   }
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::SysInfo& cpuMeasure = m_nvmlMonitor->getSysInfo();
@@ -417,7 +435,9 @@ void ElementGpuMonitor::imguiGraphLines(uint32_t gpuIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiProgressBars()
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const int offset = m_nvmlMonitor->getOffset();
@@ -493,8 +513,10 @@ void ElementGpuMonitor::imguiProgressBars()
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiCopyableText(const std::string& text,
                                           uint64_t uniqueId)
+/**********************************************************/
 {
   std::string textString = fmt::format("{}###{}", text, uniqueId);
   ImGui::Text("%s", text.c_str());
@@ -510,7 +532,9 @@ void ElementGpuMonitor::imguiCopyableText(const std::string& text,
   }
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiDeviceInfo(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DeviceInfo& deviceInfo =
@@ -593,7 +617,9 @@ void ElementGpuMonitor::imguiDeviceInfo(uint32_t deviceIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DeviceMemory& memory =
@@ -698,7 +724,9 @@ void ElementGpuMonitor::imguiDeviceMemory(uint32_t deviceIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DevicePerformanceState& performanceState =
@@ -885,7 +913,9 @@ void ElementGpuMonitor::imguiDevicePerformanceState(uint32_t deviceIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DevicePowerState& powerState =
@@ -1013,7 +1043,9 @@ void ElementGpuMonitor::imguiDevicePowerState(uint32_t deviceIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DeviceUtilization& utilization =
@@ -1126,7 +1158,9 @@ void ElementGpuMonitor::imguiDeviceUtilization(uint32_t deviceIndex)
 #endif
 }
 
+/**********************************************************/
 void ElementGpuMonitor::imguiClockSetup(uint32_t deviceIndex)
+/**********************************************************/
 {
 #if defined(NVML_SUPPORTED)
   const NvmlMonitor::DeviceInfo& deviceInfo =

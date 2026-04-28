@@ -27,7 +27,9 @@
 class NVAPIManager
 {
 public:
-  NVAPIManager() : hSession(nullptr), hProfile(nullptr) {}
+  NVAPIManager() : hSession(nullptr), hProfile(nullptr)
+  {
+  }
 
   void init()
   {

@@ -11,7 +11,9 @@
 #include "shared/structs.h"
 
 /**********************************************************/
-float3x3 safe_transpose(float3x3 m){
+float3x3 safe_transpose(float3x3 m)
+/**********************************************************/
+{
 
     // clang-format off
     __target_switch

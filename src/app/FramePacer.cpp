@@ -36,7 +36,9 @@
 namespace app
 {
 
+/**********************************************************/
 double getMonitorsMinRefreshRate()
+/**********************************************************/
 {
   // We need our target frame rate. We get this once per frame in case the
   // user changes their monitor's frame rate.
@@ -70,7 +72,9 @@ double getMonitorsMinRefreshRate()
   return refreshRate;
 }
 
+/**********************************************************/
 void FramePacer::pace(double refreshRate)
+/**********************************************************/
 {
   const double refreshInterval = 1.0 / refreshRate;
 

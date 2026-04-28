@@ -12,7 +12,9 @@
 namespace app
 {
 
+/**********************************************************/
 inline bool renderEditor(SceneResourcesManager& resources, IRenderer* renderer)
+/**********************************************************/
 {
   namespace PE = app::PropertyEditor;
   bool hasChanged = false;

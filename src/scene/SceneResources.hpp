@@ -62,13 +62,28 @@ public:
   void onInstanceChange();
 
   // --- State Management ---
-  bool requireRebuild() const { return m_rebuild; }
-  bool dirty() const { return m_dirty || m_rebuild; }
-  void setDirty(bool val) { m_dirty = val; }
+  bool requireRebuild() const
+  {
+    return m_rebuild;
+  }
+  bool dirty() const
+  {
+    return m_dirty || m_rebuild;
+  }
+  void setDirty(bool val)
+  {
+    m_dirty = val;
+  }
 
   // --- Data Accessors (Mutable) ---
-  Scene& data() { return m_scene_resources; }
-  shaderio::SceneInfo& sceneInfo() { return m_scene_resources.sceneInfo; }
+  Scene& data()
+  {
+    return m_scene_resources;
+  }
+  shaderio::SceneInfo& sceneInfo()
+  {
+    return m_scene_resources.sceneInfo;
+  }
 
   std::vector<shaderio::Instance>& getInstances()
   {
@@ -80,12 +95,18 @@ public:
   }
 
   // --- Data Accessors (Const) ---
-  const Scene& data() const { return m_scene_resources; }
+  const Scene& data() const
+  {
+    return m_scene_resources;
+  }
   const shaderio::SceneInfo& sceneInfo() const
   {
     return m_scene_resources.sceneInfo;
   }
-  const core::Image& getEnvmap() { return m_envmapImage; }
+  const core::Image& getEnvmap()
+  {
+    return m_envmapImage;
+  }
 
   const std::vector<shaderio::Instance>& getInstances() const
   {

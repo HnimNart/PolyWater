@@ -10,6 +10,7 @@
 /**********************************************************/
 DenoisePass::DenoisePass(VulkanContextManager* contextManager) :
     m_context_manager(contextManager)
+/**********************************************************/
 {
 }
 

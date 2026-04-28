@@ -21,11 +21,15 @@
 
 #include <app/widgets/fonts.hpp>
 
+/**********************************************************/
 app::ElementLogger::ElementLogger(bool show /*= false*/) : m_showLog(show)
+/**********************************************************/
 {
 }
 
+/**********************************************************/
 void app::ElementLogger::onAttach(Application* /*app*/)
+/**********************************************************/
 {
   LOGI("Adding Logger UI\n");
 
@@ -35,7 +39,9 @@ void app::ElementLogger::onAttach(Application* /*app*/)
   m_settingsHandler.addImGuiHandler();
 }
 
+/**********************************************************/
 void app::ElementLogger::onUIRender()
+/**********************************************************/
 {
   if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_ModShift | ImGuiKey_L))
   {
@@ -53,7 +59,9 @@ void app::ElementLogger::onUIRender()
   draw("Log", &m_showLog);
 }
 
+/**********************************************************/
 void app::ElementLogger::onUIMenu()
+/**********************************************************/
 {
   if (ImGui::BeginMenu("View"))
   {
@@ -62,13 +70,17 @@ void app::ElementLogger::onUIMenu()
   }
 }
 
+/**********************************************************/
 void app::ElementLogger::setLevelFilter(uint32_t levelFilter)
+/**********************************************************/
 {
   std::lock_guard<std::mutex> lock(m_modificationMutex);
   m_levelFilter = levelFilter;
 }
 
+/**********************************************************/
 void app::ElementLogger::clear()
+/**********************************************************/
 {
   m_buf.clear();
   m_lineOffsets.clear();
@@ -76,7 +88,9 @@ void app::ElementLogger::clear()
   m_lineLevels.clear();
 }
 
+/**********************************************************/
 void app::ElementLogger::addLog(uint32_t level, const char* fmt, ...)
+/**********************************************************/
 {
   std::lock_guard<std::mutex> lock(m_modificationMutex);
 
@@ -98,7 +112,9 @@ void app::ElementLogger::addLog(uint32_t level, const char* fmt, ...)
   }
 }
 
+/**********************************************************/
 void app::ElementLogger::initColors()
+/**********************************************************/
 {
   ImGuiContext& g = *GImGui;
   m_colors.resize(8);
@@ -115,7 +131,9 @@ void app::ElementLogger::initColors()
   m_colors[core::Logger::LogLevel::eOK] = ImVec4(0.0, 1.0, 0.0, 1.0);  // Green
 }
 
+/**********************************************************/
 void app::ElementLogger::draw(const char* title, bool* p_open /*= nullptr*/)
+/**********************************************************/
 {
   if (ImGui::GetCurrentContext() == nullptr)
     return;

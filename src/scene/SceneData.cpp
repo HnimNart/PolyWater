@@ -17,6 +17,33 @@ void printVec(const std::string& label, const glm::vec3& v)
 }  // namespace
 
 /**********************************************************/
+void SceneData::clear()
+/**********************************************************/
+{
+  meshPaths.clear();
+  texturePaths.clear();
+  materials.clear();
+  instances.clear();
+  lights.clear();
+}
+
+/**********************************************************/
+int SceneData::addMesh(const std::string& name, const std::string& path)
+/**********************************************************/
+{
+  meshPaths.push_back({name, path});
+  return (int) meshPaths.size() - 1;
+}
+
+/**********************************************************/
+int SceneData::addTexture(const std::string& name, const std::string& path)
+/**********************************************************/
+{
+  texturePaths.push_back({name, path});
+  return (int) texturePaths.size() - 1;
+}
+
+/**********************************************************/
 void SceneData::dump() const
 /**********************************************************/
 {

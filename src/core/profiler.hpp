@@ -132,14 +132,7 @@ public:
   // NOT thread-safe
 
   // move to next frame on this queue (closes previous frame and start new one)
-  inline void frameAdvance()
-  {
-    if (m_inFrame)
-    {
-      frameEnd();
-    }
-    frameBegin();
-  }
+  void frameAdvance();
 
   // begin a timed per-frame section
   // must be called within begin/endFrame
@@ -265,8 +258,14 @@ public:
 
   // getters are thread-safe
 
-  const std::string& getName() const { return m_info.name; }
-  ProfilerManager* getProfiler() const { return m_profiler; }
+  const std::string& getName() const
+  {
+    return m_info.name;
+  }
+  ProfilerManager* getProfiler() const
+  {
+    return m_profiler;
+  }
 
   void getAsyncSnapshot(Snapshot& snapShot) const;
   bool getAsyncTimerInfo(const std::string& name, TimerInfo& timerInfo,
@@ -304,7 +303,10 @@ public:
   public:
     FrameSection(ProfilerTimeline& ProfilerTimeline, FrameSectionID id) :
         m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
-    ~FrameSection() { m_ProfilerTimeline.frameEndSection(m_id); }
+    ~FrameSection()
+    {
+      m_ProfilerTimeline.frameEndSection(m_id);
+    }
 
   private:
     ProfilerTimeline& m_ProfilerTimeline;
@@ -324,7 +326,10 @@ public:
   public:
     AsyncSection(ProfilerTimeline& ProfilerTimeline, AsyncSectionID id) :
         m_ProfilerTimeline(ProfilerTimeline), m_id(id){};
-    ~AsyncSection() { m_ProfilerTimeline.asyncEndSection(m_id); }
+    ~AsyncSection()
+    {
+      m_ProfilerTimeline.asyncEndSection(m_id);
+    }
 
   private:
     ProfilerTimeline& m_ProfilerTimeline;
@@ -345,22 +350,7 @@ protected:
   friend class ProfilerManager;
 
   ProfilerTimeline(ProfilerManager* profiler,
-                   const ProfilerTimeline::CreateInfo& createInfo)
-  {
-    assert(profiler);
-
-    m_info = createInfo;
-    m_profiler = profiler;
-
-    m_frame.averagingCount = createInfo.frameAveragingCount;
-    m_frame.averagingCountLast = createInfo.frameAveragingCount;
-
-    grow(m_frame.sections, createInfo.defaultTimers,
-         createInfo.frameAveragingCount);
-    grow(m_async.sections, createInfo.defaultTimers, 0);
-
-    frameBegin();
-  }
+                   const ProfilerTimeline::CreateInfo& createInfo);
 
   // start a frame on this queue
   void frameBegin();
@@ -403,46 +393,9 @@ protected:
 
     void reset();
 
-    void add(double time)
-    {
-      absMinValue = std::min(time, absMinValue);
-      absMaxValue = std::max(time, absMaxValue);
-      valueLast = time;
+    void add(double time);
 
-      if (cycleCount)
-      {
-        // Averaging is performed over a window.
-        // minus does remove the old value
-        valueTotal += time - times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) %
-                                   MAX_LAST_FRAMES];
-
-        validCount = std::min(validCount + 1, cycleCount);
-      }
-      else
-      {
-        // Averaging is done over all frames
-        valueTotal += time;
-        validCount++;
-      }
-
-      // store cycle so we can later remove it
-      times[cycleIndex] = time;
-
-      // advance cycle
-      cycleIndex = (cycleIndex + 1) % MAX_LAST_FRAMES;
-    }
-
-    double getAveraged()
-    {
-      if (validCount)
-      {
-        return valueTotal / double(validCount);
-      }
-      else
-      {
-        return 0;
-      }
-    }
+    double getAveraged();
   };
 
   struct SectionData
@@ -543,7 +496,10 @@ public:
   createTimeline(const ProfilerTimeline::CreateInfo& createInfo);
   void destroyTimeline(ProfilerTimeline* timeline);
 
-  inline double getMicroseconds() const { return m_timer.getMicroseconds(); }
+  inline double getMicroseconds() const
+  {
+    return m_timer.getMicroseconds();
+  }
 
   // calls Profiler::Timeline::setFrameAveragingCount for all timelines
   void setFrameAveragingCount(uint32_t num);

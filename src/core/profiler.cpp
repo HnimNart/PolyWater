@@ -26,8 +26,10 @@
 namespace core
 {
 
+/**********************************************************/
 void ProfilerTimeline::Snapshot::appendToString(std::string& stats,
                                                 bool full = false) const
+/**********************************************************/
 {
   const uint32_t maxLevels = 8;
   const uint32_t maxLevel = maxLevels - 1;
@@ -79,7 +81,9 @@ void ProfilerTimeline::Snapshot::appendToString(std::string& stats,
 
 //////////////////////////////////////////////////////////////////////////
 
+/**********************************************************/
 void ProfilerTimeline::TimeValues::reset()
+/**********************************************************/
 {
   valueTotal = 0;
   valueLast = 0;
@@ -92,13 +96,17 @@ void ProfilerTimeline::TimeValues::reset()
 
 //////////////////////////////////////////////////////////////////////////
 
+/**********************************************************/
 void ProfilerTimeline::setFrameAveragingCount(uint32_t num)
+/**********************************************************/
 {
   assert(num <= MAX_LAST_FRAMES);
   m_frame.averagingCount = num;
 }
 
+/**********************************************************/
 void ProfilerTimeline::clear()
+/**********************************************************/
 {
   {
     std::lock_guard guard(m_asyncMutex);
@@ -112,14 +120,18 @@ void ProfilerTimeline::clear()
   }
 }
 
+/**********************************************************/
 void ProfilerTimeline::resetFrameSections(uint32_t delay)
+/**********************************************************/
 {
   m_frame.resetDelay = delay ? delay : m_info.frameConfigDelay;
 }
 
 //////////////////////////////////////////////////////////////////////////
 
+/**********************************************************/
 void ProfilerTimeline::frameAccumulationSplit()
+/**********************************************************/
 {
   assert(m_inFrame);
 
@@ -131,7 +143,9 @@ void ProfilerTimeline::frameAccumulationSplit()
   m_frame.hasSplitter = true;
 }
 
+/**********************************************************/
 void ProfilerTimeline::frameBegin()
+/**********************************************************/
 {
   m_frame.hasSplitter = false;
   m_frame.level = 1;
@@ -140,7 +154,9 @@ void ProfilerTimeline::frameBegin()
   m_inFrame = true;
 }
 
+/**********************************************************/
 void ProfilerTimeline::frameEnd()
+/**********************************************************/
 {
   assert(m_frame.level == 1);
   assert(m_inFrame);
@@ -235,7 +251,9 @@ void ProfilerTimeline::frameEnd()
   m_inFrame = false;
 }
 
+/**********************************************************/
 void ProfilerTimeline::frameInternalSnapshot()
+/**********************************************************/
 {
   std::lock_guard lock(m_frameSnapshotMutex);
 
@@ -293,7 +311,9 @@ void ProfilerTimeline::frameInternalSnapshot()
   }
 }
 
+/**********************************************************/
 ProfilerTimeline::FrameSectionID ProfilerTimeline::frameGetSectionID()
+/**********************************************************/
 {
   uint32_t numEntries = (uint32_t) m_frame.sections.size();
   FrameSectionID sec{};
@@ -313,8 +333,10 @@ ProfilerTimeline::FrameSectionID ProfilerTimeline::frameGetSectionID()
 }
 
 ProfilerTimeline::FrameSectionID
+/**********************************************************/
 ProfilerTimeline::frameBeginSection(const std::string& name,
                                     GpuTimeProvider* gpuTimeProvider)
+/**********************************************************/
 {
   FrameSectionID sectionID = frameGetSectionID();
   SectionData& section = m_frame.sections[sectionID.id];
@@ -340,22 +362,28 @@ ProfilerTimeline::frameBeginSection(const std::string& name,
   return sectionID;
 }
 
+/**********************************************************/
 void ProfilerTimeline::frameEndSection(FrameSectionID sectionID)
+/**********************************************************/
 {
   SectionData& section = m_frame.sections[sectionID.id];
   section.cpuTimes[sectionID.subFrame] += m_profiler->getMicroseconds();
   m_frame.level--;
 }
 
+/**********************************************************/
 void ProfilerTimeline::frameResetCpuBegin(FrameSectionID sectionID)
+/**********************************************************/
 {
   SectionData& section = m_frame.sections[sectionID.id];
   section.cpuTimes[sectionID.subFrame] = -m_profiler->getMicroseconds();
 }
 
 ProfilerTimeline::AsyncSectionID
+/**********************************************************/
 ProfilerTimeline::asyncBeginSection(const std::string& name,
                                     GpuTimeProvider* gpuTimeProvider)
+/**********************************************************/
 {
   std::lock_guard lock(m_asyncMutex);
 
@@ -398,8 +426,10 @@ ProfilerTimeline::asyncBeginSection(const std::string& name,
   return sectionID;
 }
 
+/**********************************************************/
 void ProfilerTimeline::asyncEndSection(
     ProfilerTimeline::AsyncSectionID sectionID)
+/**********************************************************/
 {
   double endTime = m_profiler->getMicroseconds();
 
@@ -414,7 +444,9 @@ void ProfilerTimeline::asyncEndSection(
   }
 }
 
+/**********************************************************/
 void ProfilerTimeline::asyncResetCpuBegin(AsyncSectionID sectionID)
+/**********************************************************/
 {
   std::lock_guard lock(m_asyncMutex);
   if (sectionID.id < m_async.sectionsCount)
@@ -424,7 +456,9 @@ void ProfilerTimeline::asyncResetCpuBegin(AsyncSectionID sectionID)
   }
 }
 
+/**********************************************************/
 void ProfilerTimeline::asyncRemoveTimer(const std::string& name)
+/**********************************************************/
 {
   std::lock_guard lock(m_asyncMutex);
 
@@ -445,8 +479,10 @@ void ProfilerTimeline::asyncRemoveTimer(const std::string& name)
   }
 }
 
+/**********************************************************/
 void ProfilerTimeline::grow(std::vector<SectionData>& sections, size_t newSize,
                             uint32_t averagingCount)
+/**********************************************************/
 {
   size_t oldSize = sections.size();
 
@@ -464,7 +500,9 @@ void ProfilerTimeline::grow(std::vector<SectionData>& sections, size_t newSize,
   }
 }
 
+/**********************************************************/
 bool ProfilerTimeline::frameGetTimerInfo(uint32_t i, TimerInfo& info)
+/**********************************************************/
 {
   SectionData& section = m_frame.sections[i];
 
@@ -520,7 +558,9 @@ bool ProfilerTimeline::frameGetTimerInfo(uint32_t i, TimerInfo& info)
   return true;
 }
 
+/**********************************************************/
 bool ProfilerTimeline::asyncGetTimerInfo(uint32_t i, TimerInfo& info) const
+/**********************************************************/
 {
   const SectionData& section = m_async.sections[i];
 
@@ -556,7 +596,9 @@ bool ProfilerTimeline::asyncGetTimerInfo(uint32_t i, TimerInfo& info) const
   return false;
 }
 
+/**********************************************************/
 void ProfilerTimeline::getAsyncSnapshot(Snapshot& snapShot) const
+/**********************************************************/
 {
   snapShot.name = m_info.name;
   snapShot.id = (size_t) this;
@@ -599,9 +641,11 @@ void ProfilerTimeline::getAsyncSnapshot(Snapshot& snapShot) const
   }
 }
 
+/**********************************************************/
 bool ProfilerTimeline::getAsyncTimerInfo(const std::string& name,
                                          TimerInfo& timerInfo,
                                          std::string& apiName) const
+/**********************************************************/
 {
   std::lock_guard lock(m_asyncMutex);
 
@@ -621,16 +665,20 @@ bool ProfilerTimeline::getAsyncTimerInfo(const std::string& name,
   return false;
 }
 
+/**********************************************************/
 void ProfilerTimeline::getFrameSnapshot(Snapshot& snapShot) const
+/**********************************************************/
 {
   std::lock_guard lock(m_frameSnapshotMutex);
 
   snapShot = m_frameSnapshot;
 }
 
+/**********************************************************/
 bool ProfilerTimeline::getFrameTimerInfo(const std::string& name,
                                          TimerInfo& info,
                                          std::string& apiName) const
+/**********************************************************/
 {
   std::lock_guard lock(m_frameSnapshotMutex);
 
@@ -649,20 +697,26 @@ bool ProfilerTimeline::getFrameTimerInfo(const std::string& name,
 
 //////////////////////////////////////////////////////////////////////////
 
+/**********************************************************/
 ProfilerManager::~ProfilerManager()
+/**********************************************************/
 {
   assert(m_timelines.empty() && "forgot to destroy all timelines");
 }
 
 ProfilerTimeline*
+/**********************************************************/
 ProfilerManager::createTimeline(const ProfilerTimeline::CreateInfo& createInfo)
+/**********************************************************/
 {
   std::lock_guard lock(m_mutex);
 
   return m_timelines.emplace_back(new ProfilerTimeline(this, createInfo)).get();
 }
 
+/**********************************************************/
 void ProfilerManager::destroyTimeline(ProfilerTimeline* timeline)
+/**********************************************************/
 {
   std::lock_guard lock(m_mutex);
 
@@ -678,7 +732,9 @@ void ProfilerManager::destroyTimeline(ProfilerTimeline* timeline)
   assert(0 && "invalid timeline");
 }
 
+/**********************************************************/
 void ProfilerManager::setFrameAveragingCount(uint32_t num)
+/**********************************************************/
 {
   std::lock_guard lock(m_mutex);
   for (auto& it : m_timelines)
@@ -687,7 +743,9 @@ void ProfilerManager::setFrameAveragingCount(uint32_t num)
   }
 }
 
+/**********************************************************/
 void ProfilerManager::resetFrameSections(uint32_t delayInFrames)
+/**********************************************************/
 {
   std::lock_guard lock(m_mutex);
   for (auto& it : m_timelines)
@@ -696,8 +754,10 @@ void ProfilerManager::resetFrameSections(uint32_t delayInFrames)
   }
 }
 
+/**********************************************************/
 void ProfilerManager::appendPrint(std::string& statsFrames,
                                   std::string& statsAsyncs, bool full) const
+/**********************************************************/
 {
   std::vector<ProfilerTimeline::Snapshot> frameSnapshots;
   std::vector<ProfilerTimeline::Snapshot> asyncSnapshots;
@@ -714,9 +774,11 @@ void ProfilerManager::appendPrint(std::string& statsFrames,
   }
 }
 
+/**********************************************************/
 void ProfilerManager::getSnapshots(
     std::vector<ProfilerTimeline::Snapshot>& frameSnapshots,
     std::vector<ProfilerTimeline::Snapshot>& asyncSnapshots) const
+/**********************************************************/
 {
   std::lock_guard lock(m_mutex);
   frameSnapshots.resize(m_timelines.size());
@@ -730,12 +792,90 @@ void ProfilerManager::getSnapshots(
   }
 }
 
+/**********************************************************/
+void ProfilerTimeline::frameAdvance()
+/**********************************************************/
+{
+  if (m_inFrame)
+  {
+    frameEnd();
+  }
+  frameBegin();
+}
+
+/**********************************************************/
+ProfilerTimeline::ProfilerTimeline(ProfilerManager* profiler,
+                                   const ProfilerTimeline::CreateInfo& createInfo)
+/**********************************************************/
+{
+  assert(profiler);
+
+  m_info = createInfo;
+  m_profiler = profiler;
+
+  m_frame.averagingCount = createInfo.frameAveragingCount;
+  m_frame.averagingCountLast = createInfo.frameAveragingCount;
+
+  grow(m_frame.sections, createInfo.defaultTimers,
+       createInfo.frameAveragingCount);
+  grow(m_async.sections, createInfo.defaultTimers, 0);
+
+  frameBegin();
+}
+
+/**********************************************************/
+void ProfilerTimeline::TimeValues::add(double time)
+/**********************************************************/
+{
+  absMinValue = std::min(time, absMinValue);
+  absMaxValue = std::max(time, absMaxValue);
+  valueLast = time;
+
+  if (cycleCount)
+  {
+    // Averaging is performed over a window.
+    // minus does remove the old value
+    valueTotal += time - times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) %
+                               MAX_LAST_FRAMES];
+
+    validCount = std::min(validCount + 1, cycleCount);
+  }
+  else
+  {
+    // Averaging is done over all frames
+    valueTotal += time;
+    validCount++;
+  }
+
+  // store cycle so we can later remove it
+  times[cycleIndex] = time;
+
+  // advance cycle
+  cycleIndex = (cycleIndex + 1) % MAX_LAST_FRAMES;
+}
+
+/**********************************************************/
+double ProfilerTimeline::TimeValues::getAveraged()
+/**********************************************************/
+{
+  if (validCount)
+  {
+    return valueTotal / double(validCount);
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 }  // namespace core
 
 //--------------------------------------------------------------------------------------------------
 // Usage example
 //--------------------------------------------------------------------------------------------------
+/**********************************************************/
 [[maybe_unused]] static void usage_Profiler()
+/**********************************************************/
 {
   core::ProfilerManager profilerManager;
 

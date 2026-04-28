@@ -22,8 +22,10 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+/**********************************************************/
 void app::tooltip(const char* description, bool questionMark /*= false*/,
                   float timerThreshold /*= 0.5f*/)
+/**********************************************************/
 {
   ImGuiContext* GImGui = ImGui::GetCurrentContext();
 

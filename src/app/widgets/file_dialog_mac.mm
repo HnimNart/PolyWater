@@ -21,7 +21,10 @@ namespace app {
  * "GLTF|*.gltf;*.glb|All Files|*.*" or just "*"
  * into a macOS NSArray of extensions.
  */
-static NSArray<NSString *> *ParseExtensions(const char *exts) {
+/**********************************************************/
+static NSArray<NSString *> *ParseExtensions(const char *exts)
+/**********************************************************/
+{
   if (!exts || strlen(exts) == 0 || strcmp(exts, "*") == 0 ||
       strcmp(exts, "*.*") == 0) {
     return nil;
@@ -72,8 +75,11 @@ static NSArray<NSString *> *ParseExtensions(const char *exts) {
 }
 
 static std::filesystem::path
+/**********************************************************/
 RunDialog(bool isSave, bool isFolder, const char *title, const char *exts,
-          const std::filesystem::path *initialDir = nullptr) {
+          const std::filesystem::path *initialDir = nullptr)
+/**********************************************************/
+{
   @autoreleasepool {
     NSSavePanel *panel = nil;
     if (isSave) {
@@ -125,15 +131,21 @@ RunDialog(bool isSave, bool isFolder, const char *title, const char *exts,
   return {};
 }
 
+/**********************************************************/
 std::filesystem::path windowOpenFileDialog(struct GLFWwindow *glfwin,
                                            const char *title,
-                                           const char *exts) {
+                                           const char *exts)
+/**********************************************************/
+{
   return RunDialog(false, false, title, exts);
 }
 
+/**********************************************************/
 std::filesystem::path windowOpenFileDialog(struct GLFWwindow *glfwin,
                                            const char *title, const char *exts,
-                                           std::filesystem::path &initialDir) {
+                                           std::filesystem::path &initialDir)
+/**********************************************************/
+{
   std::filesystem::path result =
       RunDialog(false, false, title, exts, &initialDir);
   if (!result.empty()) {
@@ -142,14 +154,20 @@ std::filesystem::path windowOpenFileDialog(struct GLFWwindow *glfwin,
   return result;
 }
 
+/**********************************************************/
 std::filesystem::path windowSaveFileDialog(struct GLFWwindow *glfwin,
                                            const char *title,
-                                           const char *exts) {
+                                           const char *exts)
+/**********************************************************/
+{
   return RunDialog(true, false, title, exts);
 }
 
+/**********************************************************/
 std::filesystem::path windowOpenFolderDialog(struct GLFWwindow *glfwin,
-                                             const char *title) {
+                                             const char *title)
+/**********************************************************/
+{
   return RunDialog(false, true, title, nullptr);
 }
 

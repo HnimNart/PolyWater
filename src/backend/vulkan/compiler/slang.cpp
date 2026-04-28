@@ -124,13 +124,17 @@ SlangCompiler::compile(const std::filesystem::path& filename,
   return {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 }
 
+/**********************************************************/
 detail::SlangCompiler::SlangCompiler(bool enableGLSL)
+/**********************************************************/
 {
   SlangGlobalSessionDesc desc{.enableGLSL = enableGLSL};
   slang::createGlobalSession(&desc, m_globalSession.writeRef());
 }
 
+/**********************************************************/
 void detail::SlangCompiler::defaultTarget()
+/**********************************************************/
 {
   m_targets.push_back({
       .format = SLANG_SPIRV,
@@ -140,7 +144,9 @@ void detail::SlangCompiler::defaultTarget()
   });
 }
 
+/**********************************************************/
 void detail::SlangCompiler::defaultOptions()
+/**********************************************************/
 {
   m_options.push_back({slang::CompilerOptionName::EmitSpirvDirectly,
                        {slang::CompilerOptionValueKind::Int, 1}});
@@ -150,8 +156,10 @@ void detail::SlangCompiler::defaultOptions()
   // {slang::CompilerOptionValueKind::Int, 1}});
 }
 
+/**********************************************************/
 void detail::SlangCompiler::addSearchPaths(
     const std::vector<std::filesystem::path>& searchPaths)
+/**********************************************************/
 {
   for (auto& str : searchPaths)
   {
@@ -164,14 +172,18 @@ void detail::SlangCompiler::addSearchPaths(
   }
 }
 
+/**********************************************************/
 void detail::SlangCompiler::clearSearchPaths()
+/**********************************************************/
 {
   m_searchPaths.clear();
   m_searchPathsUtf8.clear();
   m_searchPathsUtf8Pointers.clear();
 }
 
+/**********************************************************/
 const uint32_t* detail::SlangCompiler::getSpirv() const
+/**********************************************************/
 {
   if (!m_spirv)
   {
@@ -180,7 +192,9 @@ const uint32_t* detail::SlangCompiler::getSpirv() const
   return reinterpret_cast<const uint32_t*>(m_spirv->getBufferPointer());
 }
 
+/**********************************************************/
 size_t detail::SlangCompiler::getSpirvSize() const
+/**********************************************************/
 {
   if (!m_spirv)
   {
@@ -189,7 +203,9 @@ size_t detail::SlangCompiler::getSpirvSize() const
   return m_spirv->getBufferSize();
 }
 
+/**********************************************************/
 slang::IComponentType* detail::SlangCompiler::getSlangProgram() const
+/**********************************************************/
 {
   if (!m_linkedProgram)
   {
@@ -198,7 +214,9 @@ slang::IComponentType* detail::SlangCompiler::getSlangProgram() const
   return m_linkedProgram.get();
 }
 
+/**********************************************************/
 slang::IModule* detail::SlangCompiler::getSlangModule() const
+/**********************************************************/
 {
   if (!m_module)
   {
@@ -207,7 +225,9 @@ slang::IModule* detail::SlangCompiler::getSlangModule() const
   return m_module.get();
 }
 
+/**********************************************************/
 bool detail::SlangCompiler::compileFile(const std::filesystem::path& filename)
+/**********************************************************/
 {
   const std::filesystem::path sourceFile =
       core::findFile(filename, m_searchPaths);
@@ -230,7 +250,9 @@ bool detail::SlangCompiler::compileFile(const std::filesystem::path& filename)
   return success;
 }
 
+/**********************************************************/
 void detail::SlangCompiler::logAndAppendDiagnostics(slang::IBlob* diagnostics)
+/**********************************************************/
 {
   if (diagnostics)
   {
@@ -248,8 +270,10 @@ void detail::SlangCompiler::logAndAppendDiagnostics(slang::IBlob* diagnostics)
   }
 }
 
+/**********************************************************/
 bool detail::SlangCompiler::loadFromSourceString(const std::string& moduleName,
                                                  const std::string& slangSource)
+/**********************************************************/
 {
   createSession();
 
@@ -313,7 +337,9 @@ bool detail::SlangCompiler::loadFromSourceString(const std::string& moduleName,
   return true;
 }
 
+/**********************************************************/
 void detail::SlangCompiler::createSession()
+/**********************************************************/
 {
   m_session = {};
 
