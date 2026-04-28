@@ -188,7 +188,7 @@ void app::drawAxis(const glm::mat4& modelView, float size /*= 50.f*/)
 void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
 /**********************************************************/
 {
-  static AxisGeom a;
+  struct Arrow
   {
     std::vector<glm::vec3> v;
     ImU32 c{0};
@@ -196,6 +196,7 @@ void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
 
   size *= ImGui::GetWindowDpiScale();
 
+  static AxisGeom a;
   std::array<Arrow, 3> arrow;
   arrow[0].v = a.transform(a.red, pos, modelView, size);
   arrow[0].c = IM_COL32(200, 0, 0, 255);
