@@ -29,8 +29,8 @@
 #include "app/elements/gpu_monitor.hpp"
 #include "app/elements/logger.hpp"
 #include "app/elements/profiler.hpp"
-#include "backend/vulkan/core/backend.hpp"
-#include "backend/vulkan/gui/imgui_vulkan_system.hpp"
+#include "backend/vulkan/core/vulkan_backend.hpp"
+#include "backend/vulkan/gui/vulkan_imgui_system.hpp"
 #include "core/path_utils.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
   std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
 
-  auto gui = std::make_shared<ImGuiVulkanSystem>();
+  auto gui = std::make_shared<VulkanImGuiSystem>();
   gui->init(appInfo);
 
   app::Application application(appInfo, std::move(backend), gui);

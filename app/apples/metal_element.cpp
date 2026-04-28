@@ -10,7 +10,7 @@
 #include "app/elements/default_title.hpp"
 #include "app/elements/logger.hpp"
 #include "backend/metal/core/metal_backend.hpp"
-#include "backend/metal/gui/imgui_metal_system.hpp"
+#include "backend/metal/gui/metal_imgui_system.hpp"
 #include "core/logger.hpp"
 #include "core/path_utils.hpp"
 
@@ -26,7 +26,7 @@ int main(int /*argc*/, char ** /*argv*/)
   assert(backend && "Failed to create Metal backend");
 
   // Initialize the Metal ImGui system.
-  auto gui = std::make_shared<ImGuiMetalSystem>();
+  auto gui = std::make_shared<MetalImGuiSystem>();
   gui->init(appInfo);
 
   // Create the application (owns the backend and GUI system).

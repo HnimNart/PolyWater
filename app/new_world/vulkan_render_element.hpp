@@ -6,7 +6,7 @@
 #include "app/elements/geometry_picker.hpp"
 #include "core/camera.hpp"
 #include "scene/scene_manager.hpp"
-#include <renderer/vulkan/renderer.hpp>
+#include <renderer/vulkan/vulkan_renderer.hpp>
 #include <utility>
 
 // Forward declarations to reduce compile time

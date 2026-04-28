@@ -11,7 +11,7 @@
 #import <GLFW/glfw3native.h>
 
 #import "app/gui_system_interface.hpp"
-#import "backend/metal/gui/imgui_metal_system.hpp"
+#import "backend/metal/gui/metal_imgui_system.hpp"
 #import "core/profiler.hpp"
 
 // Objective-C++ implementation struct (hidden from C++ consumers).
@@ -91,10 +91,10 @@ void MetalBackend::initPresentation(GLFWwindow *window, app::IGUISystemPtr gui)
     return;
   }
 
-  auto metalGui = std::dynamic_pointer_cast<ImGuiMetalSystem>(gui);
+  auto metalGui = std::dynamic_pointer_cast<MetalImGuiSystem>(gui);
   if (!metalGui) {
     throw std::runtime_error(
-        "GUI system given to MetalBackend is not an ImGuiMetalSystem");
+        "GUI system given to MetalBackend is not an MetalImGuiSystem");
   }
 
   metalGui->initMetalBackend(*m_contextManager, m_windowHandle);
@@ -194,7 +194,7 @@ void MetalBackend::renderFrame(
     e->onEndFrame(ctx);
   }
 
-  // Draw registered renderables (e.g., ImGuiMetalSystem).
+  // Draw registered renderables (e.g., MetalImGuiSystem).
   for (const auto &renderable : m_renderRegistry.getElements()) {
     renderable->onRender(ctx);
   }

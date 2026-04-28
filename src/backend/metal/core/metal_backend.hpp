@@ -10,7 +10,7 @@
 #include "app/gui_system_interface.hpp"
 #include "backend/interfaces/render_backend_interface.hpp"
 
-class ImGuiMetalSystem;
+class MetalImGuiSystem;
 
 // Forward declaration of the Objective-C++ implementation struct.
 // Defined in MetalBackend.mm.
@@ -21,7 +21,7 @@ struct MetalBackendData;
 //------------------------------------------------------------
 // Concrete Metal implementation of IRenderBackend.
 // Manages the CAMetalLayer, per-frame command buffer lifecycle,
-// and delegates GUI rendering to ImGuiMetalSystem.
+// and delegates GUI rendering to MetalImGuiSystem.
 class MetalBackend final : public IRenderBackend {
 public:
   static std::unique_ptr<MetalBackend>
