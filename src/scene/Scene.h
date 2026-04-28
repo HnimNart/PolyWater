@@ -20,9 +20,11 @@ struct Scene
   float crossSectionArea = M_PI * radius * radius;  //
 };
 
+/**********************************************************/
 template <typename T>
 inline T getAttribute(const shaderio::MeshPrimitive& mesh,
                       const uint8_t* buffer, uint32_t vertexID)
+/**********************************************************/
 {
   const auto& view = mesh.triMesh.positions;
   uint32_t stride = view.byteStride == 0 ? sizeof(T) : view.byteStride;
@@ -30,9 +32,11 @@ inline T getAttribute(const shaderio::MeshPrimitive& mesh,
   return *reinterpret_cast<const T*>(ptr);
 }
 
+/**********************************************************/
 inline glm::uvec3 getTriangleIndices(const shaderio::MeshPrimitive& mesh,
                                      const uint8_t* buffer,
                                      uint32_t primitiveID)
+/**********************************************************/
 {
   const auto& view = mesh.triMesh.indices;
   bool is32Bit = (mesh.indexType == IndexType32);

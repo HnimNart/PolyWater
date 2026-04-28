@@ -79,29 +79,37 @@ using bool4 = glm::bvec4;
 //--------------------------------
 
 // Linear interpolation between two values a and b using parameter t in [0,1]
+/**********************************************************/
 template <typename T> T lerp(T a, T b, T t)
+/**********************************************************/
 {
   return glm::mix(a, b, t);
 }
 
+/**********************************************************/
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
 glm::vec<N, ScalarType, Precision> mul(glm::vec<N, ScalarType, Precision> v,
                                        glm::mat<N, N, ScalarType, Precision> M)
+/**********************************************************/
 {
   return M * v;
 }
 
+/**********************************************************/
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
 glm::vec<N, ScalarType, Precision> mul(glm::mat<N, N, ScalarType, Precision> M,
                                        glm::vec<N, ScalarType, Precision> v)
+/**********************************************************/
 {
   return v * M;
 }
 
 template <glm::length_t N, typename ScalarType, glm::qualifier Precision>
 glm::mat<N, N, ScalarType, Precision>
+/**********************************************************/
 mul(glm::mat<N, N, ScalarType, Precision> A,
     glm::mat<N, N, ScalarType, Precision> B)
+/**********************************************************/
 {
   return B * A;
 }
@@ -166,12 +174,16 @@ NAMESPACE_SHADERIO_END()
 #    define NVSHADERS_INOUT_TYPE(T) inout T
 #  endif
 
+/**********************************************************/
 vec3 mul(vec3 a, mat3 b)
+/**********************************************************/
 {
   return b * a;
 }
 
+/**********************************************************/
 mat3 mul(mat3 a, mat3 b)
+/**********************************************************/
 {
   return b * a;
 }
@@ -185,28 +197,64 @@ struct DevicePtr<T>
 {
   uint64_t address;
 
-  __init() { address = 0u; }
-  __init(uint64_t addr) { address = addr; }
+  /**********************************************************/
+  __init()
+  /**********************************************************/
+  {
+    address = 0u;
+  }
+  /**********************************************************/
+  __init(uint64_t addr)
+  /**********************************************************/
+  {
+    address = addr;
+  }
 
-  Ptr<T> get() { return reinterpret<Ptr<T>>(address); }
-  __generic<U> Ptr<U> get() { return reinterpret<Ptr<U>>(address); }
+  /**********************************************************/
+  Ptr<T> get()
+  /**********************************************************/
+  {
+    return reinterpret<Ptr<T>>(address);
+  }
+  /**********************************************************/
+  __generic<U> Ptr<U> get()
+  /**********************************************************/
+  {
+    return reinterpret<Ptr<U>>(address);
+  }
+  /**********************************************************/
   Ptr<T> at(uint64_t byteOffset)
+  /**********************************************************/
   {
     return reinterpret<Ptr<T>>(address + byteOffset);
   }
+  /**********************************************************/
   __generic<U> Ptr<U> at(uint64_t byteOffset)
+  /**********************************************************/
   {
     return reinterpret<Ptr<U>>(address + byteOffset);
   }
-  T readAt(uint64_t byteOffset) { return *at(byteOffset); }
-  __generic<U> U readAt(uint64_t byteOffset) { return *at<U>(byteOffset); }
+  /**********************************************************/
+  T readAt(uint64_t byteOffset)
+  /**********************************************************/
+  {
+    return *at(byteOffset);
+  }
+  /**********************************************************/
+  __generic<U> U readAt(uint64_t byteOffset)
+  /**********************************************************/
+  {
+    return *at<U>(byteOffset);
+  }
 }
 
 #  define SLANG_DEFAULT(x) = (x)
 __intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(
     vector<T, N> x, vector<T, N> y);
 
+/**********************************************************/
 T* castAddress<T>(uint64_t addr)
+/**********************************************************/
 {
   return reinterpret<T*>(addr);
 }
@@ -232,33 +280,50 @@ struct BoundingBox
   float3 max;
 
 #ifdef __cplusplus
+  /**********************************************************/
   BoundingBox() :
       min(std::numeric_limits<float>::max()),
       max(std::numeric_limits<float>::lowest())
+  /**********************************************************/
   {
   }
 
-  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
+  /**********************************************************/
+  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max)
+  /**********************************************************/
+  {
+  }
 
   // Add a point to the bounding box (Encapsulate)
+  /**********************************************************/
   void add(const float3& p)
+  /**********************************************************/
   {
     min = glm::min(min, p);
     max = glm::max(max, p);
   }
 
   // Merge another bounding box into this one
+  /**********************************************************/
   void add(const BoundingBox& other)
+  /**********************************************************/
   {
     min = glm::min(min, other.min);
     max = glm::max(max, other.max);
   }
 
+  /**********************************************************/
   bool isEmpty() const
+  /**********************************************************/
   {
     return min.x > max.x || min.y > max.y || min.z > max.z;
   }
-  float3 center() const { return (min + max) * 0.5f; }
+  /**********************************************************/
+  float3 center() const
+  /**********************************************************/
+  {
+    return (min + max) * 0.5f;
+  }
 #endif
 };
 

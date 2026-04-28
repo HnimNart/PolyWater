@@ -18,7 +18,9 @@ class VulkanRenderer;
 
 class VulkanRendererElement : public app::IAppElement {
 public:
+  /**********************************************************/
   VulkanRendererElement(std::string sceneFile)
+  /**********************************************************/
       : m_sceneFile(std::move(sceneFile)) {}
   ~VulkanRendererElement() override = default;
 
@@ -58,7 +60,10 @@ public:
 
   //
 
-  void setGeometryPicker(std::shared_ptr<app::GeometryPickerElement> picker) {
+  /**********************************************************/
+  void setGeometryPicker(std::shared_ptr<app::GeometryPickerElement> picker)
+  /**********************************************************/
+  {
     m_geometryPicker = std::move(picker);
   }
 

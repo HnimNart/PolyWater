@@ -62,7 +62,9 @@ int main(int /*argc*/, char ** /*argv*/)
 
 #include <cstdio>
 
+/**********************************************************/
 int main()
+/**********************************************************/
 {
   std::fprintf(stderr,
                "metalElement requires macOS with Metal support.\n"
