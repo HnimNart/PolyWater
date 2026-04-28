@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "property_editor.hpp"
-#include "scene/SceneResources.hpp"
+#include "scene/scene_resources.hpp"
 #include "shaders/shared/structs.h"
 
 namespace app

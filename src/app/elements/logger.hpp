@@ -26,7 +26,7 @@
 
 #include <core/logger.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 #include "app/widgets/settings_handler.hpp"
 
 namespace app

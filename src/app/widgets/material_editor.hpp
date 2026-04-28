@@ -4,7 +4,7 @@
 
 #include "glm/gtc/type_ptr.hpp"
 #include "property_editor.hpp"
-#include "scene/SceneResources.hpp"
+#include "scene/scene_resources.hpp"
 
 namespace app
 {

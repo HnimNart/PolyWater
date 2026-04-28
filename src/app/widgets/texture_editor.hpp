@@ -4,9 +4,9 @@
 
 #include <algorithm>
 
-#include "core/string_utils.h"
-#include "renderer/interfaces/IRenderer.hpp"
-#include "scene/SceneResources.hpp"
+#include "core/string_utils.hpp"
+#include "renderer/interfaces/renderer_interface.hpp"
+#include "scene/scene_resources.hpp"
 #include "tooltip.hpp"
 
 namespace app

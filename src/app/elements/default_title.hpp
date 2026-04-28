@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "app/IAppElement.hpp"
-#include "renderer/interfaces/IRenderer.hpp"
+#include "app/app_element_interface.hpp"
+#include "renderer/interfaces/renderer_interface.hpp"
 
 namespace app
 {

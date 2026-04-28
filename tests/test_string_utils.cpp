@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "string_utils.h"
+#include "string_utils.hpp"
 
 // -----------------------------------------------------------------------
 // capitalize

@@ -22,7 +22,7 @@
 #pragma once
 #include <filesystem>
 
-#include <core/Camera.hpp>
+#include <core/camera.hpp>
 
 namespace app
 {

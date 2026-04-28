@@ -20,17 +20,17 @@
 #include <app/cli/parameter_parser.hpp>
 #include <core/timers.hpp>
 
-#include "VulkanRenderElement.hpp"
-#include "app/Application.hpp"
+#include "vulkan_render_element.hpp"
+#include "app/application.hpp"
 #include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
-#include "app/elements/geometryPicker.hpp"
+#include "app/elements/geometry_picker.hpp"
 #include "app/elements/gpu_monitor.hpp"
 #include "app/elements/logger.hpp"
 #include "app/elements/profiler.hpp"
-#include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
+#include "backend/vulkan/core/backend.hpp"
+#include "backend/vulkan/gui/imgui_vulkan_system.hpp"
 #include "core/path_utils.hpp"
 
 //---------------------------------------------------------------------------------------------------------------

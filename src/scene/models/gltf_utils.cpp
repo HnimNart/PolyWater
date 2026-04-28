@@ -29,7 +29,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#include "backend/interfaces/RHI_definitions.hpp"
+#include "backend/interfaces/rhi_definitions.hpp"
 #include "core/timers.hpp"
 
 namespace

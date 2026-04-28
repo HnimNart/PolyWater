@@ -26,7 +26,7 @@
 #include <numeric>
 #include <type_traits>
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 #include "app/widgets/settings_handler.hpp"
 #include "core/timers.hpp"
 #include "nvml_monitor.hpp"

@@ -25,7 +25,7 @@
 
 #include <functional>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
