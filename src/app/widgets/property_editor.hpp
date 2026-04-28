@@ -98,5 +98,5 @@ bool ColorButton(const char* label, const ImVec4& col, ImGuiColorEditFlags flags
 void Text(const char* label, const std::string& text);
 void Text(const char* label, const char* fmt, ...);
 }  // namespace PropertyEditor
-}  // namespace ImGui
+}  // namespace app
 // clang-format on
