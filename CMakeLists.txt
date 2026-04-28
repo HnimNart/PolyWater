@@ -33,6 +33,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/ext/vulkansdk/x86_64")
 add_subdirectory(ext)
 add_subdirectory(src)
 add_subdirectory(app)
+add_subdirectory(tests)
 
 
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
