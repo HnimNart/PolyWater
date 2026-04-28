@@ -129,6 +129,10 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     m_height = size.height;
   }
 
+  // If buffer creation failed (no suitable memory), skip denoising gracefully.
+  if (m_colorBuf.buffer == VK_NULL_HANDLE)
+    return;
+
   // -----------------------------------------------------------------------
   // 2. Copy GBuffer images → OIDN input VkBuffers.
   //    (The render graph already transitioned them to TRANSFER_SRC_OPTIMAL.)
@@ -291,6 +295,8 @@ void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
     m_albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
     m_normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
     m_outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
+    // allocateExternalBuffer may fall back to host buffers internally if
+    // external memory is unavailable; both paths set a valid oidnBuf.
   }
   else
   {
@@ -298,6 +304,15 @@ void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
     m_albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
     m_normalBuf = allocateHostBuffer(byteSize, kInputUsage);
     m_outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
+  }
+
+  // Bail out if any allocation failed (e.g., no host-visible memory type).
+  if (m_colorBuf.buffer == VK_NULL_HANDLE || m_albedoBuf.buffer == VK_NULL_HANDLE ||
+      m_normalBuf.buffer == VK_NULL_HANDLE || m_outputBuf.buffer == VK_NULL_HANDLE)
+  {
+    fprintf(stderr, "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
+    destroyBuffers();
+    return;
   }
 
   rebuildFilter(width, height);
@@ -468,6 +483,18 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateHostBuffer(
   uint32_t memTypeIdx = findMemoryType(
       physDevice, memReqs.memoryTypeBits,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  if (memTypeIdx == UINT32_MAX)
+  {
+    // This should never happen on any real GPU; all Vulkan-capable hardware
+    // must expose at least one host-visible heap.
+    fprintf(stderr,
+            "[OIDNDenoisePass] Could not find a host-visible memory type — "
+            "OIDN CPU fallback unavailable.\n");
+    vkDestroyBuffer(device, buf.buffer, nullptr);
+    buf.buffer = VK_NULL_HANDLE;
+    return buf;
+  }
 
   VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
   allocInfo.allocationSize = memReqs.size;

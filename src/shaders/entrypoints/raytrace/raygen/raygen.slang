@@ -15,6 +15,9 @@
   SceneInfo* sceneInfo = pushConst.sceneInfoAddress.get();
 
   float3 finalPixelColor = float3(0, 0, 0);
+  // First-hit auxiliary data for the OIDN denoiser (captured from sample 0).
+  float3 firstHitAlbedo = float3(0, 0, 0);
+  float3 firstHitNormal = float3(0, 0, 0);
 
   // Initialize RNG
   uint seed =
@@ -89,43 +92,30 @@
 
     // Add this sample's full path result to the pixel
     finalPixelColor += payload.color;
+
+    // Capture first-hit auxiliary data from sample 0 at frame reset.
+    // Hit shaders populate payload.albedo/normal only on depth==0, so these
+    // are stable across samples for the same pixel.
+    if (s == 0 && params.frameIdx == 0)
+    {
+      firstHitAlbedo = payload.albedo;
+      firstHitNormal = payload.normal;
+    }
   }
 
   float3 currentFrameColor = finalPixelColor / float(N_SAMPLES);
 
-  // Write first-hit albedo and normal for the OIDN denoiser (sample 0 only,
-  // these are stable across frames so we only update on frame 0 reset).
+  // Write first-hit albedo and normal for the OIDN denoiser.
+  // These are captured from sample 0's first bounce and written only when
+  // frameIdx==0 (accumulation reset), keeping the buffers stable across
+  // accumulation frames.
   if (params.frameIdx == 0)
   {
-    // Re-trace sample 0 payload to get the first-hit auxiliary data.
-    // We stored albedo/normal in the first sample's payload above.
-    // Use a dedicated single-sample trace for the auxiliary buffers.
-    float2 pixelCenter0 = (float2)launchID + float2(0.5, 0.5);
-    float2 inUV0 = pixelCenter0 / launchSize;
-    float2 d0 = inUV0 * 2.0 - 1.0;
-    float4 target0 = mul(float4(d0.x, d0.y, 1.0, 1.0), sceneInfo->projInvMatrix);
-    float4 dir0 = mul(float4(normalize(target0.xyz), 0.0), sceneInfo->viewInvMatrix);
-    float4 origin0 = mul(float4(0.0, 0.0, 0.0, 1.0), sceneInfo->viewInvMatrix);
-
-    HitPayload auxPayload;
-    auxPayload.color = float3(0, 0, 0);
-    auxPayload.weight = float3(1, 1, 1);
-    auxPayload.depth = 0;
-    auxPayload.seed = tea(launchID.y * (uint)launchSize.x + launchID.x, 0u);
-    auxPayload.stop = true;
-    auxPayload.emit = false;
-    auxPayload.albedo = float3(0, 0, 0);
-    auxPayload.normal = float3(0, 0, 0);
-
-    RayDesc auxRay;
-    auxRay.Origin = origin0.xyz;
-    auxRay.Direction = normalize(dir0.xyz);
-    auxRay.TMin = EPSILON;
-    auxRay.TMax = INFINITE;
-    TraceRay(topLevelAS, 0, 0xFF, 0, 0, 0, auxRay, auxPayload);
-
-    albedoImage[int2(launchID)] = float4(auxPayload.albedo, 1.0);
-    normalImage[int2(launchID)] = float4(auxPayload.normal * 0.5 + 0.5, 1.0);
+    albedoImage[int2(launchID)] = float4(firstHitAlbedo, 1.0);
+    // Normals are stored in world-space in the range [-1, 1].  The G-buffer
+    // uses R32G32B32A32_SFLOAT which supports negative values, so no encoding
+    // is needed.  OIDN reads these directly as world-space normals.
+    normalImage[int2(launchID)] = float4(firstHitNormal, 0.0);
   }
 
   if (params.frameIdx == 0)
