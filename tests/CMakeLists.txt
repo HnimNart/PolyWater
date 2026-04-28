@@ -69,7 +69,7 @@ if(TESTS_STANDALONE)
     FetchContent_Declare(
         fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-        GIT_TAG        11.0.2
+        GIT_TAG        11.1.4
         GIT_SHALLOW    TRUE
     )
     set(FMT_DOC OFF CACHE BOOL "" FORCE)
