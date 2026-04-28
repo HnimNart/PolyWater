@@ -22,7 +22,7 @@ class RenderGraph
 {
 public:
   RenderGraph(std::string name) : m_name(std::move(name)){};
-  const std::string& name() const { return m_name; }
+  const std::string& name() const noexcept { return m_name; }
 
   void addPass(std::unique_ptr<IRenderPass> pass);
 

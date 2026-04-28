@@ -36,8 +36,8 @@ public:
       m_sequencerInfo(sequencerInfo)
   {
   }
-  virtual void onAttach(Application* app) override;
-  virtual void onPreRender() override;
+  void onAttach(Application* app) override;
+  void onPreRender() override;
 
 private:
   cli::ParameterSequencer::InitInfo m_sequencerInfo;

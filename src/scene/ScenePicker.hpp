@@ -36,7 +36,7 @@ public:
   /**
    * @brief Builds the TLAS (Instances) and BLAS (Meshes) for the scene.
    */
-  bool build(const Scene& scene);
+  [[nodiscard]] bool build(const Scene& scene);
 
   /**
    * @brief Raycasts against the scene structure.

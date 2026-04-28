@@ -21,7 +21,7 @@ public:
    * @param outScene Reference to the SceneData struct to fill.
    * @return true if successful, false otherwise.
    */
-  bool load(const std::string& filepath, SceneData& outScene);
+  [[nodiscard]] bool load(const std::string& filepath, SceneData& outScene);
 
 private:
   // Convenience typedef for name-to-index lookups

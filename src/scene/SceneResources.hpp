@@ -40,7 +40,7 @@ public:
   std::vector<MeshID> loadModel(const std::string& filename,
                                 std::string name = "");
   TextureID addTexture(const std::string& name, const std::string& filename);
-  bool destroyTexture(TextureID id);
+  [[nodiscard]] bool destroyTexture(TextureID id);
   void addEnvmap(const std::filesystem::path& filename, float scale = 1.0f,
                  float rotation = 0.0f);
 
@@ -62,11 +62,11 @@ public:
   void onInstanceChange();
 
   // --- State Management ---
-  bool requireRebuild() const
+  [[nodiscard]] bool requireRebuild() const noexcept
   {
     return m_rebuild;
   }
-  bool dirty() const
+  [[nodiscard]] bool dirty() const noexcept
   {
     return m_dirty || m_rebuild;
   }

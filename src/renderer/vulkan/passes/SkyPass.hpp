@@ -6,7 +6,7 @@
 class SkyPass final : public IRenderPass
 {
 public:
-  SkyPass(VulkanContextManager* context);
+  explicit SkyPass(VulkanContextManager* context);
   void init() override;
   void setup(PassBuilder& builder) override;
   void deinit() override;

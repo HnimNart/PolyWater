@@ -50,8 +50,8 @@ public:
   void runOneFrame();  // Runs a single frame iteration
   void close();        // Signals the app to stop running
 
-  bool isRunning() const noexcept;
-  bool isHeadless() const noexcept;
+  [[nodiscard]] bool isRunning() const noexcept;
+  [[nodiscard]] bool isHeadless() const noexcept;
 
   // ---------------------------------------------------------------------------
   // Element Management
@@ -62,9 +62,9 @@ public:
   // Rendering & Backend Control
   // ---------------------------------------------------------------------------
   void setVsync(bool v);
-  bool isVsync() const;
+  [[nodiscard]] bool isVsync() const noexcept;
   void setPause(bool v);
-  bool isPaused() const;
+  [[nodiscard]] bool isPaused() const noexcept;
 
   IRenderBackend* getBackend() const;
 

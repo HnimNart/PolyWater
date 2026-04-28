@@ -139,9 +139,9 @@ private:
 // fashion
 template <class T> class Parameter : public ParameterBase
 {
-  T* data() const { return (T*) destination.raw; }
-  T min() const { return *(const T*) &minMaxValues[0].u32[0]; }
-  T max() const { return *(const T*) &minMaxValues[1].u32[0]; }
+  T* data() const noexcept { return (T*) destination.raw; }
+  T min() const noexcept { return *(const T*) &minMaxValues[0].u32[0]; }
+  T max() const noexcept { return *(const T*) &minMaxValues[1].u32[0]; }
 };
 
 }  // namespace app::cli

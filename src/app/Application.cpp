@@ -144,7 +144,7 @@ void Application::setVsync(bool v)
 }
 
 /**********************************************************/
-bool Application::isVsync() const
+bool Application::isVsync() const noexcept
 /**********************************************************/
 {
   return m_vsyncWanted;
@@ -158,7 +158,7 @@ void Application::setPause(bool v)
 }
 
 /**********************************************************/
-bool Application::isPaused() const
+bool Application::isPaused() const noexcept
 /**********************************************************/
 {
   return m_pause;

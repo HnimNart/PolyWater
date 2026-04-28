@@ -252,7 +252,7 @@ public:
   {
     m_duration = val;
   }
-  bool isAnimated() const
+  [[nodiscard]] bool isAnimated() const noexcept
   {
     return m_animDone == false;
   }
@@ -265,7 +265,7 @@ public:
            bool instantFit = true, bool tight = false, float aspect = 1.0f);
 
   // Returns true if the camera has moved since the last call to setClean()
-  bool isDirty() const
+  [[nodiscard]] bool isDirty() const noexcept
   {
     return m_lastSync != m_current;
   }

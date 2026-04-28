@@ -19,8 +19,8 @@ class UIPass final : public IRenderPass
 public:
   using RenderCallback = std::function<void(const IRenderContext& ctx)>;
 
-  UIPass(RenderCallback callback);
-  virtual ~UIPass() = default;
+  explicit UIPass(RenderCallback callback);
+  ~UIPass() = default;
 
   void init() override
   {

@@ -74,7 +74,7 @@ public:
   };
 
   explicit ElementLogger(bool show = false);
-  virtual ~ElementLogger() = default;
+  ~ElementLogger() = default;
 
   void onAttach(Application* app) override;
   void onUIRender() override;  // Called for anything related to UI

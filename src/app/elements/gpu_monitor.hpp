@@ -73,7 +73,7 @@ template <typename T> struct AverageCircularBuffer
 struct ElementGpuMonitor final : public IAppElement
 {
   explicit ElementGpuMonitor(bool show = false);
-  virtual ~ElementGpuMonitor() = default;
+  ~ElementGpuMonitor() = default;
 
   void onUIRender() override;
   void onUIMenu() override;

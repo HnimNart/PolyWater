@@ -10,7 +10,7 @@
 class DenoisePass final : public IRenderPass
 {
 public:
-  DenoisePass(VulkanContextManager* contextManager);
+  explicit DenoisePass(VulkanContextManager* contextManager);
   ~DenoisePass() override = default;
 
   void init() override;

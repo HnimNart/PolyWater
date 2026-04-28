@@ -51,7 +51,7 @@ struct Image
   // CPU Pixel storage
   std::vector<uint8_t> pixels;
 
-  bool isValid() const
+  [[nodiscard]] bool isValid() const noexcept
   {
     return !pixels.empty();
   }

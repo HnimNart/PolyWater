@@ -28,7 +28,7 @@ public:
     BufferID id = 0;         // Index for the Asset Manager's vector
 
     // Optional: helper to check if valid
-    bool isValid() const
+    [[nodiscard]] bool isValid() const noexcept
     {
       return address != 0;
     }
@@ -55,10 +55,11 @@ public:
   // Texture Management
   // ---------------------------------------------------------------------------
   virtual unsigned int reserveTextureSlot() = 0;
-  virtual bool addAndUploadTexture(const core::Image& image, TextureID& id,
-                                   bool immediate = false) = 0;
+  [[nodiscard]] virtual bool addAndUploadTexture(const core::Image& image,
+                                                 TextureID& id,
+                                                 bool immediate = false) = 0;
   virtual uint64_t getTextureHandle(TextureID id) = 0;
-  virtual bool destroyTexture(TextureID id) = 0;
+  [[nodiscard]] virtual bool destroyTexture(TextureID id) = 0;
 
   // ---------------------------------------------------------------------------
   // Geometry Upload (Buffers)

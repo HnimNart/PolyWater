@@ -42,7 +42,7 @@ public:
   // is loaded when a Slang file includes a `#version` directive). If enabled,
   // you will also need to add `FILES ${Slang_GLSL_MODULE}` to your CMake
   // `copy_to_runtime_and_install` call.
-  SlangCompiler(bool enableGLSL = false);
+  explicit SlangCompiler(bool enableGLSL = false);
   ~SlangCompiler() = default;
 
   void defaultTarget();   // Default target is SPIR-V
