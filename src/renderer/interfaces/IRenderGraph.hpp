@@ -1,12 +1,12 @@
 #pragma once
-#include <iostream>
+
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include "IRenderContext.hpp"
-#include "PassBuilder.hpp"
-#include "RHI_definitions.hpp"
+#include "backend/interfaces/IRenderContext.hpp"
+#include "backend/interfaces/PassBuilder.hpp"
+#include "backend/interfaces/RHI_definitions.hpp"
 
 class IRenderPass
 {
@@ -22,10 +22,7 @@ class RenderGraph
 {
 public:
   RenderGraph(std::string name) : m_name(std::move(name)){};
-  const std::string& name() const
-  {
-    return m_name;
-  }
+  const std::string& name() const { return m_name; }
 
   void addPass(std::unique_ptr<IRenderPass> pass);
 

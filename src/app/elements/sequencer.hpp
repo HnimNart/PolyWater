@@ -32,7 +32,7 @@ namespace app
 class ElementSequencer : public IAppElement
 {
 public:
-  ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
+  ElementSequencer(const cli::ParameterSequencer::InitInfo& sequencerInfo) :
       m_sequencerInfo(sequencerInfo)
   {
   }
@@ -40,8 +40,8 @@ public:
   virtual void onPreRender() override;
 
 private:
-  core::ParameterSequencer::InitInfo m_sequencerInfo;
-  core::ParameterSequencer m_sequencer;
+  cli::ParameterSequencer::InitInfo m_sequencerInfo;
+  cli::ParameterSequencer m_sequencer;
   Application* m_app = nullptr;
   bool m_doSequences = false;
 };

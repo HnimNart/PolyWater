@@ -24,16 +24,18 @@
 // shader types, C++ GLM types, and GLSL types. It enables seamless data sharing
 // between shader code and host code while maintaining type safety.
 
+// clang-format off
+
 #ifdef __cplusplus
-#  include <glm/glm.hpp>
+#include <glm/glm.hpp>
 
 // In C++, we put all of the shared types and functions into the 'shaderio'
 // namespace. We provide the below macros to deal with the fact that not all
 // languages #include'ing this header actually support namespaces.
-#  define NAMESPACE_SHADERIO_BEGIN()                                           \
+#define NAMESPACE_SHADERIO_BEGIN()                                           \
     namespace shaderio                                                         \
     {
-#  define NAMESPACE_SHADERIO_END() }  // namespace shaderio
+#define NAMESPACE_SHADERIO_END() }  // namespace shaderio
 
 NAMESPACE_SHADERIO_BEGIN()
 
@@ -114,65 +116,65 @@ mul(glm::mat<N, N, ScalarType, Precision> A,
   return B * A;
 }
 
-#  define SLANG_DEFAULT(x) = (x)
+#define SLANG_DEFAULT(x) = (x)
 
-#  ifndef NVSHADERS_OUT_TYPE
-#    define NVSHADERS_OUT_TYPE(T) T&
-#  endif
-#  ifndef NVSHADERS_INOUT_TYPE
-#    define NVSHADERS_INOUT_TYPE(T) T&
-#  endif
+#ifndef NVSHADERS_OUT_TYPE
+#define NVSHADERS_OUT_TYPE(T) T&
+#endif
+#ifndef NVSHADERS_INOUT_TYPE
+#define NVSHADERS_INOUT_TYPE(T) T&
+#endif
 
 NAMESPACE_SHADERIO_END()
 
 #elif defined(GL_core_profile)  // GLSL
 
-#  define NAMESPACE_SHADERIO_BEGIN()
-#  define NAMESPACE_SHADERIO_END()
+#define NAMESPACE_SHADERIO_BEGIN()
+#define NAMESPACE_SHADERIO_END()
 
 // GLSL type definitions
-#  define float4x4 mat4
-#  define float4x3 mat4x3
-#  define float3x4 mat3x4
-#  define float3x3 mat3
-#  define float2x2 mat2
-#  define float2x3 mat2x3
-#  define float3x2 mat3x2
+#define float4x4 mat4
+#define float4x3 mat4x3
+#define float3x4 mat3x4
+#define float3x3 mat3
+#define float2x2 mat2
+#define float2x3 mat2x3
+#define float3x2 mat3x2
 
-#  define float2 vec2
-#  define float3 vec3
-#  define float4 vec4
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
 
-#  define int2 ivec2
-#  define int3 ivec3
-#  define int4 ivec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
 
-#  define uint2 uvec2
-#  define uint3 uvec3
-#  define uint4 uvec4
+#define uint2 uvec2
+#define uint3 uvec3
+#define uint4 uvec4
 
-#  define bool2 bvec2
-#  define bool3 bvec3
-#  define bool4 bvec4
+#define bool2 bvec2
+#define bool3 bvec3
+#define bool4 bvec4
 
 // Functions
-#  define lerp mix
-#  define atan2 atan
-#  define asuint floatBitsToUint
-#  define asfloat uintBitsToFloat
+#define lerp mix
+#define atan2 atan
+#define asuint floatBitsToUint
+#define asfloat uintBitsToFloat
 
-#  define static
-#  define inline
+#define static
+#define inline
 
-#  define SLANG_DEFAULT(x)
+#define SLANG_DEFAULT(x)
 
-#  ifndef NVSHADERS_OUT_TYPE
-#    define NVSHADERS_OUT_TYPE(T) out T
-#  endif
+#ifndef NVSHADERS_OUT_TYPE
+#define NVSHADERS_OUT_TYPE(T) out T
+#endif
 
-#  ifndef NVSHADERS_INOUT_TYPE
-#    define NVSHADERS_INOUT_TYPE(T) inout T
-#  endif
+#ifndef NVSHADERS_INOUT_TYPE
+#define NVSHADERS_INOUT_TYPE(T) inout T
+#endif
 
 /**********************************************************/
 vec3 mul(vec3 a, mat3 b)
@@ -190,30 +192,18 @@ mat3 mul(mat3 a, mat3 b)
 
 #elif __SLANG__
 
-#  define NAMESPACE_SHADERIO_BEGIN()
-#  define NAMESPACE_SHADERIO_END()
+#define NAMESPACE_SHADERIO_BEGIN()
+#define NAMESPACE_SHADERIO_END()
 
 struct DevicePtr<T>
 {
   uint64_t address;
 
-  __init()
-  {
-    address = 0u;
-  }
-  __init(uint64_t addr)
-  {
-    address = addr;
-  }
+  __init() { address = 0u; }
+  __init(uint64_t addr) { address = addr; }
 
-  Ptr<T> get()
-  {
-    return reinterpret<Ptr<T>>(address);
-  }
-  __generic<U> Ptr<U> get()
-  {
-    return reinterpret<Ptr<U>>(address);
-  }
+  Ptr<T> get() { return reinterpret<Ptr<T>>(address); }
+  __generic<U> Ptr<U> get() { return reinterpret<Ptr<U>>(address); }
   Ptr<T> at(uint64_t byteOffset)
   {
     return reinterpret<Ptr<T>>(address + byteOffset);
@@ -222,38 +212,26 @@ struct DevicePtr<T>
   {
     return reinterpret<Ptr<U>>(address + byteOffset);
   }
-  T readAt(uint64_t byteOffset)
-  {
-    return *at(byteOffset);
-  }
-  __generic<U> U readAt(uint64_t byteOffset)
-  {
-    return *at<U>(byteOffset);
-  }
+  T readAt(uint64_t byteOffset) { return *at(byteOffset); }
+  __generic<U> U readAt(uint64_t byteOffset) { return *at<U>(byteOffset); }
 }
 
-#  define SLANG_DEFAULT(x) = (x)
+#define SLANG_DEFAULT(x) = (x)
 __intrinsic_op(cmpGT) public vector<bool, N> greaterThan<T, let N : int>(
     vector<T, N> x, vector<T, N> y);
 
-/**********************************************************/
-T* castAddress<T>(uint64_t addr)
-/**********************************************************/
-{
-  return reinterpret<T*>(addr);
-}
 
-#  ifndef NVSHADERS_OUT_TYPE
-#    define NVSHADERS_OUT_TYPE(T) out T
-#  endif
+#ifndef NVSHADERS_OUT_TYPE
+#define NVSHADERS_OUT_TYPE(T) out T
+#endif
 
-#  ifndef NVSHADERS_INOUT_TYPE
-#    define NVSHADERS_INOUT_TYPE(T) inout T
-#  endif
+#ifndef NVSHADERS_INOUT_TYPE
+#define NVSHADERS_INOUT_TYPE(T) inout T
+#endif
 
 #else  // No language specified
 
-#  error "Unknown language environment"
+#error "Unknown language environment"
 
 #endif  // __cplusplus
 
@@ -270,9 +248,7 @@ struct BoundingBox
   {
   }
 
-  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max)
-  {
-  }
+  BoundingBox(float3 _min, float3 _max) : min(_min), max(_max) {}
 
   // Add a point to the bounding box (Encapsulate)
   void add(const float3& p)
@@ -292,13 +268,11 @@ struct BoundingBox
   {
     return min.x > max.x || min.y > max.y || min.z > max.z;
   }
-  float3 center() const
-  {
-    return (min + max) * 0.5f;
-  }
+  float3 center() const { return (min + max) * 0.5f; }
 #endif
 };
 
 NAMESPACE_SHADERIO_END()
 
+// clang-format on
 #endif  // SLANG_TYPES_H

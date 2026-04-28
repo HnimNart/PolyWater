@@ -884,9 +884,12 @@ PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
   // nvprintf("Before: %d vertex, %d triangles\n", mesh.vertices.size(),
   // mesh.triangles.size()); nvprintf("After: %d vertex, %d triangles\n",
   // uniqueVertices.size(), uniqueTriangles.size());
-
   return {std::move(uniqueVertices), std::move(uniqueTriangles)};
+}
+
+/**********************************************************/
 glm::mat4 Node::localMatrix() const
+/**********************************************************/
 {
   glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
   glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
