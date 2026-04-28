@@ -45,14 +45,13 @@ public:
   {
   }
 
-  // --- UI Callbacks (ImGui) ---
-  /** @brief Called within the ImGui frame to define custom menus (e.g., File,
-   * Edit). */
+  // --- UI Callbacks ---
+  /** @brief Called within a GUI frame to define custom menus (e.g., File, Edit). */
   virtual void onUIMenu()
   {
   }
 
-  /** @brief Called within the ImGui frame to draw windows and widgets. */
+  /** @brief Called within a GUI frame to draw windows and widgets. */
   virtual void onUIRender()
   {
   }

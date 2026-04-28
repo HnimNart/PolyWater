@@ -1,10 +1,6 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
-#include <imgui/imgui.h>
-
 #include <cstdint>
-#include <functional>
 #include <string>
 
 #include "core/Types.hpp"
@@ -30,11 +26,8 @@ struct ApplicationCreateInfo
   uint32_t headlessFrameCount = 100;
 
   // UI
-  bool useMenu{true};                      // Include a menubar
-  bool hasUndockableViewport{false};       // Allow floating windows
-  std::function<void(ImGuiID)> dockSetup;  // Dock layout setup
-  ImGuiConfigFlags imguiConfigFlags{ImGuiConfigFlags_NavEnableKeyboard |
-                                    ImGuiConfigFlags_DockingEnable};
+  bool useMenu{true};                 // Include a menubar
+  bool hasUndockableViewport{false};  // Allow floating windows
 };
 
 }  // namespace app

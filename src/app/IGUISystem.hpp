@@ -35,6 +35,10 @@ public:
   virtual void setConfigFlags(unsigned int flags) = 0;
   virtual void loadSettings(const char* filename) = 0;
   virtual void saveSettings(const char* filename) = 0;
+
+  // Called by the backend when the display DPI scale changes.
+  // @param scaleRatio  new_scale / old_scale (multiply existing font scale by this)
+  virtual void onDpiScaleChanged(float /*scaleRatio*/) {}
 };
 
 using IGUISystemPtr = std::shared_ptr<IGUISystem>;

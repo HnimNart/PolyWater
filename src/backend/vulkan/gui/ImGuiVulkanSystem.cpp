@@ -50,8 +50,6 @@ void ImGuiVulkanSystem::init(const app::ApplicationCreateInfo& info)
     return;
   }
 
-  m_dockSetup = info.dockSetup;
-
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   m_contextCreated = true;
@@ -105,7 +103,7 @@ void ImGuiVulkanSystem::configureImGuiIO(const app::ApplicationCreateInfo& info)
 /**********************************************************/
 {
   ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags = info.imguiConfigFlags;
+  io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
 
   if (info.headless)
   {
@@ -322,6 +320,23 @@ void ImGuiVulkanSystem::createDefaultLayout(ImGuiID dockID)
   ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f,
                                                nullptr, &dockID);
   ImGui::DockBuilderDockWindow("Settings", leftID);
+}
+
+/**********************************************************/
+void ImGuiVulkanSystem::setDockSetup(std::function<void(ImGuiID)> fn)
+/**********************************************************/
+{
+  m_dockSetup = std::move(fn);
+}
+
+/**********************************************************/
+void ImGuiVulkanSystem::onDpiScaleChanged(float scaleRatio)
+/**********************************************************/
+{
+  if (m_contextCreated)
+  {
+    ImGui::GetIO().FontGlobalScale *= scaleRatio;
+  }
 }
 
 /******************************************************************************
