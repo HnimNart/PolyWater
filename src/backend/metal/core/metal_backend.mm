@@ -1,6 +1,6 @@
 #ifdef __APPLE__
 
-#import "MetalBackend.hpp"
+#import "metal_backend.hpp"
 
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
@@ -10,8 +10,8 @@
 #import <GLFW/glfw3.h>
 #import <GLFW/glfw3native.h>
 
-#import "app/IGUISystem.hpp"
-#import "backend/metal/gui/ImGuiMetalSystem.hpp"
+#import "app/gui_system_interface.hpp"
+#import "backend/metal/gui/imgui_metal_system.hpp"
 #import "core/profiler.hpp"
 
 // Objective-C++ implementation struct (hidden from C++ consumers).

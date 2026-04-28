@@ -1,6 +1,6 @@
 #ifdef __APPLE__
 
-#import "MetalContextManager.hpp"
+#import "metal_context_manager.hpp"
 
 #import <Metal/Metal.h>
 

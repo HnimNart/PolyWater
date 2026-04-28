@@ -1,6 +1,6 @@
 #ifdef __APPLE__
 
-#import "MetalRenderContext.hpp"
+#import "metal_render_context.hpp"
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>

@@ -1,6 +1,6 @@
 #ifdef __APPLE__
 
-#import "ImGuiMetalSystem.hpp"
+#import "imgui_metal_system.hpp"
 
 #import <GLFW/glfw3.h>
 #import <backends/imgui_impl_glfw.h>
@@ -14,9 +14,9 @@
 #import <app/widgets/style.hpp>
 #import <core/file_operations.hpp>
 
-#import "app/AppInfo.hpp"
-#import "backend/metal/core/MetalContextManager.hpp"
-#import "backend/metal/core/MetalRenderContext.hpp"
+#import "app/app_info.hpp"
+#import "backend/metal/core/metal_context_manager.hpp"
+#import "backend/metal/core/metal_render_context.hpp"
 
 /**********************************************************/
 ImGuiMetalSystem::~ImGuiMetalSystem()
