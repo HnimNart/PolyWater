@@ -2,12 +2,7 @@
 
 #include <volk/volk.h>
 
-#include <app/widgets/style.hpp>
-#undef APIENTRY
-
-#include <backends/imgui_impl_glfw.h>
 #include <fmt/ranges.h>
-#include <imgui_internal.h>
 #define NVLOGGER_ENABLE_FMT
 #include <utility>
 

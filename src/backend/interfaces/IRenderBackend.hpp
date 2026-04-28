@@ -66,10 +66,11 @@ public:
   //----------------------------------------------------------
   void onResize(const WindowSize& size)
   {
-    // Check for DPI scaling and adjust the font size
+    // Notify the GUI system so it can rescale fonts / layout as needed.
     float xscale, yscale;
     glfwGetWindowContentScale(m_windowHandle, &xscale, &yscale);
-    ImGui::GetIO().FontGlobalScale *= xscale / m_dpiScale;
+    if (m_gui)
+      m_gui->onDpiScaleChanged(xscale / m_dpiScale);
     m_dpiScale = xscale;
     m_viewportSize = size;
   }

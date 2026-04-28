@@ -52,6 +52,14 @@ public:
   void loadSettings(const char *filename) override;
   void saveSettings(const char *filename) override;
 
+  // DPI change notification (called by IRenderBackend::onResize).
+  void onDpiScaleChanged(float scaleRatio) override;
+
+  // Sets an optional ImGui dock-layout callback, invoked once on the first
+  // rendered frame.  The argument is the root ImGuiID of the dock space.
+  // If not set, a default layout (viewport + left settings panel) is used.
+  void setDockSetup(std::function<void(ImGuiID)> fn);
+
   // Metal-specific initialization (called by MetalBackend::initPresentation)
   void initMetalBackend(MetalContextManager &contextManager,
                         GLFWwindow *windowHandle);

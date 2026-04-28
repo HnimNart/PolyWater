@@ -33,8 +33,6 @@ void ImGuiMetalSystem::init(const app::ApplicationCreateInfo &info)
     return;
   }
 
-  m_dockSetup = info.dockSetup;
-
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   m_contextCreated = true;
@@ -88,7 +86,7 @@ void ImGuiMetalSystem::configureImGuiIO(
 /**********************************************************/
 {
   ImGuiIO &io = ImGui::GetIO();
-  io.ConfigFlags = info.imguiConfigFlags;
+  io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
 
   // Multi-viewport requires platform-specific window creation beyond what is
   // implemented here; disable it for the Metal backend.
@@ -283,6 +281,22 @@ void ImGuiMetalSystem::createDefaultLayout(ImGuiID dockID)
   ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f,
                                                 nullptr, &dockID);
   ImGui::DockBuilderDockWindow("Settings", leftID);
+}
+
+/**********************************************************/
+void ImGuiMetalSystem::setDockSetup(std::function<void(ImGuiID)> fn)
+/**********************************************************/
+{
+  m_dockSetup = std::move(fn);
+}
+
+/**********************************************************/
+void ImGuiMetalSystem::onDpiScaleChanged(float scaleRatio)
+/**********************************************************/
+{
+  if (m_contextCreated) {
+    ImGui::GetIO().FontGlobalScale *= scaleRatio;
+  }
 }
 
 /******************************************************************************
