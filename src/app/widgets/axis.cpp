@@ -188,8 +188,7 @@ void app::drawAxis(const glm::mat4& modelView, float size /*= 50.f*/)
 void app::Axis(ImVec2 pos, const glm::mat4& modelView, float size /*= 20.f*/)
 /**********************************************************/
 {
-
-  struct Arrow
+  static AxisGeom a;
   {
     std::vector<glm::vec3> v;
     ImU32 c{0};
