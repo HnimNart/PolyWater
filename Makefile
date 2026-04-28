@@ -19,12 +19,6 @@ CONFIG_TYPE := $(or $(MAP_$(preset)),Release)
 BIN_DIR := $(BUILD_DIR)/bin/$(CONFIG_TYPE)
 CACHE_DIR := .cache/models
 
-# ------------------------------------------------------------------------------
-# Targets
-# ------------------------------------------------------------------------------
-
-TEST_BUILD_DIR := build/tests
-
 .PHONY: configure build rebuild install clean test help
 
 configure:
@@ -49,12 +43,13 @@ clear_cache:
 
 # ------------------------------------------------------------------------------
 # Unit tests (standalone build – no Vulkan/GLFW/Slang required)
+# Uses tests/CMakePresets.json; cd into tests/ so --preset is resolved there.
 # ------------------------------------------------------------------------------
 
 test:
-	cmake -S tests -B $(TEST_BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug
-	cmake --build $(TEST_BUILD_DIR) --parallel
-	ctest --test-dir $(TEST_BUILD_DIR) --output-on-failure
+	cd tests && cmake --preset tests-debug
+	cd tests && cmake --build --preset tests-debug
+	cd tests && ctest --preset tests-debug
 
 # ------------------------------------------------------------------------------
 # Run helpers
@@ -79,10 +74,12 @@ help:
 	@echo "  make build preset=<preset>             - Build using CMake with the given preset"
 	@echo "  make install                           - Run 'cmake --build --target install'"
 	@echo "  make clean                             - Delete the build directory"
+	@echo "  make test                              - Configure, build and run unit tests (tests/CMakePresets.json)"
 	@echo "  make run_<target> [args=\"...\"]        - Run a specific executable from \$(BIN_DIR)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make configure preset=debug"
 	@echo "  make build preset=release"
 	@echo "  make install"
+	@echo "  make test"
 	@echo "  make run_my_app args=\"--input file.txt --verbose\""
