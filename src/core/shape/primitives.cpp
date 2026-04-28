@@ -27,6 +27,7 @@
 #include <unordered_set>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "hash_operations.hpp"
 #include "primitives.hpp"
@@ -885,5 +886,13 @@ PrimitiveMesh removeDuplicateVertices(const PrimitiveMesh& mesh,
   // uniqueVertices.size(), uniqueTriangles.size());
 
   return {std::move(uniqueVertices), std::move(uniqueTriangles)};
+glm::mat4 Node::localMatrix() const
+{
+  glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
+  glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
+  glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+  glm::mat4 combinedMatrix =
+      translationMatrix * rotationMatrix * scaleMatrix * matrix;
+  return combinedMatrix;
 }
 }  // namespace core

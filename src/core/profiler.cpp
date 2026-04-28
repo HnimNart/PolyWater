@@ -792,6 +792,82 @@ void ProfilerManager::getSnapshots(
   }
 }
 
+/**********************************************************/
+void ProfilerTimeline::frameAdvance()
+/**********************************************************/
+{
+  if (m_inFrame)
+  {
+    frameEnd();
+  }
+  frameBegin();
+}
+
+/**********************************************************/
+ProfilerTimeline::ProfilerTimeline(ProfilerManager* profiler,
+                                   const ProfilerTimeline::CreateInfo& createInfo)
+/**********************************************************/
+{
+  assert(profiler);
+
+  m_info = createInfo;
+  m_profiler = profiler;
+
+  m_frame.averagingCount = createInfo.frameAveragingCount;
+  m_frame.averagingCountLast = createInfo.frameAveragingCount;
+
+  grow(m_frame.sections, createInfo.defaultTimers,
+       createInfo.frameAveragingCount);
+  grow(m_async.sections, createInfo.defaultTimers, 0);
+
+  frameBegin();
+}
+
+/**********************************************************/
+void ProfilerTimeline::TimeValues::add(double time)
+/**********************************************************/
+{
+  absMinValue = std::min(time, absMinValue);
+  absMaxValue = std::max(time, absMaxValue);
+  valueLast = time;
+
+  if (cycleCount)
+  {
+    // Averaging is performed over a window.
+    // minus does remove the old value
+    valueTotal += time - times[(MAX_LAST_FRAMES + cycleIndex - cycleCount) %
+                               MAX_LAST_FRAMES];
+
+    validCount = std::min(validCount + 1, cycleCount);
+  }
+  else
+  {
+    // Averaging is done over all frames
+    valueTotal += time;
+    validCount++;
+  }
+
+  // store cycle so we can later remove it
+  times[cycleIndex] = time;
+
+  // advance cycle
+  cycleIndex = (cycleIndex + 1) % MAX_LAST_FRAMES;
+}
+
+/**********************************************************/
+double ProfilerTimeline::TimeValues::getAveraged()
+/**********************************************************/
+{
+  if (validCount)
+  {
+    return valueTotal / double(validCount);
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 }  // namespace core
 
 //--------------------------------------------------------------------------------------------------

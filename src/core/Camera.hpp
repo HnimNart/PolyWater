@@ -99,16 +99,8 @@ public:
     float fov = 60.0f;
     glm::vec2 clip = {0.001f, 100000.0f};
 
-    bool operator!=(const Camera& rhr) const
-    {
-      return (eye != rhr.eye) || (ctr != rhr.ctr) || (up != rhr.up) ||
-             (fov != rhr.fov) || (clip != rhr.clip);
-    }
-    bool operator==(const Camera& rhr) const
-    {
-      return (eye == rhr.eye) && (ctr == rhr.ctr) && (up == rhr.up) &&
-             (fov == rhr.fov) && (clip == rhr.clip);
-    }
+    bool operator!=(const Camera& rhr) const;
+    bool operator==(const Camera& rhr) const;
 
     // basic serialization, mostly for copy/paste
     std::string getString() const;
@@ -177,20 +169,9 @@ public:
     return m_matrix;
   }
 
-  const glm::mat4 getPerspectiveMatrix() const
-  {
-    glm::mat4 projMatrix = glm::perspectiveRH_ZO(
-        getRadFov(), getAspectRatio(), m_current.clip.x, m_current.clip.y);
-    projMatrix[1][1] *= -1;  // Flip the Y axis
-    return projMatrix;
-  }
+  const glm::mat4 getPerspectiveMatrix() const;
 
-  const glm::mat4 getViewProjection() const
-  {
-    auto projMatrix = getPerspectiveMatrix();
-    projMatrix[1][1] *= -1;  // Flip the Y axis
-    return projMatrix * getViewMatrix();
-  }
+  const glm::mat4 getViewProjection() const;
 
   // Set the position, interest from the matrix.
   // instantSet = true will not interpolate to the new position

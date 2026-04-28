@@ -2,6 +2,7 @@ add_library(render_interfaces
     interfaces/IDeviceAssets.hpp
     interfaces/IRenderer.hpp
     interfaces/IRenderGraph.hpp
+    interfaces/IRenderGraph.cpp
     interfaces/IToneMapper.hpp
 
     ShaderManager.cpp

@@ -48,29 +48,7 @@ public:
 
   // Returns the number of seconds since the clock was initialized.
   // Always non-negative even if the underlying timer is non-monotonic.
-  double getSeconds() const
-  {
-#if defined(__unix__) || defined(__APPLE__)
-    const TimeValue t = now();
-
-    // 1. Calculate integer differences
-    int64_t diff_s = t.seconds - m_start.seconds;
-    int64_t diff_ns = t.nanoseconds - m_start.nanoseconds;
-
-    // 2. Handle the "borrow" if nanoseconds wrapped around
-    if (diff_ns < 0)
-    {
-      diff_s -= 1;
-      diff_ns += 1000000000LL;
-    }
-
-    // 3. Convert to double only at the very last step
-    return static_cast<double>(diff_s) + (static_cast<double>(diff_ns) * 1e-9);
-#else
-    const int64_t delta = now().ticks_100ns - m_start.ticks_100ns;
-    return delta >= 0 ? static_cast<double>(delta) * 1e-7 : 0.;
-#endif
-  }
+  double getSeconds() const;
   // Convenience functions returning total time in different units
   double getMilliseconds() const
   {
@@ -118,13 +96,7 @@ public:
   ScopedTimer(const char* fmt, ...);
   void init_(const std::string& str);
   ~ScopedTimer();
-  static std::string indent()
-  {
-    std::string result(static_cast<size_t>(s_nesting * 2), ' ');
-    for (int i = 0; i < s_nesting * 2; i += 2)
-      result[i] = '|';
-    return result;
-  }
+  static std::string indent();
 
 private:
   PerformanceTimer m_timer;

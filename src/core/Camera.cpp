@@ -619,4 +619,39 @@ bool CameraManipulator::Camera::setFromString(const std::string& text)
   return false;
 }
 
+/**********************************************************/
+const glm::mat4 CameraManipulator::getPerspectiveMatrix() const
+/**********************************************************/
+{
+  glm::mat4 projMatrix = glm::perspectiveRH_ZO(
+      getRadFov(), getAspectRatio(), m_current.clip.x, m_current.clip.y);
+  projMatrix[1][1] *= -1;  // Flip the Y axis
+  return projMatrix;
+}
+
+/**********************************************************/
+const glm::mat4 CameraManipulator::getViewProjection() const
+/**********************************************************/
+{
+  auto projMatrix = getPerspectiveMatrix();
+  projMatrix[1][1] *= -1;  // Flip the Y axis
+  return projMatrix * getViewMatrix();
+}
+
+/**********************************************************/
+bool CameraManipulator::Camera::operator!=(const Camera& rhr) const
+/**********************************************************/
+{
+  return (eye != rhr.eye) || (ctr != rhr.ctr) || (up != rhr.up) ||
+         (fov != rhr.fov) || (clip != rhr.clip);
+}
+
+/**********************************************************/
+bool CameraManipulator::Camera::operator==(const Camera& rhr) const
+/**********************************************************/
+{
+  return (eye == rhr.eye) && (ctr == rhr.ctr) && (up == rhr.up) &&
+         (fov == rhr.fov) && (clip == rhr.clip);
+}
+
 }  // namespace core

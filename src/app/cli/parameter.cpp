@@ -23,6 +23,15 @@ namespace app::cli
 {
 
 /**********************************************************/
+std::string ParameterBase::getTypeString() const
+/**********************************************************/
+{
+  const char* typeString = toString(type);
+  return argCount ? fmt::format("{}[{}]", typeString, argCount)
+                  : fmt::format("{}", typeString);
+}
+
+/**********************************************************/
 const char* ParameterBase::toString(Type type)
 /**********************************************************/
 {
