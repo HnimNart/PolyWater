@@ -23,7 +23,9 @@ CACHE_DIR := .cache/models
 # Targets
 # ------------------------------------------------------------------------------
 
-.PHONY: configure build rebuild install clean help
+TEST_BUILD_DIR := build/tests
+
+.PHONY: configure build rebuild install clean test help
 
 configure:
 	cmake --preset $(preset) -B $(BUILD_DIR)
@@ -44,6 +46,15 @@ clean:
 
 clear_cache:
 	rm -rf ${CACHE_DIR}
+
+# ------------------------------------------------------------------------------
+# Unit tests (standalone build – no Vulkan/GLFW/Slang required)
+# ------------------------------------------------------------------------------
+
+test:
+	cmake -S tests -B $(TEST_BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug
+	cmake --build $(TEST_BUILD_DIR) --parallel
+	ctest --test-dir $(TEST_BUILD_DIR) --output-on-failure
 
 # ------------------------------------------------------------------------------
 # Run helpers
