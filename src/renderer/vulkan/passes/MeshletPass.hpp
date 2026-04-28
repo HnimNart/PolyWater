@@ -24,7 +24,7 @@ namespace shaderio
 struct PushConstant;
 }
 
-class MeshletPass : public IRenderPass
+class MeshletPass final : public IRenderPass
 {
 public:
   MeshletPass(VulkanContextManager* contextManager,

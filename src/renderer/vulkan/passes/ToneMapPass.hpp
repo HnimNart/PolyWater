@@ -12,7 +12,7 @@
 #include "renderer/interfaces/IRenderGraph.hpp"
 #include "renderer/interfaces/IToneMapper.hpp"
 
-class ToneMapPass : public IToneMapper, public IRenderPass
+class ToneMapPass final : public IToneMapper, public IRenderPass
 {
 public:
   ToneMapPass(VulkanContextManager* core, RenderOutput input);

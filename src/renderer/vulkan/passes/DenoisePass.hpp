@@ -7,7 +7,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
 
-class DenoisePass : public IRenderPass
+class DenoisePass final : public IRenderPass
 {
 public:
   DenoisePass(VulkanContextManager* contextManager);

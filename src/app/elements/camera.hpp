@@ -41,7 +41,7 @@ To use this class, you need to add it to the `nvvkhl::Application` using the
 namespace app
 {
 
-struct ElementCamera : public IAppElement
+struct ElementCamera final : public IAppElement
 {
   ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr)
   {

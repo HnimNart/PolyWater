@@ -28,7 +28,7 @@
 namespace app
 {
 
-class ElementProfiler : public IAppElement
+class ElementProfiler final : public IAppElement
 {
 public:
   typedef enum

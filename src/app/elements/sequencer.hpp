@@ -29,7 +29,7 @@ namespace app
 // Element that contains a `ParameterSequencer` and advances it
 // if applicable.
 
-class ElementSequencer : public IAppElement
+class ElementSequencer final : public IAppElement
 {
 public:
   ElementSequencer(const cli::ParameterSequencer::InitInfo& sequencerInfo) :

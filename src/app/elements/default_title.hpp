@@ -42,7 +42,7 @@ To use this class, you need to add it to the `core::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultWindowTitle : public IAppElement
+class ElementDefaultWindowTitle final : public IAppElement
 {
 public:
   ElementDefaultWindowTitle(std::string prefix = "", std::string suffix = "");

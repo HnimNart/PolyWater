@@ -58,7 +58,7 @@ Add logger window
 -------------------------------------------------------------------------------------------------*/
 
 // Helper class to show the log in the application
-class ElementLogger : public IAppElement
+class ElementLogger final : public IAppElement
 {
 public:
   enum LogLevelBit

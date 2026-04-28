@@ -23,7 +23,7 @@ namespace shaderio
 struct PushConstant;
 }
 
-class RasterPass : public IRenderPass
+class RasterPass final : public IRenderPass
 {
 public:
   RasterPass(VulkanContextManager* contextManager,

@@ -14,7 +14,7 @@
  * Consumes the ToneMapped HDR/SDR result and renders the UI (ImGui)
  * directly onto the Swapchain image.
  */
-class UIPass : public IRenderPass
+class UIPass final : public IRenderPass
 {
 public:
   using RenderCallback = std::function<void(const IRenderContext& ctx)>;

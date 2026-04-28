@@ -70,7 +70,7 @@ template <typename T> struct AverageCircularBuffer
   T average() { return totValue / data.size(); }
 };
 
-struct ElementGpuMonitor : public IAppElement
+struct ElementGpuMonitor final : public IAppElement
 {
   explicit ElementGpuMonitor(bool show = false);
   virtual ~ElementGpuMonitor() = default;

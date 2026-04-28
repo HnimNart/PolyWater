@@ -22,7 +22,7 @@ struct MetalBackendData;
 // Concrete Metal implementation of IRenderBackend.
 // Manages the CAMetalLayer, per-frame command buffer lifecycle,
 // and delegates GUI rendering to ImGuiMetalSystem.
-class MetalBackend : public IRenderBackend {
+class MetalBackend final : public IRenderBackend {
 public:
   static std::unique_ptr<MetalBackend>
   create(const app::ApplicationCreateInfo &appInfo);

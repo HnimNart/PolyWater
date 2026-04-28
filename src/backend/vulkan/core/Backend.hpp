@@ -16,7 +16,7 @@
 
 class ImGuiVulkanSystem;
 
-class VulkanBackend : public IRenderBackend
+class VulkanBackend final : public IRenderBackend
 {
 public:
   static std::unique_ptr<VulkanBackend>

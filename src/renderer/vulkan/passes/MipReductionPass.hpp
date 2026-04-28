@@ -8,7 +8,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
 
-class MipReductionPass : public IRenderPass
+class MipReductionPass final : public IRenderPass
 {
 public:
   MipReductionPass(VulkanContextManager* contextManager, nvvk::Image* texture);

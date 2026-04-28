@@ -20,7 +20,7 @@ namespace shaderio
 struct PushConstant;
 }
 
-class RayTracePass : public IRenderPass
+class RayTracePass final : public IRenderPass
 {
 public:
   // -------------------------------------------------------------------------

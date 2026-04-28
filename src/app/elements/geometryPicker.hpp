@@ -25,7 +25,7 @@ class CameraManipulator;
 namespace app
 {
 
-class GeometryPickerElement : public IAppElement
+class GeometryPickerElement final : public IAppElement
 {
 public:
   using SelectionCallback = std::function<void(InstanceID)>;

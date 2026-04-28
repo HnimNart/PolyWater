@@ -3,7 +3,7 @@
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
 
-class SkyPass : public IRenderPass
+class SkyPass final : public IRenderPass
 {
 public:
   SkyPass(VulkanContextManager* context);

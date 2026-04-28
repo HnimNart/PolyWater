@@ -50,7 +50,7 @@ To use this class, you need to add it to the `nvapp::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultMenu : public IAppElement
+class ElementDefaultMenu final : public IAppElement
 {
 public:
   void onAttach(Application* app) override;
