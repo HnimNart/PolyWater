@@ -43,16 +43,12 @@ namespace app
 
 struct ElementCamera : public IAppElement
 {
-  /**********************************************************/
   ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr)
-  /**********************************************************/
   {
     m_cameraManip = std::move(camera);
   }
 
-  /**********************************************************/
   void setCameraManipulator(std::shared_ptr<core::CameraManipulator> pCamera)
-  /**********************************************************/
   {
     m_cameraManip = std::move(pCamera);
   }
@@ -60,9 +56,7 @@ struct ElementCamera : public IAppElement
   void onUIRender() override;
   void onResize(WindowSize size) override;
 
-  /**********************************************************/
   std::shared_ptr<core::CameraManipulator> getCameraManipulator() const
-  /**********************************************************/
   {
     return m_cameraManip;
   }

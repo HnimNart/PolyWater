@@ -24,15 +24,11 @@ public:
   VkCommandBuffer getActiveCommandBuffer() const;
   VulkanRenderContext* getActiveFrameContext();
   const VulkanRenderContext* getActiveFrameContext() const;
-  /**********************************************************/
   uint32_t getFrameCycleSize() const
-  /**********************************************************/
   {
     return static_cast<uint32_t>(m_frameData.size());
   }
-  /**********************************************************/
   uint32_t getCurrentFrameIndex() const
-  /**********************************************************/
   {
     return m_frameRingCurrent;
   }
@@ -42,29 +38,21 @@ public:
   void addSignalSemaphore(const VkSemaphoreSubmitInfo& semaphore);
   void addCommandBuffer(const VkCommandBufferSubmitInfo& cmdBuffer);
 
-  /**********************************************************/
   const std::vector<VkSemaphoreSubmitInfo>& getWaitSemaphores() const
-  /**********************************************************/
   {
     return m_waitSemaphores;
   }
-  /**********************************************************/
   const std::vector<VkSemaphoreSubmitInfo>& getSignalSemaphores() const
-  /**********************************************************/
   {
     return m_signalSemaphores;
   }
-  /**********************************************************/
   const std::vector<VkCommandBufferSubmitInfo>& getCommandBuffers() const
-  /**********************************************************/
   {
     return m_commandBuffers;
   }
 
   void clearSemaphoresAndBuffers();
-  /**********************************************************/
   VkSemaphore getFrameTimelineSemaphore() const
-  /**********************************************************/
   {
     return m_frameTimelineSemaphore;
   }

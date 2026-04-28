@@ -21,10 +21,8 @@ int findLowerBound(float *cdf, int size, float u)
 
 struct EnvmapSampler {
   // 1. Pick a direction based on two random numbers [0, 1)
-  /**********************************************************/
   void sample(EnvmapLight light, float2 randomSample, out float3 wi,
               out float pdf, out float3 radiance, Sampler2D envTextures[])
-  /**********************************************************/
   {
 
     // A. Find Row (V) using Marginal CDF
@@ -56,9 +54,7 @@ struct EnvmapSampler {
   }
 
   // 2. Evaluate radiance for a given world-space direction
-  /**********************************************************/
   float3 evalRadiance(EnvmapLight light, float3 wi, Sampler2D envTextures[])
-  /**********************************************************/
   {
     float3 localDir = normalize(mul((float3x3)transpose(light.rotation), wi));
 
@@ -79,9 +75,7 @@ struct EnvmapSampler {
   }
 
   // 3. Evaluate PDF for MIS
-  /**********************************************************/
   float evalPdf(EnvmapLight light, float3 wi, float3 radiance)
-  /**********************************************************/
   {
 
     uint width = light.dims.x;

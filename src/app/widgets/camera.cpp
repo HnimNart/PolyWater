@@ -57,25 +57,19 @@ namespace PE = app::PropertyEditor;
 //
 struct CameraPresetManager
 {
-  /**********************************************************/
   CameraPresetManager()
-  /**********************************************************/
   {
   }
   ~CameraPresetManager(){};
 
-  /**********************************************************/
   static CameraPresetManager& getInstance()
-  /**********************************************************/
   {
     static CameraPresetManager instance;
     return instance;
   }
 
   // update setting, load or save
-  /**********************************************************/
   void update(std::shared_ptr<core::CameraManipulator> cameraManip)
-  /**********************************************************/
   {
     // Push the HOME camera and load default setting
     if (m_cameras.empty())
@@ -100,17 +94,13 @@ struct CameraPresetManager
   }
 
   // Clear all cameras except the HOME
-  /**********************************************************/
   void removedSavedCameras()
-  /**********************************************************/
   {
     if (m_cameras.size() > 1)
       m_cameras.erase(m_cameras.begin() + 1, m_cameras.end());
   }
 
-  /**********************************************************/
   void setCameraJsonFile(const std::filesystem::path& filename)
-  /**********************************************************/
   {
     std::filesystem::path jsonFile =
         core::getExecutablePath().parent_path() / filename.filename();
@@ -120,9 +110,7 @@ struct CameraPresetManager
     removedSavedCameras();
   }
 
-  /**********************************************************/
   void setHomeCamera(const core::CameraManipulator::Camera& camera)
-  /**********************************************************/
   {
     if (m_cameras.empty())
       m_cameras.resize(1);
@@ -130,9 +118,7 @@ struct CameraPresetManager
   }
 
   // Adding a camera only if it different from all the saved ones
-  /**********************************************************/
   void addCamera(const core::CameraManipulator::Camera& camera)
-  /**********************************************************/
   {
     bool unique = true;
     for (const core::CameraManipulator::Camera& c : m_cameras)
@@ -151,26 +137,20 @@ struct CameraPresetManager
   }
 
   // Removing a camera
-  /**********************************************************/
   void removeCamera(int delete_item)
-  /**********************************************************/
   {
     m_cameras.erase(m_cameras.begin() + delete_item);
     markJsonSettingsDirty();
   }
 
-  /**********************************************************/
   void markJsonSettingsDirty()
-  /**********************************************************/
   {
     if (m_settingsDirtyTimer <= 0.0f)
       m_settingsDirtyTimer = 0.1f;
   }
 
-  /**********************************************************/
   template <typename T>
   bool getJsonValue(const json& j, const std::string& name, T& value)
-  /**********************************************************/
   {
     auto fieldIt = j.find(name);
     if (fieldIt != j.end())
@@ -182,10 +162,8 @@ struct CameraPresetManager
     return false;
   }
 
-  /**********************************************************/
   template <typename T>
   bool getJsonArray(const json& j, const std::string& name, T& value)
-  /**********************************************************/
   {
     auto fieldIt = j.find(name);
     if (fieldIt != j.end())
@@ -197,9 +175,7 @@ struct CameraPresetManager
     return false;
   }
 
-  /**********************************************************/
   void loadSetting(std::shared_ptr<core::CameraManipulator> cameraM)
-  /**********************************************************/
   {
     if (m_jsonFilename.empty())
     {
@@ -265,9 +241,7 @@ struct CameraPresetManager
     }
   }
 
-  /**********************************************************/
   void saveSetting(std::shared_ptr<core::CameraManipulator>& cameraManip)
-  /**********************************************************/
   {
     if (m_jsonFilename.empty())
       return;

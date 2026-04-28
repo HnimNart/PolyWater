@@ -44,9 +44,7 @@ public:
   SettingsHandler();
   explicit SettingsHandler(const std::string& name);
 
-  /**********************************************************/
   void setHandlerName(const std::string& name)
-  /**********************************************************/
   {
     handlerName = name;
   }

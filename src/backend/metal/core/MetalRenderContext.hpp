@@ -33,15 +33,11 @@ public:
   void submitBarriers(const std::vector<BarrierInfo> &barriers) const override;
 
   // Static helpers to safely downcast from the base interface.
-  /**********************************************************/
   static const MetalRenderContext &get(const IRenderContext &ctx)
-  /**********************************************************/
   {
     return static_cast<const MetalRenderContext &>(ctx);
   }
-  /**********************************************************/
   static MetalRenderContext &get(IRenderContext &ctx)
-  /**********************************************************/
   {
     return static_cast<MetalRenderContext &>(ctx);
   }

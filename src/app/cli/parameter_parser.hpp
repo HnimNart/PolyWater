@@ -68,18 +68,14 @@ public:
   ParameterParser(const std::string& helpDescription = {},
                   const std::vector<std::string>& configFileExtensions = {});
 
-  /**********************************************************/
   void setHelpDescription(const std::string& helpDescription)
-  /**********************************************************/
   {
     m_helpDescription = helpDescription;
   }
 
   // Prints successfully parsed parameter details or errors via `Logger::eINFO`
   // and `Logger::eERROR`
-  /**********************************************************/
   void setVerbose(bool verbose)
-  /**********************************************************/
   {
     m_verbose = verbose;
   }
@@ -106,18 +102,14 @@ public:
                const std::filesystem::path& filenameBasePath = {},
                const std::string& stopKeyword = {}, bool silentUnknown = false);
 
-  /**********************************************************/
   int parse(int argc, const char** argv, bool skipExe = true,
             const std::filesystem::path& filenameBasePath = {})
-  /**********************************************************/
   {
     return int(parse(std::span(argv, argc), skipExe, filenameBasePath));
   }
 
-  /**********************************************************/
   int parse(int argc, char** argv, bool skipExe = true,
             const std::filesystem::path& filenameBasePath = {})
-  /**********************************************************/
   {
     return int(
         parse(std::span((const char**) argv, argc), skipExe, filenameBasePath));
@@ -138,16 +130,12 @@ public:
 
     bool initFromFile(const std::filesystem::path& filename);
 
-    /**********************************************************/
     std::span<const char* const> getArgs(size_t offset = 0) const
-    /**********************************************************/
     {
       assert(offset < m_args.size());
       return std::span(m_args.data() + offset, m_args.size() - offset);
     }
-    /**********************************************************/
     std::filesystem::path getFilenameBasePath() const
-    /**********************************************************/
     {
       return m_filenameBasePath;
     }

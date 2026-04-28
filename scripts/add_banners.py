@@ -362,14 +362,18 @@ def process_file(content: str) -> str:
         line = lines[i]
         ib = block_before[i]  # block state before this line
 
-        # Functions can appear at depth 0 or inside struct/class/namespace blocks.
+        # Functions can appear at depth 0 or inside namespace blocks.
+        # Inside struct/class/interface bodies we do NOT add banners; any
+        # banners that were previously added there are stripped on the fly.
         # Inside a plain function body the context is 'other', so we skip it.
         at_func_level = (brace_depth == 0) or (
-            ctx_stack and ctx_stack[-1] in ('struct', 'interface', 'class', 'namespace'))
+            ctx_stack and ctx_stack[-1] == 'namespace')
 
         if not at_func_level:
             _update(i)
-            result.append(line)
+            # Strip banner lines that should not be inside struct/class/interface
+            if line.strip() != BANNER.strip():
+                result.append(line)
             i += 1
             continue
 

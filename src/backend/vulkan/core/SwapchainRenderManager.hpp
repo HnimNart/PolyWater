@@ -28,30 +28,22 @@ public:
   // Getters
   VkImage getOutputImage() const;
   VkImageView getOutputImageView() const;
-  /**********************************************************/
   VkExtent2D getWindowSize() const
-  /**********************************************************/
   {
     return m_windowSize;
   }
-  /**********************************************************/
   bool getVsync() const
-  /**********************************************************/
   {
     return m_vsyncWanted;
   }
 
-  /**********************************************************/
   const nvvk::Swapchain& getSwapchain() const
-  /**********************************************************/
   {
     return m_swapchain;
   }
 
   // Setters
-  /**********************************************************/
   void setWindowSize(VkExtent2D size)
-  /**********************************************************/
   {
     m_windowSize = size;
   }
@@ -59,9 +51,7 @@ public:
 
   using RenderCallback = std::function<void(const IRenderContext& ctx)>;
   void setUICallback(const RenderCallback& renderCallback);
-  /**********************************************************/
   RenderCallback getUICallback() const
-  /**********************************************************/
   {
     return m_uiCallback;
   }

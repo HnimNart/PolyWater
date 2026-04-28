@@ -41,9 +41,7 @@ public:
   ~ParameterRegistry();
 
   // retrieve all parameters stored within
-  /**********************************************************/
   std::span<const ParameterBase* const> getParameters() const
-  /**********************************************************/
   {
     return std::span(m_parameters.data(), m_parameters.size());
   }
@@ -139,13 +137,11 @@ public:
   // vector type
   template <typename GLMVEC>
   const Parameter<GLMVEC>*
-  /**********************************************************/
   addVector(const ParameterBase::Info& info, GLMVEC* destination,
             GLMVEC minValue =
                 GLMVEC(std::numeric_limits<typename GLMVEC::value_type>::min()),
             GLMVEC maxValue =
                 GLMVEC(std::numeric_limits<typename GLMVEC::value_type>::max()))
-  /**********************************************************/
   {
     static_assert(sizeof(GLMVEC) <= sizeof(ParameterBase::MinMaxData));
     return static_cast<const Parameter<GLMVEC>*>(addArray(
@@ -153,11 +149,9 @@ public:
         &minValue.x, &maxValue.x));
   }
 
-  /**********************************************************/
   template <typename GLMMAT>
   const Parameter<GLMMAT>* addMatrix(const ParameterBase::Info& info,
                                      GLMMAT* destination)
-  /**********************************************************/
   {
     static_assert(sizeof(GLMMAT) <= sizeof(ParameterBase::MinMaxData));
     return static_cast<const Parameter<GLMMAT>*>(

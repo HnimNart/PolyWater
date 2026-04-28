@@ -31,9 +31,7 @@
 
 struct AxisGeom
 {
-  /**********************************************************/
   AxisGeom()
-  /**********************************************************/
   {
     const float asize = 1.0f;     // length of arrow
     const float aradius = 0.11f;  // width of arrow tip
@@ -91,11 +89,9 @@ struct AxisGeom
   std::vector<int> indices;
 
   // Return the transformed arrow
-  /**********************************************************/
   std::vector<glm::vec3> transform(const std::vector<glm::vec3>& in_vec,
                                    const ImVec2& pos,
                                    const glm::mat4& modelView, float size)
-  /**********************************************************/
   {
     std::vector<glm::vec3> temp(in_vec.size());
 
@@ -110,10 +106,8 @@ struct AxisGeom
     return temp;
   }
 
-  /**********************************************************/
   void drawTriangle(ImVec2 v0, ImVec2 v1, ImVec2 v2, const ImVec2& uv,
                     ImU32 col)
-  /**********************************************************/
   {
     auto draw_list = ImGui::GetWindowDrawList();
 
@@ -133,9 +127,7 @@ struct AxisGeom
   }
 
   // Draw the arrow
-  /**********************************************************/
   void draw(const std::vector<glm::vec3>& vertex, ImU32 col)
-  /**********************************************************/
   {
     auto draw_list = ImGui::GetWindowDrawList();
     const ImVec2 uv = ImGui::GetFontTexUvWhitePixel();

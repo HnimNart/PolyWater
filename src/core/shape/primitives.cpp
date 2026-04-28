@@ -628,9 +628,7 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed)
     glm::vec3 m_topLeftFront;
     float m_size;
 
-    /**********************************************************/
     void split(std::vector<MengerSponge>& cubes)
-    /**********************************************************/
     {
       float size = m_size / 3.f;
       glm::vec3 topLeftFront = m_topLeftFront;
@@ -656,11 +654,9 @@ std::vector<Node> mengerSpongeNodes(int level, float probability, int seed)
       }
     }
 
-    /**********************************************************/
     void splitProb(std::vector<MengerSponge>& cubes, float prob,
                    std::mt19937& rng,
                    std::uniform_real_distribution<float>& dist)
-    /**********************************************************/
     {
       float size = m_size / 3.f;
       glm::vec3 topLeftFront = m_topLeftFront;

@@ -49,27 +49,19 @@ public:
   // -------------------------------------------------------------------------
   virtual std::shared_ptr<IDeviceAssets> deviceResources() noexcept = 0;
   virtual IToneMapper& postProcessor() noexcept = 0;
-  /**********************************************************/
   shaderio::RenderParams& renderParams()
-  /**********************************************************/
   {
     return m_renderParams;
   }
-  /**********************************************************/
   shaderio::RasterParams& rasterParams()
-  /**********************************************************/
   {
     return m_rasterParams;
   }
-  /**********************************************************/
   const ShaderManager& getShaderManager() const
-  /**********************************************************/
   {
     return m_shaderManager;
   }
-  /**********************************************************/
   uint32_t getFrameCount() const
-  /**********************************************************/
   {
     return m_frameIndex;
   }

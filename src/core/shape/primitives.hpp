@@ -89,9 +89,7 @@ struct Node
   int material{0};
   int mesh{-1};
 
-  /**********************************************************/
   glm::mat4 localMatrix() const
-  /**********************************************************/
   {
     glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
     glm::mat4 rotationMatrix = glm::mat4_cast(rotation);

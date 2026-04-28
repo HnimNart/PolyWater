@@ -64,9 +64,7 @@ public:
   //----------------------------------------------------------
   // Window / output surface control
   //----------------------------------------------------------
-  /**********************************************************/
   void onResize(const WindowSize& size)
-  /**********************************************************/
   {
     // Check for DPI scaling and adjust the font size
     float xscale, yscale;
@@ -76,27 +74,19 @@ public:
     m_viewportSize = size;
   }
 
-  /**********************************************************/
   const WindowSize& getViewportSize() const
-  /**********************************************************/
   {
     return m_viewportSize;
   }
-  /**********************************************************/
   virtual void setWindow(GLFWwindow* windowHandle)
-  /**********************************************************/
   {
     m_windowHandle = windowHandle;
   }
-  /**********************************************************/
   void setWindowSize(const WindowSize& windowSize)
-  /**********************************************************/
   {
     m_windowSize = windowSize;
   };
-  /**********************************************************/
   const WindowSize& getWindowSize() const
-  /**********************************************************/
   {
     return m_windowSize;
   }
@@ -107,9 +97,7 @@ public:
   virtual void freeResourcesQueue() {};
 
 #ifdef PROFILE_APP
-  /**********************************************************/
   void setProfileTimer(core::ProfilerTimeline* timeline)
-  /**********************************************************/
   {
     m_profileTimeline = timeline;
   }

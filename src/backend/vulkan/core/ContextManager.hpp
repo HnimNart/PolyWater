@@ -20,52 +20,36 @@ public:
   void deinit();
 
   // Accessors
-  /**********************************************************/
   VkDevice getDevice() const
-  /**********************************************************/
   {
     return m_vkContext.getDevice();
   }
-  /**********************************************************/
   VkPhysicalDevice getPhysicalDevice() const
-  /**********************************************************/
   {
     return m_vkContext.getPhysicalDevice();
   }
-  /**********************************************************/
   VkInstance getInstance() const
-  /**********************************************************/
   {
     return m_vkContext.getInstance();
   }
-  /**********************************************************/
   const nvvk::QueueInfo& getQueueInfo(uint32_t index) const
-  /**********************************************************/
   {
     return m_vkContext.getQueueInfo(index);
   }
-  /**********************************************************/
   VkDescriptorPool getDescriptorPool() const
-  /**********************************************************/
   {
     return m_descriptorPool;
   }
-  /**********************************************************/
   VkCommandPool getTransientCmdPool() const
-  /**********************************************************/
   {
     return m_transientCmdPool;
   }
 
-  /**********************************************************/
   nvvk::ResourceAllocator& getAllocator()
-  /**********************************************************/
   {
     return m_allocator;
   }
-  /**********************************************************/
   nvvk::StagingUploader& getStagingUploader()
-  /**********************************************************/
   {
     return m_stagingUploader;
   }

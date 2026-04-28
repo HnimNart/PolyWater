@@ -84,9 +84,7 @@ struct SceneData
   glm::vec3 backgroundColor{0.0f};
   bool useSky = false;
 
-  /**********************************************************/
   void clear()
-  /**********************************************************/
   {
     meshPaths.clear();
     texturePaths.clear();
@@ -95,16 +93,12 @@ struct SceneData
     lights.clear();
   }
 
-  /**********************************************************/
   int addMesh(const std::string& name, const std::string& path)
-  /**********************************************************/
   {
     meshPaths.push_back({name, path});
     return (int) meshPaths.size() - 1;
   }
-  /**********************************************************/
   int addTexture(const std::string& name, const std::string& path)
-  /**********************************************************/
   {
     texturePaths.push_back({name, path});
     return (int) texturePaths.size() - 1;

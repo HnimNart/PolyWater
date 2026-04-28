@@ -12,9 +12,7 @@ struct WindowSize
   // Generates == and != automatically
   bool operator==(const WindowSize&) const = default;
 
-  /**********************************************************/
   operator glm::uvec2() const
-  /**********************************************************/
   {
     return glm::uvec2(width, height);
   }

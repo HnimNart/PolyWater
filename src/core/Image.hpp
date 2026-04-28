@@ -51,17 +51,13 @@ struct Image
   // CPU Pixel storage
   std::vector<uint8_t> pixels;
 
-  /**********************************************************/
   bool isValid() const
-  /**********************************************************/
   {
     return !pixels.empty();
   }
 
   // Helper to get raw float pointer for HDR maps
-  /**********************************************************/
   float* asFloat()
-  /**********************************************************/
   {
     return reinterpret_cast<float*>(pixels.data());
   }

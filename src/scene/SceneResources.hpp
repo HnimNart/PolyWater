@@ -62,119 +62,83 @@ public:
   void onInstanceChange();
 
   // --- State Management ---
-  /**********************************************************/
   bool requireRebuild() const
-  /**********************************************************/
   {
     return m_rebuild;
   }
-  /**********************************************************/
   bool dirty() const
-  /**********************************************************/
   {
     return m_dirty || m_rebuild;
   }
-  /**********************************************************/
   void setDirty(bool val)
-  /**********************************************************/
   {
     m_dirty = val;
   }
 
   // --- Data Accessors (Mutable) ---
-  /**********************************************************/
   Scene& data()
-  /**********************************************************/
   {
     return m_scene_resources;
   }
-  /**********************************************************/
   shaderio::SceneInfo& sceneInfo()
-  /**********************************************************/
   {
     return m_scene_resources.sceneInfo;
   }
 
-  /**********************************************************/
   std::vector<shaderio::Instance>& getInstances()
-  /**********************************************************/
   {
     return m_scene_resources.instances;
   }
-  /**********************************************************/
   std::vector<shaderio::Material>& getMaterials()
-  /**********************************************************/
   {
     return m_scene_resources.materials;
   }
 
   // --- Data Accessors (Const) ---
-  /**********************************************************/
   const Scene& data() const
-  /**********************************************************/
   {
     return m_scene_resources;
   }
-  /**********************************************************/
   const shaderio::SceneInfo& sceneInfo() const
-  /**********************************************************/
   {
     return m_scene_resources.sceneInfo;
   }
-  /**********************************************************/
   const core::Image& getEnvmap()
-  /**********************************************************/
   {
     return m_envmapImage;
   }
 
-  /**********************************************************/
   const std::vector<shaderio::Instance>& getInstances() const
-  /**********************************************************/
   {
     return m_scene_resources.instances;
   }
-  /**********************************************************/
   const std::vector<shaderio::Material>& getMaterials() const
-  /**********************************************************/
   {
     return m_scene_resources.materials;
   }
-  /**********************************************************/
   const std::vector<shaderio::MeshPrimitive>& getMeshes() const
-  /**********************************************************/
   {
     return m_scene_resources.meshes;
   }
 
   // --- Map Accessors (Name Lookups) ---
-  /**********************************************************/
   const std::unordered_map<std::string, MaterialID>& materialMap() const
-  /**********************************************************/
   {
     return m_materialMap;
   }
-  /**********************************************************/
   const std::unordered_map<std::string, InstanceID>& instanceMap() const
-  /**********************************************************/
   {
     return m_instanceMap;
   }
-  /**********************************************************/
   const std::unordered_map<std::string, MeshID>& meshMap() const
-  /**********************************************************/
   {
     return m_meshMap;
   }
-  /**********************************************************/
   const std::unordered_map<std::string, TextureID>& textureMap() const
-  /**********************************************************/
   {
     return m_textureMap;
   }
-  /**********************************************************/
   const std::unordered_map<std::string, core::Image>& textureImageMap() const
-  /**********************************************************/
   {
     return m_textureImageMap;
   }

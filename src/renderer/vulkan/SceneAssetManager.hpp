@@ -74,9 +74,7 @@ public:
   void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
   void uploadSceneResoures(const Scene& resources) override;
 
-  /**********************************************************/
   const VulkanSceneGpuData& deviceResources() const
-  /**********************************************************/
   {
     return m_data;
   }
@@ -108,27 +106,19 @@ public:
   // Bindless Array Updates
 
   // Accessors
-  /**********************************************************/
   uint32_t getMaximumNumberOfTextures() const
-  /**********************************************************/
   {
     return MAX_SCENE_TEXTURES;
   }
-  /**********************************************************/
   const std::map<TextureID, nvvk::Image>& textures() const
-  /**********************************************************/
   {
     return m_textures;
   }
-  /**********************************************************/
   nvvk::SamplerPool& samplerPool()
-  /**********************************************************/
   {
     return m_samplerPool;
   }
-  /**********************************************************/
   const nvvk::DescriptorPack& getDesriptorPack() const
-  /**********************************************************/
   {
     return m_descPack;
   }

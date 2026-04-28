@@ -39,9 +39,7 @@ public:
   void onUIRender() override;
 
   // Set the function to call when an object is clicked
-  /**********************************************************/
   void setSelectionCallback(SelectionCallback callback)
-  /**********************************************************/
   {
     m_onSelect = std::move(callback);
   }

@@ -133,16 +133,12 @@ public:
 
   // To call when the size of the window change.  This allows to do nicer
   // movement according to the window size.
-  /**********************************************************/
   void setWindowSize(glm::uvec2 winSize)
-  /**********************************************************/
   {
     m_windowSize = winSize;
   }
 
-  /**********************************************************/
   Camera getCamera() const
-  /**********************************************************/
   {
     return m_current;
   }
@@ -150,52 +146,38 @@ public:
 
   // Retrieve the position, interest and up vector of the camera
   void getLookat(glm::vec3& eye, glm::vec3& center, glm::vec3& up) const;
-  /**********************************************************/
   glm::vec3 getEye() const
-  /**********************************************************/
   {
     return m_current.eye;
   }
-  /**********************************************************/
   glm::vec3 getCenter() const
-  /**********************************************************/
   {
     return m_current.ctr;
   }
-  /**********************************************************/
   glm::vec3 getUp() const
-  /**********************************************************/
   {
     return m_current.up;
   }
 
   // Set the manipulator mode, from Examiner, to walk, to fly, ...
-  /**********************************************************/
   void setMode(Modes mode)
-  /**********************************************************/
   {
     m_mode = mode;
   }
 
   // Retrieve the current manipulator mode
-  /**********************************************************/
   Modes getMode() const
-  /**********************************************************/
   {
     return m_mode;
   }
 
   // Retrieving the transformation matrix of the camera
-  /**********************************************************/
   const glm::mat4& getViewMatrix() const
-  /**********************************************************/
   {
     return m_matrix;
   }
 
-  /**********************************************************/
   const glm::mat4 getPerspectiveMatrix() const
-  /**********************************************************/
   {
     glm::mat4 projMatrix = glm::perspectiveRH_ZO(
         getRadFov(), getAspectRatio(), m_current.clip.x, m_current.clip.y);
@@ -203,9 +185,7 @@ public:
     return projMatrix;
   }
 
-  /**********************************************************/
   const glm::mat4 getViewProjection() const
-  /**********************************************************/
   {
     auto projMatrix = getPerspectiveMatrix();
     projMatrix[1][1] *= -1;  // Flip the Y axis
@@ -219,31 +199,23 @@ public:
                  float centerDistance = 1.f);
 
   // Changing the default speed movement
-  /**********************************************************/
   void setSpeed(float speed)
-  /**********************************************************/
   {
     m_speed = speed;
   }
 
   // Retrieving the current speed
-  /**********************************************************/
   float getSpeed() const
-  /**********************************************************/
   {
     return m_speed;
   }
 
   // Mouse position
-  /**********************************************************/
   void setMousePosition(const glm::vec2& pos)
-  /**********************************************************/
   {
     m_mouse = pos;
   }
-  /**********************************************************/
   glm::vec2 getMousePosition() const
-  /**********************************************************/
   {
     return m_mouse;
   }
@@ -259,15 +231,11 @@ public:
   void wheel(float value, const Inputs& inputs);
 
   // Retrieve the screen dimension
-  /**********************************************************/
   glm::uvec2 getWindowSize() const
-  /**********************************************************/
   {
     return m_windowSize;
   }
-  /**********************************************************/
   float getAspectRatio() const
-  /**********************************************************/
   {
     return static_cast<float>(m_windowSize.x) /
            static_cast<float>(m_windowSize.y);
@@ -275,49 +243,35 @@ public:
 
   // Field of view in degrees
   void setFov(float fovDegree);
-  /**********************************************************/
   float getFov() const
-  /**********************************************************/
   {
     return m_current.fov;
   }
-  /**********************************************************/
   float getRadFov() const
-  /**********************************************************/
   {
     return glm::radians(m_current.fov);
   }
 
   // Clip planes
-  /**********************************************************/
   void setClipPlanes(glm::vec2 clip)
-  /**********************************************************/
   {
     m_current.clip = clip;
   }
-  /**********************************************************/
   const glm::vec2& getClipPlanes() const
-  /**********************************************************/
   {
     return m_current.clip;
   }
 
   // Animation duration
-  /**********************************************************/
   double getAnimationDuration() const
-  /**********************************************************/
   {
     return m_duration;
   }
-  /**********************************************************/
   void setAnimationDuration(double val)
-  /**********************************************************/
   {
     m_duration = val;
   }
-  /**********************************************************/
   bool isAnimated() const
-  /**********************************************************/
   {
     return m_animDone == false;
   }
@@ -330,26 +284,20 @@ public:
            bool instantFit = true, bool tight = false, float aspect = 1.0f);
 
   // Returns true if the camera has moved since the last call to setClean()
-  /**********************************************************/
   bool isDirty() const
-  /**********************************************************/
   {
     return m_lastSync != m_current;
   }
 
   // Call this after you've handled the camera change (e.g., reset path tracer)
-  /**********************************************************/
   void setClean()
-  /**********************************************************/
   {
     m_lastSync = m_current;
   }
 
 private:
   // Update the internal matrix.
-  /**********************************************************/
   void updateLookatMatrix()
-  /**********************************************************/
   {
     m_matrix = glm::lookAt(m_current.eye, m_current.ctr, m_current.up);
   }

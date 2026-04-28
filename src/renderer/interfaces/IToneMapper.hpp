@@ -9,9 +9,7 @@ class IToneMapper
 {
 public:
   virtual ~IToneMapper() = default;
-  /**********************************************************/
   shaderio::TonemapperData& data()
-  /**********************************************************/
   {
     return m_tonemapperData;
   }

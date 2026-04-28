@@ -32,22 +32,16 @@ namespace app
 class ElementSequencer : public IAppElement
 {
 public:
-  /**********************************************************/
   ElementSequencer(const core::ParameterSequencer::InitInfo& sequencerInfo) :
       m_sequencerInfo(sequencerInfo)
-  /**********************************************************/
   {
   }
-  /**********************************************************/
   virtual void onAttach(Application* app) override
-  /**********************************************************/
   {
     m_app = app;
     m_doSequences = m_sequencer.init(m_sequencerInfo);
   }
-  /**********************************************************/
   virtual void onPreRender() override
-  /**********************************************************/
   {
     if (m_doSequences)
     {

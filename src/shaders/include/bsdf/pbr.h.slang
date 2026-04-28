@@ -199,9 +199,7 @@ struct PbrEvaluator : IBSDF {
   float metallic;
 
   // Slang Constructor (Initializer)
-  /**********************************************************/
   __init(float3 _V, float3 _albedo, float _roughness, float _metallic)
-  /**********************************************************/
   {
     this.V = _V;
     this.albedo = _albedo;
@@ -210,18 +208,14 @@ struct PbrEvaluator : IBSDF {
   }
 
   // The required function from IBSDF interface
-  /**********************************************************/
   float3 eval(float3 L, float3 N)
-  /**********************************************************/
   {
     // Calls your existing PBR math function
     return pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
   }
 
-  /**********************************************************/
   float3 sample(float3 viewDir, float3 worldNormal, inout int seed,
                 inout float3 bounceDir)
-  /**********************************************************/
   {
 
 
