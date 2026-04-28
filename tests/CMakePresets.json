@@ -33,6 +33,9 @@
     {
       "name": "tests-debug",
       "configurePreset": "tests-debug",
+      "environment": {
+        "GTEST_COLOR": "yes"
+      },
       "output": {
         "outputOnFailure": true
       }
