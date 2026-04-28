@@ -1,6 +1,6 @@
 #include "renderer.hpp"
 
-#include "scene_asset_manager.hpp"
+#include "vulkan_asset_manager.hpp"
 #include "backend/vulkan/core/backend.hpp"
 #include "backend/vulkan/core/frame_synchronization_manager.hpp"
 #include "compiler/slang.hpp"

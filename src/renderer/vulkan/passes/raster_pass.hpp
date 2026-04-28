@@ -4,7 +4,7 @@
 
 #include <nvvk/descriptors.hpp>
 
-#include "scene_asset_manager.hpp"
+#include "vulkan_asset_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
 // Forward declarations

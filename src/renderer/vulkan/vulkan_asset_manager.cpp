@@ -1,4 +1,4 @@
-#include "scene_asset_manager.hpp"
+#include "vulkan_asset_manager.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 #include <tinygltf/tiny_gltf.h>

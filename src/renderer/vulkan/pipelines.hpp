@@ -9,13 +9,13 @@
 #include <nvvk/resources.hpp>
 
 #include "acceleration.hpp"
-#include "scene_asset_manager.hpp"
-#include "shader_manager.hpp"
 #include "backend/vulkan/core/context_manager.hpp"
 #include "backend/vulkan/core/swapchain_render_manager.hpp"
 #include "interfaces/render_graph_interface.hpp"
+#include "shader_manager.hpp"
+#include "vulkan_asset_manager.hpp"
 
-class PipelineManager
+class VulkanPipelineManager
 {
 public:
   struct BuildSettings
@@ -32,7 +32,7 @@ public:
   using PipelineFactoryFunc =
       std::function<std::unique_ptr<RenderGraph>(const BuildSettings&)>;
 
-  PipelineManager();
+  VulkanPipelineManager();
 
   /**
    * @brief Registers a new pipeline layout under a string identifier.

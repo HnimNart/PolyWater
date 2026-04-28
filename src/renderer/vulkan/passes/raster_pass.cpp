@@ -16,7 +16,7 @@
 #include "core/frustum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
-#include "renderer/vulkan/scene_asset_manager.hpp"
+#include "renderer/vulkan/vulkan_asset_manager.hpp"
 
 // Generated Shaders
 #include "_autogen/gltf_fragment.slang.h"
