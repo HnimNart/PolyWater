@@ -181,8 +181,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // -----------------------------------------------------------------------
   m_filter.execute();
 
+  // Use the OIDN C API value directly to avoid conflict with X11's None macro.
   const char* errorMessage = nullptr;
-  if (m_oidnDevice.getError(errorMessage) != oidn::Error::None)
+  if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
   {
     // Non-fatal: log and carry on – the output buffer may contain garbage.
     fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
@@ -429,15 +430,15 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateExternalBuffer(
   getHandleInfo.handleType = kHandleType;
   HANDLE win32Handle = nullptr;
   NVVK_CHECK(vkGetMemoryWin32HandleKHR(device, &getHandleInfo, &win32Handle));
-  buf.oidnBuf = m_oidnDevice.newSharedBuffer(kOIDNHandleType, win32Handle,
-                                              nullptr, byteSize);
+  buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, win32Handle,
+                                        nullptr, byteSize);
 #else
   VkMemoryGetFdInfoKHR getFdInfo{VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR};
   getFdInfo.memory = buf.memory;
   getFdInfo.handleType = kHandleType;
   int fd = -1;
   NVVK_CHECK(vkGetMemoryFdKHR(device, &getFdInfo, &fd));
-  buf.oidnBuf = m_oidnDevice.newSharedBuffer(kOIDNHandleType, fd, byteSize);
+  buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, fd, byteSize);
 #endif
 
   return buf;
