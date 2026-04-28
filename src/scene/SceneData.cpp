@@ -44,8 +44,9 @@ int SceneData::addTexture(const std::string& name, const std::string& path)
 }
 
 /**********************************************************/
+void SceneData::dump() const
+/**********************************************************/
 {
-  std::cout << "\n================= SCENE DATA DUMP =================\n";
   // --- Assets ---
   std::cout << "[Assets]\n";
   std::cout << "  Meshes (" << meshPaths.size() << "):\n";
