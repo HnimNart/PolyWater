@@ -28,7 +28,7 @@
 #include <app/widgets/fonts.hpp>
 #include <app/widgets/property_editor.hpp>
 #include <app/widgets/tooltip.hpp>
-#include <core/Camera.hpp>
+#include <core/camera.hpp>
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
 #include <tinygltf/json.hpp>

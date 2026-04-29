@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include "IconsMaterialSymbols.h"  // ICON_MS definitions
+#include "icons_material_symbols.h"  // ICON_MS definitions
 
 struct ImFont;
 

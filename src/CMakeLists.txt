@@ -49,6 +49,7 @@ if(APPLE)
     compile_slang_to_metal(
         "${SHADER_SLANG_FILES}"
         "${SHADER_OUTPUT_DIR}"
+        SLANG_OUT
         EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
     )
 else()
@@ -56,6 +57,7 @@ else()
     compile_slang_to_spirv(
         "${SHADER_SLANG_FILES}"
         "${SHADER_OUTPUT_DIR}"
+        SLANG_OUT
         EXTRA_FLAGS ${SHADER_INCLUDE_FLAGS}
     )
 endif()

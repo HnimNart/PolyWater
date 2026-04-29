@@ -1,12 +1,12 @@
 add_library(render_interfaces
-    interfaces/IDeviceAssets.hpp
-    interfaces/IRenderer.hpp
-    interfaces/IRenderGraph.hpp
-    interfaces/IRenderGraph.cpp
-    interfaces/IToneMapper.hpp
+    interfaces/device_assets_interface.hpp
+    interfaces/renderer_interface.hpp
+    interfaces/render_graph_interface.hpp
+    interfaces/render_graph_interface.cpp
+    interfaces/tone_mapper_interface.hpp
 
-    ShaderManager.cpp
-    ShaderManager.hpp
+    shader_manager.cpp
+    shader_manager.hpp
 )
 
 target_link_libraries(render_interfaces

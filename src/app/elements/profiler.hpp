@@ -23,12 +23,12 @@
 
 #include <core/profiler.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 namespace app
 {
 
-class ElementProfiler : public IAppElement
+class ElementProfiler final : public IAppElement
 {
 public:
   typedef enum

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Bimap.hpp"
+#include "bimap.hpp"
 
 // -----------------------------------------------------------------------
 // insert & basic lookup

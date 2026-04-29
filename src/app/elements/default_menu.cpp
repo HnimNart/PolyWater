@@ -27,7 +27,7 @@
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 
 /**********************************************************/
 void app::ElementDefaultMenu::onAttach(Application* app)

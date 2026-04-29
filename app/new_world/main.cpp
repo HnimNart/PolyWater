@@ -20,17 +20,17 @@
 #include <app/cli/parameter_parser.hpp>
 #include <core/timers.hpp>
 
-#include "VulkanRenderElement.hpp"
-#include "app/Application.hpp"
+#include "vulkan_render_element.hpp"
+#include "app/application.hpp"
 #include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
 #include "app/elements/default_title.hpp"
-#include "app/elements/geometryPicker.hpp"
+#include "app/elements/geometry_picker.hpp"
 #include "app/elements/gpu_monitor.hpp"
 #include "app/elements/logger.hpp"
 #include "app/elements/profiler.hpp"
-#include "backend/vulkan/core/Backend.hpp"
-#include "backend/vulkan/gui/ImGuiVulkanSystem.hpp"
+#include "backend/vulkan/core/vulkan_backend.hpp"
+#include "backend/vulkan/gui/vulkan_imgui_system.hpp"
 #include "core/path_utils.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
   std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
   assert(backend);
 
-  auto gui = std::make_shared<ImGuiVulkanSystem>();
+  auto gui = std::make_shared<VulkanImGuiSystem>();
   gui->init(appInfo);
 
   app::Application application(appInfo, std::move(backend), gui);

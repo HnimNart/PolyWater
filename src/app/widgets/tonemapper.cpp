@@ -19,7 +19,7 @@
 
 #include "tonemapper.hpp"
 
-#include <app/widgets/IconsMaterialSymbols.h>
+#include <app/widgets/icons_material_symbols.h>
 #include <fmt/format.h>
 
 #include <app/widgets/property_editor.hpp>

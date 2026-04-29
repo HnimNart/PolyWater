@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Frustum.hpp"
+#include "frustum.hpp"
 
 // Helper: build an orthographic VP matrix so we know exactly what the frustum
 // looks like.  Orthographic: [-hw,hw] x [-hh,hh] x [near,far]

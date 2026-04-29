@@ -2,11 +2,11 @@
 
 #include <algorithm>
 
-#include "core/Math.hpp"
+#include "core/math.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "property_editor.hpp"
-#include "renderer/interfaces/IRenderer.hpp"
-#include "scene/SceneResources.hpp"
+#include "renderer/interfaces/renderer_interface.hpp"
+#include "scene/scene_resources.hpp"
 #include "shaders/shared/structs.h"
 
 namespace app

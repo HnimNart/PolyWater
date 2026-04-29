@@ -5,9 +5,9 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "backend/interfaces/RHI_definitions.hpp"
+#include "backend/interfaces/rhi_definitions.hpp"
 #include "core/logger.hpp"
-#include "core/string_utils.h"
+#include "core/string_utils.hpp"
 #include "core/timers.hpp"
 
 namespace obj

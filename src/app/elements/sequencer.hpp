@@ -21,7 +21,7 @@
 
 #include <app/cli/parameter_sequencer.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 namespace app
 {
@@ -29,15 +29,15 @@ namespace app
 // Element that contains a `ParameterSequencer` and advances it
 // if applicable.
 
-class ElementSequencer : public IAppElement
+class ElementSequencer final : public IAppElement
 {
 public:
   ElementSequencer(const cli::ParameterSequencer::InitInfo& sequencerInfo) :
       m_sequencerInfo(sequencerInfo)
   {
   }
-  virtual void onAttach(Application* app) override;
-  virtual void onPreRender() override;
+  void onAttach(Application* app) override;
+  void onPreRender() override;
 
 private:
   cli::ParameterSequencer::InitInfo m_sequencerInfo;

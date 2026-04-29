@@ -3,7 +3,7 @@
 #include <cmath>
 #include <vector>
 
-#include "DiscretePdf.hpp"
+#include "discrete_pdf.hpp"
 
 // -----------------------------------------------------------------------
 // Construction / build

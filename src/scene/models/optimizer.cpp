@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "RHI_definitions.hpp"
+#include "rhi_definitions.hpp"
 #include "core/logger.hpp"
 #include "core/shape/primitives.hpp"
 #include "core/timers.hpp"

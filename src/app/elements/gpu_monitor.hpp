@@ -26,7 +26,7 @@
 #include <numeric>
 #include <type_traits>
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 #include "app/widgets/settings_handler.hpp"
 #include "core/timers.hpp"
 #include "nvml_monitor.hpp"
@@ -70,10 +70,10 @@ template <typename T> struct AverageCircularBuffer
   T average() { return totValue / data.size(); }
 };
 
-struct ElementGpuMonitor : public IAppElement
+struct ElementGpuMonitor final : public IAppElement
 {
   explicit ElementGpuMonitor(bool show = false);
-  virtual ~ElementGpuMonitor() = default;
+  ~ElementGpuMonitor() = default;
 
   void onUIRender() override;
   void onUIMenu() override;
