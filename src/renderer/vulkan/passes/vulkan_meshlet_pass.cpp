@@ -13,9 +13,9 @@
 #include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_meshlet.slang.h"
 #include "_autogen/gltf_task.slang.h"
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "compiler/slang.hpp"
 #include "core/frustum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
@@ -23,8 +23,8 @@
 
 /**********************************************************/
 VulkanMeshletPass::VulkanMeshletPass(VulkanContextManager* contextManager,
-                         const nvvk::DescriptorPack& descPack,
-                         const nvvk::Image* hizTexture) :
+                                     const nvvk::DescriptorPack& descPack,
+                                     const nvvk::Image* hizTexture) :
     m_context_manager(contextManager), m_descPack(descPack),
     m_hiZTexture(hizTexture)
 /**********************************************************/
@@ -56,7 +56,8 @@ void VulkanMeshletPass::init()
 }
 
 /**********************************************************/
-void VulkanMeshletPass::allocateDynamicBuffers(nvvk::ResourceAllocator& allocator)
+void VulkanMeshletPass::allocateDynamicBuffers(
+    nvvk::ResourceAllocator& allocator)
 /**********************************************************/
 {
   VkDeviceSize bufferSize =
@@ -359,12 +360,14 @@ void VulkanMeshletPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
-  VkShaderModuleCreateInfo taskCode =
-      VulkanSlangCompiler::instance().compile("gltf_task.slang", gltf_task_slang);
-  VkShaderModuleCreateInfo meshletCode = VulkanSlangCompiler::instance().compile(
-      "gltf_meshlet.slang", gltf_meshlet_slang);
-  VkShaderModuleCreateInfo fragmentCode = VulkanSlangCompiler::instance().compile(
-      "gltf_fragment.slang", gltf_fragment_slang);
+  VkShaderModuleCreateInfo taskCode = VulkanSlangCompiler::instance().compile(
+      "gltf_task.slang", gltf_task_slang);
+  VkShaderModuleCreateInfo meshletCode =
+      VulkanSlangCompiler::instance().compile("gltf_meshlet.slang",
+                                              gltf_meshlet_slang);
+  VkShaderModuleCreateInfo fragmentCode =
+      VulkanSlangCompiler::instance().compile("gltf_fragment.slang",
+                                              gltf_fragment_slang);
 
   const VkShaderStageFlags pipelineStages = VK_SHADER_STAGE_TASK_BIT_EXT |
                                             VK_SHADER_STAGE_MESH_BIT_EXT |

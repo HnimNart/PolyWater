@@ -3,7 +3,6 @@
 #include "core/math.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <core/string_utils.hpp>
 #include <shaders/shared/bindings.h>
 #include <tiny_gltf.h>
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -12,6 +11,7 @@
 #include <core/image.hpp>
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
+#include <core/string_utils.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include "core/path_utils.hpp"
@@ -426,7 +426,14 @@ void SceneResourcesManager::uploadPendingTextures(bool immediate)
       assert(0 && "Failed to load texture image!");
       continue;
     }
-    m_device_resources->addAndUploadTexture(raw, id, immediate);
+    if (!m_device_resources->addAndUploadTexture(raw, id, immediate))
+    {
+      throw std::runtime_error(
+          fmt::format("[SceneResourcesManager] Failed to add and upload "
+                      "texture '{}'. (Filename: {})",
+                      name, filename));
+    }
+
     raw.textureId = id;
     m_textureImageMap.insert_or_assign(name, raw);
   }

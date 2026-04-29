@@ -7,7 +7,7 @@
 
 #include "_autogen/mip_reduction.slang.h"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "compiler/slang.hpp"
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "core/timers.hpp"
 
 /**********************************************************/

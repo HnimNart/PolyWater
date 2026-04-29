@@ -9,7 +9,7 @@
 
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "compiler/slang.hpp"
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "core/timers.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"

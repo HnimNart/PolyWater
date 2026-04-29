@@ -12,7 +12,7 @@
 
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "compiler/slang.hpp"
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "core/frustum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"

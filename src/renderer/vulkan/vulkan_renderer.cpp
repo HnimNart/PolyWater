@@ -1,19 +1,19 @@
 #include "vulkan_renderer.hpp"
 
-#include "vulkan_scene_asset_manager.hpp"
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "backend/vulkan/core/vulkan_backend.hpp"
 #include "backend/vulkan/core/vulkan_frame_synchronization_manager.hpp"
-#include "compiler/slang.hpp"
 #include "core/timers.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
 #include "nvvk/formats.hpp"
 #include "nvvk/gbuffers.hpp"
 #include "nvvk/helpers.hpp"
-#include "passes/tone_map_pass.hpp"
+#include "passes/vulkan_tone_map_pass.hpp"
 #include "renderer/interfaces/tone_mapper_interface.hpp"
 #include "scene/scene_resources.hpp"
 #include "shaders/shared/structs.h"
+#include "vulkan_scene_asset_manager.hpp"
 
 /**********************************************************/
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
@@ -150,7 +150,7 @@ void VulkanRenderer::buildGraph(const std::string& name)
   }
 
   // Prepare settings for the manager
-  PipelineManager::BuildSettings settings{
+  VulkanPipelineManager::BuildSettings settings{
       .context = m_context,
       .assetManager = m_resources.get(),
       .swapchainManager = m_swapchain_manager,

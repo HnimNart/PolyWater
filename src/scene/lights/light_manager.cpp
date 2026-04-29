@@ -267,9 +267,13 @@ void LightManager::uploadEnvmap(
       deviceResources->destroyBuffer(envmapLight.cdfColsBufferIndex);
     }
 
-    // 1. Upload the HDR Texture (The visual data)
-    deviceResources->addAndUploadTexture(info.image, envmapLight.envTextureIdx,
-                                         true);
+    // 1. Upload the HDR Texture
+    if (!deviceResources->addAndUploadTexture(info.image,
+                                              envmapLight.envTextureIdx, true))
+    {
+      throw std::runtime_error(
+          "[LightManager] Failed to add and upload environment map texture.");
+    }
 
     // 2. Upload CDF Row Data (Conditional CDF)
     size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);

@@ -5,11 +5,10 @@
 
 #include <app/widgets/window.hpp>
 #include <core/logger.hpp>
-#include <glm/gtc/matrix_inverse.hpp>  // For inverse transpose
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include "core/camera.hpp"
-#include "core/timers.hpp"
-#include "shaders/shared/structs.h"  // For Instance definition
+#include "shaders/shared/structs.h"
 
 /**********************************************************/
 app::GeometryPickerElement::GeometryPickerElement(
@@ -18,7 +17,6 @@ app::GeometryPickerElement::GeometryPickerElement(
     m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
 {
-  m_accel.build(sceneResources.data());
 }
 
 /**********************************************************/
@@ -26,7 +24,11 @@ void app::GeometryPickerElement::onSceneUpdate(
     const SceneResourcesManager& scene)
 /**********************************************************/
 {
-  m_accel.build(scene.data());
+  if (!m_accel.build(scene.data()))
+  {
+    throw std::runtime_error("[GeometryPickerElement] Failed to build "
+                             "acceleration structure on scene update.");
+  }
 }
 
 /**********************************************************/

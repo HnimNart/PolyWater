@@ -4,11 +4,11 @@
 
 #include <memory>
 
+#include "renderer/interfaces/renderer_interface.hpp"
+#include "renderer/vulkan/passes/vulkan_ray_trace_pass.hpp"
+#include "scene/scene_manager.hpp"
 #include "vulkan_acceleration_structures.hpp"
 #include "vulkan_pipeline_manager.hpp"
-#include "passes/ray_trace_pass.hpp"
-#include "renderer/interfaces/renderer_interface.hpp"
-#include "scene/scene_manager.hpp"
 
 class PostProcessor;
 class IRenderBackend;
@@ -79,5 +79,5 @@ private:
 
   // Reference to post for UI
   std::unique_ptr<RenderGraph> m_graph;
-  PipelineManager m_pipelineManager;
+  VulkanPipelineManager m_pipelineManager;
 };
