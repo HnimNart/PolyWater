@@ -6,6 +6,7 @@
 #undef None
 #endif
 #include <OpenImageDenoise/oidn.hpp>
+#include <nvvk/gbuffers.hpp>
 
 #include "backend/vulkan/core/ContextManager.hpp"
 #include "renderer/interfaces/IRenderGraph.hpp"
@@ -80,6 +81,14 @@ private:
 
   // Destroy one buffer (works for both GPU and CPU paths).
   void destroyBuffer(ExternalBuffer& buf);
+  // Copies the raw linear image directly to the denoised output image
+  void copyLinearToDenoisedImage(VkCommandBuffer cmd,
+                                 const nvvk::GBuffer* gBuffers,
+                                 VkExtent2D size);
+  // Copies the OIDN output buffer into the denoised output image
+  void copyBufferToDenoisedImage(VkCommandBuffer cmd,
+                                 const nvvk::GBuffer* gBuffers,
+                                 VkExtent2D size);
 
   // -----------------------------------------------------------------------
   // Members

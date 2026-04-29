@@ -19,7 +19,8 @@ endif()
 # Disable C++20 module scanning (fixes the scan-deps error on Clang)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-add_compile_definitions(PROFILE_APP)
+# TODO enable profiling again
+# add_compile_definitions(PROFILE_APP)
 
 # --- 2. Path Setup ---
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")

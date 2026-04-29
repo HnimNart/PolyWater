@@ -4,7 +4,6 @@
 
 #include "backend/vulkan/core/RenderContext.hpp"
 #include "nvvk/check_error.hpp"
-#include "nvvk/debug_util.hpp"
 #include "nvvk/gbuffers.hpp"
 
 // ---------------------------------------------------------------------------
@@ -106,19 +105,63 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
+void OIDNDenoisePass::copyLinearToDenoisedImage(VkCommandBuffer cmd,
+                                                const nvvk::GBuffer* gBuffers,
+                                                VkExtent2D size)
+/**********************************************************/
+{
+  VkImageCopy region{};
+  region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.srcSubresource.layerCount = 1;
+  region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.dstSubresource.layerCount = 1;
+  region.extent = {size.width, size.height, 1};
+
+  vkCmdCopyImage(cmd, gBuffers->getColorImage(RenderOutput::Linear),
+                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                 gBuffers->getColorImage(RenderOutput::Denoised),
+                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+}
+
+/**********************************************************/
+void OIDNDenoisePass::copyBufferToDenoisedImage(VkCommandBuffer cmd,
+                                                const nvvk::GBuffer* gBuffers,
+                                                VkExtent2D size)
+/**********************************************************/
+{
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {size.width, size.height, 1};
+
+  vkCmdCopyBufferToImage(cmd, m_outputBuf.buffer,
+                         gBuffers->getColorImage(RenderOutput::Denoised),
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+}
+
+/**********************************************************/
 void OIDNDenoisePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   VulkanRenderContext& vkCtx = VulkanRenderContext::get(ctx);
+
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
   const VkExtent2D size = gBuffers->getSize();
 
-  NVVK_DBG_SCOPE(cmd);
+  if (!vkCtx.pushValues.renderParams.denoise)
+  {
+    copyLinearToDenoisedImage(cmd, gBuffers, size);
+    return;
+  }
 
-  // -----------------------------------------------------------------------
-  // 1. (Re-)create buffers when the resolution changes.
-  // -----------------------------------------------------------------------
+  // re-create buffers when the resolution changes.
   if (size.width != m_width || size.height != m_height)
   {
     m_contextManager->waitForDeviceIdle();
@@ -128,26 +171,21 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     m_height = size.height;
   }
 
-  // If buffer creation failed (no suitable memory), skip denoising gracefully.
+  // If buffer creation failed, skip denoising.
   if (m_colorBuf.buffer == VK_NULL_HANDLE)
+  {
+    copyLinearToDenoisedImage(cmd, gBuffers, size);
     return;
+  }
 
-  // -----------------------------------------------------------------------
-  // 2. Copy GBuffer images → OIDN input VkBuffers.
-  //    (The render graph already transitioned them to TRANSFER_SRC_OPTIMAL.)
-  // -----------------------------------------------------------------------
+  // Copy GBuffer images → OIDN input VkBuffers.
   auto copyImageToBuffer = [&](RenderOutput src, VkBuffer dst)
   {
     VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;  // Tightly packed
-    region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
     region.imageExtent = {size.width, size.height, 1};
+
     vkCmdCopyImageToBuffer(cmd, gBuffers->getColorImage(src),
                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst, 1,
                            &region);
@@ -157,10 +195,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   copyImageToBuffer(RenderOutput::Albedo, m_albedoBuf.buffer);
   copyImageToBuffer(RenderOutput::Normal, m_normalBuf.buffer);
 
-  // -----------------------------------------------------------------------
-  // 3. Submit the current command buffer and wait on the CPU.
-  //    This guarantees all Vulkan writes to the input buffers are visible.
-  // -----------------------------------------------------------------------
+  // Submit the current command buffer and wait on the CPU.
   NVVK_CHECK(vkEndCommandBuffer(cmd));
 
   VkCommandBufferSubmitInfo cmdSubmitInfo{
@@ -177,28 +212,18 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkWaitForFences(m_contextManager->getDevice(), 1, &m_fence,
                              VK_TRUE, UINT64_MAX));
 
-  // -----------------------------------------------------------------------
-  // 4. Execute the OIDN filter on the GPU device.
-  //    oidnDevice.sync() ensures the CUDA/HIP work is fully complete before
-  //    we hand the output buffer back to Vulkan.
-  // -----------------------------------------------------------------------
+  // Execute the OIDN filter on the GPU device.
   m_filter.execute();
 
-  // Use the OIDN C API value directly to avoid conflict with X11's None macro.
   const char* errorMessage = nullptr;
   if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
   {
-    // Non-fatal: log and carry on – the output buffer may contain garbage.
     fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
   }
 
   m_oidnDevice.sync();
 
-  // -----------------------------------------------------------------------
-  // 5. Allocate a fresh command buffer from the same pool and record the
-  //    copy from the OIDN output buffer into the Denoised G-buffer image.
-  //    A memory barrier ensures Vulkan sees the CUDA writes.
-  // -----------------------------------------------------------------------
+  // Allocate a fresh command buffer and record output copy
   VkCommandBufferAllocateInfo allocInfo{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   allocInfo.commandPool = vkCtx.cmdPool;
@@ -214,8 +239,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   NVVK_CHECK(vkBeginCommandBuffer(newCmd, &beginInfo));
 
-  // A memory barrier to make the OIDN (CUDA/HIP) writes visible to the
-  // Vulkan TRANSFER stage.
   {
     VkMemoryBarrier2 memBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER_2};
     memBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
@@ -229,26 +252,8 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     vkCmdPipelineBarrier2(newCmd, &depInfo);
   }
 
-  // Copy OIDN output buffer → Denoised image.
-  // (The render graph already transitioned Denoised to TRANSFER_DST_OPTIMAL.)
-  {
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {size.width, size.height, 1};
-    vkCmdCopyBufferToImage(newCmd, m_outputBuf.buffer,
-                           gBuffers->getColorImage(RenderOutput::Denoised),
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-  }
-
-  // Hand the new command buffer to the context so subsequent passes record
-  // into it, and the FrameSynchronizationManager submits it at end-of-frame.
+  // Call the new helper method
+  copyBufferToDenoisedImage(newCmd, gBuffers, size);
   vkCtx.cmdBuffer = newCmd;
 }
 
@@ -339,23 +344,29 @@ void OIDNDenoisePass::destroyBuffers()
 void OIDNDenoisePass::rebuildFilter(uint32_t width, uint32_t height)
 /**********************************************************/
 {
+
   m_filter = m_oidnDevice.newFilter("RT");
 
-  // Tell OIDN about the Float4 pixel layout (skip the alpha channel).
-  const size_t byteRowStride = static_cast<size_t>(width) * kBytesPerPixel;
-  const size_t bytePixelStride = kBytesPerPixel;
+  // Assuming VK_FORMAT_R32G32B32A32_SFLOAT (16 bytes per pixel)
+  const size_t bytePixelStride = 16;
+  const size_t byteRowStride = static_cast<size_t>(width) * bytePixelStride;
 
+  // Notice the order: byteOffset, pixelStride, rowStride
   m_filter.setImage("color", m_colorBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, byteRowStride, bytePixelStride);
-  m_filter.setImage("albedo", m_albedoBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, byteRowStride, bytePixelStride);
-  m_filter.setImage("normal", m_normalBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, byteRowStride, bytePixelStride);
-  m_filter.setImage("output", m_outputBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, byteRowStride, bytePixelStride);
+                    height, 0, bytePixelStride, byteRowStride);
 
-  m_filter.set("hdr", true);  // Input is HDR (linear)
+  m_filter.setImage("albedo", m_albedoBuf.oidnBuf, oidn::Format::Float3, width,
+                    height, 0, bytePixelStride, byteRowStride);
+
+  m_filter.setImage("normal", m_normalBuf.oidnBuf, oidn::Format::Float3, width,
+                    height, 0, bytePixelStride, byteRowStride);
+
+  m_filter.setImage("output", m_outputBuf.oidnBuf, oidn::Format::Float3, width,
+                    height, 0, bytePixelStride, byteRowStride);
+
+  m_filter.set("hdr", true);
   m_filter.commit();
+  return;
 }
 
 /**********************************************************/
@@ -455,6 +466,11 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   getFdInfo.memory = buf.memory;
   getFdInfo.handleType = kHandleType;
   int fd = -1;
+  if (vkGetMemoryFdKHR == nullptr)
+  {
+    throw std::runtime_error(
+        "vkGetMemoryFdKHR is NULL! Extension not enabled or loaded.");
+  }
   NVVK_CHECK(vkGetMemoryFdKHR(device, &getFdInfo, &fd));
   buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, fd, byteSize);
 #endif
