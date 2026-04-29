@@ -25,7 +25,7 @@
 
 #include <functional>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
@@ -50,7 +50,7 @@ To use this class, you need to add it to the `nvapp::Application` using the
 
 -------------------------------------------------------------------------------------------------*/
 
-class ElementDefaultMenu : public IAppElement
+class ElementDefaultMenu final : public IAppElement
 {
 public:
   void onAttach(Application* app) override;

@@ -4,7 +4,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "Math.hpp"
+#include "math.hpp"
 
 // -----------------------------------------------------------------------
 // math::toQuat / math::fromQuat – round-trip identity

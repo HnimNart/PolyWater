@@ -22,9 +22,9 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include <core/Camera.hpp>
+#include <core/camera.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 /*-------------------------------------------------------------------------------------------------
 # class nvvkhl::ElementCamera
@@ -41,7 +41,7 @@ To use this class, you need to add it to the `nvvkhl::Application` using the
 namespace app
 {
 
-struct ElementCamera : public IAppElement
+struct ElementCamera final : public IAppElement
 {
   ElementCamera(std::shared_ptr<core::CameraManipulator> camera = nullptr)
   {

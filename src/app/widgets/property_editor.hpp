@@ -24,7 +24,7 @@
 #include <string>
 
 // clang-format off
-namespace app {
+
 
 //--------------------------------------------------------------------------------------------------
 // This is a helper to create a nice property editor with ImGui, where the name of the property
@@ -38,7 +38,7 @@ namespace app {
 //   Ex: PropertyEditor::entry("My Prop", [&](){return ImGui::DragFloat(...);});
 // - Note, each function has an extra argument, which will display the string as Tooltip
 //
-namespace PropertyEditor {
+namespace app::PropertyEditor {
 bool begin(const char* label = "PE::Table", ImGuiTableFlags flag = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable);
 void end();
 bool entry(const std::string& property_name, const std::function<bool()>& content_fct, const std::string& tooltip = {});
@@ -97,6 +97,6 @@ bool ColorPicker4(const char* label, float col[4], ImGuiColorEditFlags flags = 0
 bool ColorButton(const char* label, const ImVec4& col, ImGuiColorEditFlags flags = 0, const ImVec2& size = ImVec2(0, 0), const std::string& tooltip = {});
 void Text(const char* label, const std::string& text);
 void Text(const char* label, const char* fmt, ...);
-}  // namespace PropertyEditor
-}  // namespace ImGui
+} // namespace app::PropertyEditor
+
 // clang-format on

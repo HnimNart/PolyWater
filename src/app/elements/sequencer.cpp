@@ -19,7 +19,7 @@
 
 #include "sequencer.hpp"
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 
 namespace app
 {

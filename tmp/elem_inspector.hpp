@@ -23,7 +23,7 @@
 
 #include <nvresource_allocator.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 
 /** @DOC_START
 

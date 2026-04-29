@@ -26,7 +26,7 @@
 
 #include <core/logger.hpp>
 
-#include "app/IAppElement.hpp"
+#include "app/app_element_interface.hpp"
 #include "app/widgets/settings_handler.hpp"
 
 namespace app
@@ -58,7 +58,7 @@ Add logger window
 -------------------------------------------------------------------------------------------------*/
 
 // Helper class to show the log in the application
-class ElementLogger : public IAppElement
+class ElementLogger final : public IAppElement
 {
 public:
   enum LogLevelBit
@@ -74,7 +74,7 @@ public:
   };
 
   explicit ElementLogger(bool show = false);
-  virtual ~ElementLogger() = default;
+  ~ElementLogger() = default;
 
   void onAttach(Application* app) override;
   void onUIRender() override;  // Called for anything related to UI

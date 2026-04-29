@@ -44,10 +44,10 @@ set(TEST_SOURCES
 # (avoids pulling in the full Vulkan/Slang/GLFW build graph)
 if(TESTS_STANDALONE)
     list(APPEND TEST_SOURCES
-        ${CORE_SRC_DIR}/Math.cpp
-        ${CORE_SRC_DIR}/Frustum.cpp
+        ${CORE_SRC_DIR}/math.cpp
+        ${CORE_SRC_DIR}/frustum.cpp
         ${CORE_SRC_DIR}/bounding_box.cpp
-        ${CORE_SRC_DIR}/DiscretePdf.cpp
+        ${CORE_SRC_DIR}/discrete_pdf.cpp
     )
 endif()
 

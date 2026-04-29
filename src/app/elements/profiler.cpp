@@ -22,7 +22,7 @@
 #include <app/widgets/fonts.hpp>
 #include <core/logger.hpp>
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 
 // defaultViewSettings are optional, but can be used to set different defaults
 // and also to expose to sample code (like hiding views for benchmark through

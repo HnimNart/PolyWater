@@ -73,7 +73,7 @@ public:
     void registerScriptParameters(ParameterRegistry& registry,
                                   ParameterParser& parser);
 
-    bool hasScript() const
+    [[nodiscard]] bool hasScript() const noexcept
     {
       return !scriptFilename.empty() || !scriptContent.empty();
     }
@@ -117,7 +117,7 @@ public:
   bool init(const InitInfo& initInfo);
 
   // The user must continue to generate frames until this is true
-  bool isCompleted() const
+  [[nodiscard]] bool isCompleted() const noexcept
   {
     return m_completed;
   }

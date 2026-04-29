@@ -45,53 +45,53 @@ struct Bbox
 
   void insert(const Bbox& b);
 
-  inline Bbox& operator+=(float v)
+  Bbox& operator+=(float v)
   {
     m_min -= v;
     m_max += v;
     return *this;
   }
 
-  inline bool isEmpty() const
+  bool isEmpty() const
   {
     return m_min == glm::vec3{std::numeric_limits<float>::max()} ||
            m_max == glm::vec3{std::numeric_limits<float>::lowest()};
   }
 
   uint32_t rank() const;
-  inline bool isPoint() const
+  bool isPoint() const
   {
     return m_min == m_max;
   }
-  inline bool isLine() const
+  bool isLine() const
   {
     return rank() == 1u;
   }
-  inline bool isPlane() const
+  bool isPlane() const
   {
     return rank() == 2u;
   }
-  inline bool isVolume() const
+  bool isVolume() const
   {
     return rank() == 3u;
   }
-  inline glm::vec3 min() const
+  glm::vec3 min() const
   {
     return m_min;
   }
-  inline glm::vec3 max() const
+  glm::vec3 max() const
   {
     return m_max;
   }
-  inline glm::vec3 extents()
+  glm::vec3 extents()
   {
     return m_max - m_min;
   }
-  inline glm::vec3 center() const
+  glm::vec3 center() const
   {
     return (m_min + m_max) * 0.5f;
   }
-  inline float radius() const
+  float radius() const
   {
     return glm::length(m_max - m_min) * 0.5f;
   }

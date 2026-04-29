@@ -27,7 +27,7 @@
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
 
-#include "app/Application.hpp"
+#include "app/application.hpp"
 
 /**********************************************************/
 app::ElementDefaultWindowTitle::ElementDefaultWindowTitle(
