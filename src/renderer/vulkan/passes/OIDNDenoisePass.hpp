@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan_core.h>
 
+#ifdef None
+#undef None
+#endif
 #include <OpenImageDenoise/oidn.hpp>
 
 #include "backend/vulkan/core/ContextManager.hpp"

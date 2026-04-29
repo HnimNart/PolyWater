@@ -16,8 +16,7 @@ namespace
 
 // Find a Vulkan memory type that satisfies the given type-filter bits and
 // property flags.  Returns UINT32_MAX if none is found.
-uint32_t findMemoryType(VkPhysicalDevice physDevice,
-                        uint32_t typeFilter,
+uint32_t findMemoryType(VkPhysicalDevice physDevice, uint32_t typeFilter,
                         VkMemoryPropertyFlags props)
 {
   VkPhysicalDeviceMemoryProperties memProps;
@@ -66,8 +65,8 @@ void OIDNDenoisePass::init()
 {
   // --- Fence for the intermediate command-buffer submission ---
   VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  NVVK_CHECK(
-      vkCreateFence(m_contextManager->getDevice(), &fenceInfo, nullptr, &m_fence));
+  NVVK_CHECK(vkCreateFence(m_contextManager->getDevice(), &fenceInfo, nullptr,
+                           &m_fence));
 
   createOIDNDevice();
   // Buffers are lazily created in execute() once the GBuffer size is known.
@@ -141,7 +140,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   {
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
-    region.bufferRowLength = 0;   // Tightly packed
+    region.bufferRowLength = 0;  // Tightly packed
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
@@ -210,7 +209,8 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkAllocateCommandBuffers(m_contextManager->getDevice(), &allocInfo,
                                       &newCmd));
 
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  VkCommandBufferBeginInfo beginInfo{
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   NVVK_CHECK(vkBeginCommandBuffer(newCmd, &beginInfo));
 
@@ -267,10 +267,9 @@ void OIDNDenoisePass::createOIDNDevice()
   // Determine whether we can use Vulkan external-memory sharing.
   // External memory is supported by GPU backends (CUDA, HIP, SYCL).
   int devType = m_oidnDevice.get<int>("type");
-  m_gpuPath =
-      (devType == (int)oidn::DeviceType::CUDA ||
-       devType == (int)oidn::DeviceType::HIP ||
-       devType == (int)oidn::DeviceType::SYCL);
+  m_gpuPath = (devType == (int) oidn::DeviceType::CUDA ||
+               devType == (int) oidn::DeviceType::HIP ||
+               devType == (int) oidn::DeviceType::SYCL);
 }
 
 // ---------------------------------------------------------------------------
@@ -281,8 +280,7 @@ void OIDNDenoisePass::createOIDNDevice()
 void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
 /**********************************************************/
 {
-  const size_t byteSize =
-      static_cast<size_t>(width) * height * kBytesPerPixel;
+  const size_t byteSize = static_cast<size_t>(width) * height * kBytesPerPixel;
 
   constexpr VkBufferUsageFlags kInputUsage =
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
@@ -307,10 +305,14 @@ void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
   }
 
   // Bail out if any allocation failed (e.g., no host-visible memory type).
-  if (m_colorBuf.buffer == VK_NULL_HANDLE || m_albedoBuf.buffer == VK_NULL_HANDLE ||
-      m_normalBuf.buffer == VK_NULL_HANDLE || m_outputBuf.buffer == VK_NULL_HANDLE)
+  if (m_colorBuf.buffer == VK_NULL_HANDLE ||
+      m_albedoBuf.buffer == VK_NULL_HANDLE ||
+      m_normalBuf.buffer == VK_NULL_HANDLE ||
+      m_outputBuf.buffer == VK_NULL_HANDLE)
   {
-    fprintf(stderr, "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
+    fprintf(
+        stderr,
+        "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
     destroyBuffers();
     return;
   }
@@ -322,7 +324,8 @@ void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
 void OIDNDenoisePass::destroyBuffers()
 /**********************************************************/
 {
-  m_filter = oidn::FilterRef{};  // Must be released before the buffers it references
+  m_filter =
+      oidn::FilterRef{};  // Must be released before the buffers it references
 
   destroyBuffer(m_colorBuf);
   destroyBuffer(m_albedoBuf);
@@ -356,8 +359,9 @@ void OIDNDenoisePass::rebuildFilter(uint32_t width, uint32_t height)
 }
 
 /**********************************************************/
-OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateExternalBuffer(
-    size_t byteSize, VkBufferUsageFlags usage)
+OIDNDenoisePass::ExternalBuffer
+OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
+                                        VkBufferUsageFlags usage)
 /**********************************************************/
 {
   ExternalBuffer buf;
@@ -414,9 +418,8 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateExternalBuffer(
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(device, buf.buffer, &memReqs);
 
-  uint32_t memTypeIdx =
-      findMemoryType(physDevice, memReqs.memoryTypeBits,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  uint32_t memTypeIdx = findMemoryType(physDevice, memReqs.memoryTypeBits,
+                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   if (memTypeIdx == UINT32_MAX)
   {
     // Unusual: no device-local exportable memory – fall back.
@@ -445,8 +448,8 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateExternalBuffer(
   getHandleInfo.handleType = kHandleType;
   HANDLE win32Handle = nullptr;
   NVVK_CHECK(vkGetMemoryWin32HandleKHR(device, &getHandleInfo, &win32Handle));
-  buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, win32Handle,
-                                        nullptr, byteSize);
+  buf.oidnBuf =
+      m_oidnDevice.newBuffer(kOIDNHandleType, win32Handle, nullptr, byteSize);
 #else
   VkMemoryGetFdInfoKHR getFdInfo{VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR};
   getFdInfo.memory = buf.memory;
@@ -460,8 +463,8 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateExternalBuffer(
 }
 
 /**********************************************************/
-OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateHostBuffer(
-    size_t byteSize, VkBufferUsageFlags usage)
+OIDNDenoisePass::ExternalBuffer
+OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
 /**********************************************************/
 {
   ExternalBuffer buf;
@@ -480,9 +483,10 @@ OIDNDenoisePass::ExternalBuffer OIDNDenoisePass::allocateHostBuffer(
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(device, buf.buffer, &memReqs);
 
-  uint32_t memTypeIdx = findMemoryType(
-      physDevice, memReqs.memoryTypeBits,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  uint32_t memTypeIdx =
+      findMemoryType(physDevice, memReqs.memoryTypeBits,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
   if (memTypeIdx == UINT32_MAX)
   {
