@@ -6,7 +6,7 @@
 - [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
 - [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
 - [ ] Add a geometry picker and widget
-- [ ] Add OIDN denoiser
+- [x] Add OIDN denoiser
 - [ ] Add Mac OS support
 - [ ] Add probe light/light cuts rendering
 - [ ] Add support for 16-bit indices
