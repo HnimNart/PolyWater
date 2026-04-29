@@ -7,9 +7,9 @@
 #include <array>
 #include <vector>
 
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "core/timers.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
@@ -18,9 +18,9 @@
 
 /**********************************************************/
 VulkanRayTracePass::VulkanRayTracePass(VulkanContextManager* contextManager,
-                           const nvvk::DescriptorPack& descPack,
-                           ShaderManager* shaderManager,
-                           VulkanAccelerationStructures* accel) :
+                                       const nvvk::DescriptorPack& descPack,
+                                       ShaderManager* shaderManager,
+                                       VulkanAccelerationStructures* accel) :
     m_context_manager(contextManager), m_sharedDescPack(descPack),
     m_accel(accel)
 /**********************************************************/
@@ -54,6 +54,10 @@ void VulkanRayTracePass::setup(PassBuilder& builder)
   // Ray tracing output: writing to the Linear Color buffer
   // We use General state because it's a Storage Image write
   builder.write(RenderOutput::Linear, PipelineStage::RayTracing,
+                ResourceState::General);
+  builder.write(RenderOutput::Albedo, PipelineStage::RayTracing,
+                ResourceState::General);
+  builder.write(RenderOutput::Normal, PipelineStage::RayTracing,
                 ResourceState::General);
 
   // Ray tracing input: The TLAS is an acceleration structure (Read)
@@ -102,6 +106,14 @@ void VulkanRayTracePass::createDescriptorLayout()
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
   bindings.addBinding({.binding = shaderio::BindRayTrace::eAccumImage,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       .descriptorCount = 1,
+                       .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eAlbedoImage,
+                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       .descriptorCount = 1,
+                       .stageFlags = VK_SHADER_STAGE_ALL});
+  bindings.addBinding({.binding = shaderio::BindRayTrace::eNormalImage,
                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                        .descriptorCount = 1,
                        .stageFlags = VK_SHADER_STAGE_ALL});
@@ -169,8 +181,8 @@ void VulkanRayTracePass::createPipelineSBT()
 
   // Miss Stage 1: Shadow (Index 2)
   const MissEntry& missShadow = m_shaderManager->getShadowMiss();
-  m_shaderCode.push_back(
-      VulkanSlangCompiler::instance().compile(missShadow.filename, missShadow.spirv));
+  m_shaderCode.push_back(VulkanSlangCompiler::instance().compile(
+      missShadow.filename, missShadow.spirv));
 
   stages.push_back(
       {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -190,7 +202,8 @@ void VulkanRayTracePass::createPipelineSBT()
   for (auto& [type, entry] : m_shaderManager->getRegistry())
   {
     uint32_t currentStageIndex = static_cast<uint32_t>(stages.size());
-    m_shaderCode.push_back(VulkanSlangCompiler::instance().compile(entry.filename));
+    m_shaderCode.push_back(
+        VulkanSlangCompiler::instance().compile(entry.filename));
 
     stages.push_back(
         {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -273,7 +286,7 @@ void VulkanRayTracePass::createShaderBindingTable(
 }
 
 /**********************************************************/
-void VulkanRayTracePass::execute(const IRenderContext& ctx)
+void VulkanRayTracePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -306,6 +319,14 @@ void VulkanRayTracePass::execute(const IRenderContext& ctx)
   write.append(
       m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eAccumImage),
       gBuffers->getColorImageView(RenderOutput::AccumLinear),
+      VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eAlbedoImage),
+      gBuffers->getColorImageView(RenderOutput::Albedo),
+      VK_IMAGE_LAYOUT_GENERAL);
+  write.append(
+      m_RayTraceDescPack.makeWrite(shaderio::BindRayTrace::eNormalImage),
+      gBuffers->getColorImageView(RenderOutput::Normal),
       VK_IMAGE_LAYOUT_GENERAL);
   vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                             m_pipelineLayout, 1, write.size(), write.data());

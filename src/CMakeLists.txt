@@ -62,6 +62,7 @@ else()
     )
 endif()
 
+
 # GLSL compilation only for Vulkan builds
 if(ACTIVE_SHADER_BACKEND STREQUAL "vulkan")
     compile_glsl(
@@ -80,10 +81,12 @@ else()
     endif()
 endif()
 
+
 # Dedicated target to force shader generation
 add_custom_target(generate_shaders DEPENDS ${SLANG_OUT} ${GLSL_OUT})
 set_target_properties(generate_shaders PROPERTIES FOLDER "Shaders")
 set_source_files_properties(${SLANG_OUT} ${GLSL_OUT} PROPERTIES GENERATED TRUE)
+
 
 # -------------------------------------------------------------------
 # Includes / Linking for the umbrella target

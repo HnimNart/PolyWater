@@ -30,7 +30,7 @@ public:
   }
 
   void setup(PassBuilder& builder) override;
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
 
 private:
   RenderCallback m_callback;

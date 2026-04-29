@@ -13,6 +13,10 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
   {
     case RenderOutput::Linear:
     case RenderOutput::ToneMapped:
+    case RenderOutput::AccumLinear:
+    case RenderOutput::Denoised:
+    case RenderOutput::Albedo:
+    case RenderOutput::Normal:
       return gBuffers->getColorImage(resource);
 
     case RenderOutput::DepthBuffer:

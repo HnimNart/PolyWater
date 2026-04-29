@@ -20,7 +20,7 @@ public:
   void setup(PassBuilder& builder) override;
 
   // Executes the compute shader
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
 
 private:
   void createDescriptorLayout();

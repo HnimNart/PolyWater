@@ -182,7 +182,14 @@ if(NOT TARGET glm)
   set_property(TARGET glm PROPERTY FOLDER "ThirdParty")
 endif()
 
-
+# fmt
+if(NOT TARGET fmt)
+  set(FMT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
+  if(EXISTS ${FMT_DIR}/CMakeLists.txt)
+    add_subdirectory(${FMT_DIR})
+    set_property(TARGET fmt PROPERTY FOLDER "ThirdParty")
+  endif()
+endif()
 
 # stb
 if(NOT TARGET stb)

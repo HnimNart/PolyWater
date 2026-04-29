@@ -68,6 +68,13 @@ void rchit_volumetric(inout HitPayload payload,
     float3 nextDir;
     float3 surfaceWeight = bsdf.sample(viewDir, worldNormal, payload.seed, nextDir);
     
+    // --- First-hit auxiliary data for denoiser ---
+    if (payload.depth == 0)
+    {
+        payload.albedo = albedo;
+        payload.normal = worldNormal;
+    }
+
     payload.weight *= surfaceWeight;
     payload.nextRayOrigin = worldPos;
     payload.nextRayDir = normalize(nextDir);

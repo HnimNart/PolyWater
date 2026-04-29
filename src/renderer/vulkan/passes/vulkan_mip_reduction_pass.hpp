@@ -15,7 +15,7 @@ public:
   void init() override;
   void deinit() override;
   void setup(PassBuilder& builder) override;
-  void execute(const IRenderContext& ctx) override;
+  void execute(IRenderContext& ctx) override;
 
 private:
   // --- Internal Logic ---

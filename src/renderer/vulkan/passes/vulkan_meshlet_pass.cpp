@@ -109,7 +109,7 @@ void VulkanMeshletPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 }
 
 /**********************************************************/
-void VulkanMeshletPass::execute(const IRenderContext& ctx)
+void VulkanMeshletPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);

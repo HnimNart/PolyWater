@@ -23,6 +23,13 @@ rchit_dielectric(inout HitPayload payload,
   float3 nextDir;
   payload.weight *= bsdf.sample(viewDir, worldNormal, payload.seed, nextDir);
 
+  // --- First-hit auxiliary data for denoiser ---
+  if (payload.depth == 0)
+  {
+    payload.albedo = albedo;
+    payload.normal = worldNormal;
+  }
+
   // 2. Prepare Next Ray
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(nextDir);

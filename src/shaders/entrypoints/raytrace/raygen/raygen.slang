@@ -15,6 +15,9 @@
   SceneInfo* sceneInfo = pushConst.sceneInfoAddress.get();
 
   float3 finalPixelColor = float3(0, 0, 0);
+  // First-hit auxiliary data for the OIDN denoiser (captured from sample 0).
+  float3 firstHitAlbedo = float3(0, 0, 0);
+  float3 firstHitNormal = float3(0, 0, 0);
 
   // Initialize RNG
   uint seed =
@@ -54,6 +57,8 @@
     payload.seed = sampleSeed;
     payload.stop = true;
     payload.emit = true;
+    payload.albedo = float3(0, 0, 0);
+    payload.normal = float3(0, 0, 0);
 
     // Path Tracing
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
@@ -87,9 +92,31 @@
 
     // Add this sample's full path result to the pixel
     finalPixelColor += payload.color;
+
+    // Capture first-hit auxiliary data from sample 0 at frame reset.
+    // Hit shaders populate payload.albedo/normal only on depth==0, so these
+    // are stable across samples for the same pixel.
+    if (s == 0 && params.frameIdx == 0)
+    {
+      firstHitAlbedo = payload.albedo;
+      firstHitNormal = payload.normal;
+    }
   }
 
   float3 currentFrameColor = finalPixelColor / float(N_SAMPLES);
+
+  // Write first-hit albedo and normal for the OIDN denoiser.
+  // These are captured from sample 0's first bounce and written only when
+  // frameIdx==0 (accumulation reset), keeping the buffers stable across
+  // accumulation frames.
+  if (params.frameIdx == 0)
+  {
+    albedoImage[int2(launchID)] = float4(firstHitAlbedo, 1.0);
+    // Normals are stored in world-space in the range [-1, 1].  The G-buffer
+    // uses R32G32B32A32_SFLOAT which supports negative values, so no encoding
+    // is needed.  OIDN reads these directly as world-space normals.
+    normalImage[int2(launchID)] = float4(firstHitNormal, 0.0);
+  }
 
   if (params.frameIdx == 0)
   {

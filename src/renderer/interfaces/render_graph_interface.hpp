@@ -14,7 +14,7 @@ public:
   virtual ~IRenderPass() = default;
   virtual void init() = 0;
   virtual void setup(PassBuilder& builder) = 0;
-  virtual void execute(const IRenderContext& ctx) = 0;
+  virtual void execute(IRenderContext& ctx) = 0;
   virtual void deinit() = 0;
 };
 

@@ -14,8 +14,6 @@ file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
 # 2. Define Shared Library
 add_library(${LIB_NAME} SHARED ${CORE_SOURCES})
 
-find_package(fmt REQUIRED)
-find_package(glm REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         glm          

@@ -10,9 +10,9 @@
 #include <nvvk/gbuffers.hpp>
 #include <nvvk/graphics_pipeline.hpp>
 
+#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
-#include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
 #include "core/frustum.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
@@ -23,9 +23,9 @@
 #include "_autogen/gltf_raster.slang.h"
 
 /**********************************************************/
-VulkanRasterPass::VulkanRasterPass(VulkanContextManager* contextManager,
-                       const nvvk::DescriptorPack& descPack,
-                       const VulkanSceneAssetManager* assetManager) :
+VulkanRasterPass::VulkanRasterPass(
+    VulkanContextManager* contextManager, const nvvk::DescriptorPack& descPack,
+    const VulkanSceneAssetManager* assetManager) :
     m_context_manager(contextManager), m_descPack(descPack),
     m_assetManager(assetManager)
 /**********************************************************/
@@ -69,7 +69,7 @@ void VulkanRasterPass::resize(VkCommandBuffer /*cmd*/, VkExtent2D /*size*/)
 }
 
 /**********************************************************/
-void VulkanRasterPass::execute(const IRenderContext& ctx)
+void VulkanRasterPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -264,10 +264,11 @@ void VulkanRasterPass::compileShaders()
 {
   SCOPED_TIMER_FUNC();
 
-  VkShaderModuleCreateInfo vertexCode =
-      VulkanSlangCompiler::instance().compile("gltf_raster.slang", gltf_raster_slang);
-  VkShaderModuleCreateInfo fragmentCode = VulkanSlangCompiler::instance().compile(
-      "gltf_fragment.slang", gltf_fragment_slang);
+  VkShaderModuleCreateInfo vertexCode = VulkanSlangCompiler::instance().compile(
+      "gltf_raster.slang", gltf_raster_slang);
+  VkShaderModuleCreateInfo fragmentCode =
+      VulkanSlangCompiler::instance().compile("gltf_fragment.slang",
+                                              gltf_fragment_slang);
 
   const VkPushConstantRange pushConstantRange{
       .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,

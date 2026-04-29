@@ -27,6 +27,13 @@ rchit_diffuse(inout HitPayload payload,
   float3 emissive = material.emission;
   payload.color += emissive * payload.weight;
 
+  // --- First-hit auxiliary data for denoiser ---
+  if (payload.depth == 0)
+  {
+    payload.albedo = albedo;
+    payload.normal = worldNormal;
+  }
+
   // --- Direct Lighting ---
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
   DiffuseEvaluator bsdf = DiffuseEvaluator(albedo);

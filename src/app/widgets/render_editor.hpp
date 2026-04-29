@@ -71,11 +71,10 @@ inline bool renderEditor(SceneResourcesManager& resources, IRenderer* renderer)
       if (PE::Checkbox("Denoise", &denoiseEnabled))
       {
         params.denoise = denoiseEnabled ? 1 : 0;
-        hasChanged = true;
       }
 
       // --- Conditionally show Denoiser Settings ---
-      if (denoiseEnabled)
+      if (0 && denoiseEnabled)
       {
         // Assuming your PE wrapper supports SliderFloat. If not, use DragFloat.
         hasChanged |=

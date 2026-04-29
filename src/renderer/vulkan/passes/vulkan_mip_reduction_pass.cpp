@@ -6,17 +6,18 @@
 #include <nvvk/debug_util.hpp>
 
 #include "_autogen/mip_reduction.slang.h"
-#include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
+#include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "core/timers.hpp"
 
 /**********************************************************/
-VulkanMipReductionPass::VulkanMipReductionPass(VulkanContextManager* contextManager,
-                                   nvvk::Image* texture) :
+VulkanMipReductionPass::VulkanMipReductionPass(
+    VulkanContextManager* contextManager, nvvk::Image* texture) :
     m_contextManager(contextManager), m_mipTexture(texture)
 /**********************************************************/
 {
-  assert(m_mipTexture && "VulkanMipReductionPass requires a valid texture pointer.");
+  assert(m_mipTexture &&
+         "VulkanMipReductionPass requires a valid texture pointer.");
 }
 
 /**********************************************************/
@@ -95,8 +96,8 @@ void VulkanMipReductionPass::compileShaders()
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  auto computeCode = VulkanSlangCompiler::instance().compile("mip_reduction.slang",
-                                                       mip_reduction_slang);
+  auto computeCode = VulkanSlangCompiler::instance().compile(
+      "mip_reduction.slang", mip_reduction_slang);
 
   VkPushConstantRange pushRange{VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                 sizeof(ReductionPushConstants)};
@@ -118,7 +119,7 @@ void VulkanMipReductionPass::compileShaders()
 }
 
 /**********************************************************/
-void VulkanMipReductionPass::execute(const IRenderContext& ctx)
+void VulkanMipReductionPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -216,9 +217,10 @@ void VulkanMipReductionPass::updateMipViews()
 
 /**********************************************************/
 void VulkanMipReductionPass::dispatchReduction(VkCommandBuffer cmd,
-                                         VkImageView inView,
-                                         VkImageView outView, VkSampler sampler,
-                                         uint32_t w, uint32_t h)
+                                               VkImageView inView,
+                                               VkImageView outView,
+                                               VkSampler sampler, uint32_t w,
+                                               uint32_t h)
 /**********************************************************/
 {
   VkDescriptorImageInfo inInfo{sampler, inView,
@@ -237,8 +239,9 @@ void VulkanMipReductionPass::dispatchReduction(VkCommandBuffer cmd,
 
 /**********************************************************/
 void VulkanMipReductionPass::transitionImage(VkCommandBuffer cmd, VkImage image,
-                                       VkImageLayout oldL, VkImageLayout newL,
-                                       uint32_t mip, uint32_t count)
+                                             VkImageLayout oldL,
+                                             VkImageLayout newL, uint32_t mip,
+                                             uint32_t count)
 /**********************************************************/
 {
   VkImageMemoryBarrier2 barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2};

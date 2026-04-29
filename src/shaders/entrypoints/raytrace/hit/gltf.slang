@@ -31,6 +31,13 @@ rchit_gltf(inout HitPayload payload,
   }
   payload.color += emissive * payload.weight;
 
+  // --- First-hit auxiliary data for denoiser ---
+  if (payload.depth == 0)
+  {
+    payload.albedo = albedo;
+    payload.normal = worldNormal;
+  }
+
   // --- (Direct Lighting) ---
   PbrEvaluator bsdf = PbrEvaluator(viewDir, albedo, roughness, metallic);
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();

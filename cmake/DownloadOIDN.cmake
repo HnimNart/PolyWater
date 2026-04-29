@@ -1,6 +1,6 @@
 include(FetchContent)
 
-set(OIDN_VERSION "2.3.0")
+set(OIDN_VERSION "2.4.1")
 
 # Define the "Permanent" location
 set(OIDN_INSTALL_DIR "${CMAKE_SOURCE_DIR}/ext/oidn")
@@ -18,7 +18,7 @@ set(OIDN_URL "https://github.com/OpenImageDenoise/oidn/releases/download/v${OIDN
 
 # Check if we already have the specific version installed
 # We look for a known file to verify the install exists
-if(EXISTS "${OIDN_INSTALL_DIR}/bin/oidnDenoise" OR EXISTS "${OIDN_INSTALL_DIR}/bin/oidnDenoise.exe")
+if(EXISTS "${OIDN_INSTALL_DIR}/include/OpenImageDenoise/oidn.h")
     message(STATUS "OIDN found locally in ${OIDN_INSTALL_DIR}. Skipping download.")
     set(OpenImageDenoise_ROOT "${OIDN_INSTALL_DIR}")
 else()

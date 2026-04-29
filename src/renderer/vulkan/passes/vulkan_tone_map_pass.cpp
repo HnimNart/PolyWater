@@ -7,7 +7,8 @@
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 
 /**********************************************************/
-VulkanToneMapPass::VulkanToneMapPass(VulkanContextManager* core, RenderOutput input) :
+VulkanToneMapPass::VulkanToneMapPass(VulkanContextManager* core,
+                                     RenderOutput input) :
     m_core(core), m_input(input)
 /**********************************************************/
 {
@@ -50,7 +51,7 @@ void VulkanToneMapPass::setup(PassBuilder& builder)
 }
 
 /**********************************************************/
-void VulkanToneMapPass::execute(const IRenderContext& ctx)
+void VulkanToneMapPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
@@ -72,7 +73,7 @@ void VulkanToneMapPass::execute(const IRenderContext& ctx)
 
 /**********************************************************/
 VkResult VulkanToneMapPass::init(nvvk::ResourceAllocator* alloc,
-                           std::span<const uint32_t> spirv)
+                                 std::span<const uint32_t> spirv)
 /**********************************************************/
 {
   assert(!m_device);
@@ -193,9 +194,9 @@ void VulkanToneMapPass::deinit()
 
 /**********************************************************/
 void VulkanToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D& size,
-                             const shaderio::TonemapperData& tonemapper,
-                             const VkDescriptorImageInfo& inImage,
-                             const VkDescriptorImageInfo& outImage)
+                                   const shaderio::TonemapperData& tonemapper,
+                                   const VkDescriptorImageInfo& inImage,
+                                   const VkDescriptorImageInfo& outImage)
 /**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight
@@ -249,9 +250,9 @@ void VulkanToneMapPass::runCompute(VkCommandBuffer cmd, const VkExtent2D& size,
 }
 
 /**********************************************************/
-void VulkanToneMapPass::runAutoExposureHistogram(VkCommandBuffer cmd,
-                                           const VkExtent2D& size,
-                                           const VkDescriptorImageInfo& inImage)
+void VulkanToneMapPass::runAutoExposureHistogram(
+    VkCommandBuffer cmd, const VkExtent2D& size,
+    const VkDescriptorImageInfo& inImage)
 /**********************************************************/
 {
   NVVK_DBG_SCOPE(cmd);  // <-- Helps to debug in NSight

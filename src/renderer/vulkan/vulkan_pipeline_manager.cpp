@@ -5,9 +5,9 @@
 #include <stdexcept>
 
 // default passes
-#include "renderer/vulkan/passes/vulkan_denoise_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_meshlet_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_mip_reduction_pass.hpp"
+#include "renderer/vulkan/passes/vulkan_oidn_denoise_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_raster_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_ray_trace_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_sky_pass.hpp"
@@ -80,8 +80,8 @@ VulkanPipelineManager::VulkanPipelineManager()
             settings.context, descriptorPack, settings.shaderManager,
             settings.accel));
 
-        // 2. Denoise the image
-        graph->addPass(std::make_unique<VulkanDenoisePass>(settings.context));
+        // 2. Denoise the image with OIDN
+        graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
 
         // 3. Tone Mapping
         graph->addPass(std::make_unique<VulkanToneMapPass>(

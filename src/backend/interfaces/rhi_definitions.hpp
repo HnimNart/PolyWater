@@ -38,9 +38,11 @@ enum RenderOutput : uint8_t
   ToneMapped = 1,   // SDR presentation
   AccumLinear = 2,  // HDR accumulated
   Denoised = 3,     // HDR clean
-  DepthBuffer = 4,  // Depth (handled separately by GBuffer)
-  Swapchain = 5,    // Swapchain (handled by SwapchainManager)
-  Count = 6,
+  Albedo = 4,       // First-hit albedo (OIDN auxiliary input)
+  Normal = 5,       // First-hit world-space normal (OIDN auxiliary input)
+  DepthBuffer = 6,  // Depth (handled separately by GBuffer)
+  Swapchain = 7,    // Swapchain (handled by SwapchainManager)
+  Count = 8,
 };
 
 // A Generic Barrier "Instruction" calculated by the Graph
