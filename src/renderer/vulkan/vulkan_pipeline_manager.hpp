@@ -8,11 +8,11 @@
 
 #include <nvvk/resources.hpp>
 
-#include "vulkan_acceleration_structures.hpp"
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_swapchain_render_manager.hpp"
 #include "interfaces/render_graph_interface.hpp"
 #include "shader_manager.hpp"
+#include "vulkan_acceleration_structures.hpp"
 #include "vulkan_scene_asset_manager.hpp"
 
 class VulkanPipelineManager
@@ -26,6 +26,7 @@ public:
     ShaderManager* shaderManager;
     nvvk::Image* hiZTexture;
     VulkanAccelerationStructures* accel;
+    bool denoise;
   };
 
   // Define the signature for functions that build render graphs

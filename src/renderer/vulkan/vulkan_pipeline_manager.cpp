@@ -80,12 +80,18 @@ VulkanPipelineManager::VulkanPipelineManager()
             settings.context, descriptorPack, settings.shaderManager,
             settings.accel));
 
-        // 2. Denoise the image with OIDN
-        graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
+        // 2. Optional denoise pass
+        if (settings.denoise)
+        {
+          graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
+        }
 
-        // 3. Tone Mapping
-        graph->addPass(std::make_unique<VulkanToneMapPass>(
-            settings.context, RenderOutput::Denoised));
+        // 3. Tone Mapping reads from the correct source
+        const RenderOutput toneMapInput =
+            settings.denoise ? RenderOutput::Denoised : RenderOutput::Linear;
+
+        graph->addPass(std::make_unique<VulkanToneMapPass>(settings.context,
+                                                           toneMapInput));
 
         // 4. UI Layer
         if (settings.swapchainManager)
@@ -93,6 +99,7 @@ VulkanPipelineManager::VulkanPipelineManager()
           graph->addPass(std::make_unique<VulkanUIPass>(
               settings.swapchainManager->getUICallback()));
         }
+
         return graph;
       });
 }

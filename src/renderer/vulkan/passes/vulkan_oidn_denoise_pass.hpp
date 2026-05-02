@@ -42,7 +42,6 @@ class OIDNDenoisePass final : public IRenderPass
 {
 public:
   explicit OIDNDenoisePass(VulkanContextManager* contextManager);
-  ~OIDNDenoisePass() override;
 
   void init() override;
   void deinit() override;
@@ -78,17 +77,9 @@ private:
   // CPU / host-visible fallback: allocate a HOST_VISIBLE | HOST_COHERENT
   // buffer and wrap it in an OIDN shared buffer backed by the mapped ptr.
   ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
-
-  // Destroy one buffer (works for both GPU and CPU paths).
   void destroyBuffer(ExternalBuffer& buf);
-  // Copies the raw linear image directly to the denoised output image
-  void copyLinearToDenoisedImage(VkCommandBuffer cmd,
-                                 const nvvk::GBuffer* gBuffers,
-                                 VkExtent2D size);
-  // Copies the OIDN output buffer into the denoised output image
-  void copyBufferToDenoisedImage(VkCommandBuffer cmd,
-                                 const nvvk::GBuffer* gBuffers,
-                                 VkExtent2D size);
+  void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
+                            VkExtent2D size);
 
   // -----------------------------------------------------------------------
   // Members

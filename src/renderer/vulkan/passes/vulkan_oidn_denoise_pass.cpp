@@ -13,8 +13,6 @@
 namespace
 {
 
-// Find a Vulkan memory type that satisfies the given type-filter bits and
-// property flags.  Returns UINT32_MAX if none is found.
 uint32_t findMemoryType(VkPhysicalDevice physDevice, uint32_t typeFilter,
                         VkMemoryPropertyFlags props)
 {
@@ -36,22 +34,11 @@ constexpr VkDeviceSize kBytesPerPixel = 4 * sizeof(float);
 
 }  // namespace
 
-// ---------------------------------------------------------------------------
-// Construction / destruction
-// ---------------------------------------------------------------------------
-
 /**********************************************************/
 OIDNDenoisePass::OIDNDenoisePass(VulkanContextManager* contextManager) :
     m_contextManager(contextManager)
 /**********************************************************/
 {
-}
-
-/**********************************************************/
-OIDNDenoisePass::~OIDNDenoisePass()
-/**********************************************************/
-{
-  // deinit() should have been called; guard against accidental double-free.
 }
 
 // ---------------------------------------------------------------------------
@@ -62,13 +49,11 @@ OIDNDenoisePass::~OIDNDenoisePass()
 void OIDNDenoisePass::init()
 /**********************************************************/
 {
-  // --- Fence for the intermediate command-buffer submission ---
   VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   NVVK_CHECK(vkCreateFence(m_contextManager->getDevice(), &fenceInfo, nullptr,
                            &m_fence));
 
   createOIDNDevice();
-  // Buffers are lazily created in execute() once the GBuffer size is known.
 }
 
 /**********************************************************/
@@ -105,28 +90,9 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void OIDNDenoisePass::copyLinearToDenoisedImage(VkCommandBuffer cmd,
-                                                const nvvk::GBuffer* gBuffers,
-                                                VkExtent2D size)
-/**********************************************************/
-{
-  VkImageCopy region{};
-  region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  region.srcSubresource.layerCount = 1;
-  region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  region.dstSubresource.layerCount = 1;
-  region.extent = {size.width, size.height, 1};
-
-  vkCmdCopyImage(cmd, gBuffers->getColorImage(RenderOutput::Linear),
-                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                 gBuffers->getColorImage(RenderOutput::Denoised),
-                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-}
-
-/**********************************************************/
-void OIDNDenoisePass::copyBufferToDenoisedImage(VkCommandBuffer cmd,
-                                                const nvvk::GBuffer* gBuffers,
-                                                VkExtent2D size)
+void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
+                                           const nvvk::GBuffer* gBuffers,
+                                           VkExtent2D size)
 /**********************************************************/
 {
   VkBufferImageCopy region{};
@@ -155,12 +121,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
   const VkExtent2D size = gBuffers->getSize();
 
-  if (!vkCtx.pushValues.renderParams.denoise)
-  {
-    copyLinearToDenoisedImage(cmd, gBuffers, size);
-    return;
-  }
-
   // re-create buffers when the resolution changes.
   if (size.width != m_width || size.height != m_height)
   {
@@ -174,7 +134,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // If buffer creation failed, skip denoising.
   if (m_colorBuf.buffer == VK_NULL_HANDLE)
   {
-    copyLinearToDenoisedImage(cmd, gBuffers, size);
     return;
   }
 
@@ -253,13 +212,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   }
 
   // Call the new helper method
-  copyBufferToDenoisedImage(newCmd, gBuffers, size);
+  copyBufferToDenoised(newCmd, gBuffers, size);
   vkCtx.cmdBuffer = newCmd;
 }
-
-// ---------------------------------------------------------------------------
-// OIDN device creation
-// ---------------------------------------------------------------------------
 
 /**********************************************************/
 void OIDNDenoisePass::createOIDNDevice()

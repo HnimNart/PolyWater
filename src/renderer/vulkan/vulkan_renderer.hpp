@@ -61,6 +61,8 @@ public:
   std::vector<std::string> getAvaliableModes() const override;
   std::string getCurrentMode() const override;
 
+  void setDenoise(bool value) final;
+
 private:
   void initGBuffers();
   void buildGraph(const std::string& mode);

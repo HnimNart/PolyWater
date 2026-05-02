@@ -157,6 +157,7 @@ void VulkanRenderer::buildGraph(const std::string& name)
       .shaderManager = &m_shaderManager,
       .hiZTexture = &m_hiZTexture,
       .accel = m_accel.get(),
+      .denoise = m_denoise,
   };
 
   m_graph = m_pipelineManager.buildGraph(settings, name);
@@ -421,4 +422,17 @@ std::string VulkanRenderer::getCurrentMode() const
 {
   assert(m_graph);
   return m_graph->name();
+}
+
+/**********************************************************/
+void VulkanRenderer::setDenoise(bool value)
+/**********************************************************/
+{
+  if (value == m_denoise)
+  {
+    return;
+  }
+
+  m_denoise = value;
+  reload();
 }

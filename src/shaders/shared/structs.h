@@ -242,6 +242,7 @@ struct RenderParams
   int nBouncesRR = 3;
   uint frameIdx;
 
+  // TODO Remove this
   uint denoise = 0;  // 0 = Off, 1 = Bilateral Filter, (2 = SVGF later, etc.)
   // --- Denoiser Settings ---
   float denoiseRadius = 2.0f;  // Cast to int in shader

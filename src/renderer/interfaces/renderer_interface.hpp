@@ -41,7 +41,6 @@ public:
   virtual void setRenderMode(const std::string& mode) = 0;
   virtual std::string getCurrentMode() const { return ""; };
   virtual std::vector<std::string> getAvaliableModes() const { return {}; };
-  // Main render pass.
   virtual void render(IRenderContext& ctx) = 0;
 
   // -------------------------------------------------------------------------
@@ -49,22 +48,10 @@ public:
   // -------------------------------------------------------------------------
   virtual std::shared_ptr<IDeviceAssets> deviceResources() noexcept = 0;
   virtual IToneMapper& postProcessor() noexcept = 0;
-  shaderio::RenderParams& renderParams()
-  {
-    return m_renderParams;
-  }
-  shaderio::RasterParams& rasterParams()
-  {
-    return m_rasterParams;
-  }
-  const ShaderManager& getShaderManager() const
-  {
-    return m_shaderManager;
-  }
-  uint32_t getFrameCount() const
-  {
-    return m_frameIndex;
-  }
+  shaderio::RenderParams& renderParams() { return m_renderParams; }
+  shaderio::RasterParams& rasterParams() { return m_rasterParams; }
+  const ShaderManager& getShaderManager() const { return m_shaderManager; }
+  uint32_t getFrameCount() const { return m_frameIndex; }
 
   // -------------------------------------------------------------------------
   // Output / IO
@@ -73,9 +60,17 @@ public:
   virtual void saveImage(const std::filesystem::path& filename,
                          int quality = 100) const = 0;
 
+  // -------------------------------------------------------------------------
+  // Denoise
+  // -------------------------------------------------------------------------
+  virtual void setDenoise(bool value) = 0;
+  bool denoise() const { return m_denoise; }
+
 protected:
   shaderio::RenderParams m_renderParams;
   shaderio::RasterParams m_rasterParams;
   ShaderManager m_shaderManager;
   uint32_t m_frameIndex = 0;
+
+  bool m_denoise{false};
 };
