@@ -569,7 +569,7 @@ void OIDNDenoisePass::createFrameResources(uint32_t width, uint32_t height)
       fr.outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
     }
 
-    if (fr.colorBuf.buffer  == VK_NULL_HANDLE ||
+    if (fr.colorBuf.buffer == VK_NULL_HANDLE ||
         fr.albedoBuf.buffer == VK_NULL_HANDLE ||
         fr.normalBuf.buffer == VK_NULL_HANDLE ||
         fr.outputBuf.buffer == VK_NULL_HANDLE)
