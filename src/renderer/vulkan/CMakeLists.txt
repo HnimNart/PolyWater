@@ -14,6 +14,11 @@ add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
 include(DownloadOIDN)
 target_link_libraries(${LIB_NAME} PRIVATE OpenImageDenoise)
 
+# CUDA Toolkit is required for the OIDN async GPU path (external semaphore
+# interop between Vulkan and CUDA).
+find_package(CUDAToolkit REQUIRED)
+target_link_libraries(${LIB_NAME} PRIVATE CUDA::cudart)
+
 # On Windows, the .dll files must be next to your .exe to run.
 if(WIN32)
     add_custom_command(TARGET VulkanRenderer POST_BUILD

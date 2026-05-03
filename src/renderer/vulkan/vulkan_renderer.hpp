@@ -70,6 +70,7 @@ private:
 
   // Data
   VulkanContextManager* m_context{};
+  VulkanFrameSynchronizationManager* m_frameSyncManager{};
   VulkanSwapchainRenderManager* m_swapchain_manager{};
   std::shared_ptr<VulkanSceneAssetManager> m_resources;
   std::unique_ptr<nvvk::GBuffer> m_gBuffers;

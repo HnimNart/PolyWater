@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <cstdint>
+#include <vector>
+
 #ifdef None
 #undef None
 #endif
@@ -9,6 +12,7 @@
 #include <nvvk/gbuffers.hpp>
 
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
+#include "backend/vulkan/core/vulkan_frame_synchronization_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
 // ---------------------------------------------------------------------------
@@ -16,32 +20,45 @@
 //
 // GPU-side AI denoiser using Intel Open Image Denoise (OIDN) v2.4+.
 //
-// The pass reads the noisy Linear colour buffer together with the first-hit
-// Albedo and Normal G-buffers produced by RayTracePass, runs the OIDN "RT"
-// beauty filter on a GPU device (CUDA/HIP/SYCL auto-selected; CPU fallback),
-// and writes the result to the Denoised G-buffer.
+// Asynchronous N-buffered architecture (three-part split command buffer)
+// -----------------------------------------------------------------------
+//  1. Pre-Denoise (Vulkan):  The current command buffer records copies of the
+//     Linear, Albedo, and Normal G-buffers into N-buffered OIDN-mapped
+//     external VkBuffers.  The buffer is ended and submitted directly to the
+//     graphics queue, signalling Timeline Semaphore A.
 //
-// Execution model
-// ---------------
-//  1. The render-graph inserts barriers transitioning the three input images
-//     to TRANSFER_SRC and the output image to TRANSFER_DST, then calls
-//     execute().
-//  2. execute() records vkCmdCopyImageToBuffer commands for the three inputs
-//     into the current (pre-OIDN) command buffer.
-//  3. That command buffer is ended and submitted to the graphics queue with
-//     an internal fence; the CPU waits for it.
-//  4. OIDN executes on the GPU (the input Vulkan buffers are shared with the
-//     OIDN device via Vulkan external-memory handles).
-//  5. After oidnDevice.sync(), a fresh command buffer is started from the
-//     same pool, records the copy from the OIDN output buffer back to the
-//     Denoised G-buffer image, and is stored back in the IRenderContext.
-//     Subsequent passes (ToneMap, UI) record into this new command buffer,
-//     which the frame-sync manager ends and submits at end-of-frame.
+//  2. Denoise (CUDA):  On a dedicated CUDA stream the pass enqueues:
+//       - cudaWaitExternalSemaphoresAsync (wait for Semaphore A)
+//       - filter.executeAsync()           (OIDN "RT" beauty filter)
+//       - cudaSignalExternalSemaphoresAsync (signal Semaphore B)
+//     All three operations are non-blocking on the CPU.
+//     CPU-only fallback: vkWaitSemaphores + filter.execute() + vkSignalSemaphore.
+//
+//  3. Post-Denoise (Vulkan):  A per-frame, pre-allocated command buffer is
+//     reset, begun, and used to record a memory barrier (for CUDA writes) and
+//     the copy from the OIDN output buffer to the Denoised G-buffer image.
+//     The buffer is stored in IRenderContext::cmdBuffer so subsequent passes
+//     (ToneMap, UI) keep recording into it.  The frame-sync manager is told
+//     to wait on Semaphore B before its final submit.
+//
+// N-buffering
+// -----------
+//  All per-frame OIDN resources — four ExternalBuffers and an oidn::FilterRef —
+//  are replicated once per frame-in-flight slot (m_numFrames, typically 3).
+//  The slot is derived from VulkanFrameSynchronizationManager::getCurrentFrameIndex().
+//
+// Timeline counter
+// ----------------
+//  m_timelineCounter is an independent, strictly monotonic uint64_t.  It is
+//  incremented by 2 each execute() so that (counter-1) and (counter) are the
+//  Semaphore A and Semaphore B signal values respectively.  It is never reset
+//  and is unaffected by the engine's own frame-number recycling.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
 public:
-  explicit OIDNDenoisePass(VulkanContextManager* contextManager);
+  explicit OIDNDenoisePass(VulkanContextManager*              contextManager,
+                           VulkanFrameSynchronizationManager* frameSyncManager);
 
   void init() override;
   void deinit() override;
@@ -49,54 +66,79 @@ public:
   void execute(IRenderContext& ctx) override;
 
 private:
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   // Internal types
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   struct ExternalBuffer
   {
-    VkBuffer buffer = VK_NULL_HANDLE;
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    size_t byteSize = 0;
+    VkBuffer        buffer   = VK_NULL_HANDLE;
+    VkDeviceMemory  memory   = VK_NULL_HANDLE;
+    size_t          byteSize = 0;
     oidn::BufferRef oidnBuf;
-    void* hostPtr = nullptr;  // Non-null on the CPU/host-visible fallback path
+    void*           hostPtr  = nullptr;  // Non-null on the CPU/host-visible path
   };
 
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
-  void createOIDNDevice();
-  void createBuffers(uint32_t width, uint32_t height);
-  void destroyBuffers();
-  void rebuildFilter(uint32_t width, uint32_t height);
+  // Per-frame (N-buffered) resources.  One set per frame-ring slot.
+  struct FrameResources
+  {
+    ExternalBuffer  colorBuf;
+    ExternalBuffer  albedoBuf;
+    ExternalBuffer  normalBuf;
+    ExternalBuffer  outputBuf;
+    oidn::FilterRef filter;
+    VkCommandBuffer postCmdBuf = VK_NULL_HANDLE;  // Owned by m_postCmdPool
+  };
 
-  // GPU path: allocate a Vulkan buffer backed by exportable device-local
-  // memory and import it into the OIDN device as a shared buffer.
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+  void createOIDNDevice();
+  void createTimelineSemaphore();
+  void destroyTimelineSemaphore();
+  void createCudaResources();
+  void destroyCudaResources();
+
+  void createFrameResources(uint32_t width, uint32_t height);
+  void destroyFrameResources();
+  void rebuildFilters(uint32_t width, uint32_t height);
+
+  // GPU path: exportable device-local memory shared with OIDN via handle.
   ExternalBuffer allocateExternalBuffer(size_t byteSize,
                                         VkBufferUsageFlags usage);
-
-  // CPU / host-visible fallback: allocate a HOST_VISIBLE | HOST_COHERENT
-  // buffer and wrap it in an OIDN shared buffer backed by the mapped ptr.
+  // CPU fallback: HOST_VISIBLE | HOST_COHERENT memory wrapped by OIDN.
   ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
-  void destroyBuffer(ExternalBuffer& buf);
-  void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
-                            VkExtent2D size);
+  void           destroyBuffer(ExternalBuffer& buf);
 
-  // -----------------------------------------------------------------------
+  void copyBufferToDenoised(VkCommandBuffer      cmd,
+                            const nvvk::GBuffer* gBuffers,
+                            VkExtent2D           size,
+                            uint32_t             frameIdx);
+
+  // -------------------------------------------------------------------------
   // Members
-  // -----------------------------------------------------------------------
-  VulkanContextManager* m_contextManager = nullptr;
-  VkFence m_fence = VK_NULL_HANDLE;
+  // -------------------------------------------------------------------------
+  VulkanContextManager*              m_contextManager   = nullptr;
+  VulkanFrameSynchronizationManager* m_frameSyncManager = nullptr;
 
+  // OIDN device — one shared instance, committed once after stream is set.
   oidn::DeviceRef m_oidnDevice;
-  oidn::FilterRef m_filter;
+  bool            m_gpuPath = false;  // True ↔ external-memory GPU buffers used
 
-  bool m_gpuPath = false;  // True when using external-memory (GPU) buffers
+  // N-buffered per-frame resources and their shared command pool.
+  std::vector<FrameResources> m_frameResources;
+  uint32_t                    m_numFrames   = 0;
+  VkCommandPool               m_postCmdPool = VK_NULL_HANDLE;
 
-  ExternalBuffer m_colorBuf;   // OIDN input  – noisy colour (Linear)
-  ExternalBuffer m_albedoBuf;  // OIDN input  – first-hit albedo
-  ExternalBuffer m_normalBuf;  // OIDN input  – first-hit normal
-  ExternalBuffer m_outputBuf;  // OIDN output – denoised colour → Denoised
+  // Dedicated Vulkan timeline semaphore for Vulkan ↔ CUDA synchronisation.
+  // Uses its own monotonic counter, independent of the engine's frame counter.
+  VkSemaphore m_timelineSemaphore = VK_NULL_HANDLE;
+  uint64_t    m_timelineCounter   = 0;
 
-  uint32_t m_width = 0;
+  // CUDA interop handles (GPU path only).
+  // Stored as void* to avoid pulling <cuda_runtime_api.h> into this header.
+  void* m_cudaStream       = nullptr;  // cudaStream_t
+  void* m_cudaExtSemaphore = nullptr;  // cudaExternalSemaphore_t
+
+  uint32_t m_width  = 0;
   uint32_t m_height = 0;
 };

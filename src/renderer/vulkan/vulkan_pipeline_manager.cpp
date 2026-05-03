@@ -83,7 +83,8 @@ VulkanPipelineManager::VulkanPipelineManager()
         // 2. Optional denoise pass
         if (settings.denoise)
         {
-          graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
+          graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context,
+                                                           settings.frameSyncManager));
         }
 
         // 3. Tone Mapping reads from the correct source

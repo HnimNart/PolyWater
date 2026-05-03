@@ -22,6 +22,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
 {
   VulkanSlangCompiler::instance().init(paths);
   m_context = backend->getContextManager();
+  m_frameSyncManager = backend->getFrameSyncManager();
   m_swapchain_manager = backend->getSwapchainManager();
   m_resources = std::make_shared<VulkanSceneAssetManager>(m_context);
   m_accel = VulkanAccelerationStructures::create(m_context);
@@ -152,6 +153,7 @@ void VulkanRenderer::buildGraph(const std::string& name)
   // Prepare settings for the manager
   VulkanPipelineManager::BuildSettings settings{
       .context = m_context,
+      .frameSyncManager = m_frameSyncManager,
       .assetManager = m_resources.get(),
       .swapchainManager = m_swapchain_manager,
       .shaderManager = &m_shaderManager,

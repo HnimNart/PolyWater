@@ -9,6 +9,7 @@
 #include <nvvk/resources.hpp>
 
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
+#include "backend/vulkan/core/vulkan_frame_synchronization_manager.hpp"
 #include "backend/vulkan/core/vulkan_swapchain_render_manager.hpp"
 #include "interfaces/render_graph_interface.hpp"
 #include "shader_manager.hpp"
@@ -21,6 +22,7 @@ public:
   struct BuildSettings
   {
     VulkanContextManager* context;
+    VulkanFrameSynchronizationManager* frameSyncManager;
     VulkanSceneAssetManager* assetManager;
     VulkanSwapchainRenderManager* swapchainManager;
     ShaderManager* shaderManager;
