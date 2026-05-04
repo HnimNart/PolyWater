@@ -32,7 +32,8 @@
 //       - filter.executeAsync()           (OIDN "RT" beauty filter)
 //       - cudaSignalExternalSemaphoresAsync (signal Semaphore B)
 //     All three operations are non-blocking on the CPU.
-//     CPU-only fallback: vkWaitSemaphores + filter.execute() + vkSignalSemaphore.
+//     CPU-only fallback: vkWaitSemaphores + filter.execute() +
+//     vkSignalSemaphore.
 //
 //  3. Post-Denoise (Vulkan):  A per-frame, pre-allocated command buffer is
 //     reset, begun, and used to record a memory barrier (for CUDA writes) and
@@ -45,7 +46,8 @@
 // -----------
 //  All per-frame OIDN resources — four ExternalBuffers and an oidn::FilterRef —
 //  are replicated once per frame-in-flight slot (m_numFrames, typically 3).
-//  The slot is derived from VulkanFrameSynchronizationManager::getCurrentFrameIndex().
+//  The slot is derived from
+//  VulkanFrameSynchronizationManager::getCurrentFrameIndex().
 //
 // Timeline counter
 // ----------------
@@ -57,7 +59,7 @@
 class OIDNDenoisePass final : public IRenderPass
 {
 public:
-  explicit OIDNDenoisePass(VulkanContextManager*              contextManager,
+  explicit OIDNDenoisePass(VulkanContextManager* contextManager,
                            VulkanFrameSynchronizationManager* frameSyncManager);
 
   void init() override;
@@ -71,20 +73,20 @@ private:
   // -------------------------------------------------------------------------
   struct ExternalBuffer
   {
-    VkBuffer        buffer   = VK_NULL_HANDLE;
-    VkDeviceMemory  memory   = VK_NULL_HANDLE;
-    size_t          byteSize = 0;
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    size_t byteSize = 0;
     oidn::BufferRef oidnBuf;
-    void*           hostPtr  = nullptr;  // Non-null on the CPU/host-visible path
+    void* hostPtr = nullptr;  // Non-null on the CPU/host-visible path
   };
 
   // Per-frame (N-buffered) resources.  One set per frame-ring slot.
   struct FrameResources
   {
-    ExternalBuffer  colorBuf;
-    ExternalBuffer  albedoBuf;
-    ExternalBuffer  normalBuf;
-    ExternalBuffer  outputBuf;
+    ExternalBuffer colorBuf;
+    ExternalBuffer albedoBuf;
+    ExternalBuffer normalBuf;
+    ExternalBuffer outputBuf;
     oidn::FilterRef filter;
     VkCommandBuffer postCmdBuf = VK_NULL_HANDLE;  // Owned by m_postCmdPool
   };
@@ -107,38 +109,36 @@ private:
                                         VkBufferUsageFlags usage);
   // CPU fallback: HOST_VISIBLE | HOST_COHERENT memory wrapped by OIDN.
   ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
-  void           destroyBuffer(ExternalBuffer& buf);
+  void destroyBuffer(ExternalBuffer& buf);
 
-  void copyBufferToDenoised(VkCommandBuffer      cmd,
-                            const nvvk::GBuffer* gBuffers,
-                            VkExtent2D           size,
-                            uint32_t             frameIdx);
+  void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
+                            VkExtent2D size, uint32_t frameIdx);
 
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
-  VulkanContextManager*              m_contextManager   = nullptr;
+  VulkanContextManager* m_contextManager = nullptr;
   VulkanFrameSynchronizationManager* m_frameSyncManager = nullptr;
 
   // OIDN device — one shared instance, committed once after stream is set.
   oidn::DeviceRef m_oidnDevice;
-  bool            m_gpuPath = false;  // True ↔ external-memory GPU buffers used
+  bool m_gpuPath = false;  // True ↔ external-memory GPU buffers used
 
   // N-buffered per-frame resources and their shared command pool.
   std::vector<FrameResources> m_frameResources;
-  uint32_t                    m_numFrames   = 0;
-  VkCommandPool               m_postCmdPool = VK_NULL_HANDLE;
+  uint32_t m_numFrames = 0;
+  VkCommandPool m_postCmdPool = VK_NULL_HANDLE;
 
   // Dedicated Vulkan timeline semaphore for Vulkan ↔ CUDA synchronisation.
   // Uses its own monotonic counter, independent of the engine's frame counter.
   VkSemaphore m_timelineSemaphore = VK_NULL_HANDLE;
-  uint64_t    m_timelineCounter   = 0;
+  uint64_t m_timelineCounter = 0;
 
   // CUDA interop handles (GPU path only).
   // Stored as void* to avoid pulling <cuda_runtime_api.h> into this header.
-  void* m_cudaStream       = nullptr;  // cudaStream_t
+  void* m_cudaStream = nullptr;        // cudaStream_t
   void* m_cudaExtSemaphore = nullptr;  // cudaExternalSemaphore_t
 
-  uint32_t m_width  = 0;
+  uint32_t m_width = 0;
   uint32_t m_height = 0;
 };

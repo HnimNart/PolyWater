@@ -1,14 +1,18 @@
 #include "vulkan_oidn_denoise_pass.hpp"
 
+#include <cuda_runtime_api.h>
+
 #include <cstring>
 #include <limits>
 #include <stdexcept>
 
-#include <cuda_runtime_api.h>
-
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/gbuffers.hpp"
+
+#ifdef None
+#undef None
+#endif
 
 // ---------------------------------------------------------------------------
 // File-local helpers
@@ -44,9 +48,9 @@ constexpr VkDeviceSize kBytesPerPixel = 4 * sizeof(float);
 
 /**********************************************************/
 OIDNDenoisePass::OIDNDenoisePass(
-    VulkanContextManager*              contextManager,
-    VulkanFrameSynchronizationManager* frameSyncManager)
-    : m_contextManager(contextManager), m_frameSyncManager(frameSyncManager)
+    VulkanContextManager* contextManager,
+    VulkanFrameSynchronizationManager* frameSyncManager) :
+    m_contextManager(contextManager), m_frameSyncManager(frameSyncManager)
 /**********************************************************/
 {
 }
@@ -77,7 +81,8 @@ void OIDNDenoisePass::init()
     createCudaResources();
     if (!m_gpuPath)
     {
-      // createCudaResources() cleared m_gpuPath on failure; switch to CPU device.
+      // createCudaResources() cleared m_gpuPath on failure; switch to CPU
+      // device.
       if (m_cudaStream != nullptr)
       {
         cudaStreamDestroy(static_cast<cudaStream_t>(m_cudaStream));
@@ -102,7 +107,7 @@ void OIDNDenoisePass::init()
               "falling back to auto-selected device.\n",
               errMsg ? errMsg : "unknown");
       destroyCudaResources();
-      m_gpuPath    = false;
+      m_gpuPath = false;
       m_oidnDevice = oidn::newDevice();
       m_oidnDevice.commit();
     }
@@ -113,8 +118,8 @@ void OIDNDenoisePass::init()
   //    reset individually in execute() without touching the frame's own pool.
   {
     const VkCommandPoolCreateInfo poolCI{
-        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = m_contextManager->getQueueInfo(0).familyIndex,
     };
     NVVK_CHECK(vkCreateCommandPool(m_contextManager->getDevice(), &poolCI,
@@ -125,9 +130,9 @@ void OIDNDenoisePass::init()
   for (auto& fr : m_frameResources)
   {
     const VkCommandBufferAllocateInfo allocCI{
-        .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool        = m_postCmdPool,
-        .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = m_postCmdPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = 1,
     };
     NVVK_CHECK(vkAllocateCommandBuffers(m_contextManager->getDevice(), &allocCI,
@@ -145,8 +150,7 @@ void OIDNDenoisePass::deinit()
   // Destroy the post-command pool (implicitly frees all postCmdBufs).
   if (m_postCmdPool != VK_NULL_HANDLE)
   {
-    vkDestroyCommandPool(m_contextManager->getDevice(), m_postCmdPool,
-                         nullptr);
+    vkDestroyCommandPool(m_contextManager->getDevice(), m_postCmdPool, nullptr);
     m_postCmdPool = VK_NULL_HANDLE;
   }
 
@@ -182,12 +186,13 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 void OIDNDenoisePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
-  VulkanRenderContext& vkCtx   = VulkanRenderContext::get(ctx);
-  const uint32_t       frameIdx = m_frameSyncManager->getCurrentFrameIndex();
-  FrameResources&      fr       = m_frameResources[frameIdx];
+  printf("Execute\n");
+  VulkanRenderContext& vkCtx = VulkanRenderContext::get(ctx);
+  const uint32_t frameIdx = m_frameSyncManager->getCurrentFrameIndex();
+  FrameResources& fr = m_frameResources[frameIdx];
 
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
-  const VkExtent2D     size     = gBuffers->getSize();
+  const VkExtent2D size = gBuffers->getSize();
 
   // Recreate per-frame buffers when the resolution changes.
   if (size.width != m_width || size.height != m_height)
@@ -195,7 +200,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     m_contextManager->waitForDeviceIdle();
     destroyFrameResources();
     createFrameResources(size.width, size.height);
-    m_width  = size.width;
+    m_width = size.width;
     m_height = size.height;
   }
 
@@ -217,7 +222,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
       VkBufferImageCopy region{};
       region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       region.imageSubresource.layerCount = 1;
-      region.imageExtent                 = {size.width, size.height, 1};
+      region.imageExtent = {size.width, size.height, 1};
       vkCmdCopyImageToBuffer(preCmdBuf, gBuffers->getColorImage(src),
                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst, 1,
                              &region);
@@ -237,21 +242,21 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   {
     const VkCommandBufferSubmitInfo preCmdInfo{
-        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
         .commandBuffer = preCmdBuf,
     };
     const VkSemaphoreSubmitInfo signalSemA{
-        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .semaphore = m_timelineSemaphore,
-        .value     = semAValue,
+        .value = semAValue,
         .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
     };
     const VkSubmitInfo2 preSubmit{
-        .sType                     = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-        .commandBufferInfoCount    = 1,
-        .pCommandBufferInfos       = &preCmdInfo,
-        .signalSemaphoreInfoCount  = 1,
-        .pSignalSemaphoreInfos     = &signalSemA,
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &preCmdInfo,
+        .signalSemaphoreInfoCount = 1,
+        .pSignalSemaphoreInfos = &signalSemA,
     };
     NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
                               &preSubmit, VK_NULL_HANDLE));
@@ -270,24 +275,24 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
     cudaExternalSemaphoreWaitParams waitParams{};
     waitParams.params.fence.value = semAValue;
-    waitParams.flags              = 0;
+    waitParams.flags = 0;
     cudaWaitExternalSemaphoresAsync(&extSem, &waitParams, 1, stream);
 
     fr.filter.executeAsync();
 
     cudaExternalSemaphoreSignalParams signalParams{};
     signalParams.params.fence.value = semBValue;
-    signalParams.flags              = 0;
+    signalParams.flags = 0;
     cudaSignalExternalSemaphoresAsync(&extSem, &signalParams, 1, stream);
   }
   else
   {
     // CPU fallback: block until Semaphore A is signalled, then run OIDN.
     const VkSemaphoreWaitInfo waitInfo{
-        .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .semaphoreCount = 1,
-        .pSemaphores    = &m_timelineSemaphore,
-        .pValues        = &semAValue,
+        .pSemaphores = &m_timelineSemaphore,
+        .pValues = &semAValue,
     };
     NVVK_CHECK(vkWaitSemaphores(m_contextManager->getDevice(), &waitInfo,
                                 std::numeric_limits<uint64_t>::max()));
@@ -303,12 +308,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     // Manually advance the semaphore to semBValue so the post-submit's wait
     // is satisfied immediately when the frame-sync manager submits.
     const VkSemaphoreSignalInfo signalInfo{
-        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
         .semaphore = m_timelineSemaphore,
-        .value     = semBValue,
+        .value = semBValue,
     };
-    NVVK_CHECK(
-        vkSignalSemaphore(m_contextManager->getDevice(), &signalInfo));
+    NVVK_CHECK(vkSignalSemaphore(m_contextManager->getDevice(), &signalInfo));
   }
 
   // -------------------------------------------------------------------------
@@ -335,16 +339,16 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // before the subsequent copy.
   {
     const VkMemoryBarrier2 memBarrier{
-        .sType        = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
         .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-        .dstStageMask  = VK_PIPELINE_STAGE_2_COPY_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
         .dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
     };
     const VkDependencyInfo depInfo{
-        .sType                = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .memoryBarrierCount   = 1,
-        .pMemoryBarriers      = &memBarrier,
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .memoryBarrierCount = 1,
+        .pMemoryBarriers = &memBarrier,
     };
     vkCmdPipelineBarrier2(fr.postCmdBuf, &depInfo);
   }
@@ -354,9 +358,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // Tell the frame-sync manager to wait on Semaphore B before its submit.
   {
     const VkSemaphoreSubmitInfo waitSemB{
-        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .semaphore = m_timelineSemaphore,
-        .value     = semBValue,
+        .value = semBValue,
         .stageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
     };
     m_frameSyncManager->addWaitSemaphore(waitSemB);
@@ -365,6 +369,8 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // Replace the context's command buffer so ToneMap, UI, and endFrame()
   // all operate on the post-denoise buffer.
   vkCtx.cmdBuffer = fr.postCmdBuf;
+
+  printf("Done\n");
 }
 
 // ===========================================================================
@@ -377,10 +383,9 @@ void OIDNDenoisePass::createOIDNDevice()
 {
   // Probe CUDA availability.  If the runtime is absent or no devices exist
   // we fall straight through to the CPU auto-select path.
-  int  cudaDeviceCount = 0;
-  bool cudaAvailable   =
-      (cudaGetDeviceCount(&cudaDeviceCount) == cudaSuccess &&
-       cudaDeviceCount > 0);
+  int cudaDeviceCount = 0;
+  bool cudaAvailable = (cudaGetDeviceCount(&cudaDeviceCount) == cudaSuccess &&
+                        cudaDeviceCount > 0);
 
   if (cudaAvailable)
   {
@@ -389,16 +394,15 @@ void OIDNDenoisePass::createOIDNDevice()
     {
       m_cudaStream = static_cast<void*>(stream);
       m_oidnDevice = oidn::newDevice(oidn::DeviceType::CUDA);
-      m_gpuPath    = true;
+      m_gpuPath = true;
       return;
     }
-    fprintf(stderr,
-            "[OIDNDenoisePass] cudaStreamCreate failed; "
-            "falling back to CPU OIDN path.\n");
+    fprintf(stderr, "[OIDNDenoisePass] cudaStreamCreate failed; "
+                    "falling back to CPU OIDN path.\n");
   }
 
   m_oidnDevice = oidn::newDevice();  // Auto-select (CPU)
-  m_gpuPath    = false;
+  m_gpuPath = false;
 }
 
 // ===========================================================================
@@ -420,21 +424,20 @@ void OIDNDenoisePass::createTimelineSemaphore()
 #endif
 
   const VkExportSemaphoreCreateInfo exportCI{
-      .sType       = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+      .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
       .handleTypes = kHandleType,
   };
   const VkSemaphoreTypeCreateInfo typeCI{
-      .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-      .pNext         = &exportCI,
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+      .pNext = &exportCI,
       .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-      .initialValue  = 0,
+      .initialValue = 0,
   };
   const VkSemaphoreCreateInfo semCI{
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
       .pNext = &typeCI,
   };
-  NVVK_CHECK(
-      vkCreateSemaphore(device, &semCI, nullptr, &m_timelineSemaphore));
+  NVVK_CHECK(vkCreateSemaphore(device, &semCI, nullptr, &m_timelineSemaphore));
 }
 
 /**********************************************************/
@@ -472,8 +475,8 @@ void OIDNDenoisePass::createCudaResources()
     return;
   }
   const VkSemaphoreGetWin32HandleInfoKHR getHandleInfo{
-      .sType      = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
-      .semaphore  = m_timelineSemaphore,
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+      .semaphore = m_timelineSemaphore,
       .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT,
   };
   HANDLE win32Handle = nullptr;
@@ -481,38 +484,36 @@ void OIDNDenoisePass::createCudaResources()
       vkGetSemaphoreWin32HandleKHR(device, &getHandleInfo, &win32Handle));
 
   cudaExternalSemaphoreHandleDesc semDesc{};
-  semDesc.type                = cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32;
+  semDesc.type = cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32;
   semDesc.handle.win32.handle = win32Handle;
-  semDesc.flags               = 0;
+  semDesc.flags = 0;
 #else
   if (vkGetSemaphoreFdKHR == nullptr)
   {
-    fprintf(stderr,
-            "[OIDNDenoisePass] vkGetSemaphoreFdKHR not loaded; "
-            "disabling GPU path.\n");
+    fprintf(stderr, "[OIDNDenoisePass] vkGetSemaphoreFdKHR not loaded; "
+                    "disabling GPU path.\n");
     m_gpuPath = false;
     return;
   }
   const VkSemaphoreGetFdInfoKHR getFdInfo{
-      .sType      = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
-      .semaphore  = m_timelineSemaphore,
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
+      .semaphore = m_timelineSemaphore,
       .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
   };
   int fd = -1;
   NVVK_CHECK(vkGetSemaphoreFdKHR(device, &getFdInfo, &fd));
 
   cudaExternalSemaphoreHandleDesc semDesc{};
-  semDesc.type      = cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd;
+  semDesc.type = cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd;
   semDesc.handle.fd = fd;
-  semDesc.flags     = 0;
+  semDesc.flags = 0;
 #endif
 
   cudaExternalSemaphore_t extSem{};
   if (cudaImportExternalSemaphore(&extSem, &semDesc) != cudaSuccess)
   {
-    fprintf(stderr,
-            "[OIDNDenoisePass] cudaImportExternalSemaphore failed; "
-            "disabling GPU path.\n");
+    fprintf(stderr, "[OIDNDenoisePass] cudaImportExternalSemaphore failed; "
+                    "disabling GPU path.\n");
     m_gpuPath = false;
     return;
   }
@@ -544,8 +545,7 @@ void OIDNDenoisePass::destroyCudaResources()
 void OIDNDenoisePass::createFrameResources(uint32_t width, uint32_t height)
 /**********************************************************/
 {
-  const size_t byteSize =
-      static_cast<size_t>(width) * height * kBytesPerPixel;
+  const size_t byteSize = static_cast<size_t>(width) * height * kBytesPerPixel;
 
   constexpr VkBufferUsageFlags kInputUsage =
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
@@ -556,14 +556,14 @@ void OIDNDenoisePass::createFrameResources(uint32_t width, uint32_t height)
   {
     if (m_gpuPath)
     {
-      fr.colorBuf  = allocateExternalBuffer(byteSize, kInputUsage);
+      fr.colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
       fr.albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
       fr.normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
       fr.outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
     }
     else
     {
-      fr.colorBuf  = allocateHostBuffer(byteSize, kInputUsage);
+      fr.colorBuf = allocateHostBuffer(byteSize, kInputUsage);
       fr.albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
       fr.normalBuf = allocateHostBuffer(byteSize, kInputUsage);
       fr.outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
@@ -574,9 +574,8 @@ void OIDNDenoisePass::createFrameResources(uint32_t width, uint32_t height)
         fr.normalBuf.buffer == VK_NULL_HANDLE ||
         fr.outputBuf.buffer == VK_NULL_HANDLE)
     {
-      fprintf(stderr,
-              "[OIDNDenoisePass] Buffer allocation failed; "
-              "denoising disabled.\n");
+      fprintf(stderr, "[OIDNDenoisePass] Buffer allocation failed; "
+                      "denoising disabled.\n");
       destroyFrameResources();
       return;
     }
@@ -600,7 +599,7 @@ void OIDNDenoisePass::destroyFrameResources()
     // init(), remains valid across resolution changes, and is only freed when
     // m_postCmdPool is destroyed in deinit().
   }
-  m_width  = 0;
+  m_width = 0;
   m_height = 0;
 }
 
@@ -609,7 +608,7 @@ void OIDNDenoisePass::rebuildFilters(uint32_t width, uint32_t height)
 /**********************************************************/
 {
   const size_t bytePixelStride = kBytesPerPixel;
-  const size_t byteRowStride   = static_cast<size_t>(width) * bytePixelStride;
+  const size_t byteRowStride = static_cast<size_t>(width) * bytePixelStride;
 
   for (auto& fr : m_frameResources)
   {
@@ -634,22 +633,21 @@ void OIDNDenoisePass::rebuildFilters(uint32_t width, uint32_t height)
 // ===========================================================================
 
 /**********************************************************/
-void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer      cmd,
+void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
                                            const nvvk::GBuffer* gBuffers,
-                                           VkExtent2D           size,
-                                           uint32_t             frameIdx)
+                                           VkExtent2D size, uint32_t frameIdx)
 /**********************************************************/
 {
   VkBufferImageCopy region{};
-  region.bufferOffset                    = 0;
-  region.bufferRowLength                 = 0;
-  region.bufferImageHeight               = 0;
-  region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-  region.imageSubresource.mipLevel       = 0;
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
   region.imageSubresource.baseArrayLayer = 0;
-  region.imageSubresource.layerCount     = 1;
-  region.imageOffset                     = {0, 0, 0};
-  region.imageExtent                     = {size.width, size.height, 1};
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {size.width, size.height, 1};
 
   vkCmdCopyBufferToImage(cmd, m_frameResources[frameIdx].outputBuf.buffer,
                          gBuffers->getColorImage(RenderOutput::Denoised),
@@ -669,7 +667,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   ExternalBuffer buf;
   buf.byteSize = byteSize;
 
-  VkDevice         device     = m_contextManager->getDevice();
+  VkDevice device = m_contextManager->getDevice();
   VkPhysicalDevice physDevice = m_contextManager->getPhysicalDevice();
 
 #ifdef _WIN32
@@ -687,7 +685,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   // Verify the physical device can export this handle type for buffers.
   VkPhysicalDeviceExternalBufferInfo extBufQuery{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO};
-  extBufQuery.usage      = usage;
+  extBufQuery.usage = usage;
   extBufQuery.handleType = kHandleType;
 
   VkExternalBufferProperties extBufProps{
@@ -703,14 +701,13 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
 
   // Create VkBuffer with external-memory export flag.
   const VkExternalMemoryBufferCreateInfo extBufInfo{
-      VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO,
-      nullptr,
+      VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO, nullptr,
       kHandleType};
 
   VkBufferCreateInfo bufCI{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufCI.pNext       = &extBufInfo;
-  bufCI.size        = byteSize;
-  bufCI.usage       = usage;
+  bufCI.pNext = &extBufInfo;
+  bufCI.size = byteSize;
+  bufCI.usage = usage;
   bufCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   NVVK_CHECK(vkCreateBuffer(device, &bufCI, nullptr, &buf.buffer));
@@ -731,8 +728,8 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
       VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO, nullptr, kHandleType};
 
   VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-  allocInfo.pNext           = &exportInfo;
-  allocInfo.allocationSize  = memReqs.size;
+  allocInfo.pNext = &exportInfo;
+  allocInfo.allocationSize = memReqs.size;
   allocInfo.memoryTypeIndex = memTypeIdx;
 
   NVVK_CHECK(vkAllocateMemory(device, &allocInfo, nullptr, &buf.memory));
@@ -741,23 +738,20 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   // Export the memory handle and import it into the OIDN device.
 #ifdef _WIN32
   const VkMemoryGetWin32HandleInfoKHR getHandleInfo{
-      VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR, nullptr,
-      buf.memory, kHandleType};
+      VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR, nullptr, buf.memory,
+      kHandleType};
   HANDLE win32Handle = nullptr;
-  NVVK_CHECK(
-      vkGetMemoryWin32HandleKHR(device, &getHandleInfo, &win32Handle));
+  NVVK_CHECK(vkGetMemoryWin32HandleKHR(device, &getHandleInfo, &win32Handle));
   buf.oidnBuf =
       m_oidnDevice.newBuffer(kOIDNHandleType, win32Handle, nullptr, byteSize);
 #else
-  const VkMemoryGetFdInfoKHR getFdInfo{
-      VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR, nullptr,
-      buf.memory, kHandleType};
+  const VkMemoryGetFdInfoKHR getFdInfo{VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
+                                       nullptr, buf.memory, kHandleType};
   int fd = -1;
   if (vkGetMemoryFdKHR == nullptr)
   {
-    throw std::runtime_error(
-        "[OIDNDenoisePass] vkGetMemoryFdKHR is NULL — "
-        "VK_KHR_external_memory_fd extension not loaded.");
+    throw std::runtime_error("[OIDNDenoisePass] vkGetMemoryFdKHR is NULL — "
+                             "VK_KHR_external_memory_fd extension not loaded.");
   }
   NVVK_CHECK(vkGetMemoryFdKHR(device, &getFdInfo, &fd));
   buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, fd, byteSize);
@@ -774,12 +768,12 @@ OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
   ExternalBuffer buf;
   buf.byteSize = byteSize;
 
-  VkDevice         device     = m_contextManager->getDevice();
+  VkDevice device = m_contextManager->getDevice();
   VkPhysicalDevice physDevice = m_contextManager->getPhysicalDevice();
 
   VkBufferCreateInfo bufCI{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufCI.size        = byteSize;
-  bufCI.usage       = usage;
+  bufCI.size = byteSize;
+  bufCI.usage = usage;
   bufCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   NVVK_CHECK(vkCreateBuffer(device, &bufCI, nullptr, &buf.buffer));
@@ -787,10 +781,10 @@ OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(device, buf.buffer, &memReqs);
 
-  const uint32_t memTypeIdx = findMemoryType(
-      physDevice, memReqs.memoryTypeBits,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  const uint32_t memTypeIdx =
+      findMemoryType(physDevice, memReqs.memoryTypeBits,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
   if (memTypeIdx == UINT32_MAX)
   {
@@ -803,7 +797,7 @@ OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
   }
 
   VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-  allocInfo.allocationSize  = memReqs.size;
+  allocInfo.allocationSize = memReqs.size;
   allocInfo.memoryTypeIndex = memTypeIdx;
 
   NVVK_CHECK(vkAllocateMemory(device, &allocInfo, nullptr, &buf.memory));
