@@ -42,7 +42,8 @@ public:
   // ------------------------------------------------------------------------
   // Vulkan-specific per-frame members
   // ------------------------------------------------------------------------
-  VkCommandBuffer cmdBuffer{};
+  VkCommandBuffer cmdBuffer{};         // Active command buffer (may be swapped by passes)
+  VkCommandBuffer primaryCmdBuffer{};  // Original buffer from cmdPool; restored by beginFrame()
   VkCommandPool cmdPool{};
   VkDevice device{};
 

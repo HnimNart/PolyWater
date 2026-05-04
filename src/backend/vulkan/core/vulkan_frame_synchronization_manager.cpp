@@ -68,6 +68,8 @@ void VulkanFrameSynchronizationManager::createFrameData(
     NVVK_CHECK(vkAllocateCommandBuffers(device, &commandBufferAllocateInfo,
                                         &m_frameData[i]->cmdBuffer));
     NVVK_DBG_NAME(m_frameData[i]->cmdBuffer);
+    // primaryCmdBuffer is set once here and never modified by passes.
+    m_frameData[i]->primaryCmdBuffer = m_frameData[i]->cmdBuffer;
   }
 }
 
@@ -94,6 +96,12 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
   VkDevice device = frame->device;
 
   NVVK_CHECK(vkResetCommandPool(device, frame->cmdPool, 0));
+
+  // Restore cmdBuffer to the pool-allocated primary buffer. Passes (e.g.
+  // OIDNDenoisePass) may swap cmdBuffer to a post-pass command buffer during
+  // a frame; resetting it here ensures the next frame always starts with the
+  // correct, pool-owned buffer.
+  frame->cmdBuffer = frame->primaryCmdBuffer;
 
   VkCommandBufferBeginInfo beginInfo{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
