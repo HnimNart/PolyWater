@@ -70,9 +70,9 @@ void OIDNDenoisePass::init()
   //    Also creates the CUDA stream when CUDA is available.
   createOIDNDevice();
 
-  // 2. Create the exportable Vulkan timeline semaphore used for
+  // 2. Create the two exportable Vulkan timeline semaphores used for
   //    Vulkan ↔ CUDA synchronisation (or CPU vkSignalSemaphore fallback).
-  createTimelineSemaphore();
+  createSemaphores();
 
   // 3. GPU path: import the semaphore into CUDA and attach the stream to the
   //    OIDN device.  All configuration must precede commit().
@@ -157,7 +157,7 @@ void OIDNDenoisePass::deinit()
   m_oidnDevice = oidn::DeviceRef{};
 
   destroyCudaResources();
-  destroyTimelineSemaphore();
+  destroySemaphores();
 }
 
 // ===========================================================================
@@ -235,10 +235,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   NVVK_CHECK(vkEndCommandBuffer(preCmdBuf));
 
-  // Advance the independent monotonic counter by 2.
-  m_timelineCounter += 2;
-  const uint64_t semAValue = m_timelineCounter - 1;
-  const uint64_t semBValue = m_timelineCounter;
+  // Advance the per-frame counter.  We use two separate semaphores
+  // (m_semVulkanToCuda and m_semCudaToVulkan) so each is only ever signalled
+  // from one agent — guaranteeing their values are strictly monotone.
+  ++m_frameCounter;
+  const uint64_t semValue = m_frameCounter;
 
   {
     const VkCommandBufferSubmitInfo preCmdInfo{
@@ -246,17 +247,17 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
         .commandBuffer = preCmdBuf,
     };
     const VkSemaphoreSubmitInfo signalSemA{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .semaphore = m_timelineSemaphore,
-        .value = semAValue,
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = m_semVulkanToCuda,
+        .value     = semValue,
         .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
     };
     const VkSubmitInfo2 preSubmit{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-        .commandBufferInfoCount = 1,
-        .pCommandBufferInfos = &preCmdInfo,
+        .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount   = 1,
+        .pCommandBufferInfos      = &preCmdInfo,
         .signalSemaphoreInfoCount = 1,
-        .pSignalSemaphoreInfos = &signalSemA,
+        .pSignalSemaphoreInfos    = &signalSemA,
     };
     NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
                               &preSubmit, VK_NULL_HANDLE));
@@ -270,29 +271,32 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // -------------------------------------------------------------------------
   if (m_gpuPath && m_cudaStream != nullptr)
   {
-    auto stream = static_cast<cudaStream_t>(m_cudaStream);
-    auto extSem = reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemaphore);
+    auto stream  = static_cast<cudaStream_t>(m_cudaStream);
+    auto extSemA = reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemVulkanToCuda);
+    auto extSemB = reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemCudaToVulkan);
 
+    // Wait for Vulkan to signal m_semVulkanToCuda at semValue.
     cudaExternalSemaphoreWaitParams waitParams{};
-    waitParams.params.fence.value = semAValue;
-    waitParams.flags = 0;
-    cudaWaitExternalSemaphoresAsync(&extSem, &waitParams, 1, stream);
+    waitParams.params.fence.value = semValue;
+    waitParams.flags              = 0;
+    cudaWaitExternalSemaphoresAsync(&extSemA, &waitParams, 1, stream);
 
     fr.filter.executeAsync();
 
+    // Signal m_semCudaToVulkan at semValue so the Vulkan final submit can proceed.
     cudaExternalSemaphoreSignalParams signalParams{};
-    signalParams.params.fence.value = semBValue;
-    signalParams.flags = 0;
-    cudaSignalExternalSemaphoresAsync(&extSem, &signalParams, 1, stream);
+    signalParams.params.fence.value = semValue;
+    signalParams.flags              = 0;
+    cudaSignalExternalSemaphoresAsync(&extSemB, &signalParams, 1, stream);
   }
   else
   {
-    // CPU fallback: block until Semaphore A is signalled, then run OIDN.
+    // CPU fallback: block until m_semVulkanToCuda is signalled, then run OIDN.
     const VkSemaphoreWaitInfo waitInfo{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+        .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .semaphoreCount = 1,
-        .pSemaphores = &m_timelineSemaphore,
-        .pValues = &semAValue,
+        .pSemaphores    = &m_semVulkanToCuda,
+        .pValues        = &semValue,
     };
     NVVK_CHECK(vkWaitSemaphores(m_contextManager->getDevice(), &waitInfo,
                                 std::numeric_limits<uint64_t>::max()));
@@ -305,12 +309,12 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errMsg);
     }
 
-    // Manually advance the semaphore to semBValue so the post-submit's wait
-    // is satisfied immediately when the frame-sync manager submits.
+    // Advance m_semCudaToVulkan from the CPU so the post-submit's wait is
+    // satisfied immediately when the frame-sync manager submits.
     const VkSemaphoreSignalInfo signalInfo{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
-        .semaphore = m_timelineSemaphore,
-        .value = semBValue,
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .semaphore = m_semCudaToVulkan,
+        .value     = semValue,
     };
     NVVK_CHECK(vkSignalSemaphore(m_contextManager->getDevice(), &signalInfo));
   }
@@ -355,12 +359,12 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   copyBufferToDenoised(fr.postCmdBuf, gBuffers, size, frameIdx);
 
-  // Tell the frame-sync manager to wait on Semaphore B before its submit.
+  // Tell the frame-sync manager to wait on m_semCudaToVulkan before its submit.
   {
     const VkSemaphoreSubmitInfo waitSemB{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .semaphore = m_timelineSemaphore,
-        .value = semBValue,
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = m_semCudaToVulkan,
+        .value     = semValue,
         .stageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
     };
     m_frameSyncManager->addWaitSemaphore(waitSemB);
@@ -406,15 +410,12 @@ void OIDNDenoisePass::createOIDNDevice()
 }
 
 // ===========================================================================
-// createTimelineSemaphore / destroyTimelineSemaphore
+// createSemaphores / destroySemaphores
 // ===========================================================================
 
-/**********************************************************/
-void OIDNDenoisePass::createTimelineSemaphore()
-/**********************************************************/
+// Helper that creates a single exportable Vulkan timeline semaphore.
+static VkSemaphore createExportableTimelineSemaphore(VkDevice device)
 {
-  VkDevice device = m_contextManager->getDevice();
-
 #ifdef _WIN32
   constexpr VkExternalSemaphoreHandleTypeFlagBits kHandleType =
       VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
@@ -422,33 +423,48 @@ void OIDNDenoisePass::createTimelineSemaphore()
   constexpr VkExternalSemaphoreHandleTypeFlagBits kHandleType =
       VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT;
 #endif
-
   const VkExportSemaphoreCreateInfo exportCI{
-      .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+      .sType       = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
       .handleTypes = kHandleType,
   };
   const VkSemaphoreTypeCreateInfo typeCI{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-      .pNext = &exportCI,
+      .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+      .pNext         = &exportCI,
       .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-      .initialValue = 0,
+      .initialValue  = 0,
   };
   const VkSemaphoreCreateInfo semCI{
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
       .pNext = &typeCI,
   };
-  NVVK_CHECK(vkCreateSemaphore(device, &semCI, nullptr, &m_timelineSemaphore));
+  VkSemaphore sem = VK_NULL_HANDLE;
+  NVVK_CHECK(vkCreateSemaphore(device, &semCI, nullptr, &sem));
+  return sem;
 }
 
 /**********************************************************/
-void OIDNDenoisePass::destroyTimelineSemaphore()
+void OIDNDenoisePass::createSemaphores()
 /**********************************************************/
 {
-  if (m_timelineSemaphore != VK_NULL_HANDLE)
+  VkDevice device     = m_contextManager->getDevice();
+  m_semVulkanToCuda   = createExportableTimelineSemaphore(device);
+  m_semCudaToVulkan   = createExportableTimelineSemaphore(device);
+}
+
+/**********************************************************/
+void OIDNDenoisePass::destroySemaphores()
+/**********************************************************/
+{
+  VkDevice device = m_contextManager->getDevice();
+  if (m_semVulkanToCuda != VK_NULL_HANDLE)
   {
-    vkDestroySemaphore(m_contextManager->getDevice(), m_timelineSemaphore,
-                       nullptr);
-    m_timelineSemaphore = VK_NULL_HANDLE;
+    vkDestroySemaphore(device, m_semVulkanToCuda, nullptr);
+    m_semVulkanToCuda = VK_NULL_HANDLE;
+  }
+  if (m_semCudaToVulkan != VK_NULL_HANDLE)
+  {
+    vkDestroySemaphore(device, m_semCudaToVulkan, nullptr);
+    m_semCudaToVulkan = VK_NULL_HANDLE;
   }
 }
 
@@ -462,9 +478,9 @@ void OIDNDenoisePass::createCudaResources()
 {
   VkDevice device = m_contextManager->getDevice();
 
-  // Export the Vulkan timeline semaphore and import it into CUDA so that
-  // cudaWaitExternalSemaphoresAsync / cudaSignalExternalSemaphoresAsync can
-  // be used to synchronise the OIDN CUDA stream with Vulkan submits.
+  // Export both Vulkan timeline semaphores and import them into CUDA.
+  //   m_semVulkanToCuda → m_cudaExtSemVulkanToCuda  (CUDA waits on it)
+  //   m_semCudaToVulkan → m_cudaExtSemCudaToVulkan  (CUDA signals it)
 #ifdef _WIN32
   if (vkGetSemaphoreWin32HandleKHR == nullptr)
   {
@@ -474,19 +490,27 @@ void OIDNDenoisePass::createCudaResources()
     m_gpuPath = false;
     return;
   }
-  const VkSemaphoreGetWin32HandleInfoKHR getHandleInfo{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
-      .semaphore = m_timelineSemaphore,
-      .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT,
-  };
-  HANDLE win32Handle = nullptr;
-  NVVK_CHECK(
-      vkGetSemaphoreWin32HandleKHR(device, &getHandleInfo, &win32Handle));
 
-  cudaExternalSemaphoreHandleDesc semDesc{};
-  semDesc.type = cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32;
-  semDesc.handle.win32.handle = win32Handle;
-  semDesc.flags = 0;
+  auto importWin32 = [&](VkSemaphore sem) -> void* {
+    const VkSemaphoreGetWin32HandleInfoKHR info{
+        .sType      = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+        .semaphore  = sem,
+        .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT,
+    };
+    HANDLE handle = nullptr;
+    NVVK_CHECK(vkGetSemaphoreWin32HandleKHR(device, &info, &handle));
+    cudaExternalSemaphoreHandleDesc desc{};
+    desc.type                = cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32;
+    desc.handle.win32.handle = handle;
+    desc.flags               = 0;
+    cudaExternalSemaphore_t extSem{};
+    if (cudaImportExternalSemaphore(&extSem, &desc) != cudaSuccess)
+      return nullptr;
+    return reinterpret_cast<void*>(extSem);
+  };
+
+  m_cudaExtSemVulkanToCuda = importWin32(m_semVulkanToCuda);
+  m_cudaExtSemCudaToVulkan = importWin32(m_semCudaToVulkan);
 #else
   if (vkGetSemaphoreFdKHR == nullptr)
   {
@@ -495,40 +519,52 @@ void OIDNDenoisePass::createCudaResources()
     m_gpuPath = false;
     return;
   }
-  const VkSemaphoreGetFdInfoKHR getFdInfo{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
-      .semaphore = m_timelineSemaphore,
-      .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
-  };
-  int fd = -1;
-  NVVK_CHECK(vkGetSemaphoreFdKHR(device, &getFdInfo, &fd));
 
-  cudaExternalSemaphoreHandleDesc semDesc{};
-  semDesc.type = cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd;
-  semDesc.handle.fd = fd;
-  semDesc.flags = 0;
+  auto importFd = [&](VkSemaphore sem) -> void* {
+    const VkSemaphoreGetFdInfoKHR info{
+        .sType      = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
+        .semaphore  = sem,
+        .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
+    };
+    int fd = -1;
+    NVVK_CHECK(vkGetSemaphoreFdKHR(device, &info, &fd));
+    cudaExternalSemaphoreHandleDesc desc{};
+    desc.type      = cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd;
+    desc.handle.fd = fd;
+    desc.flags     = 0;
+    cudaExternalSemaphore_t extSem{};
+    if (cudaImportExternalSemaphore(&extSem, &desc) != cudaSuccess)
+      return nullptr;
+    return reinterpret_cast<void*>(extSem);
+  };
+
+  m_cudaExtSemVulkanToCuda = importFd(m_semVulkanToCuda);
+  m_cudaExtSemCudaToVulkan = importFd(m_semCudaToVulkan);
 #endif
 
-  cudaExternalSemaphore_t extSem{};
-  if (cudaImportExternalSemaphore(&extSem, &semDesc) != cudaSuccess)
+  if (m_cudaExtSemVulkanToCuda == nullptr || m_cudaExtSemCudaToVulkan == nullptr)
   {
     fprintf(stderr, "[OIDNDenoisePass] cudaImportExternalSemaphore failed; "
                     "disabling GPU path.\n");
     m_gpuPath = false;
-    return;
   }
-  m_cudaExtSemaphore = reinterpret_cast<void*>(extSem);
 }
 
 /**********************************************************/
 void OIDNDenoisePass::destroyCudaResources()
 /**********************************************************/
 {
-  if (m_cudaExtSemaphore != nullptr)
+  if (m_cudaExtSemVulkanToCuda != nullptr)
   {
     cudaDestroyExternalSemaphore(
-        reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemaphore));
-    m_cudaExtSemaphore = nullptr;
+        reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemVulkanToCuda));
+    m_cudaExtSemVulkanToCuda = nullptr;
+  }
+  if (m_cudaExtSemCudaToVulkan != nullptr)
+  {
+    cudaDestroyExternalSemaphore(
+        reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemCudaToVulkan));
+    m_cudaExtSemCudaToVulkan = nullptr;
   }
   if (m_cudaStream != nullptr)
   {

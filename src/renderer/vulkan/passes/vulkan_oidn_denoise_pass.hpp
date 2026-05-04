@@ -49,12 +49,14 @@
 //  The slot is derived from
 //  VulkanFrameSynchronizationManager::getCurrentFrameIndex().
 //
-// Timeline counter
-// ----------------
-//  m_timelineCounter is an independent, strictly monotonic uint64_t.  It is
-//  incremented by 2 each execute() so that (counter-1) and (counter) are the
-//  Semaphore A and Semaphore B signal values respectively.  It is never reset
-//  and is unaffected by the engine's own frame-number recycling.
+// Timeline counters
+// -----------------
+//  Two separate timeline semaphores are used so that each is signalled by
+//  exactly one agent and therefore stays strictly monotonically increasing:
+//    m_semVulkanToCuda  — signalled by Vulkan (values 1, 2, 3 …)
+//    m_semCudaToVulkan  — signalled by CUDA / CPU (values 1, 2, 3 …)
+//  A single m_frameCounter (incremented by 1 per execute()) is shared as the
+//  signal value for both semaphores.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
@@ -95,8 +97,8 @@ private:
   // Helpers
   // -------------------------------------------------------------------------
   void createOIDNDevice();
-  void createTimelineSemaphore();
-  void destroyTimelineSemaphore();
+  void createSemaphores();
+  void destroySemaphores();
   void createCudaResources();
   void destroyCudaResources();
 
@@ -129,15 +131,33 @@ private:
   uint32_t m_numFrames = 0;
   VkCommandPool m_postCmdPool = VK_NULL_HANDLE;
 
-  // Dedicated Vulkan timeline semaphore for Vulkan ↔ CUDA synchronisation.
-  // Uses its own monotonic counter, independent of the engine's frame counter.
-  VkSemaphore m_timelineSemaphore = VK_NULL_HANDLE;
-  uint64_t m_timelineCounter = 0;
+  // Two separate Vulkan timeline semaphores for Vulkan ↔ CUDA synchronisation.
+  //
+  // Using two semaphores (rather than one with interleaved values) is
+  // essential for correctness: timeline semaphores must be signalled in
+  // strictly increasing order by each signalling agent.  With a single
+  // semaphore, Vulkan signals odd values (1, 3, 5…) and CUDA signals even
+  // values (2, 4, 6…) from independent engines — the relative arrival order
+  // is non-deterministic, so CUDA can arrive to signal 2 after Vulkan already
+  // advanced the semaphore to 3, violating the monotonicity constraint and
+  // hanging the CUDA stream.
+  //
+  //  m_semVulkanToCuda  — signalled exclusively by Vulkan (values 1, 2, 3…),
+  //                       waited by CUDA on the dedicated stream.
+  //  m_semCudaToVulkan  — signalled exclusively by CUDA/CPU (values 1, 2, 3…),
+  //                       waited by the Vulkan final submit.
+  //
+  // A simple per-frame counter (m_frameCounter, incremented by 1 each frame)
+  // is sufficient because each semaphore has only one signalling agent.
+  VkSemaphore m_semVulkanToCuda = VK_NULL_HANDLE;
+  VkSemaphore m_semCudaToVulkan = VK_NULL_HANDLE;
+  uint64_t m_frameCounter = 0;
 
   // CUDA interop handles (GPU path only).
   // Stored as void* to avoid pulling <cuda_runtime_api.h> into this header.
-  void* m_cudaStream = nullptr;        // cudaStream_t
-  void* m_cudaExtSemaphore = nullptr;  // cudaExternalSemaphore_t
+  void* m_cudaStream = nullptr;              // cudaStream_t
+  void* m_cudaExtSemVulkanToCuda = nullptr;  // cudaExternalSemaphore_t
+  void* m_cudaExtSemCudaToVulkan = nullptr;  // cudaExternalSemaphore_t
 
   uint32_t m_width = 0;
   uint32_t m_height = 0;
