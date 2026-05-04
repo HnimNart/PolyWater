@@ -81,18 +81,17 @@ void OIDNDenoisePass::init()
     createCudaResources();
     if (!m_gpuPath)
     {
-      // createCudaResources() cleared m_gpuPath on failure; switch to CPU
-      // device.
-      if (m_cudaStream != nullptr)
-      {
-        cudaStreamDestroy(static_cast<cudaStream_t>(m_cudaStream));
-        m_cudaStream = nullptr;
-      }
+      // createCudaResources() cleared m_gpuPath on failure; destroy all CUDA
+      // resources (streams + any partially-imported external semaphores) and
+      // fall back to a CPU OIDN device.
+      destroyCudaResources();
       m_oidnDevice = oidn::newDevice();
     }
     else
     {
-      m_oidnDevice.set("cudaStream", m_cudaStream);
+      // All per-slot streams are ready.  Use stream[0] as the initial device
+      // stream; execute() will override it per slot before each executeAsync().
+      m_oidnDevice.set("cudaStream", m_cudaStreams[0]);
     }
   }
 
@@ -186,7 +185,6 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 void OIDNDenoisePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
-  printf("Execute\n");
   VulkanRenderContext& vkCtx = VulkanRenderContext::get(ctx);
   const uint32_t frameIdx = m_frameSyncManager->getCurrentFrameIndex();
   FrameResources& fr = m_frameResources[frameIdx];
@@ -212,7 +210,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // -------------------------------------------------------------------------
   // Part 1: Pre-Denoise (Vulkan)
   // Record GBuffer → OIDN-input-buffer copies, then end and directly submit
-  // this command buffer, signalling Timeline Semaphore A.
+  // this command buffer, signalling the per-slot Semaphore A.
   // -------------------------------------------------------------------------
   VkCommandBuffer preCmdBuf = vkCtx.cmdBuffer;
 
@@ -235,11 +233,10 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   NVVK_CHECK(vkEndCommandBuffer(preCmdBuf));
 
-  // Advance the per-frame counter.  We use two separate semaphores
-  // (m_semVulkanToCuda and m_semCudaToVulkan) so each is only ever signalled
-  // from one agent — guaranteeing their values are strictly monotone.
-  ++m_frameCounter;
-  const uint64_t semValue = m_frameCounter;
+  // Use the frame's timeline value as the semaphore signal/wait value.
+  // vkCtx.frameNumber is advanced by m_numFrames each cycle in beginFrame(),
+  // so it is strictly monotone within each slot's independent semaphore pair.
+  const uint64_t semValue = vkCtx.frameNumber;
 
   {
     const VkCommandBufferSubmitInfo preCmdInfo{
@@ -248,7 +245,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     };
     const VkSemaphoreSubmitInfo signalSemA{
         .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .semaphore = m_semVulkanToCuda,
+        .semaphore = m_semVulkanToCuda[frameIdx],
         .value     = semValue,
         .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
     };
@@ -265,37 +262,66 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   // -------------------------------------------------------------------------
   // Part 2: Denoise
-  // GPU path: enqueue CUDA semaphore wait, async OIDN execution, and
-  //           semaphore signal onto the dedicated CUDA stream (non-blocking).
-  // CPU path: wait on the CPU, run OIDN synchronously, signal via Vulkan.
+  // GPU path: enqueue — on this slot's own CUDA stream — a semaphore wait,
+  //           async OIDN execution, then a semaphore signal (all non-blocking
+  //           on the CPU).  Because each slot has a dedicated CUDA stream and
+  //           a dedicated semaphore pair, the GPU can run OIDN for different
+  //           slots concurrently.
+  // CPU path: block until the per-slot Semaphore A is signalled, run OIDN
+  //           synchronously, then signal Semaphore B from the CPU.
   // -------------------------------------------------------------------------
-  if (m_gpuPath && m_cudaStream != nullptr)
+  if (m_gpuPath && !m_cudaStreams.empty())
   {
-    auto stream  = static_cast<cudaStream_t>(m_cudaStream);
-    auto extSemA = reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemVulkanToCuda);
-    auto extSemB = reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemCudaToVulkan);
+    auto stream  = static_cast<cudaStream_t>(m_cudaStreams[frameIdx]);
+    auto extSemA = reinterpret_cast<cudaExternalSemaphore_t>(
+        m_cudaExtSemVulkanToCuda[frameIdx]);
+    auto extSemB = reinterpret_cast<cudaExternalSemaphore_t>(
+        m_cudaExtSemCudaToVulkan[frameIdx]);
 
-    // Wait for Vulkan to signal m_semVulkanToCuda at semValue.
+    // Enqueue: wait for Vulkan to signal m_semVulkanToCuda[frameIdx].
     cudaExternalSemaphoreWaitParams waitParams{};
     waitParams.params.fence.value = semValue;
     waitParams.flags              = 0;
-    cudaWaitExternalSemaphoresAsync(&extSemA, &waitParams, 1, stream);
+    if (cudaWaitExternalSemaphoresAsync(&extSemA, &waitParams, 1, stream) != cudaSuccess)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] cudaWaitExternalSemaphoresAsync failed: %s\n",
+              cudaGetErrorString(cudaGetLastError()));
+    }
 
+    // Override the OIDN device's CUDA stream to this slot's stream before
+    // enqueueing.  execute() is always called from the main CPU thread so
+    // there is no data race on the device property.  The GPU kernels enqueued
+    // by executeAsync() are bound to the stream at call time; the subsequent
+    // set() for the next slot does not affect already-queued work.
+    m_oidnDevice.set("cudaStream", m_cudaStreams[frameIdx]);
     fr.filter.executeAsync();
 
-    // Signal m_semCudaToVulkan at semValue so the Vulkan final submit can proceed.
+    // Enqueue: signal m_semCudaToVulkan[frameIdx] so the final submit can proceed.
+    // If this fails the GPU finalSubmit will deadlock; fall back to CPU signal.
     cudaExternalSemaphoreSignalParams signalParams{};
     signalParams.params.fence.value = semValue;
     signalParams.flags              = 0;
-    cudaSignalExternalSemaphoresAsync(&extSemB, &signalParams, 1, stream);
+    if (cudaSignalExternalSemaphoresAsync(&extSemB, &signalParams, 1, stream) !=
+        cudaSuccess)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] cudaSignalExternalSemaphoresAsync failed: %s; "
+                      "signalling semaphore from CPU to prevent deadlock.\n",
+              cudaGetErrorString(cudaGetLastError()));
+      const VkSemaphoreSignalInfo fallbackSignal{
+          .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+          .semaphore = m_semCudaToVulkan[frameIdx],
+          .value     = semValue,
+      };
+      vkSignalSemaphore(m_contextManager->getDevice(), &fallbackSignal);
+    }
   }
   else
   {
-    // CPU fallback: block until m_semVulkanToCuda is signalled, then run OIDN.
+    // CPU fallback: block until m_semVulkanToCuda[frameIdx] is signalled.
     const VkSemaphoreWaitInfo waitInfo{
         .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .semaphoreCount = 1,
-        .pSemaphores    = &m_semVulkanToCuda,
+        .pSemaphores    = &m_semVulkanToCuda[frameIdx],
         .pValues        = &semValue,
     };
     NVVK_CHECK(vkWaitSemaphores(m_contextManager->getDevice(), &waitInfo,
@@ -309,11 +335,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errMsg);
     }
 
-    // Advance m_semCudaToVulkan from the CPU so the post-submit's wait is
-    // satisfied immediately when the frame-sync manager submits.
+    // Advance m_semCudaToVulkan[frameIdx] from the CPU so the post-submit's
+    // wait is satisfied immediately when the frame-sync manager submits.
     const VkSemaphoreSignalInfo signalInfo{
         .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
-        .semaphore = m_semCudaToVulkan,
+        .semaphore = m_semCudaToVulkan[frameIdx],
         .value     = semValue,
     };
     NVVK_CHECK(vkSignalSemaphore(m_contextManager->getDevice(), &signalInfo));
@@ -328,13 +354,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkResetCommandBuffer(fr.postCmdBuf, 0));
 
   {
-    // Both flags together: ONE_TIME_SUBMIT hints for driver optimisation;
-    // SIMULTANEOUS_USE satisfies validation layer tracking across the
-    // timeline synchronisation boundary.
     const VkCommandBufferBeginInfo beginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT |
-                 VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
     NVVK_CHECK(vkBeginCommandBuffer(fr.postCmdBuf, &beginInfo));
   }
@@ -359,11 +381,12 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   copyBufferToDenoised(fr.postCmdBuf, gBuffers, size, frameIdx);
 
-  // Tell the frame-sync manager to wait on m_semCudaToVulkan before its submit.
+  // Tell the frame-sync manager to wait on m_semCudaToVulkan[frameIdx]
+  // before its final submit.
   {
     const VkSemaphoreSubmitInfo waitSemB{
         .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .semaphore = m_semCudaToVulkan,
+        .semaphore = m_semCudaToVulkan[frameIdx],
         .value     = semValue,
         .stageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
     };
@@ -373,8 +396,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // Replace the context's command buffer so ToneMap, UI, and endFrame()
   // all operate on the post-denoise buffer.
   vkCtx.cmdBuffer = fr.postCmdBuf;
-
-  printf("Done\n");
 }
 
 // ===========================================================================
@@ -393,16 +414,44 @@ void OIDNDenoisePass::createOIDNDevice()
 
   if (cudaAvailable)
   {
-    cudaStream_t stream = nullptr;
-    if (cudaStreamCreate(&stream) == cudaSuccess)
+    // Create one dedicated CUDA stream per frame-ring slot.  Using independent
+    // per-slot streams removes the inter-slot serialisation that a single
+    // shared stream imposes: the GPU can execute OIDN for slot N concurrently
+    // with OIDN for slot N+1 when they sit on different streams.
+    m_cudaStreams.resize(m_numFrames, nullptr);
+    bool streamsOk = true;
+    for (uint32_t i = 0; i < m_numFrames; ++i)
     {
-      m_cudaStream = static_cast<void*>(stream);
+      cudaStream_t s = nullptr;
+      cudaError_t err = cudaStreamCreate(&s);
+      if (err != cudaSuccess)
+      {
+        fprintf(stderr, "[OIDNDenoisePass] cudaStreamCreate failed for slot %u: %s\n",
+                i, cudaGetErrorString(err));
+        streamsOk = false;
+        break;
+      }
+      m_cudaStreams[i] = static_cast<void*>(s);
+    }
+
+    if (streamsOk)
+    {
+      // The OIDN device is committed with stream[0] as its initial CUDA
+      // stream.  execute() overrides the stream to the current slot's stream
+      // before calling filter.executeAsync(), so each slot uses its own stream.
       m_oidnDevice = oidn::newDevice(oidn::DeviceType::CUDA);
       m_gpuPath = true;
       return;
     }
+
     fprintf(stderr, "[OIDNDenoisePass] cudaStreamCreate failed; "
                     "falling back to CPU OIDN path.\n");
+    for (auto& s : m_cudaStreams)
+    {
+      if (s != nullptr)
+        cudaStreamDestroy(static_cast<cudaStream_t>(s));
+    }
+    m_cudaStreams.clear();
   }
 
   m_oidnDevice = oidn::newDevice();  // Auto-select (CPU)
@@ -446,9 +495,14 @@ static VkSemaphore createExportableTimelineSemaphore(VkDevice device)
 void OIDNDenoisePass::createSemaphores()
 /**********************************************************/
 {
-  VkDevice device     = m_contextManager->getDevice();
-  m_semVulkanToCuda   = createExportableTimelineSemaphore(device);
-  m_semCudaToVulkan   = createExportableTimelineSemaphore(device);
+  VkDevice device = m_contextManager->getDevice();
+  m_semVulkanToCuda.resize(m_numFrames, VK_NULL_HANDLE);
+  m_semCudaToVulkan.resize(m_numFrames, VK_NULL_HANDLE);
+  for (uint32_t i = 0; i < m_numFrames; ++i)
+  {
+    m_semVulkanToCuda[i] = createExportableTimelineSemaphore(device);
+    m_semCudaToVulkan[i] = createExportableTimelineSemaphore(device);
+  }
 }
 
 /**********************************************************/
@@ -456,16 +510,24 @@ void OIDNDenoisePass::destroySemaphores()
 /**********************************************************/
 {
   VkDevice device = m_contextManager->getDevice();
-  if (m_semVulkanToCuda != VK_NULL_HANDLE)
+  for (auto& sem : m_semVulkanToCuda)
   {
-    vkDestroySemaphore(device, m_semVulkanToCuda, nullptr);
-    m_semVulkanToCuda = VK_NULL_HANDLE;
+    if (sem != VK_NULL_HANDLE)
+    {
+      vkDestroySemaphore(device, sem, nullptr);
+      sem = VK_NULL_HANDLE;
+    }
   }
-  if (m_semCudaToVulkan != VK_NULL_HANDLE)
+  m_semVulkanToCuda.clear();
+  for (auto& sem : m_semCudaToVulkan)
   {
-    vkDestroySemaphore(device, m_semCudaToVulkan, nullptr);
-    m_semCudaToVulkan = VK_NULL_HANDLE;
+    if (sem != VK_NULL_HANDLE)
+    {
+      vkDestroySemaphore(device, sem, nullptr);
+      sem = VK_NULL_HANDLE;
+    }
   }
+  m_semCudaToVulkan.clear();
 }
 
 // ===========================================================================
@@ -478,9 +540,9 @@ void OIDNDenoisePass::createCudaResources()
 {
   VkDevice device = m_contextManager->getDevice();
 
-  // Export both Vulkan timeline semaphores and import them into CUDA.
-  //   m_semVulkanToCuda → m_cudaExtSemVulkanToCuda  (CUDA waits on it)
-  //   m_semCudaToVulkan → m_cudaExtSemCudaToVulkan  (CUDA signals it)
+  // Export each per-slot Vulkan timeline semaphore and import it into CUDA.
+  // Having one CUDA external semaphore per slot means each slot's CUDA stream
+  // can wait/signal independently without cross-slot ordering constraints.
 #ifdef _WIN32
   if (vkGetSemaphoreWin32HandleKHR == nullptr)
   {
@@ -505,12 +567,29 @@ void OIDNDenoisePass::createCudaResources()
     desc.flags               = 0;
     cudaExternalSemaphore_t extSem{};
     if (cudaImportExternalSemaphore(&extSem, &desc) != cudaSuccess)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] Win32: cudaImportExternalSemaphore failed: %s\n",
+              cudaGetErrorString(cudaGetLastError()));
       return nullptr;
+    }
     return reinterpret_cast<void*>(extSem);
   };
 
-  m_cudaExtSemVulkanToCuda = importWin32(m_semVulkanToCuda);
-  m_cudaExtSemCudaToVulkan = importWin32(m_semCudaToVulkan);
+  m_cudaExtSemVulkanToCuda.resize(m_numFrames, nullptr);
+  m_cudaExtSemCudaToVulkan.resize(m_numFrames, nullptr);
+  for (uint32_t i = 0; i < m_numFrames; ++i)
+  {
+    m_cudaExtSemVulkanToCuda[i] = importWin32(m_semVulkanToCuda[i]);
+    m_cudaExtSemCudaToVulkan[i] = importWin32(m_semCudaToVulkan[i]);
+    if (m_cudaExtSemVulkanToCuda[i] == nullptr ||
+        m_cudaExtSemCudaToVulkan[i] == nullptr)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] cudaImportExternalSemaphore failed "
+                      "for slot %u; disabling GPU path.\n", i);
+      m_gpuPath = false;
+      return;
+    }
+  }
 #else
   if (vkGetSemaphoreFdKHR == nullptr)
   {
@@ -534,43 +613,62 @@ void OIDNDenoisePass::createCudaResources()
     desc.flags     = 0;
     cudaExternalSemaphore_t extSem{};
     if (cudaImportExternalSemaphore(&extSem, &desc) != cudaSuccess)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] FD: cudaImportExternalSemaphore failed: %s\n",
+              cudaGetErrorString(cudaGetLastError()));
       return nullptr;
+    }
     return reinterpret_cast<void*>(extSem);
   };
 
-  m_cudaExtSemVulkanToCuda = importFd(m_semVulkanToCuda);
-  m_cudaExtSemCudaToVulkan = importFd(m_semCudaToVulkan);
-#endif
-
-  if (m_cudaExtSemVulkanToCuda == nullptr || m_cudaExtSemCudaToVulkan == nullptr)
+  m_cudaExtSemVulkanToCuda.resize(m_numFrames, nullptr);
+  m_cudaExtSemCudaToVulkan.resize(m_numFrames, nullptr);
+  for (uint32_t i = 0; i < m_numFrames; ++i)
   {
-    fprintf(stderr, "[OIDNDenoisePass] cudaImportExternalSemaphore failed; "
-                    "disabling GPU path.\n");
-    m_gpuPath = false;
+    m_cudaExtSemVulkanToCuda[i] = importFd(m_semVulkanToCuda[i]);
+    m_cudaExtSemCudaToVulkan[i] = importFd(m_semCudaToVulkan[i]);
+    if (m_cudaExtSemVulkanToCuda[i] == nullptr ||
+        m_cudaExtSemCudaToVulkan[i] == nullptr)
+    {
+      fprintf(stderr, "[OIDNDenoisePass] cudaImportExternalSemaphore failed "
+                      "for slot %u; disabling GPU path.\n", i);
+      m_gpuPath = false;
+      return;
+    }
   }
+#endif
 }
 
 /**********************************************************/
 void OIDNDenoisePass::destroyCudaResources()
 /**********************************************************/
 {
-  if (m_cudaExtSemVulkanToCuda != nullptr)
+  for (auto& extSem : m_cudaExtSemVulkanToCuda)
   {
-    cudaDestroyExternalSemaphore(
-        reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemVulkanToCuda));
-    m_cudaExtSemVulkanToCuda = nullptr;
+    if (extSem != nullptr)
+    {
+      cudaDestroyExternalSemaphore(
+          reinterpret_cast<cudaExternalSemaphore_t>(extSem));
+    }
   }
-  if (m_cudaExtSemCudaToVulkan != nullptr)
+  m_cudaExtSemVulkanToCuda.clear();
+
+  for (auto& extSem : m_cudaExtSemCudaToVulkan)
   {
-    cudaDestroyExternalSemaphore(
-        reinterpret_cast<cudaExternalSemaphore_t>(m_cudaExtSemCudaToVulkan));
-    m_cudaExtSemCudaToVulkan = nullptr;
+    if (extSem != nullptr)
+    {
+      cudaDestroyExternalSemaphore(
+          reinterpret_cast<cudaExternalSemaphore_t>(extSem));
+    }
   }
-  if (m_cudaStream != nullptr)
+  m_cudaExtSemCudaToVulkan.clear();
+
+  for (auto& stream : m_cudaStreams)
   {
-    cudaStreamDestroy(static_cast<cudaStream_t>(m_cudaStream));
-    m_cudaStream = nullptr;
+    if (stream != nullptr)
+      cudaStreamDestroy(static_cast<cudaStream_t>(stream));
   }
+  m_cudaStreams.clear();
 }
 
 // ===========================================================================
