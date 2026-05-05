@@ -158,8 +158,8 @@ void VulkanFrameSynchronizationManager::endFrame(const VulkanRenderContext& fram
 /**********************************************************/
 {
   // RenderGraph::execute() has already ended all per-pass command buffers via
-  // activatePass(Count) and populated finishedCmdBuffers.  Collect them into
-  // the submission list.
+  // activatePass(kEndPassIndex) and populated finishedCmdBuffers.  Collect them
+  // into the submission list.
   for (VkCommandBuffer cmd : frameCtx.finishedCmdBuffers)
   {
     m_commandBuffers.push_back(
