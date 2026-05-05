@@ -19,21 +19,21 @@
 // OIDNDenoisePass
 //
 // GPU-side AI denoiser using Intel Open Image Denoise (OIDN) v2.4+.
+// Requires CUDA — no CPU fallback.
 //
 // Asynchronous N-buffered architecture (three-part split command buffer)
 // -----------------------------------------------------------------------
 //  1. Pre-Denoise (Vulkan):  The current command buffer records copies of the
 //     Linear, Albedo, and Normal G-buffers into N-buffered OIDN-mapped
-//     external VkBuffers.  The buffer is ended and submitted directly to the
-//     graphics queue, signalling Timeline Semaphore A.
+//     external VkBuffers.  The buffer is ended and registered in
+//     VulkanRenderContext::preCommandBuffers; endFrame() submits it,
+//     signalling Timeline Semaphore A, before the main submit.
 //
 //  2. Denoise (CUDA):  On a dedicated CUDA stream the pass enqueues:
 //       - cudaWaitExternalSemaphoresAsync (wait for Semaphore A)
 //       - filter.executeAsync()           (OIDN "RT" beauty filter)
 //       - cudaSignalExternalSemaphoresAsync (signal Semaphore B)
 //     All three operations are non-blocking on the CPU.
-//     CPU-only fallback: vkWaitSemaphores + filter.execute() +
-//     vkSignalSemaphore.
 //
 //  3. Post-Denoise (Vulkan):  A per-frame, pre-allocated command buffer is
 //     reset, begun, and used to record a memory barrier (for CUDA writes) and
@@ -78,7 +78,6 @@ private:
     VkDeviceMemory memory = VK_NULL_HANDLE;
     size_t byteSize = 0;
     oidn::BufferRef oidnBuf;
-    void* hostPtr = nullptr;  // Non-null on the CPU/host-visible path
   };
 
   // Per-frame (N-buffered) resources.  One set per frame-ring slot.
@@ -110,9 +109,6 @@ private:
   // GPU path: exportable device-local memory shared with OIDN via handle.
   ExternalBuffer allocateExternalBuffer(size_t byteSize, VkBufferUsageFlags usage,
                                         oidn::DeviceRef& oidnDevice);
-  // CPU fallback: HOST_VISIBLE | HOST_COHERENT memory wrapped by OIDN.
-  ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage,
-                                    oidn::DeviceRef& oidnDevice);
   void destroyBuffer(ExternalBuffer& buf);
 
   void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
@@ -123,8 +119,6 @@ private:
   // -------------------------------------------------------------------------
   VulkanContextManager* m_contextManager = nullptr;
   VulkanFrameSynchronizationManager* m_frameSyncManager = nullptr;
-
-  bool m_gpuPath = false;  // True ↔ external-memory GPU buffers used
 
   // N-buffered per-frame resources and their shared command pool.
   std::vector<FrameResources> m_frameResources;
