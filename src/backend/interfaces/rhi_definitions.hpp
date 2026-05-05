@@ -55,6 +55,25 @@ struct BarrierInfo
   PipelineStage dstStage;
 };
 
+// Identifies which per-frame command buffer a pass records into.
+// One primary command buffer is allocated per slot every frame, reused across
+// frames by resetting the per-frame pool rather than reallocating.
+//
+// Slot layout:
+//   Main    – ray trace / raster / sky / meshlet / mip-reduction
+//   Denoise – OIDN or compute denoiser
+//   ToneMap – tonemapping compute pass
+//   Gui     – Dear ImGui overlay (recorded into the swapchain attachment)
+//   Count   – sentinel / "end current pass" signal (not a real slot)
+enum class PassCmdSlot : uint32_t
+{
+  Main    = 0,
+  Denoise = 1,
+  ToneMap = 2,
+  Gui     = 3,
+  Count   = 4,  // Total number of real slots; also used as "no slot" sentinel
+};
+
 // This maps to enum VkIndexType
 enum IndexType
 {

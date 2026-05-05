@@ -31,6 +31,44 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 }
 
 /**********************************************************/
+void VulkanRenderContext::activatePass(PassCmdSlot slot)
+/**********************************************************/
+{
+  const bool isEnd = (slot == PassCmdSlot::Count);
+
+  // No-op when the requested slot is already the active one.
+  if (!isEnd && activeSlot == slot)
+  {
+    return;
+  }
+
+  // End the currently recording command buffer (if any) and queue it for
+  // submission at end-of-frame.
+  if (cmdBuffer != VK_NULL_HANDLE)
+  {
+    vkEndCommandBuffer(cmdBuffer);
+    finishedCmdBuffers.push_back(cmdBuffer);
+    cmdBuffer      = VK_NULL_HANDLE;
+    activeSlot     = PassCmdSlot::Count;
+  }
+
+  if (isEnd)
+  {
+    return;  // Just ending the current pass, not starting a new one.
+  }
+
+  // Begin the pre-allocated command buffer for the requested slot.
+  cmdBuffer  = passCmdBuffers[static_cast<uint32_t>(slot)];
+  activeSlot = slot;
+
+  const VkCommandBufferBeginInfo beginInfo{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+  };
+  vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+}
+
+/**********************************************************/
 void VulkanRenderContext::submitBarriers(
     const std::vector<BarrierInfo>& barriers) const
 /**********************************************************/

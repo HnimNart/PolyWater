@@ -29,6 +29,13 @@ public:
   virtual void
   submitBarriers(const std::vector<BarrierInfo>& barriers) const = 0;
 
+  // Called by the RenderGraph before each pass to switch the active per-pass
+  // command buffer.  Passing PassCmdSlot::Count ends the current pass without
+  // opening a new one (used at the end of a frame to close the last buffer).
+  // Backends that do not track per-pass command buffers (e.g. Metal) may
+  // implement this as a no-op.
+  virtual void activatePass(PassCmdSlot slot) = 0;
+
 public:
   uint64_t frameNumber{0};  // Timeline value for synchronization
   Scene* sceneResources = nullptr;

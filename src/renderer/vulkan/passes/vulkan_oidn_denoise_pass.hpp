@@ -48,6 +48,10 @@ public:
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
 
+  // The OIDN denoiser runs in a dedicated slot so the main ray-trace
+  // command buffer can be submitted and waited on before OIDN executes.
+  PassCmdSlot cmdSlot() const override { return PassCmdSlot::Denoise; }
+
 private:
   // -----------------------------------------------------------------------
   // Internal types

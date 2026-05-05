@@ -19,10 +19,13 @@ public:
   ~VulkanToneMapPass() override;
 
   void init() override;
+  void deinit() override;
 
   void setup(PassBuilder& builder) override;
-  void deinit() override;
   void execute(IRenderContext& ctx) override;
+
+  // Tonemapping runs in a dedicated command buffer after the main render.
+  PassCmdSlot cmdSlot() const override { return PassCmdSlot::ToneMap; }
 
   // Explicitly non-copyable
   VulkanToneMapPass(const VulkanToneMapPass&) = delete;

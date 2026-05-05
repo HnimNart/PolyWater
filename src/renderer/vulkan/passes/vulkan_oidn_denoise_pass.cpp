@@ -154,22 +154,40 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   copyImageToBuffer(RenderOutput::Albedo, m_albedoBuf.buffer);
   copyImageToBuffer(RenderOutput::Normal, m_normalBuf.buffer);
 
-  // Submit the current command buffer and wait on the CPU.
+  // --- Intermediate submit -----------------------------------------------
+  // End the Denoise slot command buffer (pre-OIDN copies).
   NVVK_CHECK(vkEndCommandBuffer(cmd));
 
-  VkCommandBufferSubmitInfo cmdSubmitInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO};
-  cmdSubmitInfo.commandBuffer = cmd;
+  // Build the submission list: all previously finished slot buffers (Main,
+  // etc.) plus the Denoise buffer we just ended.  Together they cover all
+  // GPU work that must complete before OIDN can read the results.
+  std::vector<VkCommandBufferSubmitInfo> submitInfos;
+  submitInfos.reserve(vkCtx.finishedCmdBuffers.size() + 1);
+  for (VkCommandBuffer fb : vkCtx.finishedCmdBuffers)
+  {
+    submitInfos.push_back({.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                           .commandBuffer = fb});
+  }
+  submitInfos.push_back({.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                         .commandBuffer = cmd});
 
-  VkSubmitInfo2 submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-  submitInfo.commandBufferInfoCount = 1;
-  submitInfo.pCommandBufferInfos = &cmdSubmitInfo;
+  const VkSubmitInfo2 submitInfo{
+      .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+      .commandBufferInfoCount   = static_cast<uint32_t>(submitInfos.size()),
+      .pCommandBufferInfos      = submitInfos.data(),
+  };
 
   NVVK_CHECK(vkResetFences(m_contextManager->getDevice(), 1, &m_fence));
   NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
                             &submitInfo, m_fence));
   NVVK_CHECK(vkWaitForFences(m_contextManager->getDevice(), 1, &m_fence,
                              VK_TRUE, UINT64_MAX));
+
+  // These command buffers have been submitted; clear them so endFrame does
+  // not submit them again.
+  vkCtx.finishedCmdBuffers.clear();
+  vkCtx.cmdBuffer  = VK_NULL_HANDLE;
+  vkCtx.activeSlot = PassCmdSlot::Count;
 
   // Execute the OIDN filter on the GPU device.
   m_filter.execute();
@@ -182,7 +200,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   m_oidnDevice.sync();
 
-  // Allocate a fresh command buffer and record output copy
+  // Allocate a fresh command buffer from the (already-reset) pool for the
+  // post-OIDN output copy.  The RenderGraph will close it when it activates
+  // the ToneMap slot.
   VkCommandBufferAllocateInfo allocInfo{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   allocInfo.commandPool = vkCtx.cmdPool;
@@ -211,9 +231,14 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     vkCmdPipelineBarrier2(newCmd, &depInfo);
   }
 
-  // Call the new helper method
   copyBufferToDenoised(newCmd, gBuffers, size);
+
+  // Leave newCmd open (in recording state).  The RenderGraph will end it
+  // when it calls activatePass(ToneMap), which sees cmdBuffer != VK_NULL_HANDLE
+  // and activeSlot == Count and closes it before opening ToneMap.
   vkCtx.cmdBuffer = newCmd;
+  // activeSlot stays at Count to signal that cmdBuffer is a dynamic buffer,
+  // not a pre-allocated slot — activatePass() handles this correctly.
 }
 
 /**********************************************************/

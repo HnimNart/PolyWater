@@ -32,6 +32,10 @@ public:
   // so Vulkan-style explicit barriers are not needed here.
   void submitBarriers(const std::vector<BarrierInfo> &barriers) const override;
 
+  // Metal uses automatic hazard tracking; per-pass command buffer slots
+  // are a Vulkan concept and are not needed here.
+  void activatePass(PassCmdSlot /*slot*/) override {}
+
   // Static helpers to safely downcast from the base interface.
   static const MetalRenderContext &get(const IRenderContext &ctx)
   {

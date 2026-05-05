@@ -16,6 +16,12 @@ public:
   virtual void setup(PassBuilder& builder) = 0;
   virtual void execute(IRenderContext& ctx) = 0;
   virtual void deinit() = 0;
+
+  // Returns which per-frame command buffer slot this pass records into.
+  // The RenderGraph calls ctx.activatePass(cmdSlot()) before execute(), so
+  // passes do not need to manage command buffer begin/end themselves.
+  // Override in passes that require a dedicated slot (Denoise, ToneMap, Gui).
+  virtual PassCmdSlot cmdSlot() const { return PassCmdSlot::Main; }
 };
 
 class RenderGraph

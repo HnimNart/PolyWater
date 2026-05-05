@@ -123,6 +123,9 @@ void RenderGraph::execute(IRenderContext& ctx) const
 {
   for (size_t i = 0; i < m_passes.size(); ++i)
   {
+    // Switch to the slot this pass records into (no-op if already active).
+    ctx.activatePass(m_passes[i]->cmdSlot());
+
     // Submit Barriers (The Context handles the API translation)
     if (!m_barriers[i].empty())
     {
@@ -133,9 +136,12 @@ void RenderGraph::execute(IRenderContext& ctx) const
     m_passes[i]->execute(ctx);
   }
 
-  // Submit Final Export Barriers
+  // Submit Final Export Barriers into the last active command buffer.
   if (!m_finalBarriers.empty())
   {
     ctx.submitBarriers(m_finalBarriers);
   }
+
+  // End the last active command buffer.
+  ctx.activatePass(PassCmdSlot::Count);
 }

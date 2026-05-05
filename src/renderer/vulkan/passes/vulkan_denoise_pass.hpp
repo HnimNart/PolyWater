@@ -22,6 +22,9 @@ public:
   // Executes the compute shader
   void execute(IRenderContext& ctx) override;
 
+  // Compute denoising runs in a dedicated slot after the main ray-trace pass.
+  PassCmdSlot cmdSlot() const override { return PassCmdSlot::Denoise; }
+
 private:
   void createDescriptorLayout();
   void createComputePipeline();
