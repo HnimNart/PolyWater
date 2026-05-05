@@ -50,6 +50,7 @@ public:
   // Execution
   // -------------------------------------------------------------------------
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "RayTrace"; }
 
 private:
   // -------------------------------------------------------------------------

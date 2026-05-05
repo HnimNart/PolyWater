@@ -38,6 +38,7 @@ public:
 
   // Raster //
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "Raster"; }
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 

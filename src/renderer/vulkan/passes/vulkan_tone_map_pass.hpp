@@ -23,6 +23,7 @@ public:
 
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "ToneMap"; }
 
   // Explicitly non-copyable
   VulkanToneMapPass(const VulkanToneMapPass&) = delete;

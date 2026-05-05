@@ -11,6 +11,7 @@ public:
   void setup(PassBuilder& builder) override;
   void deinit() override;
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "Sky"; }
 
 private:
   VulkanContextManager* m_core = nullptr;

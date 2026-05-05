@@ -21,6 +21,7 @@ public:
 
   // Executes the compute shader
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "Denoise"; }
 
 private:
   void createDescriptorLayout();

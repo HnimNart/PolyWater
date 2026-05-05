@@ -10,6 +10,10 @@
 #include "vulkan_acceleration_structures.hpp"
 #include "vulkan_pipeline_manager.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 class PostProcessor;
 class IRenderBackend;
 class VulkanSceneAssetManager;
@@ -83,4 +87,8 @@ private:
   // Reference to post for UI
   std::unique_ptr<RenderGraph> m_graph;
   VulkanPipelineManager m_pipelineManager;
+
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };

@@ -39,6 +39,7 @@ public:
 
   // Render Execution
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "Meshlet"; }
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
