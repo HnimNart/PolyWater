@@ -54,12 +54,26 @@ void OIDNDenoisePass::init()
                            &m_fence));
 
   createOIDNDevice();
+
+  // Start the persistent OIDN worker thread.
+  m_oidnThread = std::thread([this]() { oidnWorkerLoop(); });
 }
 
 /**********************************************************/
 void OIDNDenoisePass::deinit()
 /**********************************************************/
 {
+  // Signal and join the worker thread before releasing OIDN resources.
+  {
+    std::lock_guard<std::mutex> lock(m_workerMutex);
+    m_workerStop = true;
+  }
+  m_workerCv.notify_one();
+  if (m_oidnThread.joinable())
+  {
+    m_oidnThread.join();
+  }
+
   m_filter = oidn::FilterRef{};  // Release before device
   destroyBuffers();
   m_oidnDevice = oidn::DeviceRef{};  // Release OIDN device
@@ -154,7 +168,8 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   copyImageToBuffer(RenderOutput::Albedo, m_albedoBuf.buffer);
   copyImageToBuffer(RenderOutput::Normal, m_normalBuf.buffer);
 
-  // Submit the current command buffer and wait on the CPU.
+  // Submit the current command buffer so the GPU can DMA the data into the
+  // OIDN input buffers.
   NVVK_CHECK(vkEndCommandBuffer(cmd));
 
   VkCommandBufferSubmitInfo cmdSubmitInfo{
@@ -168,19 +183,22 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkResetFences(m_contextManager->getDevice(), 1, &m_fence));
   NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
                             &submitInfo, m_fence));
-  NVVK_CHECK(vkWaitForFences(m_contextManager->getDevice(), 1, &m_fence,
-                             VK_TRUE, UINT64_MAX));
 
-  // Execute the OIDN filter on the GPU device.
-  m_filter.execute();
-
-  const char* errorMessage = nullptr;
-  if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
+  // Hand the fence to the worker thread and wait for it to finish.
+  // The worker calls vkWaitForFences → executeAsync() → sync(), keeping
+  // the OIDN blocking work off the main render thread.
+  std::future<void> oidnDone;
   {
-    fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
-  }
+    auto job = std::make_unique<WorkerJob>();
+    job->fence = m_fence;
+    job->device = m_contextManager->getDevice();
+    oidnDone = job->completion.get_future();
 
-  m_oidnDevice.sync();
+    std::lock_guard<std::mutex> lock(m_workerMutex);
+    m_pendingJob = std::move(job);
+  }
+  m_workerCv.notify_one();
+  oidnDone.get();
 
   // Allocate a fresh command buffer and record output copy
   VkCommandBufferAllocateInfo allocInfo{
@@ -214,6 +232,48 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // Call the new helper method
   copyBufferToDenoised(newCmd, gBuffers, size);
   vkCtx.cmdBuffer = newCmd;
+}
+
+// ---------------------------------------------------------------------------
+// Async worker thread
+// ---------------------------------------------------------------------------
+
+/**********************************************************/
+void OIDNDenoisePass::oidnWorkerLoop()
+/**********************************************************/
+{
+  while (true)
+  {
+    std::unique_ptr<WorkerJob> job;
+    {
+      std::unique_lock<std::mutex> lock(m_workerMutex);
+      m_workerCv.wait(lock,
+                      [this]() { return m_pendingJob || m_workerStop; });
+      if (m_workerStop && !m_pendingJob)
+      {
+        break;
+      }
+      job = std::move(m_pendingJob);
+    }
+
+    // Wait for the GPU to finish DMA-ing image data into the OIDN buffers.
+    vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
+
+    // Kick the OIDN GPU/CPU filter asynchronously (returns immediately),
+    // then wait for the device to signal completion.
+    m_filter.executeAsync();
+
+    const char* errorMessage = nullptr;
+    if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
+    {
+      fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
+    }
+
+    m_oidnDevice.sync();
+
+    // Unblock the main render thread.
+    job->completion.set_value();
+  }
 }
 
 /**********************************************************/

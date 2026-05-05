@@ -75,12 +75,13 @@ void VulkanFrameSynchronizationManager::createFrameData(
 void VulkanFrameSynchronizationManager::waitForFrameCompletion() const
 /**********************************************************/
 {
-  VkDevice device = m_frameData[m_frameRingCurrent]->device;
+  const uint32_t idx = m_frameRingCurrent.load(std::memory_order_acquire);
+  VkDevice device = m_frameData[idx]->device;
   const VkSemaphoreWaitInfo waitInfo = {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
       .semaphoreCount = 1,
       .pSemaphores = &m_frameTimelineSemaphore,
-      .pValues = &m_frameData[m_frameRingCurrent]->frameNumber,
+      .pValues = &m_frameData[idx]->frameNumber,
   };
   vkWaitSemaphores(device, &waitInfo, std::numeric_limits<uint64_t>::max());
 }
@@ -89,7 +90,8 @@ void VulkanFrameSynchronizationManager::waitForFrameCompletion() const
 VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
 /**********************************************************/
 {
-  auto& frame = m_frameData[m_frameRingCurrent];
+  const uint32_t idx = m_frameRingCurrent.load(std::memory_order_acquire);
+  auto& frame = m_frameData[idx];
   frame->frameNumber += m_frameData.size();
   VkDevice device = frame->device;
 
@@ -127,23 +129,26 @@ void VulkanFrameSynchronizationManager::endFrame(const VulkanRenderContext& fram
 void VulkanFrameSynchronizationManager::advance()
 /**********************************************************/
 {
-  // TODO make this thread-saef?
-  m_frameRingCurrent = (m_frameRingCurrent + 1) % m_frameData.size();
+  const uint32_t next =
+      (m_frameRingCurrent.load(std::memory_order_relaxed) + 1) %
+      static_cast<uint32_t>(m_frameData.size());
+  m_frameRingCurrent.store(next, std::memory_order_release);
 }
 
 /**********************************************************/
 VkCommandBuffer VulkanFrameSynchronizationManager::getActiveCommandBuffer() const
 /**********************************************************/
 {
-  assert(m_frameData[m_frameRingCurrent]->cmdBuffer != VK_NULL_HANDLE);
-  return m_frameData[m_frameRingCurrent]->cmdBuffer;
+  const uint32_t idx = m_frameRingCurrent.load(std::memory_order_acquire);
+  assert(m_frameData[idx]->cmdBuffer != VK_NULL_HANDLE);
+  return m_frameData[idx]->cmdBuffer;
 }
 
 /**********************************************************/
 VulkanRenderContext* VulkanFrameSynchronizationManager::getActiveFrameContext()
 /**********************************************************/
 {
-  return m_frameData[m_frameRingCurrent].get();
+  return m_frameData[m_frameRingCurrent.load(std::memory_order_acquire)].get();
 }
 
 /**********************************************************/
@@ -151,7 +156,7 @@ const VulkanRenderContext*
 VulkanFrameSynchronizationManager::getActiveFrameContext() const
 /**********************************************************/
 {
-  return m_frameData[m_frameRingCurrent].get();
+  return m_frameData[m_frameRingCurrent.load(std::memory_order_acquire)].get();
 }
 
 /**********************************************************/
@@ -159,6 +164,7 @@ void VulkanFrameSynchronizationManager::addWaitSemaphore(
     const VkSemaphoreSubmitInfo& semaphore)
 /**********************************************************/
 {
+  std::lock_guard<std::mutex> lock(m_semaphoreMutex);
   m_waitSemaphores.push_back(semaphore);
 }
 
@@ -167,6 +173,7 @@ void VulkanFrameSynchronizationManager::addSignalSemaphore(
     const VkSemaphoreSubmitInfo& semaphore)
 /**********************************************************/
 {
+  std::lock_guard<std::mutex> lock(m_semaphoreMutex);
   m_signalSemaphores.push_back(semaphore);
 }
 
@@ -175,6 +182,7 @@ void VulkanFrameSynchronizationManager::addCommandBuffer(
     const VkCommandBufferSubmitInfo& cmdBuffer)
 /**********************************************************/
 {
+  std::lock_guard<std::mutex> lock(m_semaphoreMutex);
   m_commandBuffers.push_back(cmdBuffer);
 }
 
@@ -182,6 +190,7 @@ void VulkanFrameSynchronizationManager::addCommandBuffer(
 void VulkanFrameSynchronizationManager::clearSemaphoresAndBuffers()
 /**********************************************************/
 {
+  std::lock_guard<std::mutex> lock(m_semaphoreMutex);
   m_waitSemaphores.clear();
   m_signalSemaphores.clear();
   m_commandBuffers.clear();

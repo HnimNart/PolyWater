@@ -8,6 +8,12 @@
 #include <OpenImageDenoise/oidn.hpp>
 #include <nvvk/gbuffers.hpp>
 
+#include <condition_variable>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <thread>
+
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
@@ -29,14 +35,16 @@
 //  2. execute() records vkCmdCopyImageToBuffer commands for the three inputs
 //     into the current (pre-OIDN) command buffer.
 //  3. That command buffer is ended and submitted to the graphics queue with
-//     an internal fence; the CPU waits for it.
-//  4. OIDN executes on the GPU (the input Vulkan buffers are shared with the
-//     OIDN device via Vulkan external-memory handles).
-//  5. After oidnDevice.sync(), a fresh command buffer is started from the
-//     same pool, records the copy from the OIDN output buffer back to the
-//     Denoised G-buffer image, and is stored back in the IRenderContext.
-//     Subsequent passes (ToneMap, UI) record into this new command buffer,
-//     which the frame-sync manager ends and submits at end-of-frame.
+//     an internal fence; the CPU does NOT block here.
+//  4. A persistent worker thread picks up the job, waits for the fence, then
+//     calls executeAsync() + sync() on the OIDN device — keeping the heavy
+//     blocking wait off the main render thread.
+//  5. execute() waits on the std::future signalled by the worker, then
+//     allocates a fresh command buffer, records the copy from the OIDN output
+//     buffer back to the Denoised G-buffer image, and stores it in the
+//     IRenderContext.  Subsequent passes (ToneMap, UI) record into this new
+//     command buffer, which the frame-sync manager ends and submits at
+//     end-of-frame.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
@@ -81,6 +89,17 @@ private:
   void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
                             VkExtent2D size);
 
+  // Async worker thread: waits for the GPU fence, then runs executeAsync() +
+  // sync() so the denoising work is off the main render thread.
+  struct WorkerJob
+  {
+    VkFence fence;
+    VkDevice device;
+    std::promise<void> completion;
+  };
+
+  void oidnWorkerLoop();
+
   // -----------------------------------------------------------------------
   // Members
   // -----------------------------------------------------------------------
@@ -99,4 +118,11 @@ private:
 
   uint32_t m_width = 0;
   uint32_t m_height = 0;
+
+  // Worker thread for async OIDN execution
+  std::thread m_oidnThread;
+  std::mutex m_workerMutex;
+  std::condition_variable m_workerCv;
+  std::unique_ptr<WorkerJob> m_pendingJob;
+  bool m_workerStop = false;
 };

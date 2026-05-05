@@ -2,7 +2,9 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <atomic>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include "vulkan_render_context.hpp"
@@ -30,7 +32,7 @@ public:
   }
   uint32_t getCurrentFrameIndex() const
   {
-    return m_frameRingCurrent;
+    return m_frameRingCurrent.load(std::memory_order_acquire);
   }
 
   // Semaphore management
@@ -59,10 +61,11 @@ public:
 
 private:
   std::vector<std::unique_ptr<VulkanRenderContext>> m_frameData;
-  uint32_t m_frameRingCurrent = 0;
+  std::atomic<uint32_t> m_frameRingCurrent{0};
 
   VkSemaphore m_frameTimelineSemaphore = VK_NULL_HANDLE;
 
+  mutable std::mutex m_semaphoreMutex;
   std::vector<VkSemaphoreSubmitInfo> m_waitSemaphores;
   std::vector<VkSemaphoreSubmitInfo> m_signalSemaphores;
   std::vector<VkCommandBufferSubmitInfo> m_commandBuffers;
