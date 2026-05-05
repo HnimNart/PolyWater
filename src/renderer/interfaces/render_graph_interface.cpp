@@ -31,6 +31,13 @@ void RenderGraph::compile()
   m_finalBarriers.clear();
   m_finalStates.clear();
 
+  // Assign one unique command buffer index per pass (index == pass position).
+  m_passCmdIndex.resize(m_passes.size());
+  for (size_t i = 0; i < m_passes.size(); ++i)
+  {
+    m_passCmdIndex[i] = static_cast<uint32_t>(i);
+  }
+
   struct CurrentState
   {
     ResourceState state = ResourceState::Undefined;
@@ -123,8 +130,8 @@ void RenderGraph::execute(IRenderContext& ctx) const
 {
   for (size_t i = 0; i < m_passes.size(); ++i)
   {
-    // Switch to the slot this pass records into (no-op if already active).
-    ctx.activatePass(m_passes[i]->cmdSlot());
+    // Open the command buffer dedicated to this pass.
+    ctx.activatePass(m_passCmdIndex[i]);
 
     // Submit Barriers (The Context handles the API translation)
     if (!m_barriers[i].empty())
@@ -143,5 +150,5 @@ void RenderGraph::execute(IRenderContext& ctx) const
   }
 
   // End the last active command buffer.
-  ctx.activatePass(PassCmdSlot::Count);
+  ctx.activatePass(kEndPassIndex);
 }

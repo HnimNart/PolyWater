@@ -14,6 +14,11 @@ public:
   void init(VulkanContextManager& coreManager, uint32_t numFrames);
   void deinit(VulkanContextManager& coreManager);
 
+  // Reallocate the per-pass command buffers for every frame in the ring.
+  // Must be called after RenderGraph::compile() so that exactly one command
+  // buffer per pass is available each frame.  Requires the device to be idle.
+  void resizeCmdBuffers(VulkanContextManager& coreManager, uint32_t numCmdBuffers);
+
   // Frame lifecycle
   void waitForFrameCompletion() const;
   VulkanRenderContext* beginFrame();

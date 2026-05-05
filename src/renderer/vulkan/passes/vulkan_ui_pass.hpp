@@ -32,10 +32,6 @@ public:
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
 
-  // The GUI overlay is rendered into a dedicated command buffer so it can
-  // be recorded independently of the main and tonemapping passes.
-  PassCmdSlot cmdSlot() const override { return PassCmdSlot::Gui; }
-
 private:
   RenderCallback m_callback;
 };

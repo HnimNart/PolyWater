@@ -187,7 +187,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // not submit them again.
   vkCtx.finishedCmdBuffers.clear();
   vkCtx.cmdBuffer  = VK_NULL_HANDLE;
-  vkCtx.activeSlot = PassCmdSlot::Count;
+  vkCtx.activeIndex = kEndPassIndex;
 
   // Execute the OIDN filter on the GPU device.
   m_filter.execute();
@@ -234,11 +234,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   copyBufferToDenoised(newCmd, gBuffers, size);
 
   // Leave newCmd open (in recording state).  The RenderGraph will end it
-  // when it calls activatePass(ToneMap), which sees cmdBuffer != VK_NULL_HANDLE
-  // and activeSlot == Count and closes it before opening ToneMap.
+  // when it calls activatePass(nextPassIndex), which sees cmdBuffer != VK_NULL_HANDLE
+  // and activeIndex == kEndPassIndex and closes it before opening the next pass.
   vkCtx.cmdBuffer = newCmd;
-  // activeSlot stays at Count to signal that cmdBuffer is a dynamic buffer,
-  // not a pre-allocated slot — activatePass() handles this correctly.
+  // activeIndex stays at kEndPassIndex to signal that cmdBuffer is a dynamic
+  // buffer, not a pre-allocated pass buffer — activatePass() handles it correctly.
 }
 
 /**********************************************************/

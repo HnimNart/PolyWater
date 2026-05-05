@@ -16,12 +16,6 @@ public:
   virtual void setup(PassBuilder& builder) = 0;
   virtual void execute(IRenderContext& ctx) = 0;
   virtual void deinit() = 0;
-
-  // Returns which per-frame command buffer slot this pass records into.
-  // The RenderGraph calls ctx.activatePass(cmdSlot()) before execute(), so
-  // passes do not need to manage command buffer begin/end themselves.
-  // Override in passes that require a dedicated slot (Denoise, ToneMap, Gui).
-  virtual PassCmdSlot cmdSlot() const { return PassCmdSlot::Main; }
 };
 
 class RenderGraph
@@ -56,6 +50,15 @@ public:
 
   void compile();
 
+  // Returns the total number of command buffers required for one frame.
+  // This equals the number of passes (one per pass) and is valid after
+  // compile() has been called.  Pass this to the backend so it can allocate
+  // the right number of command buffers per frame.
+  uint32_t numCmdBuffers() const
+  {
+    return static_cast<uint32_t>(m_passes.size());
+  }
+
   // -----------------------------------------------------------------------
   // EXECUTE: Delegates to the Context
   // -----------------------------------------------------------------------
@@ -65,6 +68,11 @@ private:
   std::vector<std::unique_ptr<IRenderPass>> m_passes;
   std::vector<std::vector<BarrierInfo>>
       m_barriers;  // List of barriers per pass
+
+  // Per-pass command buffer index assigned during compile().
+  // Entry i is the index passed to ctx.activatePass() before pass i executes.
+  // In the current "one command buffer per pass" model this is always i.
+  std::vector<uint32_t> m_passCmdIndex;
 
   std::unordered_map<RenderOutput, std::pair<ResourceState, PipelineStage>>
       m_finalStates;

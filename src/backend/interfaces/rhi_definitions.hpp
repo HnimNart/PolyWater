@@ -55,24 +55,11 @@ struct BarrierInfo
   PipelineStage dstStage;
 };
 
-// Identifies which per-frame command buffer a pass records into.
-// One primary command buffer is allocated per slot every frame, reused across
-// frames by resetting the per-frame pool rather than reallocating.
-//
-// Slot layout:
-//   Main    – ray trace / raster / sky / meshlet / mip-reduction
-//   Denoise – OIDN or compute denoiser
-//   ToneMap – tonemapping compute pass
-//   Gui     – Dear ImGui overlay (recorded into the swapchain attachment)
-//   Count   – sentinel / "end current pass" signal (not a real slot)
-enum class PassCmdSlot : uint32_t
-{
-  Main    = 0,
-  Denoise = 1,
-  ToneMap = 2,
-  Gui     = 3,
-  Count   = 4,  // Total number of real slots; also used as "no slot" sentinel
-};
+// Sentinel value for IRenderContext::activatePass().
+// Passing this index ends the currently active command buffer without opening
+// a new one. Used by RenderGraph at end-of-frame and by passes (e.g.
+// OIDNDenoisePass) that need an intermediate CPU-side synchronisation point.
+inline constexpr uint32_t kEndPassIndex = UINT32_MAX;
 
 // This maps to enum VkIndexType
 enum IndexType

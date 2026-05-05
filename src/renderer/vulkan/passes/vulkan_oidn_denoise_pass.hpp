@@ -25,18 +25,16 @@
 // ---------------
 //  1. The render-graph inserts barriers transitioning the three input images
 //     to TRANSFER_SRC and the output image to TRANSFER_DST, then calls
-//     execute().
-//  2. execute() records vkCmdCopyImageToBuffer commands for the three inputs
-//     into the current (pre-OIDN) command buffer.
-//  3. That command buffer is ended and submitted to the graphics queue with
-//     an internal fence; the CPU waits for it.
+//     execute() on this pass's dedicated command buffer.
+//  2. execute() records vkCmdCopyImageToBuffer commands for the three inputs.
+//  3. This pass's command buffer (plus all previously finished ones) is ended
+//     and submitted to the graphics queue with an internal fence; the CPU waits.
 //  4. OIDN executes on the GPU (the input Vulkan buffers are shared with the
 //     OIDN device via Vulkan external-memory handles).
-//  5. After oidnDevice.sync(), a fresh command buffer is started from the
-//     same pool, records the copy from the OIDN output buffer back to the
-//     Denoised G-buffer image, and is stored back in the IRenderContext.
-//     Subsequent passes (ToneMap, UI) record into this new command buffer,
-//     which the frame-sync manager ends and submits at end-of-frame.
+//  5. After oidnDevice.sync(), a fresh command buffer is started from the same
+//     pool, records the copy from the OIDN output buffer back to the Denoised
+//     G-buffer image, and is stored in IRenderContext::cmdBuffer.  Subsequent
+//     passes record into this buffer; it is submitted at end-of-frame.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
@@ -47,10 +45,6 @@ public:
   void deinit() override;
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
-
-  // The OIDN denoiser runs in a dedicated slot so the main ray-trace
-  // command buffer can be submitted and waited on before OIDN executes.
-  PassCmdSlot cmdSlot() const override { return PassCmdSlot::Denoise; }
 
 private:
   // -----------------------------------------------------------------------

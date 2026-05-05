@@ -32,13 +32,13 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 }
 
 /**********************************************************/
-void VulkanRenderContext::activatePass(PassCmdSlot slot)
+void VulkanRenderContext::activatePass(uint32_t cmdBufferIndex)
 /**********************************************************/
 {
-  const bool isEnd = (slot == PassCmdSlot::Count);
+  const bool isEnd = (cmdBufferIndex == kEndPassIndex);
 
-  // No-op when the requested slot is already the active one.
-  if (!isEnd && activeSlot == slot)
+  // No-op when the requested index is already the active one.
+  if (!isEnd && activeIndex == cmdBufferIndex)
   {
     return;
   }
@@ -49,8 +49,8 @@ void VulkanRenderContext::activatePass(PassCmdSlot slot)
   {
     NVVK_CHECK(vkEndCommandBuffer(cmdBuffer));
     finishedCmdBuffers.push_back(cmdBuffer);
-    cmdBuffer      = VK_NULL_HANDLE;
-    activeSlot     = PassCmdSlot::Count;
+    cmdBuffer   = VK_NULL_HANDLE;
+    activeIndex = kEndPassIndex;
   }
 
   if (isEnd)
@@ -58,9 +58,9 @@ void VulkanRenderContext::activatePass(PassCmdSlot slot)
     return;  // Just ending the current pass, not starting a new one.
   }
 
-  // Begin the pre-allocated command buffer for the requested slot.
-  cmdBuffer  = passCmdBuffers[static_cast<uint32_t>(slot)];
-  activeSlot = slot;
+  // Begin the pre-allocated command buffer for the requested pass index.
+  cmdBuffer   = passCmdBuffers[cmdBufferIndex];
+  activeIndex = cmdBufferIndex;
 
   const VkCommandBufferBeginInfo beginInfo{
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,

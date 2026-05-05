@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include <array>
 #include <vector>
 
 #include "backend/interfaces/render_context_interface.hpp"
@@ -16,11 +15,15 @@ class VulkanAccelerationStructures;
 // VulkanRenderContext
 //------------------------------------------------------------
 // Concrete Vulkan implementation of IRenderContext for a single frame.
-// One primary command buffer is allocated per PassCmdSlot every frame and
-// reused across frames by resetting the per-frame command pool.
 //
-// The RenderGraph calls activatePass() before each pass, which ends the
-// previously active command buffer and begins the one for the new slot.
+// One primary command buffer is allocated per pass in the RenderGraph every
+// frame and reused across frames by resetting the per-frame command pool.
+// The number of command buffers is determined by RenderGraph::numCmdBuffers()
+// and communicated to the backend via VulkanFrameSynchronizationManager::
+// resizeCmdBuffers(), which must be called whenever the graph is (re)compiled.
+//
+// The RenderGraph calls activatePass(i) before each pass, which ends the
+// previously active command buffer and begins the one at index i.
 // Passes simply record into cmdBuffer without managing begin/end themselves.
 // At end-of-frame, all command buffers in finishedCmdBuffers are submitted
 // together in a single vkQueueSubmit2 call.
@@ -38,11 +41,12 @@ public:
   // API funcs
   void submitBarriers(const std::vector<BarrierInfo>& barriers) const override;
 
-  // Activates the command buffer for the given slot, ending the previously
-  // active one first.  Passing PassCmdSlot::Count ends the current buffer
-  // without opening a new one (used by RenderGraph at end-of-frame).
-  // If the requested slot is already active this is a no-op.
-  void activatePass(PassCmdSlot slot) override;
+  // Activates the command buffer at the given index (assigned by RenderGraph
+  // during compile()), ending the previously active one first.
+  // Passing kEndPassIndex ends the current buffer without opening a new one
+  // (used by RenderGraph at end-of-frame and by OIDNDenoisePass).
+  // If the requested index is already active this is a no-op.
+  void activatePass(uint32_t cmdBufferIndex) override;
 
   // Static helper to cast from the interface
   static const VulkanRenderContext& get(const IRenderContext& ctx)
@@ -58,25 +62,22 @@ public:
   // ------------------------------------------------------------------------
   // Per-pass command buffers
   // ------------------------------------------------------------------------
-  // Number of pre-allocated command buffer slots per frame.
-  static constexpr uint32_t kNumPassCmdSlots =
-      static_cast<uint32_t>(PassCmdSlot::Count);
-
-  // One pre-allocated command buffer per slot, all from cmdPool.
-  // Pool reset at frame-start implicitly resets all of these.
-  std::array<VkCommandBuffer, kNumPassCmdSlots> passCmdBuffers{};
+  // One pre-allocated command buffer per pass, all from cmdPool.
+  // Sized by VulkanFrameSynchronizationManager::resizeCmdBuffers() after each
+  // graph (re)compile. Pool reset at frame-start implicitly resets all of them.
+  std::vector<VkCommandBuffer> passCmdBuffers;
 
   // The command buffer currently in the recording state.
-  // beginFrame() sets this to passCmdBuffers[Main]; activatePass() updates it.
+  // beginFrame() sets this to passCmdBuffers[0]; activatePass() updates it.
   VkCommandBuffer cmdBuffer{};
 
-  // Slot that owns the currently recording cmdBuffer.
-  // PassCmdSlot::Count means no slot is active (cmdBuffer may still be valid
-  // if set directly, e.g. by OIDNDenoisePass after its intermediate submit).
-  PassCmdSlot activeSlot{PassCmdSlot::Count};
+  // Index of the pass that owns the currently recording cmdBuffer.
+  // kEndPassIndex means no pass slot is active (cmdBuffer may still be valid
+  // if set directly by OIDNDenoisePass after its intermediate submit).
+  uint32_t activeIndex{kEndPassIndex};
 
   // Command buffers that have been ended this frame and are ready to submit.
-  // Populated by activatePass() as slots are transitioned; cleared by
+  // Populated by activatePass() as passes are transitioned; cleared by
   // beginFrame() and by OIDNDenoisePass after its intermediate submit.
   std::vector<VkCommandBuffer> finishedCmdBuffers;
 
@@ -89,7 +90,7 @@ public:
   const nvvk::GBuffer* gBuffers{};
   // --- Swapchain Integration ---
   // These are updated every frame by the VulkanSwapchainRenderManager
-  VkImage swapchainImage{};      // For pipeline barriers (Layout transitions)
+  VkImage swapchainImage{};          // For pipeline barriers (Layout transitions)
   VkImageView swapchainImageView{};  // For VkRenderingAttachmentInfo (Drawing)
   VkExtent2D screenSize{};           // For setting viewports and render areas
 

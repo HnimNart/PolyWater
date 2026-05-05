@@ -29,12 +29,14 @@ public:
   virtual void
   submitBarriers(const std::vector<BarrierInfo>& barriers) const = 0;
 
-  // Called by the RenderGraph before each pass to switch the active per-pass
-  // command buffer.  Passing PassCmdSlot::Count ends the current pass without
-  // opening a new one (used at the end of a frame to close the last buffer).
-  // Backends that do not track per-pass command buffers (e.g. Metal) may
-  // implement this as a no-op.
-  virtual void activatePass(PassCmdSlot slot) = 0;
+  // Called by the RenderGraph before each pass to switch to that pass's
+  // dedicated command buffer (identified by the index assigned during
+  // RenderGraph::compile()).  Passing kEndPassIndex ends the currently active
+  // command buffer without opening a new one (used at end-of-frame and for
+  // intermediate CPU-sync points such as the OIDN denoiser).
+  // Backends without explicit command buffer management (e.g. Metal) implement
+  // this as a no-op.
+  virtual void activatePass(uint32_t cmdBufferIndex) = 0;
 
 public:
   uint64_t frameNumber{0};  // Timeline value for synchronization
