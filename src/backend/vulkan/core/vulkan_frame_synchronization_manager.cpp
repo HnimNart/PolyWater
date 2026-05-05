@@ -102,6 +102,8 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
   // a frame; resetting it here ensures the next frame always starts with the
   // correct, pool-owned buffer.
   frame->cmdBuffer = frame->primaryCmdBuffer;
+  frame->preCommandBuffers.clear();
+  frame->preSignalSemaphores.clear();
 
   VkCommandBufferBeginInfo beginInfo{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};

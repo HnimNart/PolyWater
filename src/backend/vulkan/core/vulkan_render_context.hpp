@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <vector>
+
 #include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/rhi_definitions.hpp"
 #include "nvvk/gbuffers.hpp"
@@ -53,6 +55,13 @@ public:
   VkImage swapchainImage{};  // For pipeline barriers (Layout transitions)
   VkImageView swapchainImageView{};  // For VkRenderingAttachmentInfo (Drawing)
   VkExtent2D screenSize{};           // For setting viewports and render areas
+
+  // Pre-command buffers and their associated signal semaphores.
+  // Passes may push ended command buffers here during execute(); endFrame()
+  // will submit them as a single batch before the main command buffer.
+  // This avoids mid-frame vkQueueSubmit2 calls from individual passes.
+  std::vector<VkCommandBufferSubmitInfo> preCommandBuffers;
+  std::vector<VkSemaphoreSubmitInfo>     preSignalSemaphores;
 
 private:
   VkImage getResourceImage(RenderOutput resource) const;

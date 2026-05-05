@@ -193,8 +193,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 
   // -------------------------------------------------------------------------
   // Part 1: Pre-Denoise (Vulkan)
-  // Record GBuffer → OIDN-input-buffer copies, then end and directly submit
-  // this command buffer, signalling the per-slot Semaphore A.
+  // Record GBuffer → OIDN-input-buffer copies into the current command buffer,
+  // then end it.  For the GPU path it is registered in preCommandBuffers so
+  // endFrame() submits it (signalling Semaphore A) before the main submit.
+  // For the CPU path it is submitted immediately here so the CPU can block on
+  // Semaphore A and run OIDN synchronously.
   // -------------------------------------------------------------------------
   VkCommandBuffer preCmdBuf = vkCtx.cmdBuffer;
 
@@ -222,28 +225,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // so it is strictly monotone within each slot's independent semaphore pair.
   const uint64_t semValue = vkCtx.frameNumber;
 
-  {
-    const VkCommandBufferSubmitInfo preCmdInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-        .commandBuffer = preCmdBuf,
-    };
-    const VkSemaphoreSubmitInfo signalSemA{
-        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .semaphore = m_semVulkanToCuda[frameIdx],
-        .value     = semValue,
-        .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-    };
-    const VkSubmitInfo2 preSubmit{
-        .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-        .commandBufferInfoCount   = 1,
-        .pCommandBufferInfos      = &preCmdInfo,
-        .signalSemaphoreInfoCount = 1,
-        .pSignalSemaphoreInfos    = &signalSemA,
-    };
-    NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
-                              &preSubmit, VK_NULL_HANDLE));
-  }
-
   // -------------------------------------------------------------------------
   // Part 2: Denoise
   // GPU path: enqueue — on this slot's own CUDA stream — a semaphore wait,
@@ -262,7 +243,9 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     auto extSemB = reinterpret_cast<cudaExternalSemaphore_t>(
         m_cudaExtSemCudaToVulkan[frameIdx]);
 
-    // Enqueue: wait for Vulkan to signal m_semVulkanToCuda[frameIdx].
+    // Enqueue CUDA work first (non-blocking on CPU).  The CUDA driver will
+    // not start executing until the GPU signals Semaphore A, which happens
+    // when the pre-command buffer is submitted by endFrame().
     cudaExternalSemaphoreWaitParams waitParams{};
     waitParams.params.fence.value = semValue;
     waitParams.flags              = 0;
@@ -292,10 +275,45 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
       };
       vkSignalSemaphore(m_contextManager->getDevice(), &fallbackSignal);
     }
+
+    // Register the pre-command buffer (GBuffer → OIDN buffer copies) with the
+    // render context.  endFrame() will submit it — signalling Semaphore A —
+    // before the main command buffer.  This avoids a mid-frame vkQueueSubmit2.
+    vkCtx.preCommandBuffers.push_back(
+        {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+         .commandBuffer = preCmdBuf});
+    vkCtx.preSignalSemaphores.push_back(
+        {.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+         .semaphore = m_semVulkanToCuda[frameIdx],
+         .value     = semValue,
+         .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT});
   }
   else
   {
-    // CPU fallback: block until m_semVulkanToCuda[frameIdx] is signalled.
+    // CPU fallback: the pre-command buffer must be submitted immediately and
+    // waited upon synchronously before OIDN can run.  Do the submit here
+    // rather than deferring to endFrame(), which cannot block mid-frame.
+    const VkCommandBufferSubmitInfo preCmdInfo{
+        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = preCmdBuf,
+    };
+    const VkSemaphoreSubmitInfo signalSemA{
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = m_semVulkanToCuda[frameIdx],
+        .value     = semValue,
+        .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+    };
+    const VkSubmitInfo2 preSubmit{
+        .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount   = 1,
+        .pCommandBufferInfos      = &preCmdInfo,
+        .signalSemaphoreInfoCount = 1,
+        .pSignalSemaphoreInfos    = &signalSemA,
+    };
+    NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
+                              &preSubmit, VK_NULL_HANDLE));
+
+    // Block until m_semVulkanToCuda[frameIdx] is signalled.
     const VkSemaphoreWaitInfo waitInfo{
         .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .semaphoreCount = 1,

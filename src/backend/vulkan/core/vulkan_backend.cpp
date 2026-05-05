@@ -194,8 +194,29 @@ void VulkanBackend::renderFrame(
 void VulkanBackend::endFrame(IRenderContext const& frameCtx)
 /**********************************************************/
 {
-  m_frameSyncManager->endFrame(
-      static_cast<VulkanRenderContext const&>(frameCtx));
+  const VulkanRenderContext& vkCtx =
+      static_cast<VulkanRenderContext const&>(frameCtx);
+
+  // Pre-submit: any command buffers that passes registered before the main
+  // buffer (e.g. OIDNDenoisePass GBuffer→OIDN copies).  Submitted without
+  // wait semaphores so the GPU can start immediately; the associated signal
+  // semaphores (e.g. Vulkan→CUDA timeline) let the next stage proceed.
+  if (!vkCtx.preCommandBuffers.empty())
+  {
+    const VkSubmitInfo2 preSubmit{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount =
+            static_cast<uint32_t>(vkCtx.preCommandBuffers.size()),
+        .pCommandBufferInfos = vkCtx.preCommandBuffers.data(),
+        .signalSemaphoreInfoCount =
+            static_cast<uint32_t>(vkCtx.preSignalSemaphores.size()),
+        .pSignalSemaphoreInfos = vkCtx.preSignalSemaphores.data(),
+    };
+    NVVK_CHECK(vkQueueSubmit2(getQueueInfo(0).queue, 1, &preSubmit,
+                              VK_NULL_HANDLE));
+  }
+
+  m_frameSyncManager->endFrame(vkCtx);
 
   const VkSubmitInfo2 submitInfo{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
