@@ -88,6 +88,7 @@ private:
     ExternalBuffer albedoBuf;
     ExternalBuffer normalBuf;
     ExternalBuffer outputBuf;
+    oidn::DeviceRef oidnDevice;  // Dedicated device, permanently bound to this slot's stream
     oidn::FilterRef filter;
     VkCommandBuffer postCmdBuf = VK_NULL_HANDLE;  // Owned by m_postCmdPool
   };
@@ -95,7 +96,8 @@ private:
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
-  void createOIDNDevice();
+  void createCudaStreams();
+  void createOIDNDevices();
   void createSemaphores();
   void destroySemaphores();
   void createCudaResources();
@@ -106,10 +108,11 @@ private:
   void rebuildFilters(uint32_t width, uint32_t height);
 
   // GPU path: exportable device-local memory shared with OIDN via handle.
-  ExternalBuffer allocateExternalBuffer(size_t byteSize,
-                                        VkBufferUsageFlags usage);
+  ExternalBuffer allocateExternalBuffer(size_t byteSize, VkBufferUsageFlags usage,
+                                        oidn::DeviceRef& oidnDevice);
   // CPU fallback: HOST_VISIBLE | HOST_COHERENT memory wrapped by OIDN.
-  ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
+  ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage,
+                                    oidn::DeviceRef& oidnDevice);
   void destroyBuffer(ExternalBuffer& buf);
 
   void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
@@ -121,8 +124,6 @@ private:
   VulkanContextManager* m_contextManager = nullptr;
   VulkanFrameSynchronizationManager* m_frameSyncManager = nullptr;
 
-  // OIDN device — one shared instance, committed once after stream is set.
-  oidn::DeviceRef m_oidnDevice;
   bool m_gpuPath = false;  // True ↔ external-memory GPU buffers used
 
   // N-buffered per-frame resources and their shared command pool.

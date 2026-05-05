@@ -66,51 +66,31 @@ void OIDNDenoisePass::init()
   m_numFrames = m_frameSyncManager->getFrameCycleSize();
   m_frameResources.resize(m_numFrames);
 
-  // 1. Create the OIDN device object (no commit yet).
-  //    Also creates the CUDA stream when CUDA is available.
-  createOIDNDevice();
+  // 1. Create per-slot CUDA streams (sets m_gpuPath).
+  //    Also determines whether the GPU path is viable.
+  createCudaStreams();
 
   // 2. Create the two exportable Vulkan timeline semaphores used for
   //    Vulkan ↔ CUDA synchronisation (or CPU vkSignalSemaphore fallback).
   createSemaphores();
 
-  // 3. GPU path: import the semaphore into CUDA and attach the stream to the
-  //    OIDN device.  All configuration must precede commit().
+  // 3. GPU path: import the semaphores into CUDA.
+  //    On failure createCudaResources() clears m_gpuPath.
   if (m_gpuPath)
   {
     createCudaResources();
     if (!m_gpuPath)
     {
       // createCudaResources() cleared m_gpuPath on failure; destroy all CUDA
-      // resources (streams + any partially-imported external semaphores) and
-      // fall back to a CPU OIDN device.
+      // resources (streams + any partially-imported external semaphores).
       destroyCudaResources();
-      m_oidnDevice = oidn::newDevice();
-    }
-    else
-    {
-      // All per-slot streams are ready.  Use stream[0] as the initial device
-      // stream; execute() will override it per slot before each executeAsync().
-      m_oidnDevice.set("cudaStream", m_cudaStreams[0]);
     }
   }
 
-  // 4. Commit the device — exactly once, after all configuration.
-  m_oidnDevice.commit();
-  {
-    const char* errMsg = nullptr;
-    if (m_oidnDevice.getError(errMsg) != oidn::Error::None)
-    {
-      fprintf(stderr,
-              "[OIDNDenoisePass] OIDN device commit failed (%s); "
-              "falling back to auto-selected device.\n",
-              errMsg ? errMsg : "unknown");
-      destroyCudaResources();
-      m_gpuPath = false;
-      m_oidnDevice = oidn::newDevice();
-      m_oidnDevice.commit();
-    }
-  }
+  // 4. Create one committed OIDN device per frame-ring slot.  Each GPU-path
+  //    device is permanently bound to its own CUDA stream before commit() so
+  //    that executeAsync() can dispatch without any per-frame device mutation.
+  createOIDNDevices();
 
   // 5. Allocate the dedicated command pool for post-denoise command buffers.
   //    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT lets each buffer be
@@ -143,7 +123,7 @@ void OIDNDenoisePass::init()
 void OIDNDenoisePass::deinit()
 /**********************************************************/
 {
-  // Release OIDN filters and buffers before the device.
+  // Release OIDN filters and buffers before the devices.
   destroyFrameResources();
 
   // Destroy the post-command pool (implicitly frees all postCmdBufs).
@@ -153,7 +133,11 @@ void OIDNDenoisePass::deinit()
     m_postCmdPool = VK_NULL_HANDLE;
   }
 
-  m_oidnDevice = oidn::DeviceRef{};
+  // Release per-slot OIDN devices after their filters and buffers.
+  for (auto& fr : m_frameResources)
+  {
+    fr.oidnDevice = oidn::DeviceRef{};
+  }
 
   destroyCudaResources();
   destroySemaphores();
@@ -288,12 +272,6 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
               cudaGetErrorString(cudaGetLastError()));
     }
 
-    // Override the OIDN device's CUDA stream to this slot's stream before
-    // enqueueing.  execute() is always called from the main CPU thread so
-    // there is no data race on the device property.  The GPU kernels enqueued
-    // by executeAsync() are bound to the stream at call time; the subsequent
-    // set() for the next slot does not affect already-queued work.
-    m_oidnDevice.set("cudaStream", m_cudaStreams[frameIdx]);
     fr.filter.executeAsync();
 
     // Enqueue: signal m_semCudaToVulkan[frameIdx] so the final submit can proceed.
@@ -330,7 +308,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     fr.filter.execute();
 
     const char* errMsg = nullptr;
-    if (m_oidnDevice.getError(errMsg) != oidn::Error::None)
+    if (fr.oidnDevice.getError(errMsg) != oidn::Error::None)
     {
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errMsg);
     }
@@ -399,11 +377,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 }
 
 // ===========================================================================
-// createOIDNDevice
+// createCudaStreams / createOIDNDevices
 // ===========================================================================
 
 /**********************************************************/
-void OIDNDenoisePass::createOIDNDevice()
+void OIDNDenoisePass::createCudaStreams()
 /**********************************************************/
 {
   // Probe CUDA availability.  If the runtime is absent or no devices exist
@@ -436,10 +414,6 @@ void OIDNDenoisePass::createOIDNDevice()
 
     if (streamsOk)
     {
-      // The OIDN device is committed with stream[0] as its initial CUDA
-      // stream.  execute() overrides the stream to the current slot's stream
-      // before calling filter.executeAsync(), so each slot uses its own stream.
-      m_oidnDevice = oidn::newDevice(oidn::DeviceType::CUDA);
       m_gpuPath = true;
       return;
     }
@@ -449,13 +423,66 @@ void OIDNDenoisePass::createOIDNDevice()
     for (auto& s : m_cudaStreams)
     {
       if (s != nullptr)
-        cudaStreamDestroy(static_cast<cudaStream_t>(s));
+      {
+        cudaError_t err = cudaStreamDestroy(static_cast<cudaStream_t>(s));
+        if (err != cudaSuccess)
+        {
+          fprintf(stderr, "[OIDNDenoisePass] cudaStreamDestroy failed: %s\n",
+                  cudaGetErrorString(err));
+        }
+      }
     }
     m_cudaStreams.clear();
   }
 
-  m_oidnDevice = oidn::newDevice();  // Auto-select (CPU)
   m_gpuPath = false;
+}
+
+/**********************************************************/
+void OIDNDenoisePass::createOIDNDevices()
+/**********************************************************/
+{
+  // Helper that creates CPU-fallback devices for all slots.
+  auto createCpuDevices = [&]() {
+    for (auto& fr : m_frameResources)
+    {
+      fr.oidnDevice = oidn::newDevice();
+      fr.oidnDevice.commit();
+    }
+  };
+
+  if (!m_gpuPath)
+  {
+    createCpuDevices();
+    return;
+  }
+
+  // GPU path: create one CUDA OIDN device per slot and permanently bind it
+  // to that slot's stream before calling commit().  This avoids the per-frame
+  // device mutation (set("cudaStream", ...)) that caused implicit stalls.
+  for (uint32_t i = 0; i < m_numFrames; ++i)
+  {
+    auto& fr = m_frameResources[i];
+    fr.oidnDevice = oidn::newDevice(oidn::DeviceType::CUDA);
+    fr.oidnDevice.set("cudaStream", m_cudaStreams[i]);
+    fr.oidnDevice.commit();
+
+    const char* errMsg = nullptr;
+    if (fr.oidnDevice.getError(errMsg) != oidn::Error::None)
+    {
+      fprintf(stderr,
+              "[OIDNDenoisePass] OIDN device commit failed for slot %u (%s); "
+              "falling back to CPU devices.\n",
+              i, errMsg ? errMsg : "unknown");
+      // Release all partially-created devices and fall back entirely to CPU.
+      for (auto& fr2 : m_frameResources)
+        fr2.oidnDevice = oidn::DeviceRef{};
+      destroyCudaResources();
+      m_gpuPath = false;
+      createCpuDevices();
+      return;
+    }
+  }
 }
 
 // ===========================================================================
@@ -690,17 +717,17 @@ void OIDNDenoisePass::createFrameResources(uint32_t width, uint32_t height)
   {
     if (m_gpuPath)
     {
-      fr.colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      fr.albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      fr.normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      fr.outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
+      fr.colorBuf = allocateExternalBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.albedoBuf = allocateExternalBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.normalBuf = allocateExternalBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.outputBuf = allocateExternalBuffer(byteSize, kOutputUsage, fr.oidnDevice);
     }
     else
     {
-      fr.colorBuf = allocateHostBuffer(byteSize, kInputUsage);
-      fr.albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
-      fr.normalBuf = allocateHostBuffer(byteSize, kInputUsage);
-      fr.outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
+      fr.colorBuf = allocateHostBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.albedoBuf = allocateHostBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.normalBuf = allocateHostBuffer(byteSize, kInputUsage, fr.oidnDevice);
+      fr.outputBuf = allocateHostBuffer(byteSize, kOutputUsage, fr.oidnDevice);
     }
 
     if (fr.colorBuf.buffer == VK_NULL_HANDLE ||
@@ -746,7 +773,7 @@ void OIDNDenoisePass::rebuildFilters(uint32_t width, uint32_t height)
 
   for (auto& fr : m_frameResources)
   {
-    fr.filter = m_oidnDevice.newFilter("RT");
+    fr.filter = fr.oidnDevice.newFilter("RT");
 
     fr.filter.setImage("color", fr.colorBuf.oidnBuf, oidn::Format::Float3,
                        width, height, 0, bytePixelStride, byteRowStride);
@@ -795,7 +822,8 @@ void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
 /**********************************************************/
 OIDNDenoisePass::ExternalBuffer
 OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
-                                        VkBufferUsageFlags usage)
+                                        VkBufferUsageFlags usage,
+                                        oidn::DeviceRef& oidnDevice)
 /**********************************************************/
 {
   ExternalBuffer buf;
@@ -830,7 +858,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   if (!(extBufProps.externalMemoryProperties.externalMemoryFeatures &
         VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT))
   {
-    return allocateHostBuffer(byteSize, usage);
+    return allocateHostBuffer(byteSize, usage, oidnDevice);
   }
 
   // Create VkBuffer with external-memory export flag.
@@ -855,7 +883,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   {
     vkDestroyBuffer(device, buf.buffer, nullptr);
     buf.buffer = VK_NULL_HANDLE;
-    return allocateHostBuffer(byteSize, usage);
+    return allocateHostBuffer(byteSize, usage, oidnDevice);
   }
 
   const VkExportMemoryAllocateInfo exportInfo{
@@ -877,7 +905,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
   HANDLE win32Handle = nullptr;
   NVVK_CHECK(vkGetMemoryWin32HandleKHR(device, &getHandleInfo, &win32Handle));
   buf.oidnBuf =
-      m_oidnDevice.newBuffer(kOIDNHandleType, win32Handle, nullptr, byteSize);
+      oidnDevice.newBuffer(kOIDNHandleType, win32Handle, nullptr, byteSize);
 #else
   const VkMemoryGetFdInfoKHR getFdInfo{VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
                                        nullptr, buf.memory, kHandleType};
@@ -888,7 +916,7 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
                              "VK_KHR_external_memory_fd extension not loaded.");
   }
   NVVK_CHECK(vkGetMemoryFdKHR(device, &getFdInfo, &fd));
-  buf.oidnBuf = m_oidnDevice.newBuffer(kOIDNHandleType, fd, byteSize);
+  buf.oidnBuf = oidnDevice.newBuffer(kOIDNHandleType, fd, byteSize);
 #endif
 
   return buf;
@@ -896,7 +924,8 @@ OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,
 
 /**********************************************************/
 OIDNDenoisePass::ExternalBuffer
-OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
+OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage,
+                                    oidn::DeviceRef& oidnDevice)
 /**********************************************************/
 {
   ExternalBuffer buf;
@@ -938,7 +967,7 @@ OIDNDenoisePass::allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage)
   NVVK_CHECK(vkBindBufferMemory(device, buf.buffer, buf.memory, 0));
   NVVK_CHECK(vkMapMemory(device, buf.memory, 0, byteSize, 0, &buf.hostPtr));
 
-  buf.oidnBuf = m_oidnDevice.newBuffer(buf.hostPtr, byteSize);
+  buf.oidnBuf = oidnDevice.newBuffer(buf.hostPtr, byteSize);
   return buf;
 }
 
