@@ -33,6 +33,11 @@ uint32_t findMemoryType(VkPhysicalDevice physDevice, uint32_t typeFilter,
 // Pixel stride in bytes for VK_FORMAT_R32G32B32A32_SFLOAT.
 constexpr VkDeviceSize kBytesPerPixel = 4 * sizeof(float);
 
+constexpr VkBufferUsageFlags kInputUsage =
+    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+constexpr VkBufferUsageFlags kOutputUsage =
+    VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
 }  // namespace
 
 /**********************************************************/
@@ -50,11 +55,22 @@ OIDNDenoisePass::OIDNDenoisePass(VulkanContextManager* contextManager) :
 void OIDNDenoisePass::init()
 /**********************************************************/
 {
-  VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  NVVK_CHECK(vkCreateFence(m_contextManager->getDevice(), &fenceInfo, nullptr,
-                           &m_fence));
-
   createOIDNDevice();
+
+  // Create the timeline semaphore that the OIDN worker signals from the CPU
+  // after each inference.  CB3's GPU submission waits on this value so the
+  // vkCmdCopyBufferToImage only executes after OIDN has written valid data.
+  const VkSemaphoreTypeCreateInfo timelineInfo{
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+      .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+      .initialValue = 0,
+  };
+  const VkSemaphoreCreateInfo semCI{
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+      .pNext = &timelineInfo,
+  };
+  NVVK_CHECK(vkCreateSemaphore(m_contextManager->getDevice(), &semCI, nullptr,
+                               &m_oidnTimelineSemaphore));
 
   // Start the persistent OIDN worker thread.
   m_oidnThread = std::thread([this]() { oidnWorkerLoop(); });
@@ -64,7 +80,7 @@ void OIDNDenoisePass::init()
 void OIDNDenoisePass::deinit()
 /**********************************************************/
 {
-  // Signal and join the worker thread before releasing OIDN resources.
+  // Signal the worker to stop and drain its queue before joining.
   {
     std::lock_guard<std::mutex> lock(m_workerMutex);
     m_workerStop = true;
@@ -75,14 +91,15 @@ void OIDNDenoisePass::deinit()
     m_oidnThread.join();
   }
 
-  // Worker has exited; any pending future is already fulfilled.
-  destroyBuffers();
-  m_oidnDevice = oidn::DeviceRef{};  // Release OIDN device
+  // Worker has exited — all vkSignalSemaphore calls have been made.
+  destroyAllSlots();
+  m_oidnDevice = oidn::DeviceRef{};
 
-  if (m_fence != VK_NULL_HANDLE)
+  if (m_oidnTimelineSemaphore != VK_NULL_HANDLE)
   {
-    vkDestroyFence(m_contextManager->getDevice(), m_fence, nullptr);
-    m_fence = VK_NULL_HANDLE;
+    vkDestroySemaphore(m_contextManager->getDevice(), m_oidnTimelineSemaphore,
+                       nullptr);
+    m_oidnTimelineSemaphore = VK_NULL_HANDLE;
   }
 }
 
@@ -101,7 +118,7 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 }
 
 // ---------------------------------------------------------------------------
-// execute()  – the main entry point, called once per frame
+// copyBufferToDenoised helper
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
@@ -127,51 +144,48 @@ void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
+// ---------------------------------------------------------------------------
+// execute()  — called once per frame; never blocks the CPU for OIDN
+// ---------------------------------------------------------------------------
+
 /**********************************************************/
 void OIDNDenoisePass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   VulkanRenderContext& vkCtx = VulkanRenderContext::get(ctx);
+  const uint32_t slot = vkCtx.frameRingIndex;
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
   const VkExtent2D size = gBuffers->getSize();
 
-  // re-create buffers when the resolution changes.
+  // -----------------------------------------------------------------------
+  // Recreate all slots when the resolution changes.
+  //
+  // waitForDeviceIdle() drains all pending GPU work including CB3 submissions
+  // that are waiting on m_oidnTimelineSemaphore.  Because the OIDN worker runs
+  // on a separate thread it will signal those values independently, allowing
+  // the GPU to complete and waitForDeviceIdle to return.
+  // -----------------------------------------------------------------------
   if (size.width != m_width || size.height != m_height)
   {
     m_contextManager->waitForDeviceIdle();
-    destroyBuffers();  // drains m_prevOidnFuture before releasing memory
-    createBuffers(size.width, size.height);
+    destroyAllSlots();
     m_width = size.width;
     m_height = size.height;
   }
 
-  // If buffer creation failed, skip denoising.
-  if (m_frameData[0].colorBuf.buffer == VK_NULL_HANDLE)
-  {
-    return;
-  }
+  // Lazily create the slot for this ring index on first use (or after resize).
+  ensureSlot(slot, size.width, size.height);
 
-  const int curr = m_pingPong;
-  const int prev = 1 - curr;
-  const bool isFirst = m_firstFrame;
-
-  // -----------------------------------------------------------------------
-  // 1. Wait for the previous frame's OIDN job.
-  //    Because the worker has been running OIDN while this frame's GPU render
-  //    pass executed, this is typically a no-op (or very short) wait.
-  //    On the first frame m_prevOidnFuture is not yet valid, so this is
-  //    skipped entirely.
-  // -----------------------------------------------------------------------
-  if (m_prevOidnFuture.valid())
+  auto& fd = m_frameData[slot];
+  if (fd.colorBuf.buffer == VK_NULL_HANDLE)
   {
-    m_prevOidnFuture.get();
+    return;  // Buffer allocation failed; skip denoising this frame.
   }
 
   // -----------------------------------------------------------------------
-  // 2. Record GBuffer → OIDN input buffer copies into the current command
-  //    buffer (slot curr).
+  // 1. Record GBuffer → OIDN input buffer copies into CB1.
   // -----------------------------------------------------------------------
   auto copyImageToBuffer = [&](RenderOutput src, VkBuffer dst)
   {
@@ -185,152 +199,161 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
                            &region);
   };
 
-  copyImageToBuffer(RenderOutput::Linear, m_frameData[curr].colorBuf.buffer);
-  copyImageToBuffer(RenderOutput::Albedo, m_frameData[curr].albedoBuf.buffer);
-  copyImageToBuffer(RenderOutput::Normal, m_frameData[curr].normalBuf.buffer);
+  copyImageToBuffer(RenderOutput::Linear, fd.colorBuf.buffer);
+  copyImageToBuffer(RenderOutput::Albedo, fd.albedoBuf.buffer);
+  copyImageToBuffer(RenderOutput::Normal, fd.normalBuf.buffer);
 
   // -----------------------------------------------------------------------
-  // 3. Submit the command buffer so the GPU DMA-s image data into the OIDN
-  //    input buffers.  Signal the fence so the worker can wait on it.
+  // 2. End CB1 and submit it with the per-slot fence.
+  //    The OIDN worker will wait on this fence before reading the buffers.
+  //    The main thread does NOT wait.
   // -----------------------------------------------------------------------
   NVVK_CHECK(vkEndCommandBuffer(cmd));
+  NVVK_CHECK(vkResetFences(m_contextManager->getDevice(), 1, &fd.fence));
 
-  VkCommandBufferSubmitInfo cmdSubmitInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO};
-  cmdSubmitInfo.commandBuffer = cmd;
-
-  VkSubmitInfo2 submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
-  submitInfo.commandBufferInfoCount = 1;
-  submitInfo.pCommandBufferInfos = &cmdSubmitInfo;
-
-  NVVK_CHECK(vkResetFences(m_contextManager->getDevice(), 1, &m_fence));
+  const VkCommandBufferSubmitInfo cb1Info{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+      .commandBuffer = cmd,
+  };
+  const VkSubmitInfo2 cb1Submit{
+      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+      .commandBufferInfoCount = 1,
+      .pCommandBufferInfos = &cb1Info,
+  };
   NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
-                            &submitInfo, m_fence));
+                            &cb1Submit, fd.fence));
 
   // -----------------------------------------------------------------------
-  // 4. Post the OIDN job for slot curr to the worker thread.
-  //    The main render thread does NOT wait — it proceeds immediately.
-  //    The worker will call vkWaitForFences → executeAsync() → sync().
+  // 3. Push a job onto the OIDN worker queue.  The worker will:
+  //      a. vkWaitForFences(fd.fence)  — GPU copy done, buffers ready
+  //      b. filter.executeAsync() + sync()  — OIDN inference
+  //      c. vkSignalSemaphore(m_oidnTimelineSemaphore, signalValue)
+  //    Step (c) is a CPU-to-GPU signal: it unblocks CB3 on the GPU without
+  //    any involvement from the main render thread.
   // -----------------------------------------------------------------------
+  const uint64_t signalValue = ++m_oidnSignalCounter;
   {
     auto job = std::make_unique<WorkerJob>();
-    job->fence = m_fence;
+    job->fence = fd.fence;
     job->device = m_contextManager->getDevice();
-    job->filter = m_frameData[curr].filter;
+    job->filter = fd.filter;
     job->oidnDevice = m_oidnDevice;
-    m_prevOidnFuture = job->completion.get_future();
+    job->semaphore = m_oidnTimelineSemaphore;
+    job->signalValue = signalValue;
 
     std::lock_guard<std::mutex> lock(m_workerMutex);
-    m_pendingJob = std::move(job);
+    m_jobQueue.push(std::move(job));
   }
   m_workerCv.notify_one();
 
-  // On the very first frame, block once so we have a valid denoised image to
-  // display immediately rather than showing an uninitialised buffer.
-  if (isFirst)
-  {
-    m_prevOidnFuture.get();
-    // After get() the future is already consumed (valid() → false), so the
-    // check at the top of execute() correctly skips it on the next frame.
-    m_firstFrame = false;
-    m_prevSlotHasOutput = true;
-  }
+  // Store the semaphore and value in the context so VulkanBackend::endFrame()
+  // can inject them as a GPU-side wait on CB3's VkQueueSubmit2 call.
+  vkCtx.oidnSemaphore = m_oidnTimelineSemaphore;
+  vkCtx.oidnWaitValue = signalValue;
 
   // -----------------------------------------------------------------------
-  // 5. Allocate a fresh command buffer for subsequent passes (ToneMap, UI).
-  //    Copy the *previous* frame's denoised output into the Denoised GBuffer.
-  //    (On the first frame, "previous" == current because we blocked above.)
+  // 4. Prepare CB3 for post-OIDN passes (ToneMap, UI).
+  //    Reuse the pre-allocated command buffer for this slot; it was reset by
+  //    vkResetCommandPool in VulkanFrameSynchronizationManager::beginFrame().
   // -----------------------------------------------------------------------
-  VkCommandBufferAllocateInfo allocInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-  allocInfo.commandPool = vkCtx.cmdPool;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
-
-  VkCommandBuffer newCmd = VK_NULL_HANDLE;
-  NVVK_CHECK(vkAllocateCommandBuffers(m_contextManager->getDevice(), &allocInfo,
-                                      &newCmd));
-
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  NVVK_CHECK(vkBeginCommandBuffer(newCmd, &beginInfo));
-
+  if (fd.cb3 == VK_NULL_HANDLE)
   {
-    VkMemoryBarrier2 memBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER_2};
-    memBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    memBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    memBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-    memBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-
-    VkDependencyInfo depInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
-    depInfo.memoryBarrierCount = 1;
-    depInfo.pMemoryBarriers = &memBarrier;
-    vkCmdPipelineBarrier2(newCmd, &depInfo);
+    // First use for this slot: allocate once from the frame's command pool.
+    const VkCommandBufferAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = vkCtx.cmdPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
+    NVVK_CHECK(vkAllocateCommandBuffers(m_contextManager->getDevice(),
+                                        &allocInfo, &fd.cb3));
+    fd.cb3Pool = vkCtx.cmdPool;
   }
 
-  if (m_prevSlotHasOutput)
+  const VkCommandBufferBeginInfo beginInfo{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+  };
+  NVVK_CHECK(vkBeginCommandBuffer(fd.cb3, &beginInfo));
+
+  // Memory barrier: the timeline semaphore wait (added by endFrame) provides
+  // execution ordering, but we still need an access-scope barrier so the GPU
+  // copy sees the OIDN output bytes written by the CPU (host-visible path) or
+  // CUDA (GPU path) as a coherent transfer-read.
   {
-    // First frame:      display curr (we blocked; OIDN is complete).
-    // Subsequent frames: display prev (OIDN finished while this frame rendered).
-    const int displaySlot = isFirst ? curr : prev;
-    copyBufferToDenoised(newCmd, gBuffers, size,
-                         m_frameData[displaySlot].outputBuf.buffer);
+    const VkMemoryBarrier2 memBarrier{
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+        .dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+    };
+    const VkDependencyInfo depInfo{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .memoryBarrierCount = 1,
+        .pMemoryBarriers = &memBarrier,
+    };
+    vkCmdPipelineBarrier2(fd.cb3, &depInfo);
   }
 
-  vkCtx.cmdBuffer = newCmd;
+  copyBufferToDenoised(fd.cb3, gBuffers, size, fd.outputBuf.buffer);
 
-  // Advance to the next ping-pong slot.
-  m_pingPong = 1 - m_pingPong;
+  // Hand CB3 off to subsequent passes (ToneMap, UI).
+  vkCtx.cmdBuffer = fd.cb3;
 }
 
 // ---------------------------------------------------------------------------
-// Async worker thread
+// Async OIDN worker thread
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
 void OIDNDenoisePass::oidnWorkerLoop()
 /**********************************************************/
 {
-  // Loop until deinit() sets m_workerStop = true and notifies the CV.
+  // Run until deinit() sets m_workerStop and notifies.  Drain the job queue
+  // completely before exiting so all vkSignalSemaphore calls are made.
   while (true)
   {
     std::unique_ptr<WorkerJob> job;
     {
       std::unique_lock<std::mutex> lock(m_workerMutex);
       m_workerCv.wait(lock,
-                      [this]() { return m_pendingJob || m_workerStop; });
-      if (m_workerStop)
-      {
+                      [this]() { return m_workerStop || !m_jobQueue.empty(); });
+      if (m_workerStop && m_jobQueue.empty())
         break;
-      }
-      job = std::move(m_pendingJob);
+
+      job = std::move(m_jobQueue.front());
+      m_jobQueue.pop();
     }
 
-    // Wait for the GPU to finish DMA-ing image data into the OIDN buffers.
-    VkResult fenceResult =
-        vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
-    if (fenceResult != VK_SUCCESS)
-    {
-      job->completion.set_exception(std::make_exception_ptr(
-          std::runtime_error("[OIDNDenoisePass] vkWaitForFences failed")));
-      continue;
-    }
+    // Wait for CB1 to complete on the GPU (OIDN input buffers are ready).
+    vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
 
-    // Run the filter for this slot asynchronously, then sync.
+    // Run OIDN inference (CPU path or GPU backend via CUDA/HIP/SYCL).
     job->filter.executeAsync();
     job->oidnDevice.sync();
 
-    // Log any OIDN error (non-fatal).
+    // Log OIDN errors (non-fatal; denoising quality degrades, not correctness).
     const char* errorMessage = nullptr;
     if (job->oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
     {
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
     }
 
-    // Unblock whoever is waiting on this future (if anyone).
-    job->completion.set_value();
+    // Signal the Vulkan timeline semaphore from the CPU.
+    // This unblocks CB3 on the GPU — no main-thread involvement required.
+    const VkSemaphoreSignalInfo signalInfo{
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .semaphore = job->semaphore,
+        .value = job->signalValue,
+    };
+    vkSignalSemaphore(job->device, &signalInfo);
   }
 }
+
+// ---------------------------------------------------------------------------
+// OIDN device creation
+// ---------------------------------------------------------------------------
 
 /**********************************************************/
 void OIDNDenoisePass::createOIDNDevice()
@@ -349,117 +372,140 @@ void OIDNDenoisePass::createOIDNDevice()
 }
 
 // ---------------------------------------------------------------------------
-// Buffer management
+// Per-slot lifecycle
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
+void OIDNDenoisePass::ensureSlot(uint32_t idx, uint32_t width, uint32_t height)
 /**********************************************************/
 {
-  const size_t byteSize = static_cast<size_t>(width) * height * kBytesPerPixel;
-
-  constexpr VkBufferUsageFlags kInputUsage =
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-  constexpr VkBufferUsageFlags kOutputUsage =
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-
-  for (int i = 0; i < 2; ++i)
+  if (idx >= m_frameData.size())
   {
-    if (m_gpuPath)
-    {
-      m_frameData[i].colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      m_frameData[i].albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      m_frameData[i].normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
-      m_frameData[i].outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
-    }
-    else
-    {
-      m_frameData[i].colorBuf = allocateHostBuffer(byteSize, kInputUsage);
-      m_frameData[i].albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
-      m_frameData[i].normalBuf = allocateHostBuffer(byteSize, kInputUsage);
-      m_frameData[i].outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
-    }
+    m_frameData.resize(idx + 1);
+  }
 
-    if (m_frameData[i].colorBuf.buffer == VK_NULL_HANDLE ||
-        m_frameData[i].albedoBuf.buffer == VK_NULL_HANDLE ||
-        m_frameData[i].normalBuf.buffer == VK_NULL_HANDLE ||
-        m_frameData[i].outputBuf.buffer == VK_NULL_HANDLE)
-    {
-      fprintf(
-          stderr,
-          "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
-      destroyBuffers();
-      return;
-    }
+  auto& fd = m_frameData[idx];
+  if (fd.colorBuf.buffer != VK_NULL_HANDLE)
+  {
+    return;  // Already allocated for this resolution.
+  }
 
-    rebuildFilter(i, width, height);
+  const size_t byteSize =
+      static_cast<size_t>(width) * height * kBytesPerPixel;
+
+  if (m_gpuPath)
+  {
+    fd.colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
+    fd.albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
+    fd.normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
+    fd.outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
+  }
+  else
+  {
+    fd.colorBuf = allocateHostBuffer(byteSize, kInputUsage);
+    fd.albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
+    fd.normalBuf = allocateHostBuffer(byteSize, kInputUsage);
+    fd.outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
+  }
+
+  if (fd.colorBuf.buffer == VK_NULL_HANDLE)
+  {
+    fprintf(stderr,
+            "[OIDNDenoisePass] Buffer allocation failed for slot %u; "
+            "denoising disabled.\n",
+            idx);
+    return;
+  }
+
+  rebuildFilter(idx, width, height);
+
+  // Per-slot fence starts signaled so the very first vkResetFences call
+  // succeeds without requiring a prior vkWaitForFences.
+  const VkFenceCreateInfo fenceInfo{
+      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+      .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+  };
+  NVVK_CHECK(vkCreateFence(m_contextManager->getDevice(), &fenceInfo, nullptr,
+                           &fd.fence));
+  // cb3 is allocated lazily on first execute() for this slot.
+}
+
+/**********************************************************/
+void OIDNDenoisePass::destroySlot(FrameData& fd)
+/**********************************************************/
+{
+  fd.filter = oidn::FilterRef{};  // Release OIDN filter before its buffers.
+  destroyBuffer(fd.colorBuf);
+  destroyBuffer(fd.albedoBuf);
+  destroyBuffer(fd.normalBuf);
+  destroyBuffer(fd.outputBuf);
+
+  VkDevice device = m_contextManager->getDevice();
+
+  if (fd.cb3 != VK_NULL_HANDLE && fd.cb3Pool != VK_NULL_HANDLE)
+  {
+    vkFreeCommandBuffers(device, fd.cb3Pool, 1, &fd.cb3);
+    fd.cb3 = VK_NULL_HANDLE;
+    fd.cb3Pool = VK_NULL_HANDLE;
+  }
+
+  if (fd.fence != VK_NULL_HANDLE)
+  {
+    vkDestroyFence(device, fd.fence, nullptr);
+    fd.fence = VK_NULL_HANDLE;
   }
 }
 
 /**********************************************************/
-void OIDNDenoisePass::destroyBuffers()
+void OIDNDenoisePass::destroyAllSlots()
 /**********************************************************/
 {
-  // Drain any pending OIDN job before releasing its buffers.
-  if (m_prevOidnFuture.valid())
+  // Ensure all in-flight GPU work — including CB3 submissions blocked on the
+  // OIDN timeline semaphore — has completed before releasing resources.
+  // The OIDN worker (still running during resolution changes) will signal
+  // the semaphore values so the GPU can proceed and waitForDeviceIdle returns.
+  if (!m_frameData.empty())
   {
-    try
-    {
-      m_prevOidnFuture.get();
-    }
-    catch (...)
-    {
-      // Swallow errors during cleanup; we are tearing down anyway.
-    }
+    m_contextManager->waitForDeviceIdle();
   }
 
-  for (int i = 0; i < 2; ++i)
+  for (auto& fd : m_frameData)
   {
-    m_frameData[i].filter = oidn::FilterRef{};  // Release filter before buffers
-    destroyBuffer(m_frameData[i].colorBuf);
-    destroyBuffer(m_frameData[i].albedoBuf);
-    destroyBuffer(m_frameData[i].normalBuf);
-    destroyBuffer(m_frameData[i].outputBuf);
+    destroySlot(fd);
   }
-
-  m_width = 0;
-  m_height = 0;
-  m_pingPong = 0;
-  m_firstFrame = true;
-  m_prevSlotHasOutput = false;
+  m_frameData.clear();
 }
 
 /**********************************************************/
-void OIDNDenoisePass::rebuildFilter(int slot, uint32_t width, uint32_t height)
+void OIDNDenoisePass::rebuildFilter(uint32_t slot, uint32_t width,
+                                    uint32_t height)
 /**********************************************************/
 {
   auto& fd = m_frameData[slot];
   fd.filter = m_oidnDevice.newFilter("RT");
 
-  // Assuming VK_FORMAT_R32G32B32A32_SFLOAT (16 bytes per pixel)
+  // Assuming VK_FORMAT_R32G32B32A32_SFLOAT (16 bytes per pixel).
   const size_t bytePixelStride = 16;
   const size_t byteRowStride = static_cast<size_t>(width) * bytePixelStride;
 
-  // Notice the order: byteOffset, pixelStride, rowStride
   fd.filter.setImage("color", fd.colorBuf.oidnBuf, oidn::Format::Float3, width,
                      height, 0, bytePixelStride, byteRowStride);
-
   fd.filter.setImage("albedo", fd.albedoBuf.oidnBuf, oidn::Format::Float3,
                      width, height, 0, bytePixelStride, byteRowStride);
-
   fd.filter.setImage("normal", fd.normalBuf.oidnBuf, oidn::Format::Float3,
                      width, height, 0, bytePixelStride, byteRowStride);
-
   fd.filter.setImage("output", fd.outputBuf.oidnBuf, oidn::Format::Float3,
                      width, height, 0, bytePixelStride, byteRowStride);
 
   fd.filter.set("hdr", true);
-  // Use Balanced quality for a ~2x throughput improvement over Default while
-  // maintaining good visual quality for real-time path tracing.
+  // Balanced quality gives ~2× throughput over Default with good visual output.
   fd.filter.set("quality", static_cast<int>(OIDN_QUALITY_BALANCED));
   fd.filter.commit();
 }
 
+// ---------------------------------------------------------------------------
+// Buffer management (host-visible fallback + external-memory GPU path)
+// ---------------------------------------------------------------------------
 /**********************************************************/
 OIDNDenoisePass::ExternalBuffer
 OIDNDenoisePass::allocateExternalBuffer(size_t byteSize,

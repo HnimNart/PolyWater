@@ -194,8 +194,24 @@ void VulkanBackend::renderFrame(
 void VulkanBackend::endFrame(IRenderContext const& frameCtx)
 /**********************************************************/
 {
-  m_frameSyncManager->endFrame(
-      static_cast<VulkanRenderContext const&>(frameCtx));
+  const auto& vkCtx = static_cast<VulkanRenderContext const&>(frameCtx);
+  m_frameSyncManager->endFrame(vkCtx);
+
+  // If OIDNDenoisePass is active it sets oidnSemaphore on the context.
+  // The OIDN worker signals this timeline semaphore from the CPU after
+  // inference; adding it here as a GPU-side wait ensures CB3 (ToneMap, UI)
+  // does not start reading the denoised output buffer until OIDN is done.
+  // The CPU never blocks for OIDN — synchronisation is fully GPU-side.
+  if (vkCtx.oidnSemaphore != VK_NULL_HANDLE)
+  {
+    m_frameSyncManager->addWaitSemaphore({
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = vkCtx.oidnSemaphore,
+        .value = vkCtx.oidnWaitValue,
+        // CB3 begins with a vkCmdCopyBufferToImage from the OIDN output buffer.
+        .stageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+    });
+  }
 
   const VkSubmitInfo2 submitInfo{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,

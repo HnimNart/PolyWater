@@ -53,6 +53,7 @@ void VulkanFrameSynchronizationManager::createFrameData(
   {
     m_frameData[i] = std::make_unique<VulkanRenderContext>();
     m_frameData[i]->frameNumber = i;
+    m_frameData[i]->frameRingIndex = i;
     m_frameData[i]->device = coreManager.getDevice();
 
     NVVK_CHECK(vkCreateCommandPool(device, &cmdPoolCreateInfo, nullptr,
@@ -93,6 +94,11 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
   const uint32_t idx = m_frameRingCurrent.load(std::memory_order_acquire);
   auto& frame = m_frameData[idx];
   frame->frameNumber += m_frameData.size();
+
+  // Reset OIDN fields so stale values from the previous use of this ring slot
+  // do not accidentally gate CB3 when OIDN is disabled this frame.
+  frame->oidnSemaphore = VK_NULL_HANDLE;
+  frame->oidnWaitValue = 0;
   VkDevice device = frame->device;
 
   NVVK_CHECK(vkResetCommandPool(device, frame->cmdPool, 0));

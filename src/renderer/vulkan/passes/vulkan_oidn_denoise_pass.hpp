@@ -9,10 +9,10 @@
 #include <nvvk/gbuffers.hpp>
 
 #include <condition_variable>
-#include <future>
-#include <memory>
 #include <mutex>
+#include <queue>
 #include <thread>
+#include <vector>
 
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
@@ -22,34 +22,39 @@
 //
 // GPU-side AI denoiser using Intel Open Image Denoise (OIDN) v2.4+.
 //
-// The pass reads the noisy Linear colour buffer together with the first-hit
-// Albedo and Normal G-buffers produced by RayTracePass, runs the OIDN "RT"
-// beauty filter on a GPU device (CUDA/HIP/SYCL auto-selected; CPU fallback),
-// and writes the result to the Denoised G-buffer.
+// Execution model — true async, CPU never blocks
+// -----------------------------------------------
+//  One FrameData slot is allocated per Vulkan frame-ring index (lazily, on
+//  first use).  Each slot owns:
+//    colorBuf / albedoBuf / normalBuf / outputBuf  – OIDN I/O buffers
+//    filter     – committed OIDN "RT" filter
+//    fence      – VkFence signaled when CB1 (image→buffer GPU copy) is done
+//    cb3        – reused VkCommandBuffer for post-OIDN work (ToneMap, UI)
 //
-// Execution model (1-frame pipelined)
-// ------------------------------------
-//  Two sets of OIDN buffers (slots 0 and 1) are allocated and alternate each
-//  frame ("ping-pong").
+//  Per frame (execute()):
+//   1. Copy GBuffer images → slot[ringIdx] OIDN input buffers  (CB1).
+//   2. End CB1, submit with slot[ringIdx].fence.  No CPU wait.
+//   3. Push WorkerJob onto the job queue.  No CPU wait.
+//   4. Store m_oidnTimelineSemaphore + next signal value in VulkanRenderContext.
+//      VulkanBackend::endFrame() adds this as a GPU-side wait on CB3's submit.
+//   5. Begin slot[ringIdx].cb3, record barrier + outputBuf→Denoised copy.
+//      Swap ctx.cmdBuffer to cb3 so ToneMap and UI continue recording into it.
 //
-//  Frame N:
-//   1. Wait for frame N-1's OIDN future.  Because OIDN has been running on
-//      the worker thread while this frame's GPU render pass executed, this
-//      wait is typically zero (or very short).
-//   2. Record vkCmdCopyImageToBuffer commands for the three GBuffer inputs
-//      into slot N%2's input buffers.
-//   3. End and submit the command buffer with a fence so the GPU can DMA the
-//      data into the OIDN input buffers.
-//   4. Post a job to the persistent worker thread (fence + filter ref for
-//      slot N%2).  The worker waits for the fence and then calls
-//      executeAsync() + sync() — but the main render thread does NOT block.
-//   5. Allocate a fresh command buffer.  Record the copy from slot (N-1)%2's
-//      output buffer into the Denoised GBuffer image.  This is the result of
-//      the previous frame's OIDN run, which is already done (step 1).
-//   6. Subsequent passes (ToneMap, UI) record into this new command buffer.
+//  Worker thread (per job):
+//   a. vkWaitForFences(job.fence)  ← waits for CB1 to complete on GPU
+//   b. filter.executeAsync() + sync()  ← OIDN inference (CPU or GPU backend)
+//   c. vkSignalSemaphore(m_oidnTimelineSemaphore, job.signalValue)  ← CPU→GPU
 //
-//  The first frame blocks synchronously so there is a valid denoised image
-//  to display on frame 1.
+//  endFrame():
+//   – Submits CB3 with waitSemaphore = {imageAvailable, oidnTimeline@N}.
+//   – GPU holds CB3 until step (c) fires.  CPU is free immediately.
+//
+//  Frame-ring safety
+//  -----------------
+//  waitForFrameCompletion() for ring-slot R waits for the frame-timeline
+//  semaphore value that was signaled when CB3_{R_prev} completed.  CB3_prev
+//  could only complete after the OIDN timeline semaphore was signaled (step c),
+//  so by the time slot R is reused all OIDN I/O buffers are safe to overwrite.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
@@ -74,7 +79,7 @@ private:
     void* hostPtr = nullptr;  // Non-null on the CPU/host-visible fallback path
   };
 
-  // One ping-pong slot: four OIDN buffers + the filter committed to them.
+  // One slot per frame-ring index — OIDN I/O buffers, filter, and fences.
   struct FrameData
   {
     ExternalBuffer colorBuf;
@@ -82,37 +87,39 @@ private:
     ExternalBuffer normalBuf;
     ExternalBuffer outputBuf;
     oidn::FilterRef filter;
+    VkFence fence{VK_NULL_HANDLE};   // Signaled when CB1 finishes on GPU
+    VkCommandBuffer cb3{VK_NULL_HANDLE};  // Reused post-OIDN command buffer
+    VkCommandPool cb3Pool{VK_NULL_HANDLE};  // Pool cb3 was allocated from
   };
 
-  // Per-job context handed to the worker thread so it operates on the
-  // correct slot's filter without touching shared mutable state.
+  // Per-job context passed to the worker thread.
   struct WorkerJob
   {
     VkFence fence;
     VkDevice device;
     oidn::FilterRef filter;
     oidn::DeviceRef oidnDevice;
-    std::promise<void> completion;
+    VkSemaphore semaphore;   // m_oidnTimelineSemaphore
+    uint64_t signalValue;    // Timeline value to signal after OIDN completes
   };
 
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
   void createOIDNDevice();
-  void createBuffers(uint32_t width, uint32_t height);
-  void destroyBuffers();
-  // Rebuild (and commit) the OIDN filter for the given ping-pong slot.
-  void rebuildFilter(int slot, uint32_t width, uint32_t height);
 
-  // GPU path: allocate a Vulkan buffer backed by exportable device-local
-  // memory and import it into the OIDN device as a shared buffer.
+  // Lazily allocate and initialise slot 'idx' for the current resolution.
+  void ensureSlot(uint32_t idx, uint32_t width, uint32_t height);
+  void destroySlot(FrameData& slot);
+  void destroyAllSlots();
+
+  void rebuildFilter(uint32_t slot, uint32_t width, uint32_t height);
+
   ExternalBuffer allocateExternalBuffer(size_t byteSize,
                                         VkBufferUsageFlags usage);
-
-  // CPU / host-visible fallback: allocate a HOST_VISIBLE | HOST_COHERENT
-  // buffer and wrap it in an OIDN shared buffer backed by the mapped ptr.
   ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
   void destroyBuffer(ExternalBuffer& buf);
+
   void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
                             VkExtent2D size, VkBuffer outputBuffer);
 
@@ -122,28 +129,25 @@ private:
   // Members
   // -----------------------------------------------------------------------
   VulkanContextManager* m_contextManager = nullptr;
-  VkFence m_fence = VK_NULL_HANDLE;
-
   oidn::DeviceRef m_oidnDevice;
-
   bool m_gpuPath = false;  // True when using external-memory (GPU) buffers
 
-  // Two ping-pong slots so that frame N's OIDN runs while frame N+1 renders.
-  FrameData m_frameData[2];
-  int m_pingPong = 0;  // Index of the slot being written this frame
-
+  // Per-ring-slot state (indexed by VulkanRenderContext::frameRingIndex).
+  // Grown lazily; never shrunk except on resolution change or deinit.
+  std::vector<FrameData> m_frameData;
   uint32_t m_width = 0;
   uint32_t m_height = 0;
 
-  // Pipelining state
-  std::future<void> m_prevOidnFuture;  // Future for the previous frame's OIDN job
-  bool m_firstFrame = true;            // True until the first OIDN run completes
-  bool m_prevSlotHasOutput = false;    // True once slot (m_pingPong^1) holds a valid denoised image
+  // Timeline semaphore signaled by the OIDN worker from the CPU after each
+  // inference.  CB3's GPU submission waits on it so the copy from the OIDN
+  // output buffer only executes after OIDN has written valid data.
+  VkSemaphore m_oidnTimelineSemaphore{VK_NULL_HANDLE};
+  uint64_t m_oidnSignalCounter{0};
 
-  // Worker thread for async OIDN execution
+  // Persistent worker thread + FIFO job queue (one entry per in-flight frame).
   std::thread m_oidnThread;
   std::mutex m_workerMutex;
   std::condition_variable m_workerCv;
-  std::unique_ptr<WorkerJob> m_pendingJob;
-  bool m_workerStop = false;
+  std::queue<std::unique_ptr<WorkerJob>> m_jobQueue;
+  bool m_workerStop{false};
 };

@@ -46,6 +46,16 @@ public:
   VkCommandPool cmdPool{};
   VkDevice device{};
 
+  // Index into the frame-ring array (0..numFrames-1). Stable per slot —
+  // used by OIDNDenoisePass to select the correct per-slot OIDN buffers.
+  uint32_t frameRingIndex{0};
+
+  // Set by OIDNDenoisePass::execute() when the OIDN pass is active.
+  // VulkanBackend::endFrame() adds this semaphore as a GPU-side wait condition
+  // on the CB3 submission so OIDN can run concurrently without blocking the CPU.
+  VkSemaphore oidnSemaphore{VK_NULL_HANDLE};
+  uint64_t oidnWaitValue{0};
+
   const nvvk::GBuffer* gBuffers{};
   // --- Swapchain Integration ---
   // These are updated every frame by the VulkanSwapchainRenderManager
