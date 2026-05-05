@@ -55,6 +55,12 @@ struct BarrierInfo
   PipelineStage dstStage;
 };
 
+// Sentinel value for IRenderContext::activatePass().
+// Passing this index ends the currently active command buffer without opening
+// a new one. Used by RenderGraph at end-of-frame and by passes (e.g.
+// OIDNDenoisePass) that need an intermediate CPU-side synchronisation point.
+inline constexpr uint32_t kEndPassIndex = UINT32_MAX;
+
 // This maps to enum VkIndexType
 enum IndexType
 {

@@ -157,6 +157,11 @@ void VulkanBackend::renderFrame(
 {
 
 #ifdef PROFILE_APP
+  // NOTE: With per-pass command buffers the Main cmd buffer is closed by
+  // RenderGraph::execute() before renderFrame() returns.  The RAII section
+  // here would try to write a timestamp into an already-ended buffer.
+  // Move profiling into individual pass execute() methods when PROFILE_APP
+  // is re-enabled.
   const VulkanRenderContext& vkCtx = VulkanRenderContext::get(frame);
   auto profiledSection =
       m_gpuTimer.cmdFrameSection(vkCtx.cmdBuffer, "renderFrame");

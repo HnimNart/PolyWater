@@ -19,9 +19,9 @@ public:
   ~VulkanToneMapPass() override;
 
   void init() override;
+  void deinit() override;
 
   void setup(PassBuilder& builder) override;
-  void deinit() override;
   void execute(IRenderContext& ctx) override;
 
   // Explicitly non-copyable

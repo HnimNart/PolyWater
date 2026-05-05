@@ -59,15 +59,46 @@ void VulkanFrameSynchronizationManager::createFrameData(
                                    &m_frameData[i]->cmdPool));
     NVVK_DBG_NAME(m_frameData[i]->cmdPool);
 
-    const VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+    // Command buffers are NOT allocated here.  Call resizeCmdBuffers() after
+    // RenderGraph::compile() to allocate one buffer per pass per frame.
+  }
+}
+
+/**********************************************************/
+void VulkanFrameSynchronizationManager::resizeCmdBuffers(
+    VulkanContextManager& coreManager, uint32_t numCmdBuffers)
+/**********************************************************/
+{
+  assert(numCmdBuffers > 0 && "RenderGraph must have at least one pass");
+  VkDevice device = coreManager.getDevice();
+
+  for (auto& frame : m_frameData)
+  {
+    // Release existing command buffers if any.
+    if (!frame->passCmdBuffers.empty())
+    {
+      vkFreeCommandBuffers(device, frame->cmdPool,
+                           static_cast<uint32_t>(frame->passCmdBuffers.size()),
+                           frame->passCmdBuffers.data());
+      frame->passCmdBuffers.clear();
+    }
+
+    // Allocate one command buffer per pass from the frame's pool.
+    frame->passCmdBuffers.resize(numCmdBuffers, VK_NULL_HANDLE);
+
+    const VkCommandBufferAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = m_frameData[i]->cmdPool,
+        .commandPool = frame->cmdPool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1,
+        .commandBufferCount = numCmdBuffers,
     };
-    NVVK_CHECK(vkAllocateCommandBuffers(device, &commandBufferAllocateInfo,
-                                        &m_frameData[i]->cmdBuffer));
-    NVVK_DBG_NAME(m_frameData[i]->cmdBuffer);
+    NVVK_CHECK(vkAllocateCommandBuffers(device, &allocInfo,
+                                        frame->passCmdBuffers.data()));
+
+    for (uint32_t s = 0; s < numCmdBuffers; ++s)
+    {
+      NVVK_DBG_NAME(frame->passCmdBuffers[s]);
+    }
   }
 }
 
@@ -93,14 +124,32 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
   frame->frameNumber += m_frameData.size();
   VkDevice device = frame->device;
 
+  assert(!frame->passCmdBuffers.empty() &&
+         "resizeCmdBuffers() must be called before the first frame");
+
+  // Reset the pool — this implicitly resets all command buffers allocated
+  // from it (all per-pass buffers from last frame).
   NVVK_CHECK(vkResetCommandPool(device, frame->cmdPool, 0));
 
-  VkCommandBufferBeginInfo beginInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  vkBeginCommandBuffer(frame->cmdBuffer, &beginInfo);
+  // Clear per-frame transient state.
+  frame->finishedCmdBuffers.clear();
+  frame->cmdBuffer   = VK_NULL_HANDLE;
+  frame->activeIndex = kEndPassIndex;
 
   clearSemaphoresAndBuffers();
+
+  // Pre-open the first pass's command buffer so that work recorded by
+  // VulkanRenderer::render() before m_graph->execute() (e.g., scene resource
+  // uploads) is captured without an explicit activatePass() call.
+  frame->cmdBuffer   = frame->passCmdBuffers[0];
+  frame->activeIndex = 0;
+
+  const VkCommandBufferBeginInfo beginInfo{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+  };
+  NVVK_CHECK(vkBeginCommandBuffer(frame->cmdBuffer, &beginInfo));
+
   return frame.get();
 }
 
@@ -108,8 +157,15 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
 void VulkanFrameSynchronizationManager::endFrame(const VulkanRenderContext& frameCtx)
 /**********************************************************/
 {
-  VkCommandBuffer cmd = frameCtx.cmdBuffer;
-  NVVK_CHECK(vkEndCommandBuffer(cmd));
+  // RenderGraph::execute() has already ended all per-pass command buffers via
+  // activatePass(kEndPassIndex) and populated finishedCmdBuffers.  Collect them
+  // into the submission list.
+  for (VkCommandBuffer cmd : frameCtx.finishedCmdBuffers)
+  {
+    m_commandBuffers.push_back(
+        {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+         .commandBuffer = cmd});
+  }
 
   m_signalSemaphores.push_back({
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -117,10 +173,6 @@ void VulkanFrameSynchronizationManager::endFrame(const VulkanRenderContext& fram
       .value = frameCtx.frameNumber,
       .stageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
   });
-
-  m_commandBuffers.push_back(
-      {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-       .commandBuffer = cmd});
 }
 
 /**********************************************************/
@@ -196,7 +248,12 @@ void VulkanFrameSynchronizationManager::deinit(VulkanContextManager& coreManager
 
   for (auto& data : m_frameData)
   {
-    vkFreeCommandBuffers(device, data->cmdPool, 1, &data->cmdBuffer);
+    if (!data->passCmdBuffers.empty())
+    {
+      vkFreeCommandBuffers(device, data->cmdPool,
+                           static_cast<uint32_t>(data->passCmdBuffers.size()),
+                           data->passCmdBuffers.data());
+    }
     vkDestroyCommandPool(device, data->cmdPool, nullptr);
   }
   m_frameData.clear();

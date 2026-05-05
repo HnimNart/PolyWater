@@ -3,6 +3,7 @@
 #include <volk.h>
 #include <vulkan/vulkan.h>
 
+#include "nvvk/check_error.hpp"
 #include "translator.hpp"
 
 /**********************************************************/
@@ -28,6 +29,44 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
       // Log warning: "Unknown RenderOutput resource requested"
       return VK_NULL_HANDLE;
   }
+}
+
+/**********************************************************/
+void VulkanRenderContext::activatePass(uint32_t cmdBufferIndex)
+/**********************************************************/
+{
+  const bool isEnd = (cmdBufferIndex == kEndPassIndex);
+
+  // No-op when the requested index is already the active one.
+  if (!isEnd && activeIndex == cmdBufferIndex)
+  {
+    return;
+  }
+
+  // End the currently recording command buffer (if any) and queue it for
+  // submission at end-of-frame.
+  if (cmdBuffer != VK_NULL_HANDLE)
+  {
+    NVVK_CHECK(vkEndCommandBuffer(cmdBuffer));
+    finishedCmdBuffers.push_back(cmdBuffer);
+    cmdBuffer   = VK_NULL_HANDLE;
+    activeIndex = kEndPassIndex;
+  }
+
+  if (isEnd)
+  {
+    return;  // Just ending the current pass, not starting a new one.
+  }
+
+  // Begin the pre-allocated command buffer for the requested pass index.
+  cmdBuffer   = passCmdBuffers[cmdBufferIndex];
+  activeIndex = cmdBufferIndex;
+
+  const VkCommandBufferBeginInfo beginInfo{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+  };
+  NVVK_CHECK(vkBeginCommandBuffer(cmdBuffer, &beginInfo));
 }
 
 /**********************************************************/
