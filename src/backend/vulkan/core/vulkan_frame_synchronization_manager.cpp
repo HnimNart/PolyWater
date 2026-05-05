@@ -130,7 +130,7 @@ void VulkanFrameSynchronizationManager::advance()
 /**********************************************************/
 {
   const uint32_t next =
-      (m_frameRingCurrent.load(std::memory_order_relaxed) + 1) %
+      (m_frameRingCurrent.load(std::memory_order_acquire) + 1) %
       static_cast<uint32_t>(m_frameData.size());
   m_frameRingCurrent.store(next, std::memory_order_release);
 }

@@ -1,6 +1,7 @@
 #include "vulkan_oidn_denoise_pass.hpp"
 
 #include <cstring>
+#include <stdexcept>
 
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "nvvk/check_error.hpp"
@@ -198,6 +199,11 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     m_pendingJob = std::move(job);
   }
   m_workerCv.notify_one();
+
+  // Block until the worker finishes the fence wait and OIDN execution.
+  // If vkWaitForFences failed the worker propagates a std::runtime_error via
+  // the promise, which oidnDone.get() re-throws here — same fatal semantics as
+  // NVVK_CHECK on the main thread.
   oidnDone.get();
 
   // Allocate a fresh command buffer and record output copy
@@ -249,7 +255,7 @@ void OIDNDenoisePass::oidnWorkerLoop()
       std::unique_lock<std::mutex> lock(m_workerMutex);
       m_workerCv.wait(lock,
                       [this]() { return m_pendingJob || m_workerStop; });
-      if (m_workerStop && !m_pendingJob)
+      if (m_workerStop)
       {
         break;
       }
@@ -257,19 +263,28 @@ void OIDNDenoisePass::oidnWorkerLoop()
     }
 
     // Wait for the GPU to finish DMA-ing image data into the OIDN buffers.
-    vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
+    // Propagate fence failures to the main thread as a fatal exception so
+    // they are handled the same way NVVK_CHECK would handle them.
+    VkResult fenceResult =
+        vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
+    if (fenceResult != VK_SUCCESS)
+    {
+      job->completion.set_exception(std::make_exception_ptr(
+          std::runtime_error("[OIDNDenoisePass] vkWaitForFences failed")));
+      continue;
+    }
 
     // Kick the OIDN GPU/CPU filter asynchronously (returns immediately),
     // then wait for the device to signal completion.
     m_filter.executeAsync();
+    m_oidnDevice.sync();
 
+    // Log any OIDN error (non-fatal; matches the original stderr-only behavior).
     const char* errorMessage = nullptr;
     if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
     {
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
     }
-
-    m_oidnDevice.sync();
 
     // Unblock the main render thread.
     job->completion.set_value();
