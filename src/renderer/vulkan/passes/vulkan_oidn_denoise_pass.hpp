@@ -27,24 +27,29 @@
 // beauty filter on a GPU device (CUDA/HIP/SYCL auto-selected; CPU fallback),
 // and writes the result to the Denoised G-buffer.
 //
-// Execution model
-// ---------------
-//  1. The render-graph inserts barriers transitioning the three input images
-//     to TRANSFER_SRC and the output image to TRANSFER_DST, then calls
-//     execute().
-//  2. execute() records vkCmdCopyImageToBuffer commands for the three inputs
-//     into the current (pre-OIDN) command buffer.
-//  3. That command buffer is ended and submitted to the graphics queue with
-//     an internal fence; the CPU does NOT block here.
-//  4. A persistent worker thread picks up the job, waits for the fence, then
-//     calls executeAsync() + sync() on the OIDN device — keeping the heavy
-//     blocking wait off the main render thread.
-//  5. execute() waits on the std::future signalled by the worker, then
-//     allocates a fresh command buffer, records the copy from the OIDN output
-//     buffer back to the Denoised G-buffer image, and stores it in the
-//     IRenderContext.  Subsequent passes (ToneMap, UI) record into this new
-//     command buffer, which the frame-sync manager ends and submits at
-//     end-of-frame.
+// Execution model (1-frame pipelined)
+// ------------------------------------
+//  Two sets of OIDN buffers (slots 0 and 1) are allocated and alternate each
+//  frame ("ping-pong").
+//
+//  Frame N:
+//   1. Wait for frame N-1's OIDN future.  Because OIDN has been running on
+//      the worker thread while this frame's GPU render pass executed, this
+//      wait is typically zero (or very short).
+//   2. Record vkCmdCopyImageToBuffer commands for the three GBuffer inputs
+//      into slot N%2's input buffers.
+//   3. End and submit the command buffer with a fence so the GPU can DMA the
+//      data into the OIDN input buffers.
+//   4. Post a job to the persistent worker thread (fence + filter ref for
+//      slot N%2).  The worker waits for the fence and then calls
+//      executeAsync() + sync() — but the main render thread does NOT block.
+//   5. Allocate a fresh command buffer.  Record the copy from slot (N-1)%2's
+//      output buffer into the Denoised GBuffer image.  This is the result of
+//      the previous frame's OIDN run, which is already done (step 1).
+//   6. Subsequent passes (ToneMap, UI) record into this new command buffer.
+//
+//  The first frame blocks synchronously so there is a valid denoised image
+//  to display on frame 1.
 // ---------------------------------------------------------------------------
 class OIDNDenoisePass final : public IRenderPass
 {
@@ -69,13 +74,35 @@ private:
     void* hostPtr = nullptr;  // Non-null on the CPU/host-visible fallback path
   };
 
+  // One ping-pong slot: four OIDN buffers + the filter committed to them.
+  struct FrameData
+  {
+    ExternalBuffer colorBuf;
+    ExternalBuffer albedoBuf;
+    ExternalBuffer normalBuf;
+    ExternalBuffer outputBuf;
+    oidn::FilterRef filter;
+  };
+
+  // Per-job context handed to the worker thread so it operates on the
+  // correct slot's filter without touching shared mutable state.
+  struct WorkerJob
+  {
+    VkFence fence;
+    VkDevice device;
+    oidn::FilterRef filter;
+    oidn::DeviceRef oidnDevice;
+    std::promise<void> completion;
+  };
+
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
   void createOIDNDevice();
   void createBuffers(uint32_t width, uint32_t height);
   void destroyBuffers();
-  void rebuildFilter(uint32_t width, uint32_t height);
+  // Rebuild (and commit) the OIDN filter for the given ping-pong slot.
+  void rebuildFilter(int slot, uint32_t width, uint32_t height);
 
   // GPU path: allocate a Vulkan buffer backed by exportable device-local
   // memory and import it into the OIDN device as a shared buffer.
@@ -87,16 +114,7 @@ private:
   ExternalBuffer allocateHostBuffer(size_t byteSize, VkBufferUsageFlags usage);
   void destroyBuffer(ExternalBuffer& buf);
   void copyBufferToDenoised(VkCommandBuffer cmd, const nvvk::GBuffer* gBuffers,
-                            VkExtent2D size);
-
-  // Async worker thread: waits for the GPU fence, then runs executeAsync() +
-  // sync() so the denoising work is off the main render thread.
-  struct WorkerJob
-  {
-    VkFence fence;
-    VkDevice device;
-    std::promise<void> completion;
-  };
+                            VkExtent2D size, VkBuffer outputBuffer);
 
   void oidnWorkerLoop();
 
@@ -107,17 +125,20 @@ private:
   VkFence m_fence = VK_NULL_HANDLE;
 
   oidn::DeviceRef m_oidnDevice;
-  oidn::FilterRef m_filter;
 
   bool m_gpuPath = false;  // True when using external-memory (GPU) buffers
 
-  ExternalBuffer m_colorBuf;   // OIDN input  – noisy colour (Linear)
-  ExternalBuffer m_albedoBuf;  // OIDN input  – first-hit albedo
-  ExternalBuffer m_normalBuf;  // OIDN input  – first-hit normal
-  ExternalBuffer m_outputBuf;  // OIDN output – denoised colour → Denoised
+  // Two ping-pong slots so that frame N's OIDN runs while frame N+1 renders.
+  FrameData m_frameData[2];
+  int m_pingPong = 0;  // Index of the slot being written this frame
 
   uint32_t m_width = 0;
   uint32_t m_height = 0;
+
+  // Pipelining state
+  std::future<void> m_prevOidnFuture;  // Future for the previous frame's OIDN job
+  bool m_firstFrame = true;            // True until the first OIDN run completes
+  bool m_prevSlotHasOutput = false;    // True once slot (m_pingPong^1) holds a valid denoised image
 
   // Worker thread for async OIDN execution
   std::thread m_oidnThread;

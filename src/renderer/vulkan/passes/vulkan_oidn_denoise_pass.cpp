@@ -75,7 +75,7 @@ void OIDNDenoisePass::deinit()
     m_oidnThread.join();
   }
 
-  m_filter = oidn::FilterRef{};  // Release before device
+  // Worker has exited; any pending future is already fulfilled.
   destroyBuffers();
   m_oidnDevice = oidn::DeviceRef{};  // Release OIDN device
 
@@ -107,7 +107,8 @@ void OIDNDenoisePass::setup(PassBuilder& builder)
 /**********************************************************/
 void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
                                            const nvvk::GBuffer* gBuffers,
-                                           VkExtent2D size)
+                                           VkExtent2D size,
+                                           VkBuffer outputBuffer)
 /**********************************************************/
 {
   VkBufferImageCopy region{};
@@ -121,7 +122,7 @@ void OIDNDenoisePass::copyBufferToDenoised(VkCommandBuffer cmd,
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {size.width, size.height, 1};
 
-  vkCmdCopyBufferToImage(cmd, m_outputBuf.buffer,
+  vkCmdCopyBufferToImage(cmd, outputBuffer,
                          gBuffers->getColorImage(RenderOutput::Denoised),
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
@@ -140,19 +141,38 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   if (size.width != m_width || size.height != m_height)
   {
     m_contextManager->waitForDeviceIdle();
-    destroyBuffers();
+    destroyBuffers();  // drains m_prevOidnFuture before releasing memory
     createBuffers(size.width, size.height);
     m_width = size.width;
     m_height = size.height;
   }
 
   // If buffer creation failed, skip denoising.
-  if (m_colorBuf.buffer == VK_NULL_HANDLE)
+  if (m_frameData[0].colorBuf.buffer == VK_NULL_HANDLE)
   {
     return;
   }
 
-  // Copy GBuffer images → OIDN input VkBuffers.
+  const int curr = m_pingPong;
+  const int prev = 1 - curr;
+  const bool isFirst = m_firstFrame;
+
+  // -----------------------------------------------------------------------
+  // 1. Wait for the previous frame's OIDN job.
+  //    Because the worker has been running OIDN while this frame's GPU render
+  //    pass executed, this is typically a no-op (or very short) wait.
+  //    On the first frame m_prevOidnFuture is not yet valid, so this is
+  //    skipped entirely.
+  // -----------------------------------------------------------------------
+  if (m_prevOidnFuture.valid())
+  {
+    m_prevOidnFuture.get();
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. Record GBuffer → OIDN input buffer copies into the current command
+  //    buffer (slot curr).
+  // -----------------------------------------------------------------------
   auto copyImageToBuffer = [&](RenderOutput src, VkBuffer dst)
   {
     VkBufferImageCopy region{};
@@ -165,12 +185,14 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
                            &region);
   };
 
-  copyImageToBuffer(RenderOutput::Linear, m_colorBuf.buffer);
-  copyImageToBuffer(RenderOutput::Albedo, m_albedoBuf.buffer);
-  copyImageToBuffer(RenderOutput::Normal, m_normalBuf.buffer);
+  copyImageToBuffer(RenderOutput::Linear, m_frameData[curr].colorBuf.buffer);
+  copyImageToBuffer(RenderOutput::Albedo, m_frameData[curr].albedoBuf.buffer);
+  copyImageToBuffer(RenderOutput::Normal, m_frameData[curr].normalBuf.buffer);
 
-  // Submit the current command buffer so the GPU can DMA the data into the
-  // OIDN input buffers.
+  // -----------------------------------------------------------------------
+  // 3. Submit the command buffer so the GPU DMA-s image data into the OIDN
+  //    input buffers.  Signal the fence so the worker can wait on it.
+  // -----------------------------------------------------------------------
   NVVK_CHECK(vkEndCommandBuffer(cmd));
 
   VkCommandBufferSubmitInfo cmdSubmitInfo{
@@ -185,28 +207,39 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkQueueSubmit2(m_contextManager->getQueueInfo(0).queue, 1,
                             &submitInfo, m_fence));
 
-  // Hand the fence to the worker thread and wait for it to finish.
-  // The worker calls vkWaitForFences → executeAsync() → sync(), keeping
-  // the OIDN blocking work off the main render thread.
-  std::future<void> oidnDone;
+  // -----------------------------------------------------------------------
+  // 4. Post the OIDN job for slot curr to the worker thread.
+  //    The main render thread does NOT wait — it proceeds immediately.
+  //    The worker will call vkWaitForFences → executeAsync() → sync().
+  // -----------------------------------------------------------------------
   {
     auto job = std::make_unique<WorkerJob>();
     job->fence = m_fence;
     job->device = m_contextManager->getDevice();
-    oidnDone = job->completion.get_future();
+    job->filter = m_frameData[curr].filter;
+    job->oidnDevice = m_oidnDevice;
+    m_prevOidnFuture = job->completion.get_future();
 
     std::lock_guard<std::mutex> lock(m_workerMutex);
     m_pendingJob = std::move(job);
   }
   m_workerCv.notify_one();
 
-  // Block until the worker finishes the fence wait and OIDN execution.
-  // If vkWaitForFences failed the worker propagates a std::runtime_error via
-  // the promise, which oidnDone.get() re-throws here — same fatal semantics as
-  // NVVK_CHECK on the main thread.
-  oidnDone.get();
+  // On the very first frame, block once so we have a valid denoised image to
+  // display immediately rather than showing an uninitialised buffer.
+  if (isFirst)
+  {
+    m_prevOidnFuture.get();
+    m_prevOidnFuture = {};  // Mark as consumed; next frame skips the wait
+    m_firstFrame = false;
+    m_prevSlotHasOutput = true;
+  }
 
-  // Allocate a fresh command buffer and record output copy
+  // -----------------------------------------------------------------------
+  // 5. Allocate a fresh command buffer for subsequent passes (ToneMap, UI).
+  //    Copy the *previous* frame's denoised output into the Denoised GBuffer.
+  //    (On the first frame, "previous" == current because we blocked above.)
+  // -----------------------------------------------------------------------
   VkCommandBufferAllocateInfo allocInfo{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   allocInfo.commandPool = vkCtx.cmdPool;
@@ -217,8 +250,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   NVVK_CHECK(vkAllocateCommandBuffers(m_contextManager->getDevice(), &allocInfo,
                                       &newCmd));
 
-  VkCommandBufferBeginInfo beginInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   NVVK_CHECK(vkBeginCommandBuffer(newCmd, &beginInfo));
 
@@ -235,9 +267,19 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     vkCmdPipelineBarrier2(newCmd, &depInfo);
   }
 
-  // Call the new helper method
-  copyBufferToDenoised(newCmd, gBuffers, size);
+  if (m_prevSlotHasOutput)
+  {
+    // First frame:      display curr (we blocked; OIDN is complete).
+    // Subsequent frames: display prev (OIDN finished while this frame rendered).
+    const int displaySlot = isFirst ? curr : prev;
+    copyBufferToDenoised(newCmd, gBuffers, size,
+                         m_frameData[displaySlot].outputBuf.buffer);
+  }
+
   vkCtx.cmdBuffer = newCmd;
+
+  // Advance to the next ping-pong slot.
+  m_pingPong = 1 - m_pingPong;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,8 +305,6 @@ void OIDNDenoisePass::oidnWorkerLoop()
     }
 
     // Wait for the GPU to finish DMA-ing image data into the OIDN buffers.
-    // Propagate fence failures to the main thread as a fatal exception so
-    // they are handled the same way NVVK_CHECK would handle them.
     VkResult fenceResult =
         vkWaitForFences(job->device, 1, &job->fence, VK_TRUE, UINT64_MAX);
     if (fenceResult != VK_SUCCESS)
@@ -274,19 +314,18 @@ void OIDNDenoisePass::oidnWorkerLoop()
       continue;
     }
 
-    // Kick the OIDN GPU/CPU filter asynchronously (returns immediately),
-    // then wait for the device to signal completion.
-    m_filter.executeAsync();
-    m_oidnDevice.sync();
+    // Run the filter for this slot asynchronously, then sync.
+    job->filter.executeAsync();
+    job->oidnDevice.sync();
 
-    // Log any OIDN error (non-fatal; matches the original stderr-only behavior).
+    // Log any OIDN error (non-fatal).
     const char* errorMessage = nullptr;
-    if (m_oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
+    if (job->oidnDevice.getError(errorMessage) != oidn::Error{OIDN_ERROR_NONE})
     {
       fprintf(stderr, "[OIDNDenoisePass] OIDN error: %s\n", errorMessage);
     }
 
-    // Unblock the main render thread.
+    // Unblock whoever is waiting on this future (if anyone).
     job->completion.set_value();
   }
 }
@@ -322,81 +361,101 @@ void OIDNDenoisePass::createBuffers(uint32_t width, uint32_t height)
   constexpr VkBufferUsageFlags kOutputUsage =
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-  if (m_gpuPath)
+  for (int i = 0; i < 2; ++i)
   {
-    m_colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
-    m_albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
-    m_normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
-    m_outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
-    // allocateExternalBuffer may fall back to host buffers internally if
-    // external memory is unavailable; both paths set a valid oidnBuf.
-  }
-  else
-  {
-    m_colorBuf = allocateHostBuffer(byteSize, kInputUsage);
-    m_albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
-    m_normalBuf = allocateHostBuffer(byteSize, kInputUsage);
-    m_outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
-  }
+    if (m_gpuPath)
+    {
+      m_frameData[i].colorBuf = allocateExternalBuffer(byteSize, kInputUsage);
+      m_frameData[i].albedoBuf = allocateExternalBuffer(byteSize, kInputUsage);
+      m_frameData[i].normalBuf = allocateExternalBuffer(byteSize, kInputUsage);
+      m_frameData[i].outputBuf = allocateExternalBuffer(byteSize, kOutputUsage);
+    }
+    else
+    {
+      m_frameData[i].colorBuf = allocateHostBuffer(byteSize, kInputUsage);
+      m_frameData[i].albedoBuf = allocateHostBuffer(byteSize, kInputUsage);
+      m_frameData[i].normalBuf = allocateHostBuffer(byteSize, kInputUsage);
+      m_frameData[i].outputBuf = allocateHostBuffer(byteSize, kOutputUsage);
+    }
 
-  // Bail out if any allocation failed (e.g., no host-visible memory type).
-  if (m_colorBuf.buffer == VK_NULL_HANDLE ||
-      m_albedoBuf.buffer == VK_NULL_HANDLE ||
-      m_normalBuf.buffer == VK_NULL_HANDLE ||
-      m_outputBuf.buffer == VK_NULL_HANDLE)
-  {
-    fprintf(
-        stderr,
-        "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
-    destroyBuffers();
-    return;
-  }
+    if (m_frameData[i].colorBuf.buffer == VK_NULL_HANDLE ||
+        m_frameData[i].albedoBuf.buffer == VK_NULL_HANDLE ||
+        m_frameData[i].normalBuf.buffer == VK_NULL_HANDLE ||
+        m_frameData[i].outputBuf.buffer == VK_NULL_HANDLE)
+    {
+      fprintf(
+          stderr,
+          "[OIDNDenoisePass] Buffer allocation failed; denoising disabled.\n");
+      destroyBuffers();
+      return;
+    }
 
-  rebuildFilter(width, height);
+    rebuildFilter(i, width, height);
+  }
 }
 
 /**********************************************************/
 void OIDNDenoisePass::destroyBuffers()
 /**********************************************************/
 {
-  m_filter =
-      oidn::FilterRef{};  // Must be released before the buffers it references
+  // Drain any pending OIDN job before releasing its buffers.
+  if (m_prevOidnFuture.valid())
+  {
+    try
+    {
+      m_prevOidnFuture.get();
+    }
+    catch (...)
+    {
+      // Swallow errors during cleanup; we are tearing down anyway.
+    }
+  }
 
-  destroyBuffer(m_colorBuf);
-  destroyBuffer(m_albedoBuf);
-  destroyBuffer(m_normalBuf);
-  destroyBuffer(m_outputBuf);
+  for (int i = 0; i < 2; ++i)
+  {
+    m_frameData[i].filter = oidn::FilterRef{};  // Release filter before buffers
+    destroyBuffer(m_frameData[i].colorBuf);
+    destroyBuffer(m_frameData[i].albedoBuf);
+    destroyBuffer(m_frameData[i].normalBuf);
+    destroyBuffer(m_frameData[i].outputBuf);
+  }
+
   m_width = 0;
   m_height = 0;
+  m_pingPong = 0;
+  m_firstFrame = true;
+  m_prevSlotHasOutput = false;
 }
 
 /**********************************************************/
-void OIDNDenoisePass::rebuildFilter(uint32_t width, uint32_t height)
+void OIDNDenoisePass::rebuildFilter(int slot, uint32_t width, uint32_t height)
 /**********************************************************/
 {
-
-  m_filter = m_oidnDevice.newFilter("RT");
+  auto& fd = m_frameData[slot];
+  fd.filter = m_oidnDevice.newFilter("RT");
 
   // Assuming VK_FORMAT_R32G32B32A32_SFLOAT (16 bytes per pixel)
   const size_t bytePixelStride = 16;
   const size_t byteRowStride = static_cast<size_t>(width) * bytePixelStride;
 
   // Notice the order: byteOffset, pixelStride, rowStride
-  m_filter.setImage("color", m_colorBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, bytePixelStride, byteRowStride);
+  fd.filter.setImage("color", fd.colorBuf.oidnBuf, oidn::Format::Float3, width,
+                     height, 0, bytePixelStride, byteRowStride);
 
-  m_filter.setImage("albedo", m_albedoBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, bytePixelStride, byteRowStride);
+  fd.filter.setImage("albedo", fd.albedoBuf.oidnBuf, oidn::Format::Float3,
+                     width, height, 0, bytePixelStride, byteRowStride);
 
-  m_filter.setImage("normal", m_normalBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, bytePixelStride, byteRowStride);
+  fd.filter.setImage("normal", fd.normalBuf.oidnBuf, oidn::Format::Float3,
+                     width, height, 0, bytePixelStride, byteRowStride);
 
-  m_filter.setImage("output", m_outputBuf.oidnBuf, oidn::Format::Float3, width,
-                    height, 0, bytePixelStride, byteRowStride);
+  fd.filter.setImage("output", fd.outputBuf.oidnBuf, oidn::Format::Float3,
+                     width, height, 0, bytePixelStride, byteRowStride);
 
-  m_filter.set("hdr", true);
-  m_filter.commit();
-  return;
+  fd.filter.set("hdr", true);
+  // Use Balanced quality for a ~2x throughput improvement over Default while
+  // maintaining good visual quality for real-time path tracing.
+  fd.filter.set("quality", static_cast<int>(OIDN_QUALITY_BALANCED));
+  fd.filter.commit();
 }
 
 /**********************************************************/
