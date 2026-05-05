@@ -230,7 +230,8 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   if (isFirst)
   {
     m_prevOidnFuture.get();
-    m_prevOidnFuture = {};  // Mark as consumed; next frame skips the wait
+    // After get() the future is already consumed (valid() → false), so the
+    // check at the top of execute() correctly skips it on the next frame.
     m_firstFrame = false;
     m_prevSlotHasOutput = true;
   }
@@ -290,6 +291,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
 void OIDNDenoisePass::oidnWorkerLoop()
 /**********************************************************/
 {
+  // Loop until deinit() sets m_workerStop = true and notifies the CV.
   while (true)
   {
     std::unique_ptr<WorkerJob> job;
