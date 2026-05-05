@@ -3,6 +3,7 @@
 #include <volk.h>
 #include <vulkan/vulkan.h>
 
+#include "nvvk/check_error.hpp"
 #include "translator.hpp"
 
 /**********************************************************/
@@ -46,7 +47,7 @@ void VulkanRenderContext::activatePass(PassCmdSlot slot)
   // submission at end-of-frame.
   if (cmdBuffer != VK_NULL_HANDLE)
   {
-    vkEndCommandBuffer(cmdBuffer);
+    NVVK_CHECK(vkEndCommandBuffer(cmdBuffer));
     finishedCmdBuffers.push_back(cmdBuffer);
     cmdBuffer      = VK_NULL_HANDLE;
     activeSlot     = PassCmdSlot::Count;
@@ -65,7 +66,7 @@ void VulkanRenderContext::activatePass(PassCmdSlot slot)
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
-  vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+  NVVK_CHECK(vkBeginCommandBuffer(cmdBuffer, &beginInfo));
 }
 
 /**********************************************************/
