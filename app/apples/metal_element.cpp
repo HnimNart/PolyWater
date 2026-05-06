@@ -15,7 +15,7 @@
 #include "core/path_utils.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
-int main(int /*argc*/, char ** /*argv*/)
+int main(int /*argc*/, char** /*argv*/)
 //---------------------------------------------------------------------------------------------------------------
 {
   app::ApplicationCreateInfo appInfo{};
@@ -33,9 +33,9 @@ int main(int /*argc*/, char ** /*argv*/)
   app::Application application(appInfo, std::move(backend), gui);
 
   // --- UI Elements ---
-  auto windowMenu  = std::make_shared<app::ElementDefaultMenu>();
+  auto windowMenu = std::make_shared<app::ElementDefaultMenu>();
   auto windowTitle = std::make_shared<app::ElementDefaultWindowTitle>();
-  auto logger      = std::make_shared<app::ElementLogger>(true);
+  auto logger = std::make_shared<app::ElementLogger>(true);
 
   application.addElement(windowMenu);
   application.addElement(windowTitle);
@@ -46,19 +46,18 @@ int main(int /*argc*/, char ** /*argv*/)
   // Route core logger output to the on-screen logger panel.
   core::Logger::getInstance().setLogCallback(
       [ptr = logger.get()](core::Logger::LogLevel severity,
-                           const std::string &message) {
-        ptr->addLog(severity, message.c_str());
-      });
+                           const std::string& message)
+      { ptr->addLog(severity, message.c_str()); });
   core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
   core::Logger::getInstance().setFileFlush(true);
 
-  application.run();      // Blocking loop until the window is closed.
-  application.shutdown(); // Clean up in reverse-init order.
+  application.run();       // Blocking loop until the window is closed.
+  application.shutdown();  // Clean up in reverse-init order.
 
   return 0;
 }
 
-#else // !__APPLE__
+#else  // !__APPLE__
 
 #include <cstdio>
 
@@ -66,10 +65,9 @@ int main(int /*argc*/, char ** /*argv*/)
 int main()
 /**********************************************************/
 {
-  std::fprintf(stderr,
-               "metalElement requires macOS with Metal support.\n"
-               "This executable is a no-op on non-Apple platforms.\n");
+  std::fprintf(stderr, "metalElement requires macOS with Metal support.\n"
+                       "This executable is a no-op on non-Apple platforms.\n");
   return 1;
 }
 
-#endif // __APPLE__
+#endif  // __APPLE__

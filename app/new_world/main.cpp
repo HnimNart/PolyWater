@@ -20,7 +20,6 @@
 #include <app/cli/parameter_parser.hpp>
 #include <core/timers.hpp>
 
-#include "vulkan_render_element.hpp"
 #include "app/application.hpp"
 #include "app/elements/camera.hpp"
 #include "app/elements/default_menu.hpp"
@@ -32,10 +31,11 @@
 #include "backend/vulkan/core/vulkan_backend.hpp"
 #include "backend/vulkan/gui/vulkan_imgui_system.hpp"
 #include "core/path_utils.hpp"
+#include "vulkan_render_element.hpp"
 
 //---------------------------------------------------------------------------------------------------------------
 /**********************************************************/
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 /**********************************************************/
 {
   // =========================================================================
@@ -90,6 +90,7 @@ int main(int argc, char **argv)
   // =========================================================================
   elemCamera->setCameraManipulator(renderElement->getCameraManipulator());
   windowTitle->setRenderer(renderElement->getRenderer());
+  windowMenu->setRenderer(renderElement->getRenderer());
   renderElement->setGeometryPicker(geometryPicker);
 
   geometryPicker->setSelectionCallback(
@@ -106,14 +107,13 @@ int main(int argc, char **argv)
   logger->setLevelFilter(app::ElementLogger::eBitAll);
   core::Logger::getInstance().setLogCallback(
       [ptr = logger.get()](core::Logger::LogLevel severity,
-                           const std::string &message) {
-        ptr->addLog(severity, message.c_str());
-      });
+                           const std::string& message)
+      { ptr->addLog(severity, message.c_str()); });
   core::Logger::getInstance().setShowFlags(core::Logger::eSHOW_TIME);
   core::Logger::getInstance().setFileFlush(true);
 
 #ifdef PROFILE_APP
-  core::ProfilerManager *profilerManager = application.getProfiler();
+  core::ProfilerManager* profilerManager = application.getProfiler();
   auto profiler = std::make_shared<app::ElementProfiler>(profilerManager);
   auto monitor = std::make_shared<app::ElementGpuMonitor>(true);
 
@@ -124,8 +124,8 @@ int main(int argc, char **argv)
   // =========================================================================
   // Execution
   // =========================================================================
-  application.run();      // Start the application, loop until window is closed
-  application.shutdown(); // Cleanup
+  application.run();       // Start the application, loop until window is closed
+  application.shutdown();  // Cleanup
 
   return 0;
 }

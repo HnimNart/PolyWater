@@ -26,6 +26,7 @@
 #include <functional>
 
 #include "app/app_element_interface.hpp"
+#include "renderer/interfaces/renderer_interface.hpp"
 
 // Use:
 //  include this file at the end of all other includes,
@@ -64,8 +65,11 @@ public:
     m_onSelect.emplace_back(std::move(callback));
   }
 
+  void setRenderer(IRenderer* renderer) { m_renderer = renderer; }
+
 private:
   Application* m_app{nullptr};
+  IRenderer* m_renderer{nullptr};
   std::vector<OnFileSelectedCallback> m_onSelect{};
 };
 

@@ -44,6 +44,7 @@ void app::ElementDefaultMenu::onUIMenu()
   static bool close_app{false};
   bool v_sync = m_app->isVsync();
   bool isPaused = m_app->isPaused();
+  bool denoise = m_renderer->denoise();
   std::filesystem::path file = "";
 
   if (ImGui::BeginMenu("File"))
@@ -64,6 +65,7 @@ void app::ElementDefaultMenu::onUIMenu()
     ImGui::MenuItem(ICON_MS_BOTTOM_PANEL_OPEN " V-Sync", "Ctrl+Shift+V",
                     &v_sync);
     ImGui::MenuItem(ICON_MS_PAUSE_CIRCLE " Pause", "Ctrl+P", &isPaused);
+    ImGui::MenuItem(ICON_MS_BLUR_LINEAR " Denoise", "Ctrl+Shift+D", &denoise);
     ImGui::EndMenu();
   }
 
@@ -90,6 +92,12 @@ void app::ElementDefaultMenu::onUIMenu()
     v_sync = !v_sync;
   }
 
+  if (ImGui::IsKeyPressed(ImGuiKey_D) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&
+      ImGui::IsKeyDown(ImGuiKey_LeftShift))
+  {
+    denoise = !denoise;
+  }
+
   if (!file.empty())
   {
     for (auto& cb : m_onSelect)
@@ -111,5 +119,9 @@ void app::ElementDefaultMenu::onUIMenu()
   if (m_app->isPaused() != isPaused)
   {
     m_app->setPause(isPaused);
+  }
+  if (m_renderer->denoise() != denoise)
+  {
+    m_renderer->setDenoise(denoise);
   }
 }

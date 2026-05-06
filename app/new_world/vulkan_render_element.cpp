@@ -278,8 +278,8 @@ void VulkanRendererElement::onUIRender()
   // --- VIEWPORT WINDOW ---
   if (ImGui::Begin("Viewport") && !m_app->isPaused())
   {
-    ImTextureID outputId =
-        ImTextureID(renderer->getImageDescriptor(m_renderEditor.currentOutput()));
+    ImTextureID outputId = ImTextureID(
+        renderer->getImageDescriptor(m_renderEditor.currentOutput()));
     ImGui::Image(outputId, ImGui::GetContentRegionAvail());
     app::drawAxis(camera->getViewProjection());
   }
@@ -395,7 +395,7 @@ void VulkanRendererElement::onUIMenu()
 // ============================================================================
 
 /**********************************************************/
-const IRenderer* VulkanRendererElement::getRenderer() const
+IRenderer* VulkanRendererElement::getRenderer() const
 /**********************************************************/
 {
   return m_renderer.get();

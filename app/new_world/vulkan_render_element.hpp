@@ -64,7 +64,7 @@ public:
   // 4. Accessors
   // -------------------------------------------------------------------------
   CameraPtr getCameraManipulator() const;
-  const IRenderer* getRenderer() const;
+  IRenderer* getRenderer() const;
   const SceneManager& getSceneManager() const;
 
   //
@@ -99,12 +99,12 @@ private:
   bool m_hasChanged = false;
 
   // Widget instances (hold per-widget UI state)
-  app::RenderEditor   m_renderEditor;
-  app::LightEditor    m_lightEditor;
+  app::RenderEditor m_renderEditor;
+  app::LightEditor m_lightEditor;
   app::MaterialEditor m_materialEditor;
   app::InstanceEditor m_instanceEditor;
-  app::MeshEditor     m_meshEditor;
-  app::TextureEditor  m_textureEditor;
+  app::MeshEditor m_meshEditor;
+  app::TextureEditor m_textureEditor;
 
   std::string m_sceneFile{};
   std::string m_modelFileToLoad{};
