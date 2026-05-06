@@ -102,7 +102,7 @@ void MetalBackend::initPresentation(GLFWwindow *window, app::IGUISystemPtr gui)
 }
 
 /**********************************************************/
-void MetalBackend::initProfiler(core::ProfilerTimeline * /*timeline*/)
+void MetalBackend::doInitProfiler(core::ProfilerTimeline * /*timeline*/)
 /**********************************************************/
 {
   // GPU profiling via Metal is achievable with MTLCounterSet or Instruments;
@@ -130,7 +130,7 @@ IRenderContext &MetalBackend::getCurrentContext()
 }
 
 /**********************************************************/
-IRenderContext *MetalBackend::beginFrame()
+IRenderContext *MetalBackend::doBeginFrame()
 /**********************************************************/
 {
   if (!m_data->metalLayer) {
@@ -181,7 +181,7 @@ IRenderContext *MetalBackend::beginFrame()
 }
 
 /**********************************************************/
-void MetalBackend::renderFrame(
+void MetalBackend::doRenderFrame(
     const std::vector<app::IAppElementPtr> &elements,
     IRenderContext const &ctx)
 /**********************************************************/
@@ -201,7 +201,7 @@ void MetalBackend::renderFrame(
 }
 
 /**********************************************************/
-void MetalBackend::endFrame(IRenderContext const & /*ctx*/)
+void MetalBackend::doEndFrame(IRenderContext const & /*ctx*/)
 /**********************************************************/
 {
   if (m_data->currentRenderEncoder) {
@@ -211,7 +211,7 @@ void MetalBackend::endFrame(IRenderContext const & /*ctx*/)
 }
 
 /**********************************************************/
-void MetalBackend::present()
+void MetalBackend::doPresent()
 /**********************************************************/
 {
   if (m_data->currentCommandBuffer && m_data->currentDrawable) {
@@ -224,7 +224,7 @@ void MetalBackend::present()
 }
 
 /**********************************************************/
-void MetalBackend::advance()
+void MetalBackend::doAdvance()
 /**********************************************************/
 {
   // No ring-buffer index to advance for this simple Metal backend.

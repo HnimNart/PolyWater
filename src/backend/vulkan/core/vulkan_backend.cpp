@@ -82,14 +82,13 @@ void VulkanBackend::initPresentation(GLFWwindow* windowHandle,
 }
 
 /**********************************************************/
-void VulkanBackend::initProfiler(core::ProfilerTimeline* timeline)
+void VulkanBackend::doInitProfiler(core::ProfilerTimeline* timeline)
 /**********************************************************/
 {
 #ifdef PROFILE_APP
-  m_profileTimeline = timeline;
-  if (m_profileTimeline)
+  if (timeline)
   {
-    m_gpuTimer.init(m_profileTimeline, getDevice(), getPhysicalDevice(),
+    m_gpuTimer.init(timeline, getDevice(), getPhysicalDevice(),
                     getQueueInfo(0).familyIndex, true);
   }
 #endif
@@ -137,7 +136,7 @@ IRenderContext& VulkanBackend::getCurrentContext()
 }
 
 /**********************************************************/
-IRenderContext* VulkanBackend::beginFrame()
+IRenderContext* VulkanBackend::doBeginFrame()
 /**********************************************************/
 {
 
@@ -150,7 +149,7 @@ IRenderContext* VulkanBackend::beginFrame()
 }
 
 /**********************************************************/
-void VulkanBackend::renderFrame(
+void VulkanBackend::doRenderFrame(
     const std::vector<std::shared_ptr<app::IAppElement>>& elements,
     IRenderContext const& frame)
 /**********************************************************/
@@ -184,7 +183,7 @@ void VulkanBackend::renderFrame(
 }
 
 /**********************************************************/
-void VulkanBackend::endFrame(IRenderContext const& frameCtx)
+void VulkanBackend::doEndFrame(IRenderContext const& frameCtx)
 /**********************************************************/
 {
   m_frameSyncManager->endFrame(
@@ -217,14 +216,14 @@ void VulkanBackend::recordRegistryCommands(IRenderContext const& frame)
 }
 
 /**********************************************************/
-void VulkanBackend::present()
+void VulkanBackend::doPresent()
 /**********************************************************/
 {
   m_swapchainManager->present(*m_coreManager);
 }
 
 /**********************************************************/
-void VulkanBackend::advance()
+void VulkanBackend::doAdvance()
 /**********************************************************/
 {
   m_frameSyncManager->advance();
