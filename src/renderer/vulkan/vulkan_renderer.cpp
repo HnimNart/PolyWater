@@ -28,6 +28,10 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
   m_accel = VulkanAccelerationStructures::create(m_context);
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 
+#ifdef PROFILE_APP
+  m_gpuTimer = backend->getGpuTimer();
+#endif
+
   initGBuffers();
   registerShaders();
 }
@@ -164,6 +168,10 @@ void VulkanRenderer::buildGraph(const std::string& name)
   m_graph = m_pipelineManager.buildGraph(settings, name);
   m_graph->init();
   m_graph->compile();
+
+#ifdef PROFILE_APP
+  m_graph->setGpuTimer(m_gpuTimer);
+#endif
 
   // Tell the frame sync manager how many command buffers to allocate per
   // frame (one per pass).  The device is already idle from the call above.
