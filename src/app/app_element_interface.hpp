@@ -43,6 +43,18 @@ public:
   void setProfilerTimeline(core::ProfilerTimeline* timeline)
   {
     m_profilerTimeline = timeline;
+    if (timeline)
+    {
+      // Cache section names once to avoid per-frame string allocation.
+      // Note: typeid(*this).name() returns a compiler-specific mangled name.
+      // Override getName() to provide a human-readable label.
+      const std::string base = getName();
+      m_sectionNames.uiMenu    = base + "::onUIMenu";
+      m_sectionNames.uiRender  = base + "::onUIRender";
+      m_sectionNames.preRender = base + "::onPreRender";
+      m_sectionNames.render    = base + "::onRender";
+      m_sectionNames.endFrame  = base + "::onEndFrame";
+    }
   }
 #endif
 
@@ -80,7 +92,7 @@ public:
     if (m_profilerTimeline)
     {
       const auto section =
-          m_profilerTimeline->frameSection(getName() + "::onUIMenu");
+          m_profilerTimeline->frameSection(m_sectionNames.uiMenu);
       onUIMenu();
       return;
     }
@@ -95,7 +107,7 @@ public:
     if (m_profilerTimeline)
     {
       const auto section =
-          m_profilerTimeline->frameSection(getName() + "::onUIRender");
+          m_profilerTimeline->frameSection(m_sectionNames.uiRender);
       onUIRender();
       return;
     }
@@ -110,7 +122,7 @@ public:
     if (m_profilerTimeline)
     {
       const auto section =
-          m_profilerTimeline->frameSection(getName() + "::onPreRender");
+          m_profilerTimeline->frameSection(m_sectionNames.preRender);
       onPreRender();
       return;
     }
@@ -125,7 +137,7 @@ public:
     if (m_profilerTimeline)
     {
       const auto section =
-          m_profilerTimeline->frameSection(getName() + "::onRender");
+          m_profilerTimeline->frameSection(m_sectionNames.render);
       onRender(frame);
       return;
     }
@@ -140,7 +152,7 @@ public:
     if (m_profilerTimeline)
     {
       const auto section =
-          m_profilerTimeline->frameSection(getName() + "::onEndFrame");
+          m_profilerTimeline->frameSection(m_sectionNames.endFrame);
       onEndFrame(frame);
       return;
     }
@@ -177,6 +189,17 @@ private:
 
 #ifdef PROFILE_APP
   core::ProfilerTimeline* m_profilerTimeline = nullptr;
+
+  // Section name strings, pre-built once in setProfilerTimeline()
+  // to avoid per-frame heap allocations.
+  struct SectionNames
+  {
+    std::string uiMenu;
+    std::string uiRender;
+    std::string preRender;
+    std::string render;
+    std::string endFrame;
+  } m_sectionNames;
 #endif
 };
 
