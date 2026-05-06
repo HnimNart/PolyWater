@@ -7,6 +7,12 @@
 
 #include "app/app_element_interface.hpp"
 #include "app/elements/geometry_picker.hpp"
+#include "app/widgets/instance_editor.hpp"
+#include "app/widgets/light_editor.hpp"
+#include "app/widgets/material_editor.hpp"
+#include "app/widgets/meshes_editor.hpp"
+#include "app/widgets/render_editor.hpp"
+#include "app/widgets/texture_editor.hpp"
 #include "core/camera.hpp"
 #include "scene/scene_manager.hpp"
 
@@ -91,7 +97,14 @@ private:
 
   // Editor/Render state
   bool m_hasChanged = false;
-  RenderOutput m_renderOutput = RenderOutput::Denoised;
+
+  // Widget instances (hold per-widget UI state)
+  app::RenderEditor   m_renderEditor;
+  app::LightEditor    m_lightEditor;
+  app::MaterialEditor m_materialEditor;
+  app::InstanceEditor m_instanceEditor;
+  app::MeshEditor     m_meshEditor;
+  app::TextureEditor  m_textureEditor;
 
   std::string m_sceneFile{};
   std::string m_modelFileToLoad{};

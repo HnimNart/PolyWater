@@ -21,75 +21,13 @@
 
 #include <glm/glm.hpp>
 
-#include "app/widgets/property_editor.hpp"
-
 namespace app
 {
 
-/**********************************************************/
-inline bool azimuthElevationSliders(glm::vec3& direction, bool negative,
-                                    bool yIsUp /*=true*/)
-/**********************************************************/
+class AzimuthSliders
 {
-  glm::vec3 normalized_dir = normalize(direction);
-  if (negative)
-  {
-    normalized_dir = -normalized_dir;
-  }
-
-  double azimuth;
-  double elevation;
-  const double min_azimuth = -180.0;
-  const double max_azimuth = 180.0;
-  const double min_elevation = -90.0;
-  const double max_elevation = 90.0;
-
-  if (yIsUp)
-  {
-    azimuth = glm::degrees(atan2(normalized_dir.z, normalized_dir.x));
-    elevation = glm::degrees(asin(normalized_dir.y));
-  }
-  else
-  {
-    azimuth = glm::degrees(atan2(normalized_dir.y, normalized_dir.x));
-    elevation = glm::degrees(asin(normalized_dir.z));
-  }
-
-  namespace PE = app::PropertyEditor;
-  bool changed = false;
-  changed |= PE::SliderScalar("Azimuth", ImGuiDataType_Double, &azimuth,
-                              &min_azimuth, &max_azimuth, "%.1f deg",
-                              ImGuiSliderFlags_NoRoundToFormat);
-  changed |= PE::SliderScalar("Elevation", ImGuiDataType_Double, &elevation,
-                              &min_elevation, &max_elevation, "%.1f deg",
-                              ImGuiSliderFlags_NoRoundToFormat);
-
-  if (changed)
-  {
-    azimuth = glm::radians(azimuth);
-    elevation = glm::radians(elevation);
-    double cos_elevation = cos(elevation);
-
-    if (yIsUp)
-    {
-      direction.y = static_cast<float>(sin(elevation));
-      direction.x = static_cast<float>(cos(azimuth) * cos_elevation);
-      direction.z = static_cast<float>(sin(azimuth) * cos_elevation);
-    }
-    else
-    {
-      direction.z = static_cast<float>(sin(elevation));
-      direction.x = static_cast<float>(cos(azimuth) * cos_elevation);
-      direction.y = static_cast<float>(sin(azimuth) * cos_elevation);
-    }
-
-    if (negative)
-    {
-      direction = -direction;
-    }
-  }
-
-  return changed;
-}
+public:
+  bool render(glm::vec3& direction, bool negative, bool yIsUp);
+};
 
 }  // namespace app

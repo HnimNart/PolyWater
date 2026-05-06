@@ -73,7 +73,7 @@ void MetalImGuiSystem::setupImGui(const app::ApplicationCreateInfo &info)
       core::utf8FromPath(core::getExecutablePath().replace_extension(".ini"));
 
   ImGui::LoadIniSettingsFromDisk(m_iniFilename.c_str());
-  app::setStyle(false);
+  app::Style{}.setStyle(false);
 
   configureImGuiIO(info);
   initializeFonts();

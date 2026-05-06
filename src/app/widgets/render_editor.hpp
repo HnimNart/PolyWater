@@ -1,108 +1,24 @@
 #pragma once
 
-#include <glm/ext/quaternion_transform.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include "property_editor.hpp"
+#include "backend/interfaces/rhi_definitions.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "scene/scene_resources.hpp"
-#include "shaders/shared/structs.h"
 
 namespace app
 {
 
-/**********************************************************/
-inline bool renderEditor(SceneResourcesManager& resources, IRenderer* renderer)
-/**********************************************************/
+class RenderEditor
 {
-  namespace PE = app::PropertyEditor;
-  bool hasChanged = false;
+public:
+  // Renders the render-mode and output-selection UI.
+  // Returns true if any change requires the renderer to reset/redraw.
+  bool render(SceneResourcesManager& resources, IRenderer* renderer);
 
-  if (PE::begin("RenderModeTable"))
-  {
-    // Fetch current mode and available modes
-    std::string currentMode = renderer->getCurrentMode();
-    const std::vector<std::string> availableModes =
-        renderer->getAvaliableModes();
+  // Returns the currently selected render output for viewport display.
+  RenderOutput currentOutput() const { return m_currentOutput; }
 
-    if (PE::entry("Mode",
-                  [&]()
-                  {
-                    bool changed = false;
-                    // Use the current mode string as the preview
-                    if (ImGui::BeginCombo("##mode", currentMode.c_str()))
-                    {
-                      for (const std::string& mode : availableModes)
-                      {
-                        bool isSelected = (currentMode == mode);
-
-                        if (ImGui::Selectable(mode.c_str(), isSelected))
-                        {
-                          currentMode = mode;
-                          renderer->setRenderMode(currentMode);
-                          resources.setDirty(true);
-                          changed = true;
-                        }
-
-                        // Set the initial focus when opening the combo
-                        if (isSelected)
-                        {
-                          ImGui::SetItemDefaultFocus();
-                        }
-                      }
-                      ImGui::EndCombo();
-                    }
-                    return changed;
-                  }))
-    {
-      hasChanged = true;
-    }
-
-    // Update conditional checks to use the string literals from your
-    // PipelineManager
-    if (currentMode == "Raytrace")
-    {
-      shaderio::RenderParams& params = renderer->renderParams();
-      hasChanged |= PE::DragInt("Samples", &params.nSamples, 1.0F, 0, 1024);
-      hasChanged |=
-          PE::DragInt("Max Bounces", &params.maxBounces, 1.0F, 0, 1024);
-      bool denoiseEnabled = renderer->denoise();
-      if (PE::Checkbox("Denoise", &denoiseEnabled))
-      {
-        renderer->setDenoise(denoiseEnabled);
-      }
-
-      if (PE::Button("Reset Accumulation", ImVec2(-1.0f, 0.0f)))
-      {
-        hasChanged = true;
-      }
-    }
-    else
-    {
-      // Handles both "Raster" and "Meshlet" modes (or any other raster-based
-      // graph)
-      shaderio::RasterParams& params = renderer->rasterParams();
-      if (PE::Checkbox("Wireframe Mode", (bool*) &params.wireframe))
-      {
-        hasChanged = true;
-      }
-      if (params.wireframe)
-      {
-        if (PE::SliderFloat("Line Width", &params.wireframeLineWidth, 0.1f,
-                            10.0f))
-        {
-          hasChanged = true;
-        }
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                           "Note: Wide lines require hardware support.");
-      }
-    }
-
-    PE::end();
-  }
-
-  return hasChanged;
-}
+private:
+  RenderOutput m_currentOutput = RenderOutput::ToneMapped;
+};
 
 }  // namespace app

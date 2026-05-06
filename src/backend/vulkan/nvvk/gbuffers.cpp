@@ -87,6 +87,11 @@ VkDescriptorSet nvvk::GBuffer::getDescriptorSet(uint32_t i) const
   return m_res.uiDescriptorSets[i];
 }
 
+VkDescriptorSet nvvk::GBuffer::getDepthDescriptorSet() const
+{
+  return m_res.depthDescriptorSet;
+}
+
 VkExtent2D nvvk::GBuffer::getSize() const
 {
   return m_size;
@@ -224,6 +229,34 @@ VkResult nvvk::GBuffer::initResources(VkCommandBuffer cmd)
                                                    createInfo, viewInfo));
     dutil.setObjectName(m_res.gBufferDepth.image, "G-Depth");
     dutil.setObjectName(m_res.gBufferDepth.descriptor.imageView, "G-Depth");
+
+    // Transition the depth image to SHADER_READ_ONLY_OPTIMAL so it can be
+    // displayed via ImGui at any point (even in modes that never write depth).
+    VkImageAspectFlags depthAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    switch (m_info.depthFormat)
+    {
+      case VK_FORMAT_D16_UNORM_S8_UINT:
+      case VK_FORMAT_D24_UNORM_S8_UINT:
+      case VK_FORMAT_D32_SFLOAT_S8_UINT:
+        depthAspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        break;
+      default:
+        break;
+    }
+    const VkImageMemoryBarrier2 depthBarrier = nvvk::makeImageMemoryBarrier(
+        {.image = m_res.gBufferDepth.image,
+         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+         .subresourceRange = {.aspectMask = depthAspect,
+                              .levelCount = 1,
+                              .layerCount = 1}});
+    const VkDependencyInfo depthDepInfo{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers = &depthBarrier};
+    vkCmdPipelineBarrier2(cmd, &depthDepInfo);
+    m_res.gBufferDepth.descriptor.imageLayout =
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   }
 
   {  // Clear all images and change layout
@@ -308,6 +341,33 @@ VkResult nvvk::GBuffer::initResources(VkCommandBuffer cmd)
     }
     vkUpdateDescriptorSets(device, uint32_t(m_res.uiDescriptorSets.size()),
                            writeDesc.data(), 0, nullptr);
+
+    // Allocate and write a descriptor set for the depth image so it can be
+    // displayed via ImGui (e.g. when the user selects "Depth Buffer" output).
+    if (m_info.depthFormat != VK_FORMAT_UNDEFINED)
+    {
+      const VkDescriptorSetAllocateInfo depthAllocInfo = {
+          .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+          .descriptorPool      = m_info.descriptorPool,
+          .descriptorSetCount  = 1,
+          .pSetLayouts         = &m_descLayout,
+      };
+      NVVK_FAIL_RETURN(vkAllocateDescriptorSets(device, &depthAllocInfo,
+                                                &m_res.depthDescriptorSet));
+
+      const VkDescriptorImageInfo depthDescImage = {
+          m_info.imageSampler,
+          m_res.gBufferDepth.descriptor.imageView,
+          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+      const VkWriteDescriptorSet depthWrite = {
+          .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+          .dstSet          = m_res.depthDescriptorSet,
+          .descriptorCount = 1,
+          .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .pImageInfo      = &depthDescImage,
+      };
+      vkUpdateDescriptorSets(device, 1, &depthWrite, 0, nullptr);
+    }
   }
 
   return VK_SUCCESS;
@@ -326,6 +386,12 @@ void nvvk::GBuffer::deinitResources()
     vkFreeDescriptorSets(device, m_info.descriptorPool,
                          uint32_t(m_res.uiDescriptorSets.size()),
                          m_res.uiDescriptorSets.data());
+    if (m_res.depthDescriptorSet != VK_NULL_HANDLE)
+    {
+      vkFreeDescriptorSets(device, m_info.descriptorPool, 1,
+                           &m_res.depthDescriptorSet);
+      m_res.depthDescriptorSet = VK_NULL_HANDLE;
+    }
     vkDestroyDescriptorSetLayout(device, m_descLayout, nullptr);
     m_res.uiDescriptorSets.clear();
     m_descLayout = VK_NULL_HANDLE;

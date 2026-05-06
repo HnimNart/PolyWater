@@ -21,12 +21,7 @@
 #include "app/application.hpp"
 #include "app/widgets/axis.hpp"
 #include "app/widgets/camera.hpp"
-#include "app/widgets/instance_editor.hpp"
-#include "app/widgets/light_editor.hpp"
-#include "app/widgets/material_editor.hpp"
-#include "app/widgets/meshes_editor.hpp"
-#include "app/widgets/render_editor.hpp"
-#include "app/widgets/texture_editor.hpp"
+#include "app/widgets/property_editor.hpp"
 #include "app/widgets/tonemapper.hpp"
 #include "backend/vulkan/core/vulkan_backend.hpp"
 #include "core/image.hpp"
@@ -283,9 +278,9 @@ void VulkanRendererElement::onUIRender()
   // --- VIEWPORT WINDOW ---
   if (ImGui::Begin("Viewport") && !m_app->isPaused())
   {
-    ImTextureID toneMappedId =
-        ImTextureID(renderer->getImageDescriptor(RenderOutput::ToneMapped));
-    ImGui::Image(toneMappedId, ImGui::GetContentRegionAvail());
+    ImTextureID outputId =
+        ImTextureID(renderer->getImageDescriptor(m_renderEditor.currentOutput()));
+    ImGui::Image(outputId, ImGui::GetContentRegionAvail());
     app::drawAxis(camera->getViewProjection());
   }
   ImGui::End();
@@ -306,7 +301,7 @@ void VulkanRendererElement::onUIRender()
 
         if (ImGui::CollapsingHeader("Render", ImGuiTreeNodeFlags_DefaultOpen))
         {
-          m_hasChanged |= app::renderEditor(resourceManager, renderer);
+          m_hasChanged |= m_renderEditor.render(resourceManager, renderer);
         }
         ImGui::EndTabItem();
       }
@@ -331,8 +326,8 @@ void VulkanRendererElement::onUIRender()
         if (ImGui::CollapsingHeader("Environment",
                                     ImGuiTreeNodeFlags_DefaultOpen))
         {
-          if (auto mask = app::lightEditor(resourceManager,
-                                           m_renderer->deviceResources()))
+          if (auto mask = m_lightEditor.render(resourceManager,
+                                               m_renderer->deviceResources()))
           {
             resourceManager.onLightChange(mask);
           }
@@ -343,7 +338,7 @@ void VulkanRendererElement::onUIRender()
       // --- MATERIALS ---
       if (ImGui::BeginTabItem("Materials"))
       {
-        if (app::materialEditor(resourceManager))
+        if (m_materialEditor.render(resourceManager))
         {
           resourceManager.onMaterialChange();
         }
@@ -353,8 +348,8 @@ void VulkanRendererElement::onUIRender()
       // --- INSTANCES ---
       if (ImGui::BeginTabItem("Instances"))
       {
-        if (app::instanceEditor(resourceManager,
-                                renderer->getShaderManager().getRegistry()))
+        if (m_instanceEditor.render(resourceManager,
+                                    renderer->getShaderManager().getRegistry()))
         {
           resourceManager.onInstanceChange();
         }
@@ -364,13 +359,13 @@ void VulkanRendererElement::onUIRender()
       // --- MESHES ---
       if (ImGui::BeginTabItem("Meshes"))
       {
-        app::meshEditor(resourceManager);
+        m_meshEditor.render(resourceManager);
         ImGui::EndTabItem();
       }
 
       if (ImGui::BeginTabItem("Textures"))
       {
-        app::textureEditor(resourceManager, m_renderer->deviceResources());
+        m_textureEditor.render(resourceManager, m_renderer->deviceResources());
         ImGui::EndTabItem();
       }
       ImGui::EndTabBar();

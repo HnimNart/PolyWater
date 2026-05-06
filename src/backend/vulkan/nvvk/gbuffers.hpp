@@ -89,6 +89,7 @@ public:
   //--- Getters for the GBuffer resources -------------------------
   VkDescriptorSet getDescriptorSet(
       uint32_t i = 0) const;  // Can be use as ImTextureID for ImGui
+  VkDescriptorSet getDepthDescriptorSet() const;  // Depth buffer ImTextureID
   VkExtent2D getSize() const;
   VkImage getColorImage(uint32_t i = 0) const;
   VkImage getDepthImage() const;
@@ -139,6 +140,7 @@ private:
     std::vector<VkImageView>
         uiImageViews{};  // Special views for ImGui (alpha=1)
     std::vector<VkDescriptorSet> uiDescriptorSets{};  // ImGui descriptor sets
+    VkDescriptorSet depthDescriptorSet{};             // ImGui descriptor for depth
   } m_res;                                            // All Vulkan resources
 
   VkExtent2D m_size{};  // Width and height of the buffers
