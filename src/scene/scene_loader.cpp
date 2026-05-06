@@ -7,10 +7,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include "scene_data.hpp"
 #include "core/logger.hpp"
 #include "core/string_utils.hpp"
 #include "core/timers.hpp"
+#include "scene_data.hpp"
 
 // Helper macro for cleaner JSON lookups with default values
 #define JSON_VAL(jsonObj, key, defaultVal)                                     \

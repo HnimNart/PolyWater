@@ -12,8 +12,8 @@ std::unique_ptr<VulkanAccelerationStructures>
 VulkanAccelerationStructures::create(VulkanContextManager* core)
 /**********************************************************/
 {
-  auto m_accel =
-      std::unique_ptr<VulkanAccelerationStructures>(new VulkanAccelerationStructures());
+  auto m_accel = std::unique_ptr<VulkanAccelerationStructures>(
+      new VulkanAccelerationStructures());
   m_accel->init(core);
   return m_accel;
 }
@@ -42,7 +42,7 @@ void VulkanAccelerationStructures::init(VulkanContextManager* coreManager)
 
 /**********************************************************/
 void VulkanAccelerationStructures::build(const SceneResourcesManager& scene,
-                                   const ShaderManager& materialManager)
+                                         const ShaderManager& materialManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -55,7 +55,7 @@ void VulkanAccelerationStructures::build(const SceneResourcesManager& scene,
 
 /**********************************************************/
 void VulkanAccelerationStructures::rebuild(const SceneResourcesManager& scene,
-                                     const ShaderManager& materialManager)
+                                           const ShaderManager& materialManager)
 /**********************************************************/
 {
   auto tlasInstances = buildTLAS(scene, materialManager);
@@ -93,7 +93,7 @@ void VulkanAccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 /**********************************************************/
 std::vector<VkAccelerationStructureInstanceKHR>
 VulkanAccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
-                                  const ShaderManager& shaderManager)
+                                        const ShaderManager& shaderManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -134,7 +134,8 @@ nvvk::AccelerationStructure VulkanAccelerationStructures::tlas() const
 
 /**********************************************************/
 nvvk::AccelerationStructureGeometryInfo
-VulkanAccelerationStructures::primitiveToGeometry(const shaderio::MeshPrimitive& mesh)
+VulkanAccelerationStructures::primitiveToGeometry(
+    const shaderio::MeshPrimitive& mesh)
 /**********************************************************/
 {
   nvvk::AccelerationStructureGeometryInfo result = {};

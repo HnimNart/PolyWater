@@ -95,7 +95,8 @@ void VulkanSkyPass::execute(IRenderContext& ctx)
   core::ProfilerTimeline::FrameSectionID _profId{};
   const bool _profActive = (m_gpuTimer != nullptr);
   if (_profActive)
-    _profId = m_gpuTimer->cmdFrameBeginSection(vkCtx.cmdBuffer, std::string(name()));
+    _profId =
+        m_gpuTimer->cmdFrameBeginSection(vkCtx.cmdBuffer, std::string(name()));
 #endif
 
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);

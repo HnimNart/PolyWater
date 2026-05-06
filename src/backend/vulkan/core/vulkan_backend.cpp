@@ -9,12 +9,12 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <vk_mem_alloc.h>  // Assuming VMA is included via this or similar
 
-#include "vulkan_context_manager.hpp"
-#include "vulkan_frame_synchronization_manager.hpp"
-#include "vulkan_swapchain_render_manager.hpp"
 #include "app/gui_system_interface.hpp"
 #include "backend/vulkan/gui/vulkan_imgui_system.hpp"
 #include "core/profiler.hpp"
+#include "vulkan_context_manager.hpp"
+#include "vulkan_frame_synchronization_manager.hpp"
+#include "vulkan_swapchain_render_manager.hpp"
 
 /**********************************************************/
 std::unique_ptr<VulkanBackend>

@@ -6,12 +6,12 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 
-#include "vulkan_context_manager.hpp"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
+#include "vulkan_context_manager.hpp"
 
 /**********************************************************/
 void VulkanFrameSynchronizationManager::init(VulkanContextManager& coreManager,
-                                       uint32_t numFrames)
+                                             uint32_t numFrames)
 /**********************************************************/
 {
   assert(numFrames >= 2);  // Must have at least 2 frames in flight
@@ -133,7 +133,7 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
 
   // Clear per-frame transient state.
   frame->finishedCmdBuffers.clear();
-  frame->cmdBuffer   = VK_NULL_HANDLE;
+  frame->cmdBuffer = VK_NULL_HANDLE;
   frame->activeIndex = kEndPassIndex;
 
   clearSemaphoresAndBuffers();
@@ -141,7 +141,7 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
   // Pre-open the first pass's command buffer so that work recorded by
   // VulkanRenderer::render() before m_graph->execute() (e.g., scene resource
   // uploads) is captured without an explicit activatePass() call.
-  frame->cmdBuffer   = frame->passCmdBuffers[0];
+  frame->cmdBuffer = frame->passCmdBuffers[0];
   frame->activeIndex = 0;
 
   const VkCommandBufferBeginInfo beginInfo{
@@ -154,7 +154,8 @@ VulkanRenderContext* VulkanFrameSynchronizationManager::beginFrame()
 }
 
 /**********************************************************/
-void VulkanFrameSynchronizationManager::endFrame(const VulkanRenderContext& frameCtx)
+void VulkanFrameSynchronizationManager::endFrame(
+    const VulkanRenderContext& frameCtx)
 /**********************************************************/
 {
   // RenderGraph::execute() has already ended all per-pass command buffers via
@@ -184,7 +185,8 @@ void VulkanFrameSynchronizationManager::advance()
 }
 
 /**********************************************************/
-VkCommandBuffer VulkanFrameSynchronizationManager::getActiveCommandBuffer() const
+VkCommandBuffer
+VulkanFrameSynchronizationManager::getActiveCommandBuffer() const
 /**********************************************************/
 {
   assert(m_frameData[m_frameRingCurrent]->cmdBuffer != VK_NULL_HANDLE);
@@ -240,7 +242,8 @@ void VulkanFrameSynchronizationManager::clearSemaphoresAndBuffers()
 }
 
 /**********************************************************/
-void VulkanFrameSynchronizationManager::deinit(VulkanContextManager& coreManager)
+void VulkanFrameSynchronizationManager::deinit(
+    VulkanContextManager& coreManager)
 /**********************************************************/
 {
   VkDevice device = coreManager.getDevice();

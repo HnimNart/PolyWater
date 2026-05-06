@@ -295,7 +295,6 @@ void VulkanRendererElement::onUIRender()
   {
     if (ImGui::BeginTabBar("SettingTabs"))
     {
-
       // --- RENDERING ---
       if (ImGui::BeginTabItem("Render"))
       {

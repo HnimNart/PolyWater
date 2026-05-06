@@ -4,10 +4,10 @@
 
 #include <core/file_operations.hpp>
 
-#include "scene_data.hpp"
 #include "core/math.hpp"
 #include "core/timers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
+#include "scene_data.hpp"
 
 /**********************************************************/
 SceneManager::SceneManager(std::shared_ptr<IDeviceAssets> deviceResources)

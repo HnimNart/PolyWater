@@ -5,11 +5,11 @@
 #include <fstream>
 #include <iostream>
 
-#include "rhi_definitions.hpp"
 #include "core/logger.hpp"
 #include "core/shape/primitives.hpp"
 #include "core/timers.hpp"
 #include "gltf_utils.hpp"
+#include "rhi_definitions.hpp"
 
 namespace
 {

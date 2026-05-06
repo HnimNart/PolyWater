@@ -8,20 +8,20 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 
-#include "vulkan_context_manager.hpp"
-#include "vulkan_frame_synchronization_manager.hpp"
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
+#include "vulkan_context_manager.hpp"
+#include "vulkan_frame_synchronization_manager.hpp"
 
 /**********************************************************/
 void VulkanSwapchainRenderManager::init(VulkanContextManager& coreManager,
-                                  GLFWwindow* windowHandle)
+                                        GLFWwindow* windowHandle)
 /**********************************************************/
 {
   if (!windowHandle)
   {
-    throw std::runtime_error(
-        "VulkanSwapchainRenderManager initialized without a valid GLFW window.");
+    throw std::runtime_error("VulkanSwapchainRenderManager initialized without "
+                             "a valid GLFW window.");
   }
 
   VkDevice device = coreManager.getDevice();
@@ -101,7 +101,8 @@ void VulkanSwapchainRenderManager::deinit(VulkanContextManager& coreManager)
 }
 
 /**********************************************************/
-void VulkanSwapchainRenderManager::setUICallback(const RenderCallback& renderCallback)
+void VulkanSwapchainRenderManager::setUICallback(
+    const RenderCallback& renderCallback)
 /**********************************************************/
 {
   m_uiCallback = renderCallback;

@@ -49,7 +49,7 @@ void VulkanRenderContext::activatePass(uint32_t cmdBufferIndex)
   {
     NVVK_CHECK(vkEndCommandBuffer(cmdBuffer));
     finishedCmdBuffers.push_back(cmdBuffer);
-    cmdBuffer   = VK_NULL_HANDLE;
+    cmdBuffer = VK_NULL_HANDLE;
     activeIndex = kEndPassIndex;
   }
 
@@ -59,7 +59,7 @@ void VulkanRenderContext::activatePass(uint32_t cmdBufferIndex)
   }
 
   // Begin the pre-allocated command buffer for the requested pass index.
-  cmdBuffer   = passCmdBuffers[cmdBufferIndex];
+  cmdBuffer = passCmdBuffers[cmdBufferIndex];
   activeIndex = cmdBufferIndex;
 
   const VkCommandBufferBeginInfo beginInfo{

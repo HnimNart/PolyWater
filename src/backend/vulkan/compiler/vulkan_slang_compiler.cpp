@@ -48,7 +48,8 @@ void debugShaderMagic(const std::string& name,
 }  // namespace
 
 /**********************************************************/
-void VulkanSlangCompiler::init(const std::vector<std::filesystem::path>& shaderDirs)
+void VulkanSlangCompiler::init(
+    const std::vector<std::filesystem::path>& shaderDirs)
 /**********************************************************/
 {
   m_shaderDirs = shaderDirs;
@@ -77,7 +78,8 @@ void VulkanSlangCompiler::init(const std::vector<std::filesystem::path>& shaderD
 /**********************************************************/
 VkShaderModuleCreateInfo
 VulkanSlangCompiler::compile(const std::filesystem::path& filename,
-                       const std::span<const uint32_t>& spirv, bool useCache)
+                             const std::span<const uint32_t>& spirv,
+                             bool useCache)
 /**********************************************************/
 {
 
@@ -226,7 +228,8 @@ slang::IModule* detail::VulkanSlangCompiler::getSlangModule() const
 }
 
 /**********************************************************/
-bool detail::VulkanSlangCompiler::compileFile(const std::filesystem::path& filename)
+bool detail::VulkanSlangCompiler::compileFile(
+    const std::filesystem::path& filename)
 /**********************************************************/
 {
   const std::filesystem::path sourceFile =
@@ -251,7 +254,8 @@ bool detail::VulkanSlangCompiler::compileFile(const std::filesystem::path& filen
 }
 
 /**********************************************************/
-void detail::VulkanSlangCompiler::logAndAppendDiagnostics(slang::IBlob* diagnostics)
+void detail::VulkanSlangCompiler::logAndAppendDiagnostics(
+    slang::IBlob* diagnostics)
 /**********************************************************/
 {
   if (diagnostics)
@@ -271,8 +275,8 @@ void detail::VulkanSlangCompiler::logAndAppendDiagnostics(slang::IBlob* diagnost
 }
 
 /**********************************************************/
-bool detail::VulkanSlangCompiler::loadFromSourceString(const std::string& moduleName,
-                                                 const std::string& slangSource)
+bool detail::VulkanSlangCompiler::loadFromSourceString(
+    const std::string& moduleName, const std::string& slangSource)
 /**********************************************************/
 {
   createSession();

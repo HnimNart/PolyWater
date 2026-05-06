@@ -14,8 +14,8 @@
 #include <nvvk/descriptors.hpp>
 #include <nvvk/formats.hpp>
 
-#include "image.hpp"
 #include "core/timers.hpp"
+#include "image.hpp"
 #include "shaders/shared/structs.h"
 
 // -------------------------------------------------------------------------

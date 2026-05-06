@@ -172,16 +172,17 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   submitInfos.reserve(vkCtx.finishedCmdBuffers.size() + 1);
   for (VkCommandBuffer fb : vkCtx.finishedCmdBuffers)
   {
-    submitInfos.push_back({.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                           .commandBuffer = fb});
+    submitInfos.push_back(
+        {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+         .commandBuffer = fb});
   }
   submitInfos.push_back({.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                          .commandBuffer = cmd});
 
   const VkSubmitInfo2 submitInfo{
-      .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-      .commandBufferInfoCount   = static_cast<uint32_t>(submitInfos.size()),
-      .pCommandBufferInfos      = submitInfos.data(),
+      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+      .commandBufferInfoCount = static_cast<uint32_t>(submitInfos.size()),
+      .pCommandBufferInfos = submitInfos.data(),
   };
 
   NVVK_CHECK(vkResetFences(m_contextManager->getDevice(), 1, &m_fence));
@@ -193,7 +194,7 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   // These command buffers have been submitted; clear them so endFrame does
   // not submit them again.
   vkCtx.finishedCmdBuffers.clear();
-  vkCtx.cmdBuffer  = VK_NULL_HANDLE;
+  vkCtx.cmdBuffer = VK_NULL_HANDLE;
   vkCtx.activeIndex = kEndPassIndex;
 
   // Execute the OIDN filter on the GPU device.
@@ -241,11 +242,13 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   copyBufferToDenoised(newCmd, gBuffers, size);
 
   // Leave newCmd open (in recording state).  The RenderGraph will end it
-  // when it calls activatePass(nextPassIndex), which sees cmdBuffer != VK_NULL_HANDLE
-  // and activeIndex == kEndPassIndex and closes it before opening the next pass.
+  // when it calls activatePass(nextPassIndex), which sees cmdBuffer !=
+  // VK_NULL_HANDLE and activeIndex == kEndPassIndex and closes it before
+  // opening the next pass.
   vkCtx.cmdBuffer = newCmd;
   // activeIndex stays at kEndPassIndex to signal that cmdBuffer is a dynamic
-  // buffer, not a pre-allocated pass buffer — activatePass() handles it correctly.
+  // buffer, not a pre-allocated pass buffer — activatePass() handles it
+  // correctly.
 
 #ifdef PROFILE_APP
   // End the section on the new command buffer.  Both buffers are on the same
@@ -358,6 +361,7 @@ void OIDNDenoisePass::rebuildFilter(uint32_t width, uint32_t height)
   m_filter.setImage("output", m_outputBuf.oidnBuf, oidn::Format::Float3, width,
                     height, 0, bytePixelStride, byteRowStride);
 
+  m_filter.set("quality", OIDN_QUALITY_FAST);
   m_filter.set("hdr", true);
   m_filter.commit();
   return;
