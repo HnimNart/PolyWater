@@ -1,9 +1,9 @@
 #include "material_editor.hpp"
 
-#include <algorithm>
-
 #include <fmt/format.h>
 #include <imgui.h>
+
+#include <algorithm>
 
 #include "glm/gtc/type_ptr.hpp"
 #include "property_editor.hpp"
@@ -16,10 +16,10 @@ namespace app
 bool MaterialEditor::render(SceneResourcesManager& resources)
 /**********************************************************/
 {
-  namespace PE        = app::PropertyEditor;
-  auto&       materials   = resources.getMaterials();
+  namespace PE = app::PropertyEditor;
+  auto& materials = resources.getMaterials();
   const auto& materialMap = resources.materialMap();
-  bool        changed     = false;
+  bool changed = false;
 
   if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen))
   {
@@ -31,13 +31,13 @@ bool MaterialEditor::render(SceneResourcesManager& resources)
     if (ImGui::Button("+ Add"))
     {
       shaderio::Material newMat{};
-      newMat.baseColorFactor      = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);  // Light grey
-      newMat.metallicFactor       = 0.0f;
-      newMat.roughnessFactor      = 0.5f;
-      newMat.emission             = glm::vec3(0.0f);
-      newMat.ior                  = glm::vec3(1.5f);  // Standard glass/plastic IOR
-      newMat.sigma_t              = glm::vec3(0.0f);
-      newMat.asymmetry            = glm::vec3(0.0f);
+      newMat.baseColorFactor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);  // Light grey
+      newMat.metallicFactor = 0.0f;
+      newMat.roughnessFactor = 0.5f;
+      newMat.emission = glm::vec3(0.0f);
+      newMat.ior = glm::vec3(1.5f);  // Standard glass/plastic IOR
+      newMat.sigma_t = glm::vec3(0.0f);
+      newMat.asymmetry = glm::vec3(0.0f);
       newMat.baseColorTextureIndex = -1;
 
       resources.addMaterial(std::move(newMat));
@@ -87,7 +87,7 @@ bool MaterialEditor::render(SceneResourcesManager& resources)
         changed |= PE::SliderFloat3("Asymmetry", glm::value_ptr(mat.asymmetry),
                                     0.0f, 1.0f);
 
-        const auto& textureMap  = resources.textureMap();
+        const auto& textureMap = resources.textureMap();
         std::string currentName = "None";
         for (const auto& [texName, texId] : textureMap)
         {
@@ -112,8 +112,8 @@ bool MaterialEditor::render(SceneResourcesManager& resources)
                   if (ImGui::Selectable(texName.c_str(), isSelected))
                   {
                     mat.baseColorTextureIndex = texId;
-                    itemChanged               = true;
-                    changed                   = true;
+                    itemChanged = true;
+                    changed = true;
                     resources.onMaterialChange();
                   }
 

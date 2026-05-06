@@ -38,19 +38,19 @@ bool AzimuthSliders::render(glm::vec3& direction, bool negative, bool yIsUp)
 
   double azimuth;
   double elevation;
-  const double min_azimuth   = -180.0;
-  const double max_azimuth   = 180.0;
+  const double min_azimuth = -180.0;
+  const double max_azimuth = 180.0;
   const double min_elevation = -90.0;
   const double max_elevation = 90.0;
 
   if (yIsUp)
   {
-    azimuth   = glm::degrees(atan2(normalized_dir.z, normalized_dir.x));
+    azimuth = glm::degrees(atan2(normalized_dir.z, normalized_dir.x));
     elevation = glm::degrees(asin(normalized_dir.y));
   }
   else
   {
-    azimuth   = glm::degrees(atan2(normalized_dir.y, normalized_dir.x));
+    azimuth = glm::degrees(atan2(normalized_dir.y, normalized_dir.x));
     elevation = glm::degrees(asin(normalized_dir.z));
   }
 
@@ -65,8 +65,8 @@ bool AzimuthSliders::render(glm::vec3& direction, bool negative, bool yIsUp)
 
   if (changed)
   {
-    azimuth              = glm::radians(azimuth);
-    elevation            = glm::radians(elevation);
+    azimuth = glm::radians(azimuth);
+    elevation = glm::radians(elevation);
     double cos_elevation = cos(elevation);
 
     if (yIsUp)

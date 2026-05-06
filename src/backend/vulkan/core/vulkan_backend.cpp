@@ -139,7 +139,6 @@ IRenderContext& VulkanBackend::getCurrentContext()
 IRenderContext* VulkanBackend::doBeginFrame()
 /**********************************************************/
 {
-
   m_frameSyncManager->waitForFrameCompletion();
   if (m_swapchainManager && !m_swapchainManager->beginFrame(*m_coreManager))
   {

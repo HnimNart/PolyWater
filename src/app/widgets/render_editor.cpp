@@ -10,28 +10,29 @@ namespace app
 
 // Human-readable labels for each RenderOutput value (order must match the enum)
 static constexpr const char* kOutputNames[RenderOutput::Count] = {
-    "Linear (HDR raw)",        // Linear = 0
-    "ToneMapped (SDR)",        // ToneMapped = 1
-    "Accum Linear (HDR)",      // AccumLinear = 2
-    "Denoised (HDR)",          // Denoised = 3
-    "Albedo",                  // Albedo = 4
-    "Normal (World-space)",    // Normal = 5
-    "Depth Buffer",            // DepthBuffer = 6
-    "Swapchain",               // Swapchain = 7
+    "Linear (HDR raw)",      // Linear = 0
+    "ToneMapped (SDR)",      // ToneMapped = 1
+    "Accum Linear (HDR)",    // AccumLinear = 2
+    "Denoised (HDR)",        // Denoised = 3
+    "Albedo",                // Albedo = 4
+    "Normal (World-space)",  // Normal = 5
+    "Depth Buffer",          // DepthBuffer = 6
+    "Swapchain",             // Swapchain = 7
 };
 
 /**********************************************************/
 bool RenderEditor::render(SceneResourcesManager& resources, IRenderer* renderer)
 /**********************************************************/
 {
-  namespace PE        = app::PropertyEditor;
-  bool hasChanged     = false;
+  namespace PE = app::PropertyEditor;
+  bool hasChanged = false;
 
   if (PE::begin("RenderModeTable"))
   {
     // ---- Render mode selection ----
-    std::string              currentMode    = renderer->getCurrentMode();
-    const std::vector<std::string> availableModes = renderer->getAvaliableModes();
+    std::string currentMode = renderer->getCurrentMode();
+    const std::vector<std::string> availableModes =
+        renderer->getAvaliableModes();
 
     if (PE::entry("Mode",
                   [&]()
@@ -102,9 +103,10 @@ bool RenderEditor::render(SceneResourcesManager& resources, IRenderer* renderer)
     }
     else
     {
-      // Handles both "Raster" and "Meshlet" modes (or any other raster-based graph)
+      // Handles both "Raster" and "Meshlet" modes (or any other raster-based
+      // graph)
       shaderio::RasterParams& params = renderer->rasterParams();
-      if (PE::Checkbox("Wireframe Mode", (bool*)&params.wireframe))
+      if (PE::Checkbox("Wireframe Mode", (bool*) &params.wireframe))
       {
         hasChanged = true;
       }

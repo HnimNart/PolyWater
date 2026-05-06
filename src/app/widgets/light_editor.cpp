@@ -16,12 +16,12 @@ namespace app
 
 /**********************************************************/
 LightChangedBitMask
-LightEditor::render(SceneResourcesManager&                resources,
+LightEditor::render(SceneResourcesManager& resources,
                     const std::shared_ptr<IDeviceAssets>& deviceResources)
 /**********************************************************/
 {
   shaderio::SceneInfo& sceneInfo = resources.sceneInfo();
-  namespace PE                   = app::PropertyEditor;
+  namespace PE = app::PropertyEditor;
 
   // Initialize as None (0)
   uint32_t mask = LightChangedBitMask::NoneChanged;
@@ -67,8 +67,8 @@ LightEditor::render(SceneResourcesManager&                resources,
     auto& env = sceneInfo.envmapLight;
     if (PE::begin("EnvParamsTable"))
     {
-      const core::Image& envmapImage   = resources.getEnvmap();
-      TextureID          textureToDelete = -1;
+      const core::Image& envmapImage = resources.getEnvmap();
+      TextureID textureToDelete = -1;
 
       // --- PREVIEW SECTION ---
       PE::entry("Preview",
@@ -79,12 +79,12 @@ LightEditor::render(SceneResourcesManager&                resources,
                   if (gpuHandle)
                   {
                     float ratio = (env.dims.x > 0)
-                                      ? (float)env.dims.y / (float)env.dims.x
+                                      ? (float) env.dims.y / (float) env.dims.x
                                       : 0.5f;
                     float width =
                         std::min(ImGui::GetContentRegionAvail().x, 300.0f);
-                    ImGui::Image(gpuHandle, ImVec2(width, width * ratio), {0, 0},
-                                 {1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0.3f});
+                    ImGui::Image(gpuHandle, ImVec2(width, width * ratio),
+                                 {0, 0}, {1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0.3f});
                   }
                   else
                   {
@@ -151,7 +151,7 @@ LightEditor::render(SceneResourcesManager&                resources,
         }
         else
         {
-          env.totalSum     = 0;
+          env.totalSum = 0;
           sceneInfo.useEnv = false;
           sceneInfo.useSky = true;
         }
@@ -164,7 +164,7 @@ LightEditor::render(SceneResourcesManager&                resources,
     if (PE::begin("SolidColorTable"))
     {
       if (PE::ColorEdit3("Background Color",
-                         (float*)&sceneInfo.backgroundColor))
+                         (float*) &sceneInfo.backgroundColor))
       {
         mask |= LightChangedBitMask::EnvmapChanged;
       }
@@ -181,7 +181,7 @@ LightEditor::render(SceneResourcesManager&                resources,
       int typeInt = static_cast<int>(light.type);
       if (PE::Combo("Type", &typeInt, "Point\0Spot\0Directional\0"))
       {
-        light.type = (shaderio::LightType)typeInt;
+        light.type = (shaderio::LightType) typeInt;
         mask |= LightChangedBitMask::PunctualLightChanged;
       }
 

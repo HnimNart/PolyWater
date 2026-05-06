@@ -1,10 +1,10 @@
 #include "instance_editor.hpp"
 
-#include <algorithm>
-#include <unordered_map>
-
 #include <fmt/format.h>
 #include <imgui.h>
+
+#include <algorithm>
+#include <unordered_map>
 
 #include "core/math.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -16,20 +16,20 @@ namespace app
 
 /**********************************************************/
 bool InstanceEditor::render(
-    SceneResourcesManager&                       resources,
+    SceneResourcesManager& resources,
     const std::map<MaterialType, MaterialEntry>& shaderRegistry)
 /**********************************************************/
 {
-  namespace PE        = app::PropertyEditor;
-  auto&       instances   = resources.getInstances();
-  const auto& materials   = resources.getMaterials();
+  namespace PE = app::PropertyEditor;
+  auto& instances = resources.getInstances();
+  const auto& materials = resources.getMaterials();
   const auto& instanceMap = resources.instanceMap();
-  const auto& meshes      = resources.getMeshes();
-  const auto& meshMap     = resources.meshMap();
+  const auto& meshes = resources.getMeshes();
+  const auto& meshMap = resources.meshMap();
   const auto& materialMap = resources.materialMap();
 
-  std::string                       matNamesList;
-  std::vector<MaterialID>           matIDs;
+  std::string matNamesList;
+  std::vector<MaterialID> matIDs;
   std::unordered_map<uint32_t, int> matIDToIndex;  // <MaterialID, ComboIndex>
 
   int counter = 0;
@@ -51,11 +51,11 @@ bool InstanceEditor::render(
     if (ImGui::Button("+ Add"))
     {
       shaderio::Instance newInst;
-      newInst.transform     = math::composeTransform(newInst.translation,
-                                                 newInst.rotation, newInst.scale);
+      newInst.transform = math::composeTransform(
+          newInst.translation, newInst.rotation, newInst.scale);
       newInst.materialIndex = 0;
-      newInst.meshIndex     = 0;
-      newInst.hit_group     = MaterialType::eDiffuse;
+      newInst.meshIndex = 0;
+      newInst.hit_group = MaterialType::eDiffuse;
 
       resources.addInstance(std::move(newInst));
       changed = true;
@@ -80,8 +80,8 @@ bool InstanceEditor::render(
       std::string label = fmt::format("{}[{}]##{}", name, id, id);
       if (ImGui::TreeNode(label.c_str()))
       {
-        auto& inst  = instances[id];
-        int   matIdx = static_cast<int>(inst.materialIndex);
+        auto& inst = instances[id];
+        int matIdx = static_cast<int>(inst.materialIndex);
         PE::begin();
 
         int currentComboItem = -1;
@@ -91,25 +91,25 @@ bool InstanceEditor::render(
           currentComboItem = it->second;
         }
 
-        if (PE::Combo("Material Select", &currentComboItem, matNamesList.c_str(),
-                      (int)matIDs.size()))
+        if (PE::Combo("Material Select", &currentComboItem,
+                      matNamesList.c_str(), (int) matIDs.size()))
         {
           inst.materialIndex = matIDs[currentComboItem];
-          matIdx             = (int)inst.materialIndex;
-          changed            = true;
+          matIdx = (int) inst.materialIndex;
+          changed = true;
         }
         if (PE::SliderInt("Material ID", &matIdx, 0,
-                          (int)materials.size() - 1))
+                          (int) materials.size() - 1))
         {
-          inst.materialIndex = (uint32_t)matIdx;
-          changed            = true;
+          inst.materialIndex = (uint32_t) matIdx;
+          changed = true;
         }
 
         // Hit Group (Shader) Assignment
         std::vector<MaterialType> types;
-        std::string               shaderNames;
-        int                       currentTypeIdx = -1;
-        int                       count          = 0;
+        std::string shaderNames;
+        int currentTypeIdx = -1;
+        int count = 0;
         for (auto const& [type, entry] : shaderRegistry)
         {
           if (type == inst.hit_group)
@@ -121,10 +121,10 @@ bool InstanceEditor::render(
         shaderNames += '\0';
 
         if (PE::Combo("Shader Type", &currentTypeIdx, shaderNames.c_str(),
-                      (int)types.size()))
+                      (int) types.size()))
         {
           inst.hit_group = types[currentTypeIdx];
-          changed        = true;
+          changed = true;
         }
 
         // Mesh index
@@ -140,13 +140,13 @@ bool InstanceEditor::render(
         PE::Text("Mesh Name", currentMeshName.c_str());
         int currentMeshIdx = static_cast<int>(inst.meshIndex);
         if (PE::SliderInt("Mesh ID", &currentMeshIdx, 0,
-                          std::max(0, (int)meshes.size() - 1)))
+                          std::max(0, (int) meshes.size() - 1)))
         {
           inst.meshIndex = static_cast<uint32_t>(currentMeshIdx);
-          changed        = true;
+          changed = true;
         }
 
-        glm::quat rotation      = math::toQuat(glm::vec4(inst.rotation));
+        glm::quat rotation = math::toQuat(glm::vec4(inst.rotation));
         glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
 
         bool tChanged =
@@ -159,7 +159,7 @@ bool InstanceEditor::render(
         if (tChanged || rChanged || sChanged)
         {
           glm::quat quat = glm::quat(glm::radians(rotationEuler));
-          inst.rotation  = math::fromQuat(quat);
+          inst.rotation = math::fromQuat(quat);
           inst.transform = math::composeTransform(inst.translation,
                                                   inst.rotation, inst.scale);
           changed = true;

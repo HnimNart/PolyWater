@@ -7,8 +7,9 @@ namespace app
 {
 
 /**********************************************************/
-bool TextureEditor::render(SceneResourcesManager&                resourceManager,
-                           const std::shared_ptr<IDeviceAssets>& deviceResources)
+bool TextureEditor::render(
+    SceneResourcesManager& resourceManager,
+    const std::shared_ptr<IDeviceAssets>& deviceResources)
 /**********************************************************/
 {
   const auto& textureMap = resourceManager.textureImageMap();

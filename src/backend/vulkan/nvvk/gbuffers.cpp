@@ -247,13 +247,12 @@ VkResult nvvk::GBuffer::initResources(VkCommandBuffer cmd)
         {.image = m_res.gBufferDepth.image,
          .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
          .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-         .subresourceRange = {.aspectMask = depthAspect,
-                              .levelCount = 1,
-                              .layerCount = 1}});
-    const VkDependencyInfo depthDepInfo{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1,
-        .pImageMemoryBarriers = &depthBarrier};
+         .subresourceRange = {
+             .aspectMask = depthAspect, .levelCount = 1, .layerCount = 1}});
+    const VkDependencyInfo depthDepInfo{.sType =
+                                            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                        .imageMemoryBarrierCount = 1,
+                                        .pImageMemoryBarriers = &depthBarrier};
     vkCmdPipelineBarrier2(cmd, &depthDepInfo);
     m_res.gBufferDepth.descriptor.imageLayout =
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -348,23 +347,22 @@ VkResult nvvk::GBuffer::initResources(VkCommandBuffer cmd)
     {
       const VkDescriptorSetAllocateInfo depthAllocInfo = {
           .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-          .descriptorPool      = m_info.descriptorPool,
-          .descriptorSetCount  = 1,
-          .pSetLayouts         = &m_descLayout,
+          .descriptorPool = m_info.descriptorPool,
+          .descriptorSetCount = 1,
+          .pSetLayouts = &m_descLayout,
       };
       NVVK_FAIL_RETURN(vkAllocateDescriptorSets(device, &depthAllocInfo,
                                                 &m_res.depthDescriptorSet));
 
       const VkDescriptorImageInfo depthDescImage = {
-          m_info.imageSampler,
-          m_res.gBufferDepth.descriptor.imageView,
+          m_info.imageSampler, m_res.gBufferDepth.descriptor.imageView,
           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
       const VkWriteDescriptorSet depthWrite = {
-          .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-          .dstSet          = m_res.depthDescriptorSet,
+          .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+          .dstSet = m_res.depthDescriptorSet,
           .descriptorCount = 1,
-          .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .pImageInfo      = &depthDescImage,
+          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .pImageInfo = &depthDescImage,
       };
       vkUpdateDescriptorSets(device, 1, &depthWrite, 0, nullptr);
     }
