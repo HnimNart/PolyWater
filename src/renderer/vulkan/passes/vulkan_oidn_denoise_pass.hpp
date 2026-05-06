@@ -45,7 +45,7 @@ public:
   void deinit() override;
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
-  std::string_view name() const override { return "Denoise"; }
+  std::string_view name() const override { return "OIDNDenoise"; }
 
 private:
   // -----------------------------------------------------------------------

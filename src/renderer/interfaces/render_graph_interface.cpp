@@ -149,7 +149,8 @@ void RenderGraph::execute(IRenderContext& ctx) const
     if (m_gpuTimer)
     {
       VkCommandBuffer cmd = VulkanRenderContext::get(ctx).cmdBuffer;
-      sectionId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(m_passes[i]->name()));
+      std::string passName(m_passes[i]->name());
+      sectionId = m_gpuTimer->cmdFrameBeginSection(cmd, passName);
       profiling = true;
     }
 #endif
