@@ -264,6 +264,25 @@ void VulkanRenderer::initGBuffers()
 int64_t VulkanRenderer::getImageDescriptor(RenderOutput output) const
 /**********************************************************/
 {
+  if (output == RenderOutput::DepthBuffer)
+  {
+    VkDescriptorSet depthDS = m_gBuffers->getDepthDescriptorSet();
+    if (depthDS != VK_NULL_HANDLE)
+    {
+      return reinterpret_cast<int64_t>(depthDS);
+    }
+    // Depth buffer not available (no depth format); fall through to ToneMapped.
+    return reinterpret_cast<int64_t>(
+        m_gBuffers->getDescriptorSet(RenderOutput::ToneMapped));
+  }
+  if (output == RenderOutput::Swapchain)
+  {
+    // The swapchain image is the render target during the UI pass itself and
+    // cannot be sampled while being written to. Display the ToneMapped buffer
+    // as a proxy — it is the scene output just before UI compositing.
+    return reinterpret_cast<int64_t>(
+        m_gBuffers->getDescriptorSet(RenderOutput::ToneMapped));
+  }
   return reinterpret_cast<int64_t>(m_gBuffers->getDescriptorSet(output));
 }
 
