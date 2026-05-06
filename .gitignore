@@ -19,3 +19,9 @@ ext/zlib-ng/
 .ini
 log.txt
 .DS_Store
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
