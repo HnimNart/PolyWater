@@ -26,6 +26,10 @@ public:
   void initProfiler(core::ProfilerTimeline* timeline) override;
   void deinit() override;
 
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* getGpuTimer() { return &m_gpuTimer; }
+#endif
+
   // Frame lifecycle
   IRenderContext& getCurrentContext() override;
   IRenderContext* beginFrame() override;

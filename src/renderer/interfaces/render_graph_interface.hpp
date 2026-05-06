@@ -1,11 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
-#include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/pass_builder.hpp"
+#include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/rhi_definitions.hpp"
 
 class IRenderPass
@@ -16,6 +17,7 @@ public:
   virtual void setup(PassBuilder& builder) = 0;
   virtual void execute(IRenderContext& ctx) = 0;
   virtual void deinit() = 0;
+  virtual std::string_view name() const = 0;
 };
 
 class RenderGraph
@@ -50,10 +52,6 @@ public:
 
   void compile();
 
-  // Returns the total number of command buffers required for one frame.
-  // This equals the number of passes (one per pass) and is valid after
-  // compile() has been called.  Pass this to the backend so it can allocate
-  // the right number of command buffers per frame.
   uint32_t numCmdBuffers() const
   {
     return static_cast<uint32_t>(m_passes.size());

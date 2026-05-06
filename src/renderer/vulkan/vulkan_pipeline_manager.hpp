@@ -15,6 +15,10 @@
 #include "vulkan_acceleration_structures.hpp"
 #include "vulkan_scene_asset_manager.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 class VulkanPipelineManager
 {
 public:
@@ -27,6 +31,9 @@ public:
     nvvk::Image* hiZTexture;
     VulkanAccelerationStructures* accel;
     bool denoise;
+#ifdef PROFILE_APP
+    nvvk::ProfilerGpuTimer* gpuTimer = nullptr;
+#endif
   };
 
   // Define the signature for functions that build render graphs

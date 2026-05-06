@@ -8,6 +8,10 @@
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 class VulkanMipReductionPass final : public IRenderPass
 {
 public:
@@ -16,6 +20,10 @@ public:
   void deinit() override;
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "MipReduction"; }
+#ifdef PROFILE_APP
+  void setGpuTimer(nvvk::ProfilerGpuTimer* t) { m_gpuTimer = t; }
+#endif
 
 private:
   // --- Internal Logic ---
@@ -57,4 +65,7 @@ private:
     int isFirstPass;
     int reductionOp;  // 0: Max, 1: Min, 2: Avg
   };
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };

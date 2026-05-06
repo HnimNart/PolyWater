@@ -19,3 +19,11 @@ ext/zlib-ng/
 .ini
 log.txt
 .DS_Store
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+ext/glfw/src/glfw3*.cmake
+ext/glfw/src/glfw3*.pc

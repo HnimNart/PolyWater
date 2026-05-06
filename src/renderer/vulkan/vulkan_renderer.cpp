@@ -28,6 +28,10 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
   m_accel = VulkanAccelerationStructures::create(m_context);
   m_gBuffers = std::make_unique<nvvk::GBuffer>();
 
+#ifdef PROFILE_APP
+  m_gpuTimer = backend->getGpuTimer();
+#endif
+
   initGBuffers();
   registerShaders();
 }
@@ -159,6 +163,9 @@ void VulkanRenderer::buildGraph(const std::string& name)
       .hiZTexture = &m_hiZTexture,
       .accel = m_accel.get(),
       .denoise = m_denoise,
+#ifdef PROFILE_APP
+      .gpuTimer = m_gpuTimer,
+#endif
   };
 
   m_graph = m_pipelineManager.buildGraph(settings, name);

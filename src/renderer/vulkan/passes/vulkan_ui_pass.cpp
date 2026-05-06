@@ -30,6 +30,13 @@ void VulkanUIPass::execute(IRenderContext& ctx)
 /**********************************************************/
 {
   const auto& vkCtx = VulkanRenderContext::get(ctx);
+
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(vkCtx.cmdBuffer, std::string(name()));
+#endif
   VkRenderingAttachmentInfo colorAttachment{
       .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
       .imageView =
@@ -57,4 +64,9 @@ void VulkanUIPass::execute(IRenderContext& ctx)
     m_callback(ctx);
   }
   vkCmdEndRendering(vkCtx.cmdBuffer);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(vkCtx.cmdBuffer, _profId);
+#endif
 }

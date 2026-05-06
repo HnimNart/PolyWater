@@ -130,6 +130,13 @@ void VulkanMipReductionPass::execute(IRenderContext& ctx)
 
   updateMipViews();
 
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(name()));
+#endif
+
   NVVK_DBG_SCOPE(cmd);
 
   vkCmdBindShadersEXT(cmd, 1,
@@ -181,6 +188,11 @@ void VulkanMipReductionPass::execute(IRenderContext& ctx)
     transitionImage(cmd, m_mipTexture->image, VK_IMAGE_LAYOUT_GENERAL,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, i + 1, 1);
   }
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(cmd, _profId);
+#endif
 }
 
 /**********************************************************/

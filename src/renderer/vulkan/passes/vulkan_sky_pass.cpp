@@ -91,6 +91,13 @@ void VulkanSkyPass::execute(IRenderContext& ctx)
   if (!sceneInfo.useSky)
     return;
 
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(vkCtx.cmdBuffer, std::string(name()));
+#endif
+
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
   const VkExtent2D size = vkCtx.gBuffers->getSize();
 
@@ -126,6 +133,11 @@ void VulkanSkyPass::execute(IRenderContext& ctx)
 
   vkCmdDispatch(vkCtx.cmdBuffer, (size.width + 15) / 16,
                 (size.height + 15) / 16, 1);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(vkCtx.cmdBuffer, _profId);
+#endif
 }
 
 /**********************************************************/

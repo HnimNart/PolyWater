@@ -12,6 +12,10 @@
 #include "renderer/interfaces/render_graph_interface.hpp"
 #include "renderer/interfaces/tone_mapper_interface.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 class VulkanToneMapPass final : public IToneMapper, public IRenderPass
 {
 public:
@@ -23,6 +27,10 @@ public:
 
   void setup(PassBuilder& builder) override;
   void execute(IRenderContext& ctx) override;
+  std::string_view name() const override { return "ToneMap"; }
+#ifdef PROFILE_APP
+  void setGpuTimer(nvvk::ProfilerGpuTimer* t) { m_gpuTimer = t; }
+#endif
 
   // Explicitly non-copyable
   VulkanToneMapPass(const VulkanToneMapPass&) = delete;
@@ -59,4 +67,7 @@ private:
   nvvk::Buffer m_exposureBuffer;
   nvvk::Buffer m_histogramBuffer;
   bool m_initialized = false;
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };

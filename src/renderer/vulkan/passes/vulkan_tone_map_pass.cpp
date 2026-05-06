@@ -60,6 +60,12 @@ void VulkanToneMapPass::execute(IRenderContext& ctx)
   {
     return;
   }
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(vkCtx.cmdBuffer, std::string(name()));
+#endif
   NVVK_DBG_SCOPE(vkCtx.cmdBuffer);
   VkDescriptorImageInfo inputColor =
       vkCtx.gBuffers->getDescriptorImageInfo(m_input);
@@ -69,6 +75,11 @@ void VulkanToneMapPass::execute(IRenderContext& ctx)
   outputColor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   runCompute(vkCtx.cmdBuffer, vkCtx.gBuffers->getSize(), m_tonemapperData,
              inputColor, outputColor);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(vkCtx.cmdBuffer, _profId);
+#endif
 }
 
 /**********************************************************/
