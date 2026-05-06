@@ -294,6 +294,13 @@ void VulkanRayTracePass::execute(IRenderContext& ctx)
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
 
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(name()));
+#endif
+
   NVVK_DBG_SCOPE(cmd);
 
   // Ray trace pipeline binding
@@ -345,4 +352,9 @@ void VulkanRayTracePass::execute(IRenderContext& ctx)
   const VkExtent2D& size = gBuffers->getSize();
   vkCmdTraceRaysKHR(cmd, &regions.raygen, &regions.miss, &regions.hit,
                     &regions.callable, size.width, size.height, 1);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(cmd, _profId);
+#endif
 }

@@ -2,10 +2,6 @@
 
 #include <iostream>
 
-#ifdef PROFILE_APP
-#include "backend/vulkan/core/vulkan_render_context.hpp"
-#endif
-
 void RenderGraph::addPass(std::unique_ptr<IRenderPass> pass)
 {
   m_passes.push_back(std::move(pass));
@@ -143,31 +139,8 @@ void RenderGraph::execute(IRenderContext& ctx) const
       ctx.submitBarriers(m_barriers[i]);
     }
 
-#ifdef PROFILE_APP
-    core::ProfilerTimeline::FrameSectionID sectionId{};
-    bool profiling = false;
-    if (m_gpuTimer)
-    {
-      VkCommandBuffer cmd = VulkanRenderContext::get(ctx).cmdBuffer;
-      std::string passName(m_passes[i]->name());
-      sectionId = m_gpuTimer->cmdFrameBeginSection(cmd, passName);
-      profiling = true;
-    }
-#endif
-
     // Execute Pass
     m_passes[i]->execute(ctx);
-
-#ifdef PROFILE_APP
-    if (profiling)
-    {
-      // cmdBuffer may have changed (e.g. OIDNDenoisePass does an intermediate
-      // submit and opens a new buffer).  End the section in whichever buffer
-      // is current; both timestamps are on the same queue so ordering holds.
-      VkCommandBuffer cmd = VulkanRenderContext::get(ctx).cmdBuffer;
-      m_gpuTimer->cmdFrameEndSection(cmd, sectionId);
-    }
-#endif
   }
 
   // Submit Final Export Barriers into the last active command buffer.

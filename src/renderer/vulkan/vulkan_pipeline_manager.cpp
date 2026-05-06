@@ -28,15 +28,24 @@ VulkanPipelineManager::VulkanPipelineManager()
         auto graph = std::make_unique<RenderGraph>("Raster");
         auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
-        graph->addPass(std::make_unique<VulkanSkyPass>(settings.context));
-        graph->addPass(std::make_unique<VulkanRasterPass>(
+        // Helper: add a pass and optionally wire the GPU profiling timer.
+        auto addTimedPass = [&](auto pass)
+        {
+#ifdef PROFILE_APP
+          pass->setGpuTimer(settings.gpuTimer);
+#endif
+          graph->addPass(std::move(pass));
+        };
+
+        addTimedPass(std::make_unique<VulkanSkyPass>(settings.context));
+        addTimedPass(std::make_unique<VulkanRasterPass>(
             settings.context, descriptorPack, settings.assetManager));
-        graph->addPass(std::make_unique<VulkanToneMapPass>(
+        addTimedPass(std::make_unique<VulkanToneMapPass>(
             settings.context, RenderOutput::Linear));
 
         if (settings.swapchainManager)
         {
-          graph->addPass(std::make_unique<VulkanUIPass>(
+          addTimedPass(std::make_unique<VulkanUIPass>(
               settings.swapchainManager->getUICallback()));
         }
         return graph;
@@ -52,17 +61,26 @@ VulkanPipelineManager::VulkanPipelineManager()
         auto graph = std::make_unique<RenderGraph>("Meshlet");
         auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
-        graph->addPass(std::make_unique<VulkanSkyPass>(settings.context));
-        graph->addPass(std::make_unique<VulkanMeshletPass>(
+        // Helper: add a pass and optionally wire the GPU profiling timer.
+        auto addTimedPass = [&](auto pass)
+        {
+#ifdef PROFILE_APP
+          pass->setGpuTimer(settings.gpuTimer);
+#endif
+          graph->addPass(std::move(pass));
+        };
+
+        addTimedPass(std::make_unique<VulkanSkyPass>(settings.context));
+        addTimedPass(std::make_unique<VulkanMeshletPass>(
             settings.context, descriptorPack, settings.hiZTexture));
-        graph->addPass(std::make_unique<VulkanMipReductionPass>(
+        addTimedPass(std::make_unique<VulkanMipReductionPass>(
             settings.context, settings.hiZTexture));
-        graph->addPass(std::make_unique<VulkanToneMapPass>(
+        addTimedPass(std::make_unique<VulkanToneMapPass>(
             settings.context, RenderOutput::Linear));
 
         if (settings.swapchainManager)
         {
-          graph->addPass(std::make_unique<VulkanUIPass>(
+          addTimedPass(std::make_unique<VulkanUIPass>(
               settings.swapchainManager->getUICallback()));
         }
         return graph;
@@ -75,28 +93,37 @@ VulkanPipelineManager::VulkanPipelineManager()
         auto graph = std::make_unique<RenderGraph>("Raytrace");
         auto& descriptorPack = settings.assetManager->getDesriptorPack();
 
+        // Helper: add a pass and optionally wire the GPU profiling timer.
+        auto addTimedPass = [&](auto pass)
+        {
+#ifdef PROFILE_APP
+          pass->setGpuTimer(settings.gpuTimer);
+#endif
+          graph->addPass(std::move(pass));
+        };
+
         // 1. Trace the rays (outputs noisy HDR image to RenderOutput::Linear)
-        graph->addPass(std::make_unique<VulkanRayTracePass>(
+        addTimedPass(std::make_unique<VulkanRayTracePass>(
             settings.context, descriptorPack, settings.shaderManager,
             settings.accel));
 
         // 2. Optional denoise pass
         if (settings.denoise)
         {
-          graph->addPass(std::make_unique<OIDNDenoisePass>(settings.context));
+          addTimedPass(std::make_unique<OIDNDenoisePass>(settings.context));
         }
 
         // 3. Tone Mapping reads from the correct source
         const RenderOutput toneMapInput =
             settings.denoise ? RenderOutput::Denoised : RenderOutput::Linear;
 
-        graph->addPass(std::make_unique<VulkanToneMapPass>(settings.context,
-                                                           toneMapInput));
+        addTimedPass(
+            std::make_unique<VulkanToneMapPass>(settings.context, toneMapInput));
 
         // 4. UI Layer
         if (settings.swapchainManager)
         {
-          graph->addPass(std::make_unique<VulkanUIPass>(
+          addTimedPass(std::make_unique<VulkanUIPass>(
               settings.swapchainManager->getUICallback()));
         }
 

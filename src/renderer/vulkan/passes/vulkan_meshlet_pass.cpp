@@ -115,6 +115,13 @@ void VulkanMeshletPass::execute(IRenderContext& ctx)
   const auto& vkCtx = VulkanRenderContext::get(ctx);
 
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
+
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(name()));
+#endif
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
@@ -309,6 +316,11 @@ void VulkanMeshletPass::execute(IRenderContext& ctx)
 
   // ** END RENDERING **
   vkCmdEndRendering(cmd);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(cmd, _profId);
+#endif
 }
 
 /**********************************************************/

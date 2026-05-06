@@ -7,6 +7,10 @@
 #include "renderer/interfaces/render_graph_interface.hpp"
 #include "renderer/vulkan/vulkan_acceleration_structures.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 // Forward Declarations
 class SceneResourcesManager;
 class VulkanContextManager;
@@ -51,6 +55,9 @@ public:
   // -------------------------------------------------------------------------
   void execute(IRenderContext& ctx) override;
   std::string_view name() const override { return "RayTrace"; }
+#ifdef PROFILE_APP
+  void setGpuTimer(nvvk::ProfilerGpuTimer* t) { m_gpuTimer = t; }
+#endif
 
 private:
   // -------------------------------------------------------------------------
@@ -81,4 +88,7 @@ private:
 
   ShaderManager* m_shaderManager = nullptr;
   VulkanAccelerationStructures* m_accel{};
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };

@@ -115,6 +115,13 @@ void VulkanDenoisePass::execute(IRenderContext& ctx)
   VkCommandBuffer cmd = vkCtx.cmdBuffer;
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(name()));
+#endif
+
   NVVK_DBG_SCOPE(cmd);
 
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
@@ -146,4 +153,9 @@ void VulkanDenoisePass::execute(IRenderContext& ctx)
   uint32_t groupCountY = (size.height + 15) / 16;
 
   vkCmdDispatch(cmd, groupCountX, groupCountY, 1);
+
+#ifdef PROFILE_APP
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(cmd, _profId);
+#endif
 }

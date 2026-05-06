@@ -7,6 +7,10 @@
 #include "backend/vulkan/core/vulkan_context_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 class VulkanDenoisePass final : public IRenderPass
 {
 public:
@@ -22,6 +26,9 @@ public:
   // Executes the compute shader
   void execute(IRenderContext& ctx) override;
   std::string_view name() const override { return "Denoise"; }
+#ifdef PROFILE_APP
+  void setGpuTimer(nvvk::ProfilerGpuTimer* t) { m_gpuTimer = t; }
+#endif
 
 private:
   void createDescriptorLayout();
@@ -35,4 +42,7 @@ private:
   VkDescriptorSetLayout m_descSetLayout{VK_NULL_HANDLE};
 
   nvvk::DescriptorPack m_descPack;
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };

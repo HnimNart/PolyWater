@@ -137,6 +137,13 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
     return;
   }
 
+#ifdef PROFILE_APP
+  core::ProfilerTimeline::FrameSectionID _profId{};
+  const bool _profActive = (m_gpuTimer != nullptr);
+  if (_profActive)
+    _profId = m_gpuTimer->cmdFrameBeginSection(cmd, std::string(name()));
+#endif
+
   // Copy GBuffer images → OIDN input VkBuffers.
   auto copyImageToBuffer = [&](RenderOutput src, VkBuffer dst)
   {
@@ -239,6 +246,13 @@ void OIDNDenoisePass::execute(IRenderContext& ctx)
   vkCtx.cmdBuffer = newCmd;
   // activeIndex stays at kEndPassIndex to signal that cmdBuffer is a dynamic
   // buffer, not a pre-allocated pass buffer — activatePass() handles it correctly.
+
+#ifdef PROFILE_APP
+  // End the section on the new command buffer.  Both buffers are on the same
+  // queue and the CPU wait above provides ordering, so timestamps are valid.
+  if (_profActive)
+    m_gpuTimer->cmdFrameEndSection(newCmd, _profId);
+#endif
 }
 
 /**********************************************************/

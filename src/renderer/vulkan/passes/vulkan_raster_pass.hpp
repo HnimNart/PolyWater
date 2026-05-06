@@ -7,6 +7,10 @@
 #include "vulkan_scene_asset_manager.hpp"
 #include "renderer/interfaces/render_graph_interface.hpp"
 
+#ifdef PROFILE_APP
+#include "nvvk/profiler_vk.hpp"
+#endif
+
 // Forward declarations
 struct VulkanSceneGpuData;
 
@@ -39,6 +43,9 @@ public:
   // Raster //
   void execute(IRenderContext& ctx) override;
   std::string_view name() const override { return "Raster"; }
+#ifdef PROFILE_APP
+  void setGpuTimer(nvvk::ProfilerGpuTimer* t) { m_gpuTimer = t; }
+#endif
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
@@ -56,4 +63,7 @@ private:
 
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
+#ifdef PROFILE_APP
+  nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
+#endif
 };
