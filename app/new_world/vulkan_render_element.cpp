@@ -21,6 +21,7 @@
 #include "app/application.hpp"
 #include "app/widgets/axis.hpp"
 #include "app/widgets/camera.hpp"
+#include "app/widgets/property_editor.hpp"
 #include "app/widgets/tonemapper.hpp"
 #include "backend/vulkan/core/vulkan_backend.hpp"
 #include "core/image.hpp"
