@@ -74,6 +74,11 @@ bool VulkanContextManager::init(const app::ApplicationCreateInfo& appInfo)
       // operations (like BVH builds) to background threads
       {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, nullptr, true},
 
+      // Exposes non-semantic SPIR-V instructions (e.g. debugPrintfEXT) to the
+      // driver without affecting shader semantics. Required for printf-style
+      // per-invocation shader debugging in Nsight Graphics.
+      {VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, nullptr, false},
+
   // Enables Variable Rate Shading (VRS) to decouple fragment shading
   // execution rate from the render target resolution
   // {VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, &fsrFeatures, true},
