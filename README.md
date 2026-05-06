@@ -99,3 +99,83 @@ $ sudo apt install libtbb-dev libgl-dev
 # Optional
 $ sudo apt install ccache
 ```
+
+## Build
+
+A `Makefile` is provided as a convenience wrapper around CMake. It uses CMake presets defined in `CMakePresets.json`.
+
+### Available presets
+
+| Preset | Build type | Notes |
+|---|---|---|
+| `release` | Release (`-O3`) | Default |
+| `debug` | Debug (`-g -O0`) | Full debug info and warnings |
+| `relwithdebinfo` | RelWithDebInfo (`-O2 -g`) | Optimised with debug symbols |
+| `dev` | RelWithDebInfo | Alias for `relwithdebinfo` |
+
+### Configure
+
+Run the CMake configure step (generates build files in `build/`):
+
+```sh
+make configure              # uses the default 'release' preset
+make configure preset=debug
+```
+
+### Build
+
+Compile the project (runs configure automatically if needed):
+
+```sh
+make build                  # release build
+make build preset=debug     # debug build
+```
+
+To do a clean rebuild from scratch:
+
+```sh
+make rebuild preset=release
+```
+
+### Install
+
+```sh
+make install
+```
+
+### Run an application
+
+Use the `run_<target>` pattern to build and then execute a binary. The binary is looked up under `build/bin/<ConfigType>/`.
+
+```sh
+make run_new_world                          # run the Vulkan app
+make run_new_world args="--scene foo.json"  # pass extra arguments
+```
+
+### Run unit tests
+
+Builds and runs the standalone test suite (no Vulkan/GLFW/Slang required):
+
+```sh
+make test
+```
+
+### Clean
+
+Remove the build directory and clear the ccache and model cache:
+
+```sh
+make clean
+```
+
+To remove only the downloaded model cache:
+
+```sh
+make clear_cache
+```
+
+### Quick reference
+
+```sh
+make help
+```
