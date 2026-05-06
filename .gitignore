@@ -25,3 +25,5 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+ext/glfw/src/glfw3*.cmake
+ext/glfw/src/glfw3*.pc
