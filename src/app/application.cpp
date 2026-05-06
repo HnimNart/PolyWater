@@ -169,6 +169,12 @@ void Application::addElement(const std::shared_ptr<IAppElement>& element)
 /**********************************************************/
 {
   m_elements.emplace_back(element);
+#ifdef PROFILE_APP
+  if (!m_headless)
+  {
+    element->setProfilerTimeline(m_profileTimeline);
+  }
+#endif
   element->onAttach(this);
 }
 
@@ -204,7 +210,7 @@ void Application::headlessRun()
     m_gui->beginFrame();
     for (std::shared_ptr<IAppElement>& e : m_elements)
     {
-      e->onUIRender();
+      e->callOnUIRender();
     }
     m_gui->render();
     m_gui->endFrame();
@@ -212,7 +218,7 @@ void Application::headlessRun()
 
   for (const std::shared_ptr<app::IAppElement>& e : m_elements)
   {
-    e->onPreRender();
+    e->callOnPreRender();
   }
 
   // Rendering n-times the scene
@@ -309,12 +315,12 @@ void Application::runFrame()
 
   for (auto& e : m_elements)
   {
-    e->onUIRender();
+    e->callOnUIRender();
   }
 
   for (const std::shared_ptr<app::IAppElement>& e : m_elements)
   {
-    e->onPreRender();
+    e->callOnPreRender();
   }
 
   m_gui->render();

@@ -157,12 +157,12 @@ void VulkanBackend::renderFrame(
 {
   for (const std::shared_ptr<app::IAppElement>& e : elements)
   {
-    e->onRender(frame);
+    e->callOnRender(frame);
   }
 
   for (const std::shared_ptr<app::IAppElement>& e : elements)
   {
-    e->onEndFrame(frame);
+    e->callOnEndFrame(frame);
   }
 
   // Add swapchain semaphores

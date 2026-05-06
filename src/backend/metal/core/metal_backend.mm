@@ -187,11 +187,11 @@ void MetalBackend::renderFrame(
 /**********************************************************/
 {
   for (const auto &e : elements) {
-    e->onRender(ctx);
+    e->callOnRender(ctx);
   }
 
   for (const auto &e : elements) {
-    e->onEndFrame(ctx);
+    e->callOnEndFrame(ctx);
   }
 
   // Draw registered renderables (e.g., MetalImGuiSystem).
