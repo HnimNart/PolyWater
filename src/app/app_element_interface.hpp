@@ -4,6 +4,11 @@
 #include <string>
 #include <typeinfo>
 
+#if defined(__GNUC__) || defined(__clang__)
+#include <cxxabi.h>
+#include <cstdlib>
+#endif
+
 #include "backend/interfaces/render_context_interface.hpp"
 #include "core/types.hpp"
 
@@ -34,8 +39,35 @@ public:
   virtual ~IAppElement() = default;
 
   /** @brief Returns a human-readable name used in profiler section labels.
-   *  Override to provide a friendlier name than the default RTTI string. */
-  virtual std::string getName() const { return typeid(*this).name(); }
+   *  Defaults to the demangled class name (e.g. "app::NewWorldElement").
+   *  Override to provide a custom label. */
+  virtual std::string getName() const
+  {
+    const char* mangled = typeid(*this).name();
+#if defined(__GNUC__) || defined(__clang__)
+    int status = 0;
+    char* demangled = abi::__cxa_demangle(mangled, nullptr, nullptr, &status);
+    if (status == 0 && demangled)
+    {
+      std::string result(demangled);
+      std::free(demangled);
+      return result;
+    }
+#elif defined(_MSC_VER)
+    // MSVC typeid names look like "class app::Foo" or "struct app::Foo"
+    std::string result(mangled);
+    for (const char* prefix : {"class ", "struct "})
+    {
+      if (result.rfind(prefix, 0) == 0)
+      {
+        result.erase(0, std::strlen(prefix));
+        break;
+      }
+    }
+    return result;
+#endif
+    return mangled;
+  }
 
 #ifdef PROFILE_APP
   /** @brief Called by Application::addElement() to supply the shared profiler
@@ -46,8 +78,8 @@ public:
     if (timeline)
     {
       // Cache section names once to avoid per-frame string allocation.
-      // Note: typeid(*this).name() returns a compiler-specific mangled name.
-      // Override getName() to provide a human-readable label.
+      // getName() returns the demangled class name by default (e.g.
+      // "app::NewWorldElement"). Override getName() for a custom label.
       const std::string base = getName();
       m_sectionNames.uiMenu    = base + "::onUIMenu";
       m_sectionNames.uiRender  = base + "::onUIRender";
