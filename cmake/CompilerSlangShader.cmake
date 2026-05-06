@@ -9,7 +9,9 @@ function(_compile_slang_internal SHADER_FILES OUTPUT_DIR SHADER_HEADERS_VAR BACK
 
   set(DEBUG_LEVEL ${ARG_DEBUG_LEVEL})
   if(NOT DEBUG_LEVEL)
-    set(DEBUG_LEVEL 1)
+    # Level 3 (maximal) embeds full variable-level debug info into SPIR-V,
+    # which is required for Nsight Graphics shader source-level profiling.
+    set(DEBUG_LEVEL 3)
   endif()
 
   set(OPTIMIZATION_LEVEL ${ARG_OPTIMIZATION_LEVEL})
