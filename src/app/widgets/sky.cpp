@@ -30,8 +30,7 @@ namespace app
 
 /**********************************************************/
 bool SkyEditor::renderSimpleParameters(shaderio::SkySimpleParameters& params,
-                                       const char*     label,
-                                       ImGuiTableFlags flag)
+                                       const char* label, ImGuiTableFlags flag)
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
@@ -39,8 +38,9 @@ bool SkyEditor::renderSimpleParameters(shaderio::SkySimpleParameters& params,
   bool changed{false};
   if (PE::begin(label, flag))
   {
-    changed |= m_azimuthSliders.render(params.sunDirection, false,
-                                       params.directionUp.y >= params.directionUp.z);
+    changed |=
+        m_azimuthSliders.render(params.sunDirection, false,
+                                params.directionUp.y >= params.directionUp.z);
     changed |=
         PE::ColorEdit3("Color", &params.sunColor.x, ImGuiColorEditFlags_Float);
     changed |= PE::SliderFloat("Irradiance", &params.sunIntensity, 0.F, 100.F,
@@ -50,13 +50,13 @@ bool SkyEditor::renderSimpleParameters(shaderio::SkySimpleParameters& params,
     params.angularSizeOfLight = glm::clamp(
         params.angularSizeOfLight, glm::radians(0.1F), glm::radians(90.F));
 
-    auto  square         = [](auto a) { return a * a; };
+    auto square = [](auto a) { return a * a; };
     float lightAngularSize = glm::clamp(params.angularSizeOfLight,
                                         glm::radians(0.1F), glm::radians(90.F));
     float lightSolidAngle =
         4.0F * std::numbers::pi * square(sinf(lightAngularSize * 0.5F));
-    float lightRadiance    = params.sunIntensity / lightSolidAngle;
-    params.lightRadiance   = params.sunColor * lightRadiance;
+    float lightRadiance = params.sunIntensity / lightSolidAngle;
+    params.lightRadiance = params.sunColor * lightRadiance;
 
     if (PE::treeNode("Extra"))
     {
@@ -82,7 +82,8 @@ bool SkyEditor::renderSimpleParameters(shaderio::SkySimpleParameters& params,
 }
 
 /**********************************************************/
-bool SkyEditor::renderPhysicalParameters(shaderio::SkyPhysicalParameters& params)
+bool SkyEditor::renderPhysicalParameters(
+    shaderio::SkyPhysicalParameters& params)
 /**********************************************************/
 {
   namespace PE = app::PropertyEditor;
@@ -92,7 +93,7 @@ bool SkyEditor::renderPhysicalParameters(shaderio::SkyPhysicalParameters& params
     if (PE::entry(
             "", [&] { return ImGui::SmallButton("reset"); }, "Default values"))
     {
-      params  = shaderio::SkyPhysicalParameters();
+      params = shaderio::SkyPhysicalParameters();
       changed = true;
     }
     changed |=

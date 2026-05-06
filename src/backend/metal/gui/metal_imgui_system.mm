@@ -236,7 +236,7 @@ void MetalImGuiSystem::renderMenu(
 
   if (ImGui::BeginMainMenuBar()) {
     for (const auto &element : elements) {
-      element->onUIMenu();
+      element->callOnUIMenu();
     }
     ImGui::EndMainMenuBar();
   }

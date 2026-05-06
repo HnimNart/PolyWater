@@ -45,23 +45,23 @@ void Style::setStyle(bool useLinearColor)
 
   ImGui::StyleColorsDark();
 
-  ImGuiStyle& style        = ImGui::GetStyle();
-  style.WindowRounding     = 0.0f;
-  style.WindowBorderSize   = 0.0f;
+  ImGuiStyle& style = ImGui::GetStyle();
+  style.WindowRounding = 0.0f;
+  style.WindowBorderSize = 0.0f;
   style.ColorButtonPosition = ImGuiDir_Right;
-  style.FrameRounding      = 2.0f;
-  style.FrameBorderSize    = 1.0f;
-  style.GrabRounding       = 4.0f;
-  style.IndentSpacing      = 12.0f;
-  style.Colors[ImGuiCol_WindowBg]    = srgb(0.2f, 0.2f, 0.2f, 1.0f);
-  style.Colors[ImGuiCol_MenuBarBg]   = srgb(0.2f, 0.2f, 0.2f, 1.0f);
+  style.FrameRounding = 2.0f;
+  style.FrameBorderSize = 1.0f;
+  style.GrabRounding = 4.0f;
+  style.IndentSpacing = 12.0f;
+  style.Colors[ImGuiCol_WindowBg] = srgb(0.2f, 0.2f, 0.2f, 1.0f);
+  style.Colors[ImGuiCol_MenuBarBg] = srgb(0.2f, 0.2f, 0.2f, 1.0f);
   style.Colors[ImGuiCol_ScrollbarBg] = srgb(0.2f, 0.2f, 0.2f, 1.0f);
-  style.Colors[ImGuiCol_PopupBg]     = srgb(0.135f, 0.135f, 0.135f, 1.0f);
-  style.Colors[ImGuiCol_Border]      = srgb(0.4f, 0.4f, 0.4f, 0.5f);
-  style.Colors[ImGuiCol_FrameBg]     = srgb(0.05f, 0.05f, 0.05f, 0.5f);
+  style.Colors[ImGuiCol_PopupBg] = srgb(0.135f, 0.135f, 0.135f, 1.0f);
+  style.Colors[ImGuiCol_Border] = srgb(0.4f, 0.4f, 0.4f, 0.5f);
+  style.Colors[ImGuiCol_FrameBg] = srgb(0.05f, 0.05f, 0.05f, 0.5f);
 
   // Normal
-  ImVec4                normal_color = srgb(0.465f, 0.465f, 0.525f, 1.0f);
+  ImVec4 normal_color = srgb(0.465f, 0.465f, 0.525f, 1.0f);
   std::vector<ImGuiCol> to_change_nrm;
   to_change_nrm.push_back(ImGuiCol_Header);
   to_change_nrm.push_back(ImGuiCol_SliderGrab);
@@ -77,7 +77,7 @@ void Style::setStyle(bool useLinearColor)
   }
 
   // Active
-  ImVec4                active_color = srgb(0.365f, 0.365f, 0.425f, 1.0f);
+  ImVec4 active_color = srgb(0.365f, 0.365f, 0.425f, 1.0f);
   std::vector<ImGuiCol> to_change_act;
   to_change_act.push_back(ImGuiCol_HeaderActive);
   to_change_act.push_back(ImGuiCol_SliderGrabActive);
@@ -90,7 +90,7 @@ void Style::setStyle(bool useLinearColor)
   }
 
   // Hovered
-  ImVec4                hovered_color = srgb(0.565f, 0.565f, 0.625f, 1.0f);
+  ImVec4 hovered_color = srgb(0.565f, 0.565f, 0.625f, 1.0f);
   std::vector<ImGuiCol> to_change_hover;
   to_change_hover.push_back(ImGuiCol_HeaderHovered);
   to_change_hover.push_back(ImGuiCol_ButtonHovered);
@@ -102,12 +102,13 @@ void Style::setStyle(bool useLinearColor)
     style.Colors[c] = hovered_color;
   }
 
-  style.Colors[ImGuiCol_TitleBgActive]    = srgb(0.465f, 0.465f, 0.465f, 1.0f);
-  style.Colors[ImGuiCol_TitleBg]          = srgb(0.125f, 0.125f, 0.125f, 1.0f);
-  style.Colors[ImGuiCol_Tab]              = srgb(0.05f, 0.05f, 0.05f, 0.5f);
-  style.Colors[ImGuiCol_TabHovered]       = srgb(0.465f, 0.495f, 0.525f, 1.0f);
-  style.Colors[ImGuiCol_TabActive]        = srgb(0.282f, 0.290f, 0.302f, 1.0f);
-  style.Colors[ImGuiCol_ModalWindowDimBg] = srgb(0.465f, 0.465f, 0.465f, 0.350f);
+  style.Colors[ImGuiCol_TitleBgActive] = srgb(0.465f, 0.465f, 0.465f, 1.0f);
+  style.Colors[ImGuiCol_TitleBg] = srgb(0.125f, 0.125f, 0.125f, 1.0f);
+  style.Colors[ImGuiCol_Tab] = srgb(0.05f, 0.05f, 0.05f, 0.5f);
+  style.Colors[ImGuiCol_TabHovered] = srgb(0.465f, 0.495f, 0.525f, 1.0f);
+  style.Colors[ImGuiCol_TabActive] = srgb(0.282f, 0.290f, 0.302f, 1.0f);
+  style.Colors[ImGuiCol_ModalWindowDimBg] =
+      srgb(0.465f, 0.465f, 0.465f, 0.350f);
 
   ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float |
                              ImGuiColorEditFlags_PickerHueWheel);

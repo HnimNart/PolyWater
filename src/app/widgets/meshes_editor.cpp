@@ -1,9 +1,9 @@
 #include "meshes_editor.hpp"
 
-#include <algorithm>
-
 #include <fmt/format.h>
 #include <imgui.h>
+
+#include <algorithm>
 
 #include "property_editor.hpp"
 #include "shaders/shared/structs.h"
@@ -15,8 +15,8 @@ namespace app
 bool MeshEditor::render(SceneResourcesManager& resources)
 /**********************************************************/
 {
-  namespace PE    = app::PropertyEditor;
-  auto&       meshes  = resources.getMeshes();
+  namespace PE = app::PropertyEditor;
+  auto& meshes = resources.getMeshes();
   const auto& meshMap = resources.meshMap();
 
   if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen))
@@ -44,7 +44,7 @@ bool MeshEditor::render(SceneResourcesManager& resources)
 
       if (ImGui::TreeNode(label.c_str()))
       {
-        const auto&                mesh = meshes[id];
+        const auto& mesh = meshes[id];
         const shaderio::BoundingBox& bbox = mesh.bbox;
         PE::begin();
         PE::Text("Mesh ID", fmt::format("{}", id).c_str());
