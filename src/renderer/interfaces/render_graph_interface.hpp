@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/pass_builder.hpp"
+#include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/rhi_definitions.hpp"
 
 class IRenderPass
@@ -52,10 +52,6 @@ public:
 
   void compile();
 
-  // Returns the total number of command buffers required for one frame.
-  // This equals the number of passes (one per pass) and is valid after
-  // compile() has been called.  Pass this to the backend so it can allocate
-  // the right number of command buffers per frame.
   uint32_t numCmdBuffers() const
   {
     return static_cast<uint32_t>(m_passes.size());

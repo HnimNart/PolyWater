@@ -40,8 +40,8 @@ VulkanPipelineManager::VulkanPipelineManager()
         addTimedPass(std::make_unique<VulkanSkyPass>(settings.context));
         addTimedPass(std::make_unique<VulkanRasterPass>(
             settings.context, descriptorPack, settings.assetManager));
-        addTimedPass(std::make_unique<VulkanToneMapPass>(
-            settings.context, RenderOutput::Linear));
+        addTimedPass(std::make_unique<VulkanToneMapPass>(settings.context,
+                                                         RenderOutput::Linear));
 
         if (settings.swapchainManager)
         {
@@ -75,8 +75,8 @@ VulkanPipelineManager::VulkanPipelineManager()
             settings.context, descriptorPack, settings.hiZTexture));
         addTimedPass(std::make_unique<VulkanMipReductionPass>(
             settings.context, settings.hiZTexture));
-        addTimedPass(std::make_unique<VulkanToneMapPass>(
-            settings.context, RenderOutput::Linear));
+        addTimedPass(std::make_unique<VulkanToneMapPass>(settings.context,
+                                                         RenderOutput::Linear));
 
         if (settings.swapchainManager)
         {
@@ -117,8 +117,8 @@ VulkanPipelineManager::VulkanPipelineManager()
         const RenderOutput toneMapInput =
             settings.denoise ? RenderOutput::Denoised : RenderOutput::Linear;
 
-        addTimedPass(
-            std::make_unique<VulkanToneMapPass>(settings.context, toneMapInput));
+        addTimedPass(std::make_unique<VulkanToneMapPass>(settings.context,
+                                                         toneMapInput));
 
         // 4. UI Layer
         if (settings.swapchainManager)

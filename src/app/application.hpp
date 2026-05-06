@@ -9,11 +9,11 @@
 #include <app/widgets/settings_handler.hpp>
 #include <glm/vec2.hpp>
 
-#include "app_info.hpp"
-#include "frame_pacer.hpp"
 #include "app_element_interface.hpp"
+#include "app_info.hpp"
 #include "backend/interfaces/render_backend_interface.hpp"
 #include "core/types.hpp"
+#include "frame_pacer.hpp"
 
 // Forward declarations
 struct GLFWwindow;
@@ -77,20 +77,14 @@ public:
   // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
-  GLFWwindow* getWindowHandle() const
-  {
-    return m_windowHandle;
-  }
+  GLFWwindow* getWindowHandle() const { return m_windowHandle; }
   const WindowSize& getViewportSize() const
   {
     return m_backend->getViewportSize();
   }
 
 #ifdef PROFILE_APP
-  core::ProfilerManager* getProfiler() const
-  {
-    return m_profilerManager.get();
-  }
+  core::ProfilerManager* getProfiler() const { return m_profilerManager.get(); }
 #endif
 
 private:
@@ -115,24 +109,24 @@ private:
   // Member Variables
   // ---------------------------------------------------------------------------
 
-  // 1. Core Systems
+  // Core Systems
   std::unique_ptr<IRenderBackend> m_backend{};
   std::vector<std::shared_ptr<IAppElement>> m_elements{};
   FramePacer m_framePacer;  // Low-latency system
 
-  // 2. Windowing State
+  // Windowing State
   GLFWwindow* m_windowHandle{nullptr};
   WindowSize m_windowSize{0, 0};
   glm::ivec2 m_winPos{};
   glm::uvec2 m_winSize{};  // Persisted window size
 
-  // 3. Runtime State
+  // Runtime State
   bool m_running = false;
   uint64_t m_frameCounter = 0;
   bool m_useMenubar{true};
   bool m_vsyncWanted{true};
 
-  // 4. Headless Mode
+  // Headless Mode
   bool m_headless{false};
   bool m_headlessClose{false};
   uint32_t m_headlessFrameCount{1};
