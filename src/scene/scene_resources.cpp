@@ -75,6 +75,10 @@ std::optional<std::string> findKeyByTextureId(
 
 }  // namespace
 
+
+namespace scene
+{
+
 /**********************************************************/
 void SceneResourcesManager::init(std::shared_ptr<IDeviceAssets> deviceResource)
 /**********************************************************/
@@ -127,7 +131,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string& name,
                                                     const std::string& filename)
 /**********************************************************/
 {
-  tinygltf::Model model = gltf::loadModel(filename);
+  tinyscene::Model model = scene::loadModel(filename);
   if (model.meshes.empty())
   {
     LOGE("Error: GLTF file %s contains no meshes.", filename.c_str());
@@ -172,7 +176,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string& name,
                                                    const std::string& filename)
 /**********************************************************/
 {
-  auto loadedShapes = obj::loadObjPrimitives(filename);
+  auto loadedShapes = scene::loadObjPrimitives(filename);
   if (loadedShapes.meshes.empty())
   {
     return {};
@@ -648,3 +652,5 @@ SceneResourcesManager::getTextureIDFromName(const std::string& name) const
   throw std::runtime_error(fmt::format(
       "[SceneResourcesManager] Texture name '{}' not found.", name));
 }
+
+}  // namespace scene

@@ -9,11 +9,15 @@
 
 #include <glm/glm.hpp>
 
-struct Scene;
 namespace shaderio
 {
 struct MeshPrimitive;
 }
+
+namespace scene
+{
+
+struct Scene;
 
 struct RayHit
 {
@@ -49,3 +53,5 @@ private:
   std::vector<Bvh> m_meshBvhs;  // BLAS(one per mesh)
   const Scene* m_scene = nullptr;
 };
+
+}  // namespace scene

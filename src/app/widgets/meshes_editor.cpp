@@ -12,7 +12,7 @@ namespace app
 {
 
 /**********************************************************/
-bool MeshEditor::render(SceneResourcesManager& resources)
+bool MeshEditor::render(scene::SceneResourcesManager& resources)
 /**********************************************************/
 {
   namespace PE = app;

@@ -16,7 +16,7 @@ namespace app
 
 /**********************************************************/
 bool InstanceEditor::render(
-    SceneResourcesManager& resources,
+    scene::SceneResourcesManager& resources,
     const std::map<MaterialType, MaterialEntry>& shaderRegistry)
 /**********************************************************/
 {

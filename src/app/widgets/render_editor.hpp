@@ -12,7 +12,7 @@ class RenderEditor
 public:
   // Renders the render-mode and output-selection UI.
   // Returns true if any change requires the renderer to reset/redraw.
-  bool render(SceneResourcesManager& resources, IRenderer* renderer);
+  bool render(scene::SceneResourcesManager& resources, IRenderer* renderer);
 
   // Returns the currently selected render output for viewport display.
   RenderOutput currentOutput() const { return m_currentOutput; }

@@ -9,6 +9,10 @@
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "scene_data.hpp"
 
+
+namespace scene
+{
+
 /**********************************************************/
 SceneManager::SceneManager(std::shared_ptr<IDeviceAssets> deviceResources)
 /**********************************************************/
@@ -199,3 +203,5 @@ CameraPtr SceneManager::camera() const
 {
   return m_camera;
 }
+
+}  // namespace scene

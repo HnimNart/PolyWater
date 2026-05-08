@@ -21,7 +21,7 @@ static constexpr const char* kOutputNames[RenderOutput::Count] = {
 };
 
 /**********************************************************/
-bool RenderEditor::render(SceneResourcesManager& resources, IRenderer* renderer)
+bool RenderEditor::render(scene::SceneResourcesManager& resources, IRenderer* renderer)
 /**********************************************************/
 {
   namespace PE = app;

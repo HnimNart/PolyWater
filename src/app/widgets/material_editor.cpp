@@ -13,7 +13,7 @@ namespace app
 {
 
 /**********************************************************/
-bool MaterialEditor::render(SceneResourcesManager& resources)
+bool MaterialEditor::render(scene::SceneResourcesManager& resources)
 /**********************************************************/
 {
   namespace PE = app;

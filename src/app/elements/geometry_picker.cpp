@@ -12,7 +12,7 @@
 
 /**********************************************************/
 app::GeometryPickerElement::GeometryPickerElement(
-    const SceneResourcesManager& sceneResources,
+    const scene::SceneResourcesManager& sceneResources,
     std::shared_ptr<core::CameraManipulator> camera) :
     m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
@@ -21,7 +21,7 @@ app::GeometryPickerElement::GeometryPickerElement(
 
 /**********************************************************/
 void app::GeometryPickerElement::onSceneUpdate(
-    const SceneResourcesManager& scene)
+    const scene::SceneResourcesManager& scene)
 /**********************************************************/
 {
   if (!m_accel.build(scene.data()))

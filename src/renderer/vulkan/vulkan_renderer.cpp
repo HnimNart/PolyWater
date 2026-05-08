@@ -44,7 +44,7 @@ VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
 // ---------------------------------------------------------------------------
 
 /**********************************************************/
-void VulkanRenderer::init(const SceneResourcesManager& /*scene*/)
+void VulkanRenderer::init(const scene::SceneResourcesManager& /*scene*/)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -94,7 +94,7 @@ void VulkanRenderer::reload()
 }
 
 /**********************************************************/
-bool VulkanRenderer::update(const SceneResourcesManager& scene)
+bool VulkanRenderer::update(const scene::SceneResourcesManager& scene)
 /**********************************************************/
 {
   if (!scene.requireRebuild() && !scene.dirty())

@@ -12,6 +12,10 @@
 #include <bvh/v2/stack.h>
 #include <bvh/v2/tri.h>
 
+
+namespace scene
+{
+
 // Type aliases for implementation convenience
 using Scalar = InstanceAccelerator::Scalar;
 using Vec3 = InstanceAccelerator::Vec3;
@@ -227,3 +231,5 @@ std::optional<RayHit> InstanceAccelerator::intersect(const glm::vec3& origin,
     return bestHit;
   return std::nullopt;
 }
+
+}  // namespace scene

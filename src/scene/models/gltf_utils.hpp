@@ -28,7 +28,7 @@
 
 #include "shaders/shared/structs.h"
 
-namespace gltf
+namespace scene
 {
 
 // This is a utility function to load a GLTF file and return the model data.
@@ -46,4 +46,4 @@ bool getGltfAttribute(const tinygltf::Model& model,
                       const std::string& attributeName, const uint8_t*& dataPtr,
                       size_t& stride, size_t& count);
 
-}  // namespace gltf
+}  // namespace scene

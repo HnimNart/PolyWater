@@ -57,7 +57,7 @@ public:
   // -------------------------------------------------------------------------
   CameraPtr getCameraManipulator() const;
   IRenderer* getRenderer() const;
-  const SceneManager& getSceneManager() const;
+  const scene::SceneManager& getSceneManager() const;
 
   //
 
@@ -75,7 +75,7 @@ private:
   void clear();
   void loadScene(const std::filesystem::path& filename);
   void processPendingResources();
-  void processPendingTexture(SceneResourcesManager& resourceMgr);
+  void processPendingTexture(scene::SceneResourcesManager& resourceMgr);
 
   // -------------------------------------------------------------------------
   // Members
@@ -83,7 +83,7 @@ private:
   // Core components
   app::Application* m_app = nullptr;
   std::unique_ptr<vkb::VulkanRenderer> m_renderer = nullptr;
-  SceneManager m_sceneManager{};
+  scene::SceneManager m_sceneManager{};
 
   std::shared_ptr<app::GeometryPickerElement> m_geometryPicker = nullptr;
 

@@ -8,7 +8,7 @@ namespace app
 
 /**********************************************************/
 bool TextureEditor::render(
-    SceneResourcesManager& resourceManager,
+    scene::SceneResourcesManager& resourceManager,
     const std::shared_ptr<IDeviceAssets>& deviceResources)
 /**********************************************************/
 {

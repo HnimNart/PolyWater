@@ -11,6 +11,10 @@
 
 #include "obj_utils.hpp"
 
+
+namespace scene
+{
+
 struct OptimizedPayload
 {
   std::vector<uint8_t> rawBuffer;                   // Single GPU buffer
@@ -26,3 +30,5 @@ OptimizedPayload
 processAndOptimizeObj(const std::string& name,
                       const std::vector<obj::ObjMesh>& loadedMeshes,
                       const std::filesystem::path& cachePath);
+
+}  // namespace scene

@@ -12,7 +12,10 @@
 #endif
 
 // Forward declarations of non-vkb types
+namespace scene
+{
 class SceneResourcesManager;
+}  // namespace scene
 
 namespace nvvk
 {

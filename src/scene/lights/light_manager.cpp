@@ -23,6 +23,10 @@ inline float getLuminance(const glm::vec3& color)
 }
 }  // namespace
 
+
+namespace scene
+{
+
 /**********************************************************/
 void LightManager::uploadAreaLights(
     const Scene& scene, const std::shared_ptr<IDeviceAssets>& deviceResources,
@@ -340,3 +344,5 @@ float LightManager::computeAnalyticalLightContribution(const Scene& scene)
   }
   return totalAnalyticalPower;
 }
+
+}  // namespace scene

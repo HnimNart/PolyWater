@@ -71,7 +71,7 @@ public:
   // Scene Registration
   // ---------------------------------------------------------------------------
   virtual void linkMeshToBuffer(MeshID meshId, BufferID bufferId) = 0;
-  virtual void uploadSceneResoures(const Scene& resources) = 0;
+  virtual void uploadSceneResoures(const scene::Scene& resources) = 0;
 
   // ---------------------------------------------------------------------------
   // Update Scene buffers

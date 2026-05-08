@@ -16,7 +16,7 @@ namespace app
 
 /**********************************************************/
 LightChangedBitMask
-LightEditor::render(SceneResourcesManager& resources,
+LightEditor::render(scene::SceneResourcesManager& resources,
                     const std::shared_ptr<IDeviceAssets>& deviceResources)
 /**********************************************************/
 {

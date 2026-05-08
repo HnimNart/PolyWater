@@ -338,7 +338,7 @@ void VulkanSceneAssetManager::linkMeshToBuffer(MeshID meshId,
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::uploadSceneResoures(const Scene& resources)
+void VulkanSceneAssetManager::uploadSceneResoures(const scene::Scene& resources)
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
@@ -472,7 +472,7 @@ void VulkanSceneAssetManager::createDesctriptorLayout()
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::createSceneBuffers(const Scene& sceneResource)
+void VulkanSceneAssetManager::createSceneBuffers(const scene::Scene& sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

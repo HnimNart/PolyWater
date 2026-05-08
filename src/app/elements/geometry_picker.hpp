@@ -30,10 +30,10 @@ class GeometryPickerElement final : public IAppElement
 public:
   using SelectionCallback = std::function<void(InstanceID)>;
 
-  GeometryPickerElement(const SceneResourcesManager& sceneResources,
+  GeometryPickerElement(const scene::SceneResourcesManager& sceneResources,
                         std::shared_ptr<core::CameraManipulator> camera);
 
-  void onSceneUpdate(const SceneResourcesManager& sceneResources);
+  void onSceneUpdate(const scene::SceneResourcesManager& sceneResources);
 
   void onAttach(Application* app) override;
   void onUIRender() override;
@@ -54,10 +54,10 @@ private:
   void drawRotationBall(const glm::vec3& center, float radius);
 
   // References
-  const SceneResourcesManager& m_sceneResources;
+  const scene::SceneResourcesManager& m_sceneResources;
   std::shared_ptr<core::CameraManipulator> m_camera;
   Application* m_app = nullptr;
-  InstanceAccelerator m_accel;
+  scene::InstanceAccelerator m_accel;
 
   SelectionCallback m_onSelect{};
   InstanceID m_instanceSelected = -1;

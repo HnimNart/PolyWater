@@ -16,7 +16,10 @@
 #endif
 
 // Forward declarations of non-vkb types
+namespace scene
+{
 class SceneResourcesManager;
+}  // namespace scene
 
 namespace vkb
 {
@@ -42,11 +45,11 @@ public:
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
-  void init(const SceneResourcesManager& scene) override;
+  void init(const scene::SceneResourcesManager& scene) override;
   void deinit() override;
   void clear();
   void reload() override;
-  bool update(const SceneResourcesManager& scene) override;
+  bool update(const scene::SceneResourcesManager& scene) override;
 
   // ---------------------------------------------------------------------------
   // Rendering

@@ -8,7 +8,7 @@ namespace app
 class MaterialEditor
 {
 public:
-  bool render(SceneResourcesManager& resources);
+  bool render(scene::SceneResourcesManager& resources);
 
 private:
   char m_search[128] = {};

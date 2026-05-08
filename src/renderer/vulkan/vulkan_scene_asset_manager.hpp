@@ -75,7 +75,7 @@ public:
   void destroyBuffer(BufferID id) override;
 
   void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
-  void uploadSceneResoures(const Scene& resources) override;
+  void uploadSceneResoures(const scene::Scene& resources) override;
 
   const VulkanSceneGpuData& deviceResources() const
   {
@@ -140,7 +140,7 @@ private:
   // 6. Internal Buffer Lifecycle Helpers
   // -------------------------------------------------------------------------
   bool registerTexture(const core::Image& image, TextureID& id);
-  void createSceneBuffers(const Scene& sceneResources);
+  void createSceneBuffers(const scene::Scene& sceneResources);
   void clearSceneBuffers();
   void updateSceneResources(VkCommandBuffer cmd) const;
   void uploadTextures();  // Legacy/Batch update

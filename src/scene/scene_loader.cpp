@@ -11,6 +11,12 @@
 #include "core/string_utils.hpp"
 #include "core/timers.hpp"
 #include "scene_data.hpp"
+#include <stdexcept>
+#include <string>
+
+namespace scene
+{
+
 
 // Helper macro for cleaner JSON lookups with default values
 #define JSON_VAL(jsonObj, key, defaultVal)                                     \
@@ -269,8 +275,6 @@ glm::vec2 SceneLoader::parseVec2(const json& j, const glm::vec2& defaultValue)
   return defaultValue;
 }
 
-#include <stdexcept>
-#include <string>
 
 /**********************************************************/
 MaterialType SceneLoader::parseHitGroup(const std::string& type)
@@ -307,3 +311,5 @@ shaderio::LightType SceneLoader::parseLightType(const std::string& type)
 
   throw std::runtime_error("[SceneLoader] Unknown light type: " + type);
 }
+
+}  // namespace scene

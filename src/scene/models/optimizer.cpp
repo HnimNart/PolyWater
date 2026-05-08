@@ -431,16 +431,16 @@ void extractFromObjPrimitive(const core::PrimitiveMesh& objMesh, TempMesh& tm)
 }
 
 /**********************************************************/
-void extractAndOptimizePrimitive(const tinygltf::Model& model,
-                                 const tinygltf::Primitive& primitive,
+void extractAndOptimizePrimitive(const tinyscene::Model& model,
+                                 const tinyscene::Primitive& primitive,
                                  TempMesh& tm)
 /**********************************************************/
 {
   if (primitive.indices >= 0)
   {
-    const tinygltf::Accessor& indexAccessor =
+    const tinyscene::Accessor& indexAccessor =
         model.accessors[primitive.indices];
-    const tinygltf::BufferView& bufferView =
+    const tinyscene::BufferView& bufferView =
         model.bufferViews[indexAccessor.bufferView];
     const uint8_t* dataPtr = model.buffers[bufferView.buffer].data.data() +
                              bufferView.byteOffset + indexAccessor.byteOffset;
@@ -470,19 +470,19 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
   size_t posStride = 0, normStride = 0, uvStride = 0, tanStride = 0,
          colStride = 0, vertexCount = 0;
 
-  if (!gltf::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
+  if (!scene::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
                                          posStride, vertexCount))
   {
     return;
   }
 
-  tm.hasNormals = gltf::getGltfAttribute<glm::vec3>(
+  tm.hasNormals = scene::getGltfAttribute<glm::vec3>(
       model, primitive, "NORMAL", normPtr, normStride, vertexCount);
-  tm.hasUVs = gltf::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
+  tm.hasUVs = scene::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
                                                 uvPtr, uvStride, vertexCount);
-  tm.hasTangents = gltf::getGltfAttribute<glm::vec4>(
+  tm.hasTangents = scene::getGltfAttribute<glm::vec4>(
       model, primitive, "TANGENT", tanPtr, tanStride, vertexCount);
-  tm.hasColors = gltf::getGltfAttribute<glm::vec4>(
+  tm.hasColors = scene::getGltfAttribute<glm::vec4>(
       model, primitive, "COLOR_0", colPtr, colStride, vertexCount);
 
   // Dynamically calculate stride based on what attributes exist
@@ -619,11 +619,15 @@ void saveMeshCache(const std::filesystem::path& filepath, const TempMesh& tm)
 
 }  // namespace
 
+
+namespace scene
+{
+
 // --- Public API ---
 
 /**********************************************************/
 OptimizedPayload processAndOptimizeGltf(const std::string& name,
-                                        const tinygltf::Model& model,
+                                        const tinyscene::Model& model,
                                         const std::filesystem::path& cachePath)
 /**********************************************************/
 {
@@ -702,7 +706,7 @@ OptimizedPayload processAndOptimizeGltf(const std::string& name,
 /**********************************************************/
 OptimizedPayload
 processAndOptimizeObj(const std::string& name,
-                      const std::vector<obj::ObjMesh>& loadedMeshes,
+                      const std::vector<scene::ObjMesh>& loadedMeshes,
                       const std::filesystem::path& cachePath)
 /**********************************************************/
 {
@@ -771,3 +775,5 @@ processAndOptimizeObj(const std::string& name,
 
   return payload;
 }
+
+}  // namespace scene

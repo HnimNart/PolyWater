@@ -46,7 +46,7 @@ void VulkanRendererElement::onAttach(app::Application* app)
   assert(backend && "Backend is not vkb::VulkanBackend");
   m_renderer =
       std::make_unique<vkb::VulkanRenderer>(backend, core::getShaderDirs());
-  m_sceneManager = SceneManager(m_renderer->deviceResources());
+  m_sceneManager = scene::SceneManager(m_renderer->deviceResources());
   loadScene(m_sceneFile);
 }
 
@@ -133,8 +133,8 @@ void VulkanRendererElement::loadScene(const std::filesystem::path& filePath)
     throw std::runtime_error("Empty filepath given to LoadScene()");
   }
   SCOPED_TIMER_FUNC();
-  SceneLoader loader;
-  SceneData sceneData;
+  scene::SceneLoader loader;
+  scene::SceneData sceneData;
   auto filepath = core::findFile(filePath, core::getSceneDir());
   try
   {
@@ -152,7 +152,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path& filePath)
   // Procedural "Spiral" Generation for default scene
   if (filePath.filename() == "default_scene.json")
   {
-    SceneResourcesManager& scene_resources =
+    scene::SceneResourcesManager& scene_resources =
         m_sceneManager.sceneResourceManager();
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -402,7 +402,7 @@ IRenderer* VulkanRendererElement::getRenderer() const
 }
 
 /**********************************************************/
-const SceneManager& VulkanRendererElement::getSceneManager() const
+const scene::SceneManager& VulkanRendererElement::getSceneManager() const
 /**********************************************************/
 {
   return m_sceneManager;
@@ -461,7 +461,7 @@ void VulkanRendererElement::processPendingResources()
 
 /**********************************************************/
 void VulkanRendererElement::processPendingTexture(
-    SceneResourcesManager& resourceMgr)
+    scene::SceneResourcesManager& resourceMgr)
 /**********************************************************/
 {
   if (!m_pendingTexture)

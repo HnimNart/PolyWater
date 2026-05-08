@@ -8,6 +8,10 @@
 #include "shaders/shared/structs.h"
 
 // Lightweight structs to hold Scene data temporarily
+
+namespace scene
+{
+
 struct DataMesh
 {
   std::string name;
@@ -91,3 +95,5 @@ struct SceneData
 
   void dump() const;
 };
+
+}  // namespace scene
