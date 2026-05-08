@@ -42,10 +42,10 @@ void VulkanRendererElement::onAttach(app::Application* app)
 /**********************************************************/
 {
   m_app = app;
-  auto* backend = dynamic_cast<VulkanBackend*>(m_app->getBackend());
-  assert(backend && "Backend is not VulkanBackend");
+  auto* backend = dynamic_cast<vkb::VulkanBackend*>(m_app->getBackend());
+  assert(backend && "Backend is not vkb::VulkanBackend");
   m_renderer =
-      std::make_unique<VulkanRenderer>(backend, common::getShaderDirs());
+      std::make_unique<vkb::VulkanRenderer>(backend, core::getShaderDirs());
   m_sceneManager = SceneManager(m_renderer->deviceResources());
   loadScene(m_sceneFile);
 }
@@ -135,7 +135,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path& filePath)
   SCOPED_TIMER_FUNC();
   SceneLoader loader;
   SceneData sceneData;
-  auto filepath = core::findFile(filePath, common::getSceneDir());
+  auto filepath = core::findFile(filePath, core::getSceneDir());
   try
   {
     bool ok = loader.load(filepath, sceneData);
@@ -147,7 +147,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path& filePath)
     LOGE("Failed to load scene from %s: %s\n", filepath.c_str(), e.what());
   }
 
-  m_sceneManager.buildSceneFromData(sceneData, common::getAssetDirs());
+  m_sceneManager.buildSceneFromData(sceneData, core::getAssetDirs());
 
   // Procedural "Spiral" Generation for default scene
   if (filePath.filename() == "default_scene.json")
@@ -267,7 +267,7 @@ void VulkanRendererElement::onLastHeadlessFrame()
 void VulkanRendererElement::onUIRender()
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   m_hasChanged = false;
 
   // --- Shared Variable Extractions ---
@@ -296,7 +296,7 @@ void VulkanRendererElement::onUIRender()
         if (ImGui::CollapsingHeader("Tonemapper",
                                     ImGuiTreeNodeFlags_DefaultOpen))
         {
-          core::tonemapperWidget(renderer->postProcessor().data());
+          app::tonemapperWidget(renderer->postProcessor().data());
         }
 
         if (ImGui::CollapsingHeader("Render", ImGuiTreeNodeFlags_DefaultOpen))

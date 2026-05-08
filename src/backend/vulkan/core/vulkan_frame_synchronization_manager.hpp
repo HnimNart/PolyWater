@@ -6,6 +6,9 @@
 #include <vector>
 
 #include "vulkan_render_context.hpp"
+namespace vkb
+{
+
 class VulkanContextManager;
 
 class VulkanFrameSynchronizationManager
@@ -74,3 +77,4 @@ private:
 
   void createFrameData(VulkanContextManager& coreManager, uint32_t numFrames);
 };
+}  // namespace vkb

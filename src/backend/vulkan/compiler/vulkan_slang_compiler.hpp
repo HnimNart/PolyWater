@@ -154,6 +154,9 @@ private:
 
 }  // namespace detail
 
+namespace vkb
+{
+
 class VulkanSlangCompiler
 {
 public:
@@ -200,3 +203,6 @@ private:
   detail::VulkanSlangCompiler m_slangContext{};
   std::unordered_map<std::string, std::vector<uint32_t>> m_binaryCacheMap;
 };
+
+}  // namespace vkb
+

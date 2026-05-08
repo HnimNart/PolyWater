@@ -10,6 +10,10 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/scene.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanSkyPass::VulkanSkyPass(VulkanContextManager* context) : m_core(context)
 /**********************************************************/
@@ -149,3 +153,5 @@ void VulkanSkyPass::deinit()
   vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
   vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 }
+
+}  // namespace vkb

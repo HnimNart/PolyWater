@@ -19,6 +19,9 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
+namespace vkb
+{
+
 class VulkanPipelineManager
 {
 public:
@@ -65,3 +68,4 @@ private:
   std::unordered_map<std::string, PipelineFactoryFunc> m_registry;
   std::vector<std::string> m_availableGraphsCache;
 };
+}  // namespace vkb

@@ -15,6 +15,9 @@
 #include "shaders/shared/structs.h"
 #include "vulkan_scene_asset_manager.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 VulkanRenderer::VulkanRenderer(VulkanBackend* backend,
                                const std::vector<std::filesystem::path>& paths)
@@ -467,3 +470,5 @@ void VulkanRenderer::setDenoise(bool value)
   m_denoise = value;
   reload();
 }
+
+}  // namespace vkb

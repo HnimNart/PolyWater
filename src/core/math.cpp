@@ -1,7 +1,7 @@
 #include "math.hpp"
 
 /**********************************************************/
-glm::mat4 math::composeTransform(const glm::vec3& translation,
+glm::mat4 core::composeTransform(const glm::vec3& translation,
                                  const glm::vec4& rotationRaw,
                                  const glm::vec3& scale)
 /**********************************************************/
@@ -14,21 +14,21 @@ glm::mat4 math::composeTransform(const glm::vec3& translation,
 }
 
 /**********************************************************/
-glm::quat math::toQuat(const glm::vec4& rotationRaw)
+glm::quat core::toQuat(const glm::vec4& rotationRaw)
 /**********************************************************/
 {
   return glm::quat(rotationRaw.w, rotationRaw.x, rotationRaw.y, rotationRaw.z);
 }
 
 /**********************************************************/
-glm::vec4 math::fromQuat(const glm::quat& quat)
+glm::vec4 core::fromQuat(const glm::quat& quat)
 /**********************************************************/
 {
   return glm::vec4(quat.x, quat.y, quat.z, quat.w);
 }
 
 /**********************************************************/
-glm::vec4 math::eulerToQuat(const glm::vec3& euler)
+glm::vec4 core::eulerToQuat(const glm::vec3& euler)
 /**********************************************************/
 {
   glm::quat quat = glm::quat(glm::radians(euler));
@@ -36,7 +36,7 @@ glm::vec4 math::eulerToQuat(const glm::vec3& euler)
 }
 
 /**********************************************************/
-bool math::rayAABBIntersection(const Ray& ray, const glm::vec3& boxMin,
+bool core::rayAABBIntersection(const Ray& ray, const glm::vec3& boxMin,
                                const glm::vec3& boxMax, float& t)
 /**********************************************************/
 {

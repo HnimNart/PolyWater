@@ -22,7 +22,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-namespace core
+namespace app
 {
 bool isWindowHovered(ImGuiWindow* refWindow);
 }

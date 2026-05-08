@@ -54,10 +54,10 @@ int main(int argc, char** argv)
   // =========================================================================
   // Core System Initialization
   // =========================================================================
-  std::unique_ptr<VulkanBackend> backend = VulkanBackend::create(appInfo);
+  std::unique_ptr<vkb::VulkanBackend> backend = vkb::VulkanBackend::create(appInfo);
   assert(backend);
 
-  auto gui = std::make_shared<VulkanImGuiSystem>();
+  auto gui = std::make_shared<vkb::VulkanImGuiSystem>();
   gui->init(appInfo);
 
   app::Application application(appInfo, std::move(backend), gui);

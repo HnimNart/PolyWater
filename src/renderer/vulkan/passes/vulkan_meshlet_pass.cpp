@@ -21,6 +21,10 @@
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "renderer/vulkan/vulkan_scene_asset_manager.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanMeshletPass::VulkanMeshletPass(VulkanContextManager* contextManager,
                                      const nvvk::DescriptorPack& descPack,
@@ -437,3 +441,5 @@ void VulkanMeshletPass::compileShaders()
   NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
                                 nullptr, &m_fragmentShader));
 }
+
+}  // namespace vkb

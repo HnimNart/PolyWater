@@ -8,6 +8,9 @@
 #include <nvvk/helpers.hpp>
 #include <nvvk/validation_settings.hpp>
 
+namespace vkb
+{
+
 /**********************************************************/
 bool VulkanContextManager::init(const app::ApplicationCreateInfo& appInfo)
 /**********************************************************/
@@ -218,3 +221,5 @@ void VulkanContextManager::deinit()
 
   m_vkContext.deinit();
 }
+
+}  // namespace vkb

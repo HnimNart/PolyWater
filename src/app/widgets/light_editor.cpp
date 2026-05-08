@@ -21,7 +21,7 @@ LightEditor::render(SceneResourcesManager& resources,
 /**********************************************************/
 {
   shaderio::SceneInfo& sceneInfo = resources.sceneInfo();
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
 
   // Initialize as None (0)
   uint32_t mask = LightChangedBitMask::NoneChanged;

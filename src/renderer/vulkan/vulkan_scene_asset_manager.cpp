@@ -18,6 +18,9 @@
 #include "image.hpp"
 #include "shaders/shared/structs.h"
 
+namespace vkb
+{
+
 // -------------------------------------------------------------------------
 // Lifecycle & Initialization
 // -------------------------------------------------------------------------
@@ -602,3 +605,5 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
   NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
   return texture;
 }
+
+}  // namespace vkb

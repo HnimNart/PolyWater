@@ -8,6 +8,9 @@
 #include "backend/interfaces/rhi_definitions.hpp"
 #include "nvvk/gbuffers.hpp"
 
+namespace vkb
+{
+
 class VulkanSceneAssetManager;
 class VulkanAccelerationStructures;
 
@@ -97,3 +100,4 @@ public:
 private:
   VkImage getResourceImage(RenderOutput resource) const;
 };
+}  // namespace vkb

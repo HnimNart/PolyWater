@@ -24,7 +24,7 @@ static constexpr const char* kOutputNames[RenderOutput::Count] = {
 bool RenderEditor::render(SceneResourcesManager& resources, IRenderer* renderer)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   bool hasChanged = false;
 
   if (PE::begin("RenderModeTable"))

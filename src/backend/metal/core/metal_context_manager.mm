@@ -4,6 +4,10 @@
 
 #import <Metal/Metal.h>
 
+
+namespace mtl
+{
+
 // Objective-C++ implementation struct (hidden from C++ consumers).
 struct MetalContextManagerData {
   id<MTLDevice> device           = nil;
@@ -73,5 +77,8 @@ void *MetalContextManager::getCommandQueueHandle() const
 {
   return (__bridge void *)m_data->commandQueue;
 }
+
+
+}  // namespace mtl
 
 #endif // __APPLE__

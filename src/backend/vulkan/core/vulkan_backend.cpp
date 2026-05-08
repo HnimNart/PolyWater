@@ -16,6 +16,9 @@
 #include "vulkan_frame_synchronization_manager.hpp"
 #include "vulkan_swapchain_render_manager.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 std::unique_ptr<VulkanBackend>
 VulkanBackend::create(const app::ApplicationCreateInfo& appInfo)
@@ -304,3 +307,5 @@ void VulkanBackend::setVsync(bool enabled)
     m_swapchainManager->setVsync(enabled);
   }
 }
+
+}  // namespace vkb

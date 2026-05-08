@@ -89,7 +89,7 @@ void SceneManager::buildSceneFromData(
     shaderio::Instance inst{};
     inst.translation = instData.translation;
     inst.scale = instData.scale;
-    inst.rotation = math::eulerToQuat(instData.rotation);
+    inst.rotation = core::eulerToQuat(instData.rotation);
     inst.hit_group = instData.hitGroup;
 
     // Resolve Mesh ID

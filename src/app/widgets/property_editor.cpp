@@ -21,7 +21,7 @@
 
 #include "tooltip.hpp"
 
-namespace app::PropertyEditor
+namespace app
 {
 
 /**********************************************************/
@@ -110,7 +110,7 @@ void end()
 bool Button(const char* label, const ImVec2& size, const std::string& tooltip)
 /**********************************************************/
 {
-  return PropertyEditor::entry(
+  return entry(
       label, [&] { return ImGui::Button("##hidden", size); }, tooltip);
 }
 /**********************************************************/
@@ -707,4 +707,4 @@ void Text(const char* label, const char* fmt, ...)
   va_end(args);
 }
 
-}  // namespace app::PropertyEditor
+}  // namespace app

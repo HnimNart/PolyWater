@@ -41,7 +41,7 @@
 
 using nlohmann::json;
 
-namespace PE = app::PropertyEditor;
+namespace PE = app;
 
 //--------------------------------------------------------------------------------------------------
 // Holds all saved cameras in a vector of Cameras

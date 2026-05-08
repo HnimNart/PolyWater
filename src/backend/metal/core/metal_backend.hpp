@@ -10,6 +10,9 @@
 #include "app/gui_system_interface.hpp"
 #include "backend/interfaces/render_backend_interface.hpp"
 
+namespace mtl
+{
+
 class MetalImGuiSystem;
 
 // Forward declaration of the Objective-C++ implementation struct.
@@ -60,5 +63,7 @@ private:
   RenderRegistry m_renderRegistry;
   std::unique_ptr<MetalBackendData> m_data;
 };
+
+}  // namespace mtl
 
 #endif // __APPLE__

@@ -7,6 +7,9 @@
 #include "renderer/shader_manager.hpp"
 #include "scene/scene_resources.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 std::unique_ptr<VulkanAccelerationStructures>
 VulkanAccelerationStructures::create(VulkanContextManager* core)
@@ -171,3 +174,5 @@ VulkanAccelerationStructures::primitiveToGeometry(
 
   return result;
 }
+
+}  // namespace vkb

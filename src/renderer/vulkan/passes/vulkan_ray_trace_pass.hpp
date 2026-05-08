@@ -11,9 +11,8 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
-// Forward Declarations
+// Forward declarations of non-vkb types
 class SceneResourcesManager;
-class VulkanContextManager;
 
 namespace nvvk
 {
@@ -23,6 +22,9 @@ namespace shaderio
 {
 struct PushConstant;
 }
+
+namespace vkb
+{
 
 class VulkanRayTracePass final : public IRenderPass
 {
@@ -92,3 +94,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

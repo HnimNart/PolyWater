@@ -158,7 +158,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string& name,
 
   // Generate the optimized payload
   OptimizedPayload optimized = processAndOptimizeGltf(
-      core::getLowercasedStem(filename), model, common::getCacheDir());
+      core::getLowercasedStem(filename), model, core::getCacheDir());
 
   // Update Counters
   m_pendingMeshes += model.meshes.size();
@@ -192,7 +192,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string& name,
     {
       TextureID texId =
           addTexture(material.name, core::findFile(material.diffuseTexturePath,
-                                                   common::getTextureDir()));
+                                                   core::getTextureDir()));
       material.pbrData.baseColorTextureIndex = texId;
     }
     MaterialID materialId =
@@ -229,7 +229,7 @@ std::vector<MeshID> SceneResourcesManager::loadObj(const std::string& name,
   }
 
   OptimizedPayload optimized =
-      processAndOptimizeObj(name, meshes, common::getCacheDir());
+      processAndOptimizeObj(name, meshes, core::getCacheDir());
   m_pendingMeshes += meshes.size();
   m_pendingOptimizedMesh.push_back(std::move(optimized));
 
@@ -327,7 +327,7 @@ InstanceID SceneResourcesManager::addInstance(shaderio::Instance&& instance,
                                               std::string name)
 /**********************************************************/
 {
-  instance.transform = math::composeTransform(
+  instance.transform = core::composeTransform(
       instance.translation, instance.rotation, instance.scale);
   name = core::trim(name);
   auto it = m_instanceMap.find(name);

@@ -47,7 +47,7 @@ public:
   std::optional<InstanceID> pickObject(glm::vec2 mousePos);
 
 private:
-  math::Ray getRayFromMouse(float mouseX, float mouseY, float width,
+  core::Ray getRayFromMouse(float mouseX, float mouseY, float width,
                             float height);
   InstanceID pickObject(float mouseX, float mouseY, float width, float height);
   void drawGeometryModifier();

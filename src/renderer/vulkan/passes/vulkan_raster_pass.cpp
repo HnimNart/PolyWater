@@ -22,6 +22,10 @@
 #include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_raster.slang.h"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanRasterPass::VulkanRasterPass(
     VulkanContextManager* contextManager, const nvvk::DescriptorPack& descPack,
@@ -318,3 +322,5 @@ void VulkanRasterPass::compileShaders()
                      &m_fragmentShader);
   NVVK_DBG_NAME(m_fragmentShader);
 }
+
+}  // namespace vkb

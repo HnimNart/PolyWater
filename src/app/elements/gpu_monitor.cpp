@@ -58,7 +58,7 @@ inline int metricFormatter(double value, char* buff, int size, void* data)
   return snprintf(buff, size, "%g %s%s", value / s_value[6], s_prefix[6], unit);
 }
 
-namespace PE = PropertyEditor;
+namespace PE = app;
 
 /**********************************************************/
 ElementGpuMonitor::ElementGpuMonitor(bool show /*= false*/) : showWindow(show)

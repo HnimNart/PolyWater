@@ -18,6 +18,10 @@
 #import "backend/metal/core/metal_context_manager.hpp"
 #import "backend/metal/core/metal_render_context.hpp"
 
+
+namespace mtl
+{
+
 /**********************************************************/
 MetalImGuiSystem::~MetalImGuiSystem()
 /**********************************************************/
@@ -352,5 +356,8 @@ void MetalImGuiSystem::saveSettings(const char *filename)
     ImGui::SaveIniSettingsToDisk(filename);
   }
 }
+
+
+}  // namespace mtl
 
 #endif // __APPLE__

@@ -14,6 +14,9 @@
 #include "renderer/vulkan/passes/vulkan_tone_map_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_ui_pass.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 VulkanPipelineManager::VulkanPipelineManager()
 /**********************************************************/
@@ -175,3 +178,5 @@ VulkanPipelineManager::getAvailableGraphs() const
 {
   return m_availableGraphsCache;
 }
+
+}  // namespace vkb

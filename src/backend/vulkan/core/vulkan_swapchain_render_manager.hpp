@@ -7,9 +7,13 @@
 #include "backend/interfaces/render_context_interface.hpp"
 #include "nvvk/swapchain.hpp"
 
+struct GLFWwindow;
+
+namespace vkb
+{
+
 class VulkanContextManager;
 class VulkanFrameSynchronizationManager;
-struct GLFWwindow;
 
 class VulkanSwapchainRenderManager
 {
@@ -67,3 +71,4 @@ private:
 
   RenderCallback m_uiCallback = nullptr;
 };
+}  // namespace vkb

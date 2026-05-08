@@ -4,6 +4,9 @@
 
 #include "backend/interfaces/rhi_definitions.hpp"
 
+namespace vkb
+{
+
 // Helper to convert Enums
 struct VulkanStateInfo
 {
@@ -94,3 +97,5 @@ inline VkPipelineStageFlags2 toVulkan(PipelineStage stage)
   }
   return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 }
+
+}  // namespace vkb

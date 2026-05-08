@@ -13,6 +13,9 @@
 #include "app/app_info.hpp"
 #include "shaders/shared/structs.h"
 
+namespace vkb
+{
+
 class VulkanContextManager
 {
 public:
@@ -73,3 +76,4 @@ private:
   void setupDescriptorPool();
   void setupTransientCommandPool();
 };
+}  // namespace vkb

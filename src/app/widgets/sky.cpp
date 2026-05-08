@@ -33,7 +33,7 @@ bool SkyEditor::renderSimpleParameters(shaderio::SkySimpleParameters& params,
                                        const char* label, ImGuiTableFlags flag)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
 
   bool changed{false};
   if (PE::begin(label, flag))
@@ -86,7 +86,7 @@ bool SkyEditor::renderPhysicalParameters(
     shaderio::SkyPhysicalParameters& params)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   bool changed{false};
   if (PE::begin())
   {

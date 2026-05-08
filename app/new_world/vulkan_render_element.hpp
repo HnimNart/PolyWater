@@ -16,14 +16,6 @@
 #include "core/camera.hpp"
 #include "scene/scene_manager.hpp"
 
-// Forward declarations to reduce compile time
-namespace core
-{
-class Application;
-}  // namespace core
-
-class VulkanRenderer;
-
 class VulkanRendererElement : public app::IAppElement
 {
 public:
@@ -90,7 +82,7 @@ private:
   // -------------------------------------------------------------------------
   // Core components
   app::Application* m_app = nullptr;
-  std::unique_ptr<VulkanRenderer> m_renderer = nullptr;
+  std::unique_ptr<vkb::VulkanRenderer> m_renderer = nullptr;
   SceneManager m_sceneManager{};
 
   std::shared_ptr<app::GeometryPickerElement> m_geometryPicker = nullptr;

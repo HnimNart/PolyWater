@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "renderer/interfaces/render_graph_interface.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "renderer/vulkan/passes/vulkan_ray_trace_pass.hpp"
 #include "scene/scene_manager.hpp"
@@ -14,15 +15,15 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
-class PostProcessor;
-class IRenderBackend;
-class VulkanSceneAssetManager;
+// Forward declarations of non-vkb types
 class SceneResourcesManager;
-class VulkanFrameSynchronizationManager;
-class VulkanSwapchainRenderManager;
-class VulkanToneMapPass;
+
+namespace vkb
+{
+
 class VulkanBackend;
-class RenderGraph;
+class VulkanFrameSynchronizationManager;
+class VulkanToneMapPass;
 
 class VulkanRenderer final : public IRenderer
 {
@@ -92,3 +93,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

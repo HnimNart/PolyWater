@@ -11,15 +11,14 @@
 #include "app/app_info.hpp"
 #include "app/gui_system_interface.hpp"
 
+struct GLFWwindow;
+
+namespace vkb
+{
+
 class VulkanContextManager;
 class VulkanFrameSynchronizationManager;
 class VulkanSwapchainRenderManager;
-struct GLFWwindow;
-
-namespace core
-{
-class IAppElement;
-}
 
 class VulkanImGuiSystem : public app::IGUISystem, public IRenderable
 {
@@ -92,3 +91,4 @@ private:
   std::string m_iniFilename;
   std::function<void(ImGuiID)> m_dockSetup;
 };
+}  // namespace vkb

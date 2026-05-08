@@ -13,6 +13,9 @@
 #include "vulkan_context_manager.hpp"
 #include "vulkan_frame_synchronization_manager.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 void VulkanSwapchainRenderManager::init(VulkanContextManager& coreManager,
                                         GLFWwindow* windowHandle)
@@ -182,3 +185,5 @@ void VulkanSwapchainRenderManager::reportSwapchainDiagnostics(
        swapchainParams.surface, swapchainParams.physicalDevice,
        chosenDeviceProps.deviceName);
 }
+
+}  // namespace vkb

@@ -47,6 +47,9 @@ void debugShaderMagic(const std::string& name,
 
 }  // namespace
 
+namespace vkb
+{
+
 /**********************************************************/
 void VulkanSlangCompiler::init(
     const std::vector<std::filesystem::path>& shaderDirs)
@@ -360,3 +363,5 @@ void detail::VulkanSlangCompiler::createSession()
   };
   m_globalSession->createSession(desc, m_session.writeRef());
 }
+
+}  // namespace vkb

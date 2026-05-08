@@ -7,6 +7,9 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
+namespace vkb
+{
+
 class VulkanSkyPass final : public IRenderPass
 {
 public:
@@ -32,3 +35,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

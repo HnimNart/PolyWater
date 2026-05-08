@@ -34,6 +34,10 @@ constexpr VkDeviceSize kBytesPerPixel = 4 * sizeof(float);
 
 }  // namespace
 
+
+namespace vkb
+{
+
 /**********************************************************/
 OIDNDenoisePass::OIDNDenoisePass(VulkanContextManager* contextManager) :
     m_contextManager(contextManager)
@@ -552,3 +556,5 @@ void OIDNDenoisePass::destroyBuffer(ExternalBuffer& buf)
   }
   buf.byteSize = 0;
 }
+
+}  // namespace vkb

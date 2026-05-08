@@ -30,6 +30,9 @@ namespace core
 struct PrimitiveMesh;
 }
 
+namespace vkb
+{
+
 // Holds the GPU-side buffers for the scene geometry and assets
 struct VulkanSceneGpuData
 {
@@ -188,3 +191,4 @@ private:
   std::vector<TextureID> m_freeTextureIndices;
   uint m_nextTextureId{1};  // 0 is reserved for system
 };
+}  // namespace vkb

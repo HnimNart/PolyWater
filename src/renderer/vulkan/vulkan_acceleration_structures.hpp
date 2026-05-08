@@ -11,6 +11,10 @@ namespace shaderio
 {
 struct MeshPrimitive;
 }
+
+namespace vkb
+{
+
 class VulkanContextManager;
 
 class VulkanAccelerationStructures
@@ -40,3 +44,4 @@ private:
   primitiveToGeometry(const shaderio::MeshPrimitive& mesh);
   nvvk::AccelerationStructureHelper m_asBuilder{};
 };
+}  // namespace vkb

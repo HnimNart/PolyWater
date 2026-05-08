@@ -16,7 +16,7 @@ namespace app
 bool MaterialEditor::render(SceneResourcesManager& resources)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   auto& materials = resources.getMaterials();
   const auto& materialMap = resources.materialMap();
   bool changed = false;

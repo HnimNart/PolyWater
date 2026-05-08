@@ -35,7 +35,7 @@ void app::ElementCamera::updateCamera(
 
   // Check if the mouse cursor is over the "Viewport", check for all inputs that
   // can manipulate the camera.
-  if (!core::isWindowHovered(viewportWindow))
+  if (!app::isWindowHovered(viewportWindow))
     return;
 
   inputs.lmb = ImGui::IsMouseDown(ImGuiMouseButton_Left);
