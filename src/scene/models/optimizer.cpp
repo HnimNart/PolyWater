@@ -706,7 +706,7 @@ OptimizedPayload processAndOptimizeGltf(const std::string& name,
 /**********************************************************/
 OptimizedPayload
 processAndOptimizeObj(const std::string& name,
-                      const std::vector<scene::ObjMesh>& loadedMeshes,
+                      const std::vector<ObjMesh>& loadedMeshes,
                       const std::filesystem::path& cachePath)
 /**********************************************************/
 {
