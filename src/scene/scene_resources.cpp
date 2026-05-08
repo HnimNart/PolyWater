@@ -131,7 +131,7 @@ std::vector<MeshID> SceneResourcesManager::loadGltf(const std::string& name,
                                                     const std::string& filename)
 /**********************************************************/
 {
-  tinyscene::Model model = scene::loadModel(filename);
+  tinygltf::Model model = scene::loadModel(filename);
   if (model.meshes.empty())
   {
     LOGE("Error: GLTF file %s contains no meshes.", filename.c_str());

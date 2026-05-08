@@ -431,16 +431,16 @@ void extractFromObjPrimitive(const core::PrimitiveMesh& objMesh, TempMesh& tm)
 }
 
 /**********************************************************/
-void extractAndOptimizePrimitive(const tinyscene::Model& model,
-                                 const tinyscene::Primitive& primitive,
+void extractAndOptimizePrimitive(const tinygltf::Model& model,
+                                 const tinygltf::Primitive& primitive,
                                  TempMesh& tm)
 /**********************************************************/
 {
   if (primitive.indices >= 0)
   {
-    const tinyscene::Accessor& indexAccessor =
+    const tinygltf::Accessor& indexAccessor =
         model.accessors[primitive.indices];
-    const tinyscene::BufferView& bufferView =
+    const tinygltf::BufferView& bufferView =
         model.bufferViews[indexAccessor.bufferView];
     const uint8_t* dataPtr = model.buffers[bufferView.buffer].data.data() +
                              bufferView.byteOffset + indexAccessor.byteOffset;
@@ -627,7 +627,7 @@ namespace scene
 
 /**********************************************************/
 OptimizedPayload processAndOptimizeGltf(const std::string& name,
-                                        const tinyscene::Model& model,
+                                        const tinygltf::Model& model,
                                         const std::filesystem::path& cachePath)
 /**********************************************************/
 {

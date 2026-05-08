@@ -89,7 +89,7 @@ void VulkanRasterPass::execute(IRenderContext& ctx)
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const Scene* sceneResources = vkCtx.sceneResources;
+  const scene::Scene* sceneResources = vkCtx.sceneResources;
   const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
   const VkExtent2D& size = gBuffers->getSize();
   const shaderio::RasterParams& rasterParams = constants.rasterParams;

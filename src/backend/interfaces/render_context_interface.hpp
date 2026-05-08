@@ -6,7 +6,11 @@
 #include "rhi_definitions.hpp"
 #include "shaders/shared/structs.h"
 
+namespace scene
+{
 struct Scene;
+}
+
 //------------------------------------------------------------
 // FrameContext
 //------------------------------------------------------------
@@ -40,6 +44,6 @@ public:
 
 public:
   uint64_t frameNumber{0};  // Timeline value for synchronization
-  Scene* sceneResources = nullptr;
+  scene::Scene* sceneResources = nullptr;
   shaderio::PushConstant pushValues;
 };
