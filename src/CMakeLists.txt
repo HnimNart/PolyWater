@@ -17,7 +17,12 @@ target_compile_definitions(${LIB_NAME} INTERFACE
     $<$<CONFIG:Debug>:ENABLE_PROFILING>
     $<$<CONFIG:RelWithDebInfo>:ENABLE_PROFILING>
 )
-#-- 4. Shader Compilation Logic ---
+target_compile_definitions(${LIB_NAME} INTERFACE
+    $<$<CONFIG:Debug>:PROFILE_APP>
+    $<$<CONFIG:RelWithDebInfo>:PROFILE_APP>
+)
+
+#-- Shader Compilation Logic ---
 include(CompilerGlslShader)
 include(CompilerSlangShader)
 

@@ -22,10 +22,10 @@ CACHE_DIR := .cache/models
 .PHONY: configure build rebuild install clean test help
 
 configure:
-	cmake --preset $(preset) -B $(BUILD_DIR)
+	cmake --preset $(preset) -B $(BUILD_DIR) 
 
 build:
-	cmake --build $(BUILD_DIR) --preset $(preset) --parallel
+	cmake --build $(BUILD_DIR) --preset $(preset) --config $(CONFIG_TYPE) --parallel
 
 rebuild:
 	cmake --build $(BUILD_DIR) --preset $(preset) --clean-first --parallel

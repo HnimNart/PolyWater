@@ -32,7 +32,7 @@
       }
     },
     {
-      "name": "relwithdebinfo",
+      "name": "dev",
       "inherits": "base",
       "description": "Release build with debug information",
       "cacheVariables": {
@@ -61,7 +61,7 @@
     },
     {
       "name": "dev",
-      "configurePreset": "relwithdebinfo",
+      "configurePreset": "dev",
       "configuration": "RelWithDebInfo",
       "jobs": 0
     },
