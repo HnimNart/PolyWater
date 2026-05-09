@@ -22,11 +22,11 @@ int main(int /*argc*/, char** /*argv*/)
   appInfo.name = "Metal Element";
 
   // Initialize the Metal context.
-  std::unique_ptr<MetalBackend> backend = MetalBackend::create(appInfo);
+  std::unique_ptr<mtl::MetalBackend> backend = mtl::MetalBackend::create(appInfo);
   assert(backend && "Failed to create Metal backend");
 
   // Initialize the Metal ImGui system.
-  auto gui = std::make_shared<MetalImGuiSystem>();
+  auto gui = std::make_shared<mtl::MetalImGuiSystem>();
   gui->init(appInfo);
 
   // Create the application (owns the backend and GUI system).

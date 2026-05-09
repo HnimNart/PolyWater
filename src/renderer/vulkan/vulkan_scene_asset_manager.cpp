@@ -18,6 +18,9 @@
 #include "image.hpp"
 #include "shaders/shared/structs.h"
 
+namespace vkb
+{
+
 // -------------------------------------------------------------------------
 // Lifecycle & Initialization
 // -------------------------------------------------------------------------
@@ -335,7 +338,7 @@ void VulkanSceneAssetManager::linkMeshToBuffer(MeshID meshId,
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::uploadSceneResoures(const Scene& resources)
+void VulkanSceneAssetManager::uploadSceneResoures(const scene::Scene& resources)
 /**********************************************************/
 {
   assert(m_cmd != VK_NULL_HANDLE && "Did you call beginUploading() first?");
@@ -355,7 +358,7 @@ VulkanSceneAssetManager::getBufferFromIndex(MeshID meshIndex) const
 }
 
 // -------------------------------------------------------------------------
-// 5. Scene Updates (Dynamic)
+// Scene Updates (Dynamic)
 // -------------------------------------------------------------------------
 
 /**********************************************************/
@@ -469,7 +472,7 @@ void VulkanSceneAssetManager::createDesctriptorLayout()
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::createSceneBuffers(const Scene& sceneResource)
+void VulkanSceneAssetManager::createSceneBuffers(const scene::Scene& sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -602,3 +605,5 @@ nvvk::Image VulkanSceneAssetManager::createImageFromRaw(
   NVVK_CHECK(staging.appendImage(texture, dataSpan, finalLayout));
   return texture;
 }
+
+}  // namespace vkb

@@ -6,6 +6,10 @@
 #include "_autogen/tonemapper.slang.h"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanToneMapPass::VulkanToneMapPass(VulkanContextManager* core,
                                      RenderOutput input) :
@@ -313,3 +317,5 @@ void VulkanToneMapPass::clearHistogram(VkCommandBuffer cmd)
             .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
             .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT});
 }
+
+}  // namespace vkb

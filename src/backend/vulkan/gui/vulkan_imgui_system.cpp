@@ -34,6 +34,9 @@
 #include "backend/vulkan/core/vulkan_frame_synchronization_manager.hpp"
 #include "backend/vulkan/core/vulkan_swapchain_render_manager.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 VulkanImGuiSystem::~VulkanImGuiSystem()
 /**********************************************************/
@@ -397,3 +400,5 @@ void VulkanImGuiSystem::saveSettings(const char* filename)
     ImGui::SaveIniSettingsToDisk(filename);
   }
 }
+
+}  // namespace vkb

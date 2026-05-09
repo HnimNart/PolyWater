@@ -9,6 +9,10 @@
 
 // Forward declaration of the Objective-C++ implementation struct.
 // Defined in MetalRenderContext.mm.
+
+namespace mtl
+{
+
 struct MetalRenderContextData;
 
 //------------------------------------------------------------
@@ -60,5 +64,7 @@ public:
 private:
   std::unique_ptr<MetalRenderContextData> m_data;
 };
+
+}  // namespace mtl
 
 #endif // __APPLE__

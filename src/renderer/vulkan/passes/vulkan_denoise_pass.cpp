@@ -7,6 +7,10 @@
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanDenoisePass::VulkanDenoisePass(VulkanContextManager* contextManager) :
     m_context_manager(contextManager)
@@ -159,3 +163,5 @@ void VulkanDenoisePass::execute(IRenderContext& ctx)
     m_gpuTimer->cmdFrameEndSection(cmd, _profId);
 #endif
 }
+
+}  // namespace vkb

@@ -11,6 +11,9 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
+namespace vkb
+{
+
 class VulkanDenoisePass final : public IRenderPass
 {
 public:
@@ -46,3 +49,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

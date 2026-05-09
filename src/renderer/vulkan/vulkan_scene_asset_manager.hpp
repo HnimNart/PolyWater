@@ -30,6 +30,9 @@ namespace core
 struct PrimitiveMesh;
 }
 
+namespace vkb
+{
+
 // Holds the GPU-side buffers for the scene geometry and assets
 struct VulkanSceneGpuData
 {
@@ -53,7 +56,7 @@ class VulkanSceneAssetManager final : public IDeviceAssets
 {
 public:
   // -------------------------------------------------------------------------
-  // 1. Lifecycle & Upload Flow
+  // Lifecycle & Upload Flow
   //    Init/Deinit and command buffer management for staging uploads.
   // -------------------------------------------------------------------------
   explicit VulkanSceneAssetManager(VulkanContextManager* backend);
@@ -64,7 +67,7 @@ public:
   void endUploading() override;
 
   // -------------------------------------------------------------------------
-  // 2. Geometry & Model Management (Initialization)
+  // Geometry & Model Management (Initialization)
   //    Uploading static model data (GLTF buffers) and initial mesh setup.
   // -------------------------------------------------------------------------
   IDeviceAssets::BufferHandle
@@ -72,7 +75,7 @@ public:
   void destroyBuffer(BufferID id) override;
 
   void linkMeshToBuffer(MeshID id, BufferID bufferIndex) override;
-  void uploadSceneResoures(const Scene& resources) override;
+  void uploadSceneResoures(const scene::Scene& resources) override;
 
   const VulkanSceneGpuData& deviceResources() const
   {
@@ -81,7 +84,7 @@ public:
   const nvvk::Buffer& getBufferFromIndex(MeshID meshIndex) const;
 
   // -------------------------------------------------------------------------
-  // 3. Scene Data Updates (Per-Frame / Dynamic)
+  // Scene Data Updates (Per-Frame / Dynamic)
   //    Updating SSBOs and UBOs when scene state changes (animation, editing).
   // -------------------------------------------------------------------------
   void update(const std::vector<shaderio::MeshPrimitive>&) override;
@@ -94,7 +97,7 @@ public:
   VkDeviceAddress getSceneResources() const;
 
   // -------------------------------------------------------------------------
-  // 4. Texture & Bindless Descriptor Management
+  // Texture & Bindless Descriptor Management
   //    Handling image creation, GPU upload, and descriptor set manipulation.
   // -------------------------------------------------------------------------
   bool destroyTexture(TextureID id) override;
@@ -125,7 +128,7 @@ public:
 
 private:
   // -------------------------------------------------------------------------
-  // 5. Internal Texture & Descriptor Helpers
+  // Internal Texture & Descriptor Helpers
   // -------------------------------------------------------------------------
   void createDesctriptorLayout();
   void pushTextureUpdates(const std::map<TextureID, nvvk::Image>& updates);
@@ -134,10 +137,10 @@ private:
                                  bool sRgb = true);
 
   // -------------------------------------------------------------------------
-  // 6. Internal Buffer Lifecycle Helpers
+  // Internal Buffer Lifecycle Helpers
   // -------------------------------------------------------------------------
   bool registerTexture(const core::Image& image, TextureID& id);
-  void createSceneBuffers(const Scene& sceneResources);
+  void createSceneBuffers(const scene::Scene& sceneResources);
   void clearSceneBuffers();
   void updateSceneResources(VkCommandBuffer cmd) const;
   void uploadTextures();  // Legacy/Batch update
@@ -188,3 +191,4 @@ private:
   std::vector<TextureID> m_freeTextureIndices;
   uint m_nextTextureId{1};  // 0 is reserved for system
 };
+}  // namespace vkb

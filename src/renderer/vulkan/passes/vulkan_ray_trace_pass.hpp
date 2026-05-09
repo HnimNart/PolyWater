@@ -12,8 +12,10 @@
 #endif
 
 // Forward Declarations
+namespace scene
+{
 class SceneResourcesManager;
-class VulkanContextManager;
+}  // namespace scene
 
 namespace nvvk
 {
@@ -23,6 +25,9 @@ namespace shaderio
 {
 struct PushConstant;
 }
+
+namespace vkb
+{
 
 class VulkanRayTracePass final : public IRenderPass
 {
@@ -92,3 +97,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

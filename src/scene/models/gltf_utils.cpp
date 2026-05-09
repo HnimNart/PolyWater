@@ -203,7 +203,7 @@ void processNode(const tinygltf::Model& model, int nodeIndex,
 }  // namespace
 
 /**********************************************************/
-tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
+tinygltf::Model scene::loadModel(const std::filesystem::path& filename)
 /**********************************************************/
 {
   std::string baseName = filename.filename().string();
@@ -241,7 +241,7 @@ tinygltf::Model gltf::loadModel(const std::filesystem::path& filename)
 }
 
 /**********************************************************/
-shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
+shaderio::MeshPrimitive scene::extractGltfMesh(const tinygltf::Model& model,
                                               uint meshIdx)
 /**********************************************************/
 {
@@ -278,7 +278,7 @@ shaderio::MeshPrimitive gltf::extractGltfMesh(const tinygltf::Model& model,
 
 /**********************************************************/
 std::pair<glm::vec3, glm::vec3>
-gltf::computeModelBounds(const tinygltf::Model& model)
+scene::computeModelBounds(const tinygltf::Model& model)
 /**********************************************************/
 {
   glm::vec3 minBound(std::numeric_limits<float>::max());
@@ -298,7 +298,7 @@ gltf::computeModelBounds(const tinygltf::Model& model)
 }
 
 /**********************************************************/
-shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model& model,
+shaderio::BoundingBox scene::getMeshBounds(const tinygltf::Model& model,
                                           uint meshIdx)
 /**********************************************************/
 {
@@ -327,7 +327,7 @@ shaderio::BoundingBox gltf::getMeshBounds(const tinygltf::Model& model,
 
 /**********************************************************/
 template <typename T>
-bool gltf::getGltfAttribute(const tinygltf::Model& model,
+bool scene::getGltfAttribute(const tinygltf::Model& model,
                             const tinygltf::Primitive& primitive,
                             const std::string& attributeName,
                             const uint8_t*& dataPtr, size_t& stride,
@@ -349,17 +349,17 @@ bool gltf::getGltfAttribute(const tinygltf::Model& model,
   return true;
 }
 
-template bool gltf::getGltfAttribute<glm::vec2>(const tinygltf::Model&,
+template bool scene::getGltfAttribute<glm::vec2>(const tinygltf::Model&,
                                                 const tinygltf::Primitive&,
                                                 const std::string&,
                                                 const uint8_t*&, size_t&,
                                                 size_t&);
-template bool gltf::getGltfAttribute<glm::vec3>(const tinygltf::Model&,
+template bool scene::getGltfAttribute<glm::vec3>(const tinygltf::Model&,
                                                 const tinygltf::Primitive&,
                                                 const std::string&,
                                                 const uint8_t*&, size_t&,
                                                 size_t&);
-template bool gltf::getGltfAttribute<glm::vec4>(const tinygltf::Model&,
+template bool scene::getGltfAttribute<glm::vec4>(const tinygltf::Model&,
                                                 const tinygltf::Primitive&,
                                                 const std::string&,
                                                 const uint8_t*&, size_t&,

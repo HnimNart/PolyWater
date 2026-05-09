@@ -9,6 +9,9 @@
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "vulkan_context_manager.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 void VulkanFrameSynchronizationManager::init(VulkanContextManager& coreManager,
                                              uint32_t numFrames)
@@ -263,3 +266,5 @@ void VulkanFrameSynchronizationManager::deinit(
 
   vkDestroySemaphore(device, m_frameTimelineSemaphore, nullptr);
 }
+
+}  // namespace vkb

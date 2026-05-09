@@ -5,7 +5,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-namespace math
+namespace core
 {
 
 glm::mat4 composeTransform(const glm::vec3& translation,
@@ -27,4 +27,4 @@ struct Ray
 bool rayAABBIntersection(const Ray& ray, const glm::vec3& boxMin,
                          const glm::vec3& boxMax, float& t);
 
-}  // namespace math
+}  // namespace core

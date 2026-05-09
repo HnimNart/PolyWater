@@ -7,6 +7,9 @@
 #include "renderer/shader_manager.hpp"
 #include "scene/scene_resources.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 std::unique_ptr<VulkanAccelerationStructures>
 VulkanAccelerationStructures::create(VulkanContextManager* core)
@@ -41,7 +44,7 @@ void VulkanAccelerationStructures::init(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::build(const SceneResourcesManager& scene,
+void VulkanAccelerationStructures::build(const scene::SceneResourcesManager& scene,
                                          const ShaderManager& materialManager)
 /**********************************************************/
 {
@@ -54,7 +57,7 @@ void VulkanAccelerationStructures::build(const SceneResourcesManager& scene,
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::rebuild(const SceneResourcesManager& scene,
+void VulkanAccelerationStructures::rebuild(const scene::SceneResourcesManager& scene,
                                            const ShaderManager& materialManager)
 /**********************************************************/
 {
@@ -71,12 +74,12 @@ void VulkanAccelerationStructures::deinit()
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
+void VulkanAccelerationStructures::buildBLAS(const scene::SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
 
-  const Scene& scene_geometry = scene.data();
+  const scene::Scene& scene_geometry = scene.data();
   // Prepare geometry information for all meshes
   std::vector<nvvk::AccelerationStructureGeometryInfo> geoInfos(
       scene_geometry.meshes.size());
@@ -92,13 +95,13 @@ void VulkanAccelerationStructures::buildBLAS(const SceneResourcesManager& scene)
 
 /**********************************************************/
 std::vector<VkAccelerationStructureInstanceKHR>
-VulkanAccelerationStructures::buildTLAS(const SceneResourcesManager& scene,
+VulkanAccelerationStructures::buildTLAS(const scene::SceneResourcesManager& scene,
                                         const ShaderManager& shaderManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
   // Prepare instance data for TLAS
-  const Scene& sceneGeometry = scene.data();
+  const scene::Scene& sceneGeometry = scene.data();
   std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
   tlasInstances.reserve(sceneGeometry.instances.size());
   const VkGeometryInstanceFlagsKHR flags{
@@ -171,3 +174,5 @@ VulkanAccelerationStructures::primitiveToGeometry(
 
   return result;
 }
+
+}  // namespace vkb

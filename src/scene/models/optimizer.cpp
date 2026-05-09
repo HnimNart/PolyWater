@@ -172,7 +172,7 @@ MeshletData buildMeshlets(const TempMesh& tm)
 // --- Shared Packing Logic ---
 
 /**********************************************************/
-void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
+void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
                           const MeshletData& mData)
 /**********************************************************/
 {
@@ -198,7 +198,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   };
 
   // ---------------------------------------------------------
-  // 1. Pack Interleaved Vertex Data (Shared)
+  // Pack Interleaved Vertex Data (Shared)
   // ---------------------------------------------------------
   uint32_t currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   payload.rawBuffer.insert(payload.rawBuffer.end(), tm.vertexData.begin(),
@@ -250,7 +250,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 2. Pack Traditional Triangle Indices
+  // Pack Traditional Triangle Indices
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t iBytes = tm.indices.size() * sizeof(uint32_t);
@@ -266,7 +266,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 3. Pack Meshlet Structures (GPUMeshlet)
+  // Pack Meshlet Structures (GPUMeshlet)
   // ---------------------------------------------------------
   currentOffset =
       static_cast<uint32_t>(payload.rawBuffer.size());  // Fixed: was +=
@@ -285,7 +285,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 4. Pack Meshlet Vertices (Global vertex indices)
+  // Pack Meshlet Vertices (Global vertex indices)
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t mvByteSize = mData.meshletVertices.size() * sizeof(uint32_t);
@@ -302,7 +302,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 5. Pack Meshlet Triangles (Local 8-bit indices)
+  // Pack Meshlet Triangles (Local 8-bit indices)
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t mtByteSize = mData.meshletTriangles.size() * sizeof(uint8_t);
@@ -326,7 +326,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
 }
 
 /**********************************************************/
-void packIntoPayload(OptimizedPayload& payload, const TempMesh& tm)
+void packIntoPayload(scene::OptimizedPayload& payload, const TempMesh& tm)
 /**********************************************************/
 {
   shaderio::MeshPrimitive prim = {};
@@ -381,7 +381,7 @@ void packIntoPayload(OptimizedPayload& payload, const TempMesh& tm)
 
   currentOffset += static_cast<uint32_t>(tm.vertexData.size());
 
-  // 3. Pack Indices
+  // Pack Indices
   size_t iBytes = tm.indices.size() * sizeof(uint32_t);
   const uint8_t* iData = reinterpret_cast<const uint8_t*>(tm.indices.data());
   payload.rawBuffer.insert(payload.rawBuffer.end(), iData, iData + iBytes);
@@ -470,19 +470,19 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
   size_t posStride = 0, normStride = 0, uvStride = 0, tanStride = 0,
          colStride = 0, vertexCount = 0;
 
-  if (!gltf::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
-                                         posStride, vertexCount))
+  if (!scene::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
+                                          posStride, vertexCount))
   {
     return;
   }
 
-  tm.hasNormals = gltf::getGltfAttribute<glm::vec3>(
+  tm.hasNormals = scene::getGltfAttribute<glm::vec3>(
       model, primitive, "NORMAL", normPtr, normStride, vertexCount);
-  tm.hasUVs = gltf::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
-                                                uvPtr, uvStride, vertexCount);
-  tm.hasTangents = gltf::getGltfAttribute<glm::vec4>(
+  tm.hasUVs = scene::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
+                                                 uvPtr, uvStride, vertexCount);
+  tm.hasTangents = scene::getGltfAttribute<glm::vec4>(
       model, primitive, "TANGENT", tanPtr, tanStride, vertexCount);
-  tm.hasColors = gltf::getGltfAttribute<glm::vec4>(
+  tm.hasColors = scene::getGltfAttribute<glm::vec4>(
       model, primitive, "COLOR_0", colPtr, colStride, vertexCount);
 
   // Dynamically calculate stride based on what attributes exist
@@ -537,8 +537,6 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
     }
   }
 }
-
-// --- Caching ---
 
 /**********************************************************/
 bool loadMeshCache(const std::filesystem::path& filepath, TempMesh& tm)
@@ -618,6 +616,9 @@ void saveMeshCache(const std::filesystem::path& filepath, const TempMesh& tm)
 }
 
 }  // namespace
+
+namespace scene
+{
 
 // --- Public API ---
 
@@ -700,10 +701,9 @@ OptimizedPayload processAndOptimizeGltf(const std::string& name,
 }
 
 /**********************************************************/
-OptimizedPayload
-processAndOptimizeObj(const std::string& name,
-                      const std::vector<obj::ObjMesh>& loadedMeshes,
-                      const std::filesystem::path& cachePath)
+OptimizedPayload processAndOptimizeObj(const std::string& name,
+                                       const std::vector<ObjMesh>& loadedMeshes,
+                                       const std::filesystem::path& cachePath)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -771,3 +771,5 @@ processAndOptimizeObj(const std::string& name,
 
   return payload;
 }
+
+}  // namespace scene

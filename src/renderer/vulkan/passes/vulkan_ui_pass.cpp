@@ -4,6 +4,10 @@
 
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanUIPass::VulkanUIPass(RenderCallback callback)
 /**********************************************************/
@@ -71,3 +75,5 @@ void VulkanUIPass::execute(IRenderContext& ctx)
     m_gpuTimer->cmdFrameEndSection(vkCtx.cmdBuffer, _profId);
 #endif
 }
+
+}  // namespace vkb

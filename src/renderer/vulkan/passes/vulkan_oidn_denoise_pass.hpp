@@ -40,6 +40,9 @@
 //     G-buffer image, and is stored in IRenderContext::cmdBuffer.  Subsequent
 //     passes record into this buffer; it is submitted at end-of-frame.
 // ---------------------------------------------------------------------------
+namespace vkb
+{
+
 class OIDNDenoisePass final : public IRenderPass
 {
 public:
@@ -109,3 +112,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

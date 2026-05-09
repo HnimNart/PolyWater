@@ -19,7 +19,7 @@
 
 #include "window.hpp"
 
-namespace core
+namespace app
 {
 
 /**********************************************************/
@@ -48,4 +48,4 @@ bool isWindowHovered(ImGuiWindow* refWindow)
 
   return true;
 }
-}  // namespace core
+}  // namespace app

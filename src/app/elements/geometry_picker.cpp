@@ -12,7 +12,7 @@
 
 /**********************************************************/
 app::GeometryPickerElement::GeometryPickerElement(
-    const SceneResourcesManager& sceneResources,
+    const scene::SceneResourcesManager& sceneResources,
     std::shared_ptr<core::CameraManipulator> camera) :
     m_sceneResources(sceneResources), m_camera(std::move(camera))
 /**********************************************************/
@@ -21,7 +21,7 @@ app::GeometryPickerElement::GeometryPickerElement(
 
 /**********************************************************/
 void app::GeometryPickerElement::onSceneUpdate(
-    const SceneResourcesManager& scene)
+    const scene::SceneResourcesManager& scene)
 /**********************************************************/
 {
   if (!m_accel.build(scene.data()))
@@ -73,7 +73,7 @@ InstanceID app::GeometryPickerElement::pickObject(float mouseX, float mouseY,
                                                   float width, float height)
 /**********************************************************/
 {
-  math::Ray ray = getRayFromMouse(mouseX, mouseY, width, height);
+  core::Ray ray = getRayFromMouse(mouseX, mouseY, width, height);
   auto hit = m_accel.intersect(ray.origin, ray.direction);
   return hit ? hit->instanceID : -1;
 }
@@ -84,7 +84,7 @@ app::GeometryPickerElement::pickObject(glm::vec2 mouseAbs)
 /**********************************************************/
 {
   ImGuiWindow* viewport = ImGui::FindWindowByName("Viewport");
-  if (!viewport || !core::isWindowHovered(viewport))
+  if (!viewport || !app::isWindowHovered(viewport))
     return std::nullopt;  // Using nullopt instead of -1 for optional
 
   float relX = mouseAbs.x - viewport->Pos.x;
@@ -96,7 +96,7 @@ app::GeometryPickerElement::pickObject(glm::vec2 mouseAbs)
 /**********************************************************/
 // 4. Ray Generation (Math fix included)
 /**********************************************************/
-math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
+core::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
                                                       float mouseY, float width,
                                                       float height)
 /**********************************************************/
@@ -120,7 +120,7 @@ math::Ray app::GeometryPickerElement::getRayFromMouse(float mouseX,
 
   glm::vec3 dir = glm::normalize(glm::vec3(worldEnd - worldStart));
 
-  return math::Ray{m_camera->getEye(), dir};
+  return core::Ray{m_camera->getEye(), dir};
 }
 
 /**********************************************************/
@@ -245,7 +245,7 @@ void app::GeometryPickerElement::drawRotationBall(const glm::vec3& center,
 
   // inst.rotation = glm::vec4(newQ.x, newQ.y, newQ.z, newQ.w);
   // inst.transform =
-  //     math::composeTransform(inst.translation, inst.rotation,
+  //     core::composeTransform(inst.translation, inst.rotation,
   // inst.scale);
   // m_sceneResources.onInstanceChange();
   // }

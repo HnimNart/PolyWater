@@ -18,7 +18,7 @@ namespace app
 class TextureEditor
 {
 public:
-  bool render(SceneResourcesManager&                resourceManager,
+  bool render(scene::SceneResourcesManager&                resourceManager,
               const std::shared_ptr<IDeviceAssets>& deviceResources);
 
 private:

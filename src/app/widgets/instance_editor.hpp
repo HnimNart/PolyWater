@@ -11,7 +11,7 @@ namespace app
 class InstanceEditor
 {
 public:
-  bool render(SceneResourcesManager&                            resources,
+  bool render(scene::SceneResourcesManager&                            resources,
               const std::map<MaterialType, MaterialEntry>& shaderRegistry);
 
 private:

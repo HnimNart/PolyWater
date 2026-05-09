@@ -16,6 +16,9 @@ struct TonemapperData;
 
 class IRenderContext;
 
+namespace scene
+{
+
 class SceneManager
 {
 public:
@@ -54,3 +57,5 @@ private:
 
   bool has_changed = false;
 };
+
+}  // namespace scene

@@ -10,7 +10,7 @@
 #include "core/string_utils.hpp"
 #include "core/timers.hpp"
 
-namespace obj
+namespace scene
 {
 
 /**********************************************************/
@@ -197,4 +197,4 @@ std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh& meshData)
   return buffer;
 }
 
-}  // namespace obj
+}  // namespace scene

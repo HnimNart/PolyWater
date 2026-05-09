@@ -8,7 +8,10 @@
 #include "scene/scene_manager.hpp"
 
 // Forward Declarations
+namespace scene
+{
 class SceneResourcesManager;
+}  // namespace scene
 struct WindowSize;
 
 namespace shaderio
@@ -28,11 +31,11 @@ public:
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
-  virtual void init(const SceneResourcesManager& scene) = 0;
+  virtual void init(const scene::SceneResourcesManager& scene) = 0;
   virtual void deinit() = 0;
   virtual void onResize(const WindowSize& size) = 0;
   virtual void reload() = 0;
-  [[nodiscard]] virtual bool update(const SceneResourcesManager& scene) = 0;
+  [[nodiscard]] virtual bool update(const scene::SceneResourcesManager& scene) = 0;
   virtual void reset() { m_frameIndex = 0; };
 
   // -------------------------------------------------------------------------

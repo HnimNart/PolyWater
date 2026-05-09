@@ -22,11 +22,11 @@
 #include <glm/glm.hpp>
 #include <shaders/shared/tonemapper_io.h.slang>
 
-namespace core
+namespace app
 {
 
 // Displays ImGui UI for shaderio::TonemapperData properties.
 // Returns whether any fields changed.
 bool tonemapperWidget(shaderio::TonemapperData& tonemapper);
 
-}  // namespace core
+}  // namespace app

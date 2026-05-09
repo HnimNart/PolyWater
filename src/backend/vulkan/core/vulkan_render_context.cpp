@@ -6,6 +6,9 @@
 #include "nvvk/check_error.hpp"
 #include "translator.hpp"
 
+namespace vkb
+{
+
 /**********************************************************/
 VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
 /**********************************************************/
@@ -128,3 +131,5 @@ void VulkanRenderContext::submitBarriers(
 
   vkCmdPipelineBarrier2(cmdBuffer, &depInfo);
 }
+
+}  // namespace vkb

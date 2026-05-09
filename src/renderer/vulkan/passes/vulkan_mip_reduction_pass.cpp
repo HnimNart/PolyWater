@@ -10,6 +10,10 @@
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "core/timers.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanMipReductionPass::VulkanMipReductionPass(
     VulkanContextManager* contextManager, nvvk::Image* texture) :
@@ -271,3 +275,5 @@ void VulkanMipReductionPass::transitionImage(VkCommandBuffer cmd, VkImage image,
   dep.pImageMemoryBarriers = &barrier;
   vkCmdPipelineBarrier2(cmd, &dep);
 }
+
+}  // namespace vkb

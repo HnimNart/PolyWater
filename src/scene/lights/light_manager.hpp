@@ -9,6 +9,10 @@
 #include "scene/scene.hpp"
 #include "shaders/shared/structs.h"
 
+
+namespace scene
+{
+
 struct EnvmapInfo
 {
   std::string filename;
@@ -62,3 +66,5 @@ private:
   EnvmapInfo m_envmapInfo;
   std::string m_currentEnvFilename{};
 };
+
+}  // namespace scene

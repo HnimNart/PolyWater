@@ -16,6 +16,9 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
+namespace vkb
+{
+
 class VulkanToneMapPass final : public IToneMapper, public IRenderPass
 {
 public:
@@ -71,3 +74,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

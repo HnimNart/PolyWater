@@ -16,6 +16,10 @@ void printVec(const std::string& label, const glm::vec3& v)
 }
 }  // namespace
 
+
+namespace scene
+{
+
 /**********************************************************/
 void SceneData::clear()
 /**********************************************************/
@@ -103,3 +107,5 @@ void SceneData::dump() const
 
   std::cout << "===================================================\n\n";
 }
+
+}  // namespace scene

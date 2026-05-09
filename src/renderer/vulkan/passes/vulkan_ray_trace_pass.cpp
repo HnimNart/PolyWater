@@ -16,6 +16,10 @@
 #include "nvvk/gbuffers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanRayTracePass::VulkanRayTracePass(VulkanContextManager* contextManager,
                                        const nvvk::DescriptorPack& descPack,
@@ -358,3 +362,5 @@ void VulkanRayTracePass::execute(IRenderContext& ctx)
     m_gpuTimer->cmdFrameEndSection(cmd, _profId);
 #endif
 }
+
+}  // namespace vkb

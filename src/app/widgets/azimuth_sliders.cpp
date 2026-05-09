@@ -54,7 +54,7 @@ bool AzimuthSliders::render(glm::vec3& direction, bool negative, bool yIsUp)
     elevation = glm::degrees(asin(normalized_dir.z));
   }
 
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   bool changed = false;
   changed |= PE::SliderScalar("Azimuth", ImGuiDataType_Double, &azimuth,
                               &min_azimuth, &max_azimuth, "%.1f deg",

@@ -7,15 +7,15 @@
 #include "math.hpp"
 
 // -----------------------------------------------------------------------
-// math::toQuat / math::fromQuat – round-trip identity
+// core::toQuat / core::fromQuat – round-trip identity
 // -----------------------------------------------------------------------
 
 TEST(MathToQuat, IdentityRoundTrip)
 {
   // Identity quaternion stored as (x,y,z,w)
   glm::vec4 raw(0.0f, 0.0f, 0.0f, 1.0f);
-  glm::quat q = math::toQuat(raw);
-  glm::vec4 back = math::fromQuat(q);
+  glm::quat q = core::toQuat(raw);
+  glm::vec4 back = core::fromQuat(q);
 
   EXPECT_NEAR(back.x, raw.x, 1e-5f);
   EXPECT_NEAR(back.y, raw.y, 1e-5f);
@@ -28,8 +28,8 @@ TEST(MathToQuat, ArbitraryQuatRoundTrip)
   // 90-degree rotation around Z axis: quat = (0, 0, sin45, cos45)
   const float s = 0.7071067812f;
   glm::vec4 raw(0.0f, 0.0f, s, s);
-  glm::quat q = math::toQuat(raw);
-  glm::vec4 back = math::fromQuat(q);
+  glm::quat q = core::toQuat(raw);
+  glm::vec4 back = core::fromQuat(q);
 
   EXPECT_NEAR(back.x, raw.x, 1e-5f);
   EXPECT_NEAR(back.y, raw.y, 1e-5f);
@@ -38,12 +38,12 @@ TEST(MathToQuat, ArbitraryQuatRoundTrip)
 }
 
 // -----------------------------------------------------------------------
-// math::eulerToQuat – sanity check via expected rotation
+// core::eulerToQuat – sanity check via expected rotation
 // -----------------------------------------------------------------------
 
 TEST(MathEulerToQuat, ZeroEulerIsIdentity)
 {
-  glm::vec4 q = math::eulerToQuat(glm::vec3(0.0f, 0.0f, 0.0f));
+  glm::vec4 q = core::eulerToQuat(glm::vec3(0.0f, 0.0f, 0.0f));
   // identity quat: (x,y,z,w) = (0,0,0,1)
   EXPECT_NEAR(q.x, 0.0f, 1e-5f);
   EXPECT_NEAR(q.y, 0.0f, 1e-5f);
@@ -53,7 +53,7 @@ TEST(MathEulerToQuat, ZeroEulerIsIdentity)
 
 TEST(MathEulerToQuat, NinetyDegreesAroundY)
 {
-  glm::vec4 q = math::eulerToQuat(glm::vec3(0.0f, 90.0f, 0.0f));
+  glm::vec4 q = core::eulerToQuat(glm::vec3(0.0f, 90.0f, 0.0f));
   // 90° around Y: quat = (0, sin45, 0, cos45)
   const float s = 0.7071067812f;
   EXPECT_NEAR(q.x, 0.0f, 1e-5f);
@@ -63,14 +63,13 @@ TEST(MathEulerToQuat, NinetyDegreesAroundY)
 }
 
 // -----------------------------------------------------------------------
-// math::composeTransform – translation, rotation, scale
+// core::composeTransform – translation, rotation, scale
 // -----------------------------------------------------------------------
 
 TEST(MathComposeTransform, IdentityTransform)
 {
   glm::vec4 rot(0.0f, 0.0f, 0.0f, 1.0f);  // identity quat (x,y,z,w)
-  glm::mat4 m =
-      math::composeTransform(glm::vec3(0.0f), rot, glm::vec3(1.0f));
+  glm::mat4 m = core::composeTransform(glm::vec3(0.0f), rot, glm::vec3(1.0f));
 
   // Should be identity matrix
   glm::mat4 identity(1.0f);
@@ -84,7 +83,7 @@ TEST(MathComposeTransform, PureTranslation)
 {
   glm::vec3 t(3.0f, -1.0f, 7.0f);
   glm::vec4 rot(0.0f, 0.0f, 0.0f, 1.0f);
-  glm::mat4 m = math::composeTransform(t, rot, glm::vec3(1.0f));
+  glm::mat4 m = core::composeTransform(t, rot, glm::vec3(1.0f));
 
   glm::vec4 p = m * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
   EXPECT_NEAR(p.x, t.x, 1e-5f);
@@ -96,7 +95,7 @@ TEST(MathComposeTransform, PureScale)
 {
   glm::vec4 rot(0.0f, 0.0f, 0.0f, 1.0f);
   glm::vec3 scale(2.0f, 3.0f, 4.0f);
-  glm::mat4 m = math::composeTransform(glm::vec3(0.0f), rot, scale);
+  glm::mat4 m = core::composeTransform(glm::vec3(0.0f), rot, scale);
 
   glm::vec4 p = m * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
   EXPECT_NEAR(p.x, 2.0f, 1e-5f);
@@ -105,12 +104,12 @@ TEST(MathComposeTransform, PureScale)
 }
 
 // -----------------------------------------------------------------------
-// math::rayAABBIntersection
+// core::rayAABBIntersection
 // -----------------------------------------------------------------------
 
 TEST(RayAABBIntersection, HitsBox)
 {
-  math::Ray ray;
+  core::Ray ray;
   ray.origin = glm::vec3(0.0f, 0.0f, -5.0f);
   ray.direction = glm::vec3(0.0f, 0.0f, 1.0f);
 
@@ -118,7 +117,7 @@ TEST(RayAABBIntersection, HitsBox)
   glm::vec3 boxMax(1.0f, 1.0f, 2.0f);
 
   float t = 0.0f;
-  bool hit = math::rayAABBIntersection(ray, boxMin, boxMax, t);
+  bool hit = core::rayAABBIntersection(ray, boxMin, boxMax, t);
 
   EXPECT_TRUE(hit);
   EXPECT_NEAR(t, 5.0f, 1e-4f);
@@ -126,7 +125,7 @@ TEST(RayAABBIntersection, HitsBox)
 
 TEST(RayAABBIntersection, MissesBox)
 {
-  math::Ray ray;
+  core::Ray ray;
   ray.origin = glm::vec3(5.0f, 0.0f, -5.0f);
   ray.direction = glm::vec3(0.0f, 0.0f, 1.0f);
 
@@ -134,14 +133,14 @@ TEST(RayAABBIntersection, MissesBox)
   glm::vec3 boxMax(1.0f, 1.0f, 2.0f);
 
   float t = 0.0f;
-  bool hit = math::rayAABBIntersection(ray, boxMin, boxMax, t);
+  bool hit = core::rayAABBIntersection(ray, boxMin, boxMax, t);
 
   EXPECT_FALSE(hit);
 }
 
 TEST(RayAABBIntersection, RayOriginInsideBox)
 {
-  math::Ray ray;
+  core::Ray ray;
   ray.origin = glm::vec3(0.0f, 0.0f, 0.0f);  // clearly inside [-1,1]^3
   ray.direction = glm::vec3(1.0f, 0.0f, 0.0f);
 
@@ -149,7 +148,7 @@ TEST(RayAABBIntersection, RayOriginInsideBox)
   glm::vec3 boxMax(1.0f, 1.0f, 1.0f);
 
   float t = 0.0f;
-  bool hit = math::rayAABBIntersection(ray, boxMin, boxMax, t);
+  bool hit = core::rayAABBIntersection(ray, boxMin, boxMax, t);
 
   // tmin is negative (entry behind origin), tmax positive → hit; t = tmin < 0
   EXPECT_TRUE(hit);
@@ -158,7 +157,7 @@ TEST(RayAABBIntersection, RayOriginInsideBox)
 
 TEST(RayAABBIntersection, RayBehindBox)
 {
-  math::Ray ray;
+  core::Ray ray;
   ray.origin = glm::vec3(0.0f, 0.0f, 10.0f);
   ray.direction = glm::vec3(0.0f, 0.0f, 1.0f);  // pointing away
 
@@ -166,7 +165,7 @@ TEST(RayAABBIntersection, RayBehindBox)
   glm::vec3 boxMax(1.0f, 1.0f, 2.0f);
 
   float t = 0.0f;
-  bool hit = math::rayAABBIntersection(ray, boxMin, boxMax, t);
+  bool hit = core::rayAABBIntersection(ray, boxMin, boxMax, t);
 
   EXPECT_FALSE(hit);
 }

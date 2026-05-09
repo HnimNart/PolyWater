@@ -13,7 +13,7 @@ namespace app
 class LightEditor
 {
 public:
-  LightChangedBitMask render(SceneResourcesManager&             resources,
+  LightChangedBitMask render(scene::SceneResourcesManager&             resources,
                              const std::shared_ptr<IDeviceAssets>& deviceResources);
 
 private:

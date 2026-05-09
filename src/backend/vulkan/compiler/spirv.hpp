@@ -29,7 +29,7 @@ Utilities for working with SPIR-V data.
 #include <filesystem>
 #include <span>
 
-namespace core
+namespace vkb
 {
 
 // Hash the SPIR-V code
@@ -48,4 +48,4 @@ void dumpSpirv(const std::filesystem::path& filename, const uint32_t* spirvData,
 void dumpSpirvWithHashedName(const std::filesystem::path& sourceFile,
                              const uint32_t* spirvData, size_t spirvSize);
 
-}  // namespace core
+}  // namespace vkb

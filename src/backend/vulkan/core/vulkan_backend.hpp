@@ -14,6 +14,9 @@
 #include "app/gui_system_interface.hpp"
 #include "nvvk/queue.hpp"
 
+namespace vkb
+{
+
 class VulkanImGuiSystem;
 
 class VulkanBackend final : public IRenderBackend
@@ -71,3 +74,4 @@ private:
   nvvk::ProfilerGpuTimer m_gpuTimer;
 #endif
 };
+}  // namespace vkb

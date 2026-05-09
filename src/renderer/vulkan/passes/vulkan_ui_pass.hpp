@@ -18,6 +18,9 @@
  * Consumes the ToneMapped HDR/SDR result and renders the UI (ImGui)
  * directly onto the Swapchain image.
  */
+namespace vkb
+{
+
 class VulkanUIPass final : public IRenderPass
 {
 public:
@@ -46,3 +49,4 @@ private:
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif
 };
+}  // namespace vkb

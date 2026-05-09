@@ -8,6 +8,10 @@
 
 #include "scene_data.hpp"
 
+
+namespace scene
+{
+
 class SceneLoader
 {
 public:
@@ -46,3 +50,5 @@ private:
   MaterialType parseHitGroup(const std::string& type);
   shaderio::LightType parseLightType(const std::string& type);
 };
+
+}  // namespace scene

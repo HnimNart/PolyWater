@@ -8,6 +8,10 @@
 
 // Forward declaration of the Objective-C++ implementation struct.
 // Defined in MetalContextManager.mm.
+
+namespace mtl
+{
+
 struct MetalContextManagerData;
 
 //------------------------------------------------------------
@@ -32,5 +36,7 @@ public:
 private:
   std::unique_ptr<MetalContextManagerData> m_data;
 };
+
+}  // namespace mtl
 
 #endif // __APPLE__

@@ -13,8 +13,12 @@
 #include "app/app_info.hpp"
 #include "app/gui_system_interface.hpp"
 
-class MetalContextManager;
 struct GLFWwindow;
+
+namespace mtl
+{
+
+class MetalContextManager;
 
 //------------------------------------------------------------
 // MetalImGuiSystem
@@ -96,5 +100,7 @@ private:
   std::string                    m_iniFilename;
   std::function<void(ImGuiID)>   m_dockSetup;
 };
+
+}  // namespace mtl
 
 #endif // __APPLE__

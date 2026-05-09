@@ -28,6 +28,10 @@ enum LightChangedBitMask
   All = (EnvmapChanged | AreaLightChanged | PunctualLightChanged)
 };
 
+
+namespace scene
+{
+
 class SceneResourcesManager
 {
 public:
@@ -208,3 +212,5 @@ private:
   uint m_pendingMeshes{0};
   core::Image m_envmapImage{};
 };
+
+}  // namespace scene

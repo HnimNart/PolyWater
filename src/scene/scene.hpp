@@ -6,6 +6,10 @@
 
 #include "shaders/shared/structs.h"
 
+
+namespace scene
+{
+
 struct Scene
 {
   std::vector<std::vector<uint8_t>> meshData{};
@@ -73,3 +77,5 @@ inline glm::uvec3 getTriangleIndices(const shaderio::MeshPrimitive& mesh,
     }
   }
 }
+
+}  // namespace scene

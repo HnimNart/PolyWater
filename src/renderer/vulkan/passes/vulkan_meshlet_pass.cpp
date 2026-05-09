@@ -21,6 +21,10 @@
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "renderer/vulkan/vulkan_scene_asset_manager.hpp"
 
+
+namespace vkb
+{
+
 /**********************************************************/
 VulkanMeshletPass::VulkanMeshletPass(VulkanContextManager* contextManager,
                                      const nvvk::DescriptorPack& descPack,
@@ -125,7 +129,7 @@ void VulkanMeshletPass::execute(IRenderContext& ctx)
   const nvvk::GBuffer* gBuffers = vkCtx.gBuffers;
 
   shaderio::PushConstant constants = vkCtx.pushValues;
-  const Scene* sceneResources = vkCtx.sceneResources;
+  const scene::Scene* sceneResources = vkCtx.sceneResources;
   const shaderio::SceneInfo& scene_info = sceneResources->sceneInfo;
   const VkExtent2D& size = gBuffers->getSize();
   const shaderio::RasterParams& rasterParams = constants.rasterParams;
@@ -437,3 +441,5 @@ void VulkanMeshletPass::compileShaders()
   NVVK_CHECK(vkCreateShadersEXT(m_context_manager->getDevice(), 1U, &shaderInfo,
                                 nullptr, &m_fragmentShader));
 }
+
+}  // namespace vkb

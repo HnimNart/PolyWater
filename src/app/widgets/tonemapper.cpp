@@ -24,9 +24,9 @@
 
 #include <app/widgets/property_editor.hpp>
 
-namespace core
+namespace app
 {
-namespace PE = app::PropertyEditor;
+namespace PE = app;
 
 /**********************************************************/
 bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
@@ -174,4 +174,4 @@ bool tonemapperWidget(shaderio::TonemapperData& tonemapper)
   return changed;
 }
 
-}  // namespace core
+}  // namespace app

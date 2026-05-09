@@ -16,14 +16,6 @@
 #include "core/camera.hpp"
 #include "scene/scene_manager.hpp"
 
-// Forward declarations to reduce compile time
-namespace core
-{
-class Application;
-}  // namespace core
-
-class VulkanRenderer;
-
 class VulkanRendererElement : public app::IAppElement
 {
 public:
@@ -34,7 +26,7 @@ public:
   ~VulkanRendererElement() override = default;
 
   // -------------------------------------------------------------------------
-  // 1. Lifecycle & Event Hooks
+  // Lifecycle & Event Hooks
   // -------------------------------------------------------------------------
   void onAttach(app::Application* app) override;
   void onDetach() override;
@@ -44,7 +36,7 @@ public:
   void onFileSelected(const std::filesystem::path& filename);
 
   // -------------------------------------------------------------------------
-  // 2. Main Render Loop Steps
+  // Main Render Loop Steps
   // -------------------------------------------------------------------------
   void onPreRender() override;
   void onRender(const IRenderContext& ctx) override;
@@ -52,7 +44,7 @@ public:
   void onLastHeadlessFrame() override;
 
   // -------------------------------------------------------------------------
-  // 3. User Interface & Editor
+  // User Interface & Editor
   // -------------------------------------------------------------------------
   void onUIMenu() override;
   void onUIRender() override;
@@ -61,11 +53,11 @@ public:
   void onGeometryPicked(InstanceID id);
 
   // -------------------------------------------------------------------------
-  // 4. Accessors
+  // Accessors
   // -------------------------------------------------------------------------
   CameraPtr getCameraManipulator() const;
   IRenderer* getRenderer() const;
-  const SceneManager& getSceneManager() const;
+  const scene::SceneManager& getSceneManager() const;
 
   //
 
@@ -83,15 +75,15 @@ private:
   void clear();
   void loadScene(const std::filesystem::path& filename);
   void processPendingResources();
-  void processPendingTexture(SceneResourcesManager& resourceMgr);
+  void processPendingTexture(scene::SceneResourcesManager& resourceMgr);
 
   // -------------------------------------------------------------------------
   // Members
   // -------------------------------------------------------------------------
   // Core components
   app::Application* m_app = nullptr;
-  std::unique_ptr<VulkanRenderer> m_renderer = nullptr;
-  SceneManager m_sceneManager{};
+  std::unique_ptr<vkb::VulkanRenderer> m_renderer = nullptr;
+  scene::SceneManager m_sceneManager{};
 
   std::shared_ptr<app::GeometryPickerElement> m_geometryPicker = nullptr;
 

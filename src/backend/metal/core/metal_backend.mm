@@ -14,6 +14,10 @@
 #import "backend/metal/gui/metal_imgui_system.hpp"
 #import "core/profiler.hpp"
 
+
+namespace mtl
+{
+
 // Objective-C++ implementation struct (hidden from C++ consumers).
 struct MetalBackendData {
   CAMetalLayer                *metalLayer            = nil;
@@ -262,5 +266,8 @@ RenderRegistry &MetalBackend::getRegistry()
 {
   return m_renderRegistry;
 }
+
+
+}  // namespace mtl
 
 #endif // __APPLE__

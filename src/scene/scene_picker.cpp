@@ -12,6 +12,10 @@
 #include <bvh/v2/stack.h>
 #include <bvh/v2/tri.h>
 
+
+namespace scene
+{
+
 // Type aliases for implementation convenience
 using Scalar = InstanceAccelerator::Scalar;
 using Vec3 = InstanceAccelerator::Vec3;
@@ -142,7 +146,7 @@ std::optional<RayHit> InstanceAccelerator::intersect(const glm::vec3& origin,
   bvh::v2::SmallStack<Bvh::Index, StackSize> tlasStack;
   bvh::v2::SmallStack<Bvh::Index, StackSize> blasStack;
 
-  // 1. Traverse TLAS (Instances)
+  // Traverse TLAS (Instances)
   m_tlas.intersect<false, true>(
       ray, m_tlas.get_root().index, tlasStack,
       [&](size_t begin, size_t end)
@@ -170,7 +174,7 @@ std::optional<RayHit> InstanceAccelerator::intersect(const glm::vec3& origin,
           Ray localRay(Vec3(localOrg.x, localOrg.y, localOrg.z),
                        Vec3(localDir.x, localDir.y, localDir.z), tmin, tmax);
 
-          // 2. Traverse BLAS (Triangles)
+          // Traverse BLAS (Triangles)
           blas.intersect<false, true>(
               localRay, blas.get_root().index, blasStack,
               [&](size_t bBegin, size_t bEnd)
@@ -227,3 +231,5 @@ std::optional<RayHit> InstanceAccelerator::intersect(const glm::vec3& origin,
     return bestHit;
   return std::nullopt;
 }
+
+}  // namespace scene

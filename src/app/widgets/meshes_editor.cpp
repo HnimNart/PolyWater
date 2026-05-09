@@ -12,10 +12,10 @@ namespace app
 {
 
 /**********************************************************/
-bool MeshEditor::render(SceneResourcesManager& resources)
+bool MeshEditor::render(scene::SceneResourcesManager& resources)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   auto& meshes = resources.getMeshes();
   const auto& meshMap = resources.meshMap();
 

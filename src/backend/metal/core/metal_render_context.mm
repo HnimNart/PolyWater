@@ -5,6 +5,10 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
+
+namespace mtl
+{
+
 // Objective-C++ implementation struct (hidden from C++ consumers).
 struct MetalRenderContextData {
   id<MTLCommandBuffer>          commandBuffer          = nil;
@@ -77,5 +81,8 @@ void *MetalRenderContext::getDrawableHandle() const
 {
   return (__bridge void *)m_data->drawable;
 }
+
+
+}  // namespace mtl
 
 #endif // __APPLE__

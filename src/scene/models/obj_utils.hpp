@@ -10,7 +10,7 @@
 #include "core/shape/primitives.hpp"
 #include "shaders/shared/structs.h"
 
-namespace obj
+namespace scene
 {
 
 struct ObjMaterial
@@ -47,4 +47,4 @@ shaderio::BoundingBox computeMeshBounds(const core::PrimitiveMesh& mesh);
 
 std::vector<uint8_t> packMeshToBuffer(const core::PrimitiveMesh& meshData);
 
-}  // namespace obj
+}  // namespace scene

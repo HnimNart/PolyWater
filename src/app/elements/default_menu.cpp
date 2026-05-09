@@ -56,7 +56,7 @@ void app::ElementDefaultMenu::onUIMenu()
     if (ImGui::MenuItem(ICON_MS_FOLDER_OPEN " Open File", "Ctrl+O"))
     {
       file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
-                                  common::getSceneDir()[0]);
+                                  core::getSceneDir()[0]);
     }
     ImGui::EndMenu();
   }
@@ -83,7 +83,7 @@ void app::ElementDefaultMenu::onUIMenu()
   if (ImGui::IsKeyPressed(ImGuiKey_O) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
   {
     file = windowOpenFileDialog(m_app->getWindowHandle(), "Open File", "*",
-                                common::getSceneDir()[0]);
+                                core::getSceneDir()[0]);
   }
 
   if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&

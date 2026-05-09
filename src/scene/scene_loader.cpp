@@ -11,6 +11,12 @@
 #include "core/string_utils.hpp"
 #include "core/timers.hpp"
 #include "scene_data.hpp"
+#include <stdexcept>
+#include <string>
+
+namespace scene
+{
+
 
 // Helper macro for cleaner JSON lookups with default values
 #define JSON_VAL(jsonObj, key, defaultVal)                                     \
@@ -46,25 +52,25 @@ bool SceneLoader::load(const std::string& filepath, SceneData& outScene)
     json j;
     file >> j;
 
-    // 1. Assets (Populates meshMap and texMap)
+    // Assets (Populates meshMap and texMap)
     if (j.contains("assets"))
     {
       parseAssets(j["assets"], outScene);
     }
 
-    // 2. Materials (Uses texMap, populates matMap)
+    // Materials (Uses texMap, populates matMap)
     if (j.contains("materials"))
     {
       parseMaterials(j["materials"], outScene);
     }
 
-    // 3. Instances (Uses meshMap and matMap)
+    // Instances (Uses meshMap and matMap)
     if (j.contains("instances"))
     {
       parseInstances(j["instances"], outScene);
     }
 
-    // 4. Global Scene Info
+    // Global Scene Info
     if (j.contains("sceneInfo"))
     {
       parseSceneInfo(j["sceneInfo"], outScene);
@@ -84,7 +90,7 @@ bool SceneLoader::load(const std::string& filepath, SceneData& outScene)
 void SceneLoader::parseAssets(const json& j, SceneData& scene)
 /**********************************************************/
 {
-  // 1. Meshes
+  // Meshes
   if (j.contains("meshes"))
   {
     for (auto& [key, val] : j["meshes"].items())
@@ -94,7 +100,7 @@ void SceneLoader::parseAssets(const json& j, SceneData& scene)
     }
   }
 
-  // 2. Textures
+  // Textures
   if (j.contains("textures"))
   {
     for (auto& [key, val] : j["textures"].items())
@@ -269,8 +275,6 @@ glm::vec2 SceneLoader::parseVec2(const json& j, const glm::vec2& defaultValue)
   return defaultValue;
 }
 
-#include <stdexcept>
-#include <string>
 
 /**********************************************************/
 MaterialType SceneLoader::parseHitGroup(const std::string& type)
@@ -307,3 +311,5 @@ shaderio::LightType SceneLoader::parseLightType(const std::string& type)
 
   throw std::runtime_error("[SceneLoader] Unknown light type: " + type);
 }
+
+}  // namespace scene

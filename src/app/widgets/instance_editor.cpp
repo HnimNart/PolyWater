@@ -16,11 +16,11 @@ namespace app
 
 /**********************************************************/
 bool InstanceEditor::render(
-    SceneResourcesManager& resources,
+    scene::SceneResourcesManager& resources,
     const std::map<MaterialType, MaterialEntry>& shaderRegistry)
 /**********************************************************/
 {
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
   auto& instances = resources.getInstances();
   const auto& materials = resources.getMaterials();
   const auto& instanceMap = resources.instanceMap();
@@ -51,7 +51,7 @@ bool InstanceEditor::render(
     if (ImGui::Button("+ Add"))
     {
       shaderio::Instance newInst;
-      newInst.transform = math::composeTransform(
+      newInst.transform = core::composeTransform(
           newInst.translation, newInst.rotation, newInst.scale);
       newInst.materialIndex = 0;
       newInst.meshIndex = 0;
@@ -146,7 +146,7 @@ bool InstanceEditor::render(
           changed = true;
         }
 
-        glm::quat rotation = math::toQuat(glm::vec4(inst.rotation));
+        glm::quat rotation = core::toQuat(glm::vec4(inst.rotation));
         glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(rotation));
 
         bool tChanged =
@@ -159,8 +159,8 @@ bool InstanceEditor::render(
         if (tChanged || rChanged || sChanged)
         {
           glm::quat quat = glm::quat(glm::radians(rotationEuler));
-          inst.rotation = math::fromQuat(quat);
-          inst.transform = math::composeTransform(inst.translation,
+          inst.rotation = core::fromQuat(quat);
+          inst.transform = core::composeTransform(inst.translation,
                                                   inst.rotation, inst.scale);
           changed = true;
         }

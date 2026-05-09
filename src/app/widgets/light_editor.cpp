@@ -16,12 +16,12 @@ namespace app
 
 /**********************************************************/
 LightChangedBitMask
-LightEditor::render(SceneResourcesManager& resources,
+LightEditor::render(scene::SceneResourcesManager& resources,
                     const std::shared_ptr<IDeviceAssets>& deviceResources)
 /**********************************************************/
 {
   shaderio::SceneInfo& sceneInfo = resources.sceneInfo();
-  namespace PE = app::PropertyEditor;
+  namespace PE = app;
 
   // Initialize as None (0)
   uint32_t mask = LightChangedBitMask::NoneChanged;
