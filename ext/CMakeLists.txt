@@ -41,13 +41,11 @@ endif()
 # volk
 find_package(VulkanExtra REQUIRED)
 if(NOT TARGET volk)
-  if(Vulkan_VOLK_DIR)
-    set(VOLK_DIR ${Vulkan_VOLK_DIR})
-    message(STATUS "Using Vulkan::volk target from Vulkan package")
-  else()
-    set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
-    message(STATUS "Using fallback volk version")
+  if(NOT Vulkan_VOLK_DIR)
+    message(FATAL_ERROR "Vulkan SDK volk not found. Please install the Vulkan SDK into ext/vulkansdk (run scripts/install-vulkansdk.sh).")
   endif()
+  set(VOLK_DIR ${Vulkan_VOLK_DIR})
+  message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
   
   add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
   add_library(volk::volk ALIAS volk)
@@ -247,11 +245,14 @@ endif()
 
 
 # vma
-if(NOT TARGET vma AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vma)
-  set(VMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vma/include)
-  add_library(vma INTERFACE) # Removed the header from the source list for a cleaner INTERFACE lib
-  # The SYSTEM keyword tells the compiler to ignore warnings from these headers
-  target_include_directories(vma SYSTEM INTERFACE ${VMA_DIR})
+if(NOT TARGET vma)
+  if(NOT Vulkan_VMA_DIR)
+    message(FATAL_ERROR "Vulkan SDK VMA not found. Please install the Vulkan SDK into ext/vulkansdk (run scripts/install-vulkansdk.sh).")
+  endif()
+  add_library(vma INTERFACE)
+  # The VulkanSDK places vk_mem_alloc.h in include/vma/; expose that directory
+  # so consumers can #include <vk_mem_alloc.h> as before.
+  target_include_directories(vma SYSTEM INTERFACE ${Vulkan_VMA_DIR})
   set_property(TARGET vma PROPERTY FOLDER "ThirdParty")
 endif()
 

@@ -8,6 +8,11 @@ if(NOT Vulkan_VOLK_DIR)
   find_path(Vulkan_VOLK_DIR volk.h HINTS ${Vulkan_INCLUDE_DIRS}/volk)
 endif()
 
+# Vulkan - VMA (Vulkan Memory Allocator)
+if(NOT Vulkan_VMA_DIR)
+  find_path(Vulkan_VMA_DIR vk_mem_alloc.h HINTS ${Vulkan_INCLUDE_DIRS}/vma)
+endif()
+
 # Finds a library named NAME and sets Vulkan_NAME_LIBRARY and
 # Vulkan_NAME_DLL (converting the name to uppercase and hyphens to underscores).
 # Also sets up an IMPORTED SHARED library named ${NAME}.
@@ -65,10 +70,11 @@ if(Vulkan_FOUND)
   message(STATUS "  ShaderC Shared Library    : ${Vulkan_SHADERC_SHARED_DLL}")
   message(STATUS "  SPIRV-Tools Import Library: ${Vulkan_SPIRV_TOOLS_SHARED_LIBRARY}")
   message(STATUS "  SPIRV-Tools Shared Library: ${Vulkan_SPIRV_TOOLS_SHARED_DLL}")
-  if(Vulkan_VOLK_DIR)
-    message(STATUS "  Volk Directory        : ${Vulkan_VOLK_DIR}")
+  message(STATUS "  Volk Directory            : ${Vulkan_VOLK_DIR}")
+  if(Vulkan_VMA_DIR)
+    message(STATUS "  VMA Directory             : ${Vulkan_VMA_DIR}")
   else()
-    message(STATUS "  Volk Directory        : Using fallback")
+    message(STATUS "  VMA Directory             : Not found")
   endif()
 else()
 	message(FATAL_ERROR "Vulkan not found.")
