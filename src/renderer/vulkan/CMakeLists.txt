@@ -40,12 +40,6 @@ target_include_directories(${LIB_NAME}
         ${Slang_INCLUDE_DIR}
 )
 
-# Embed volk.c directly so that libvk_render.so is the single DSO that defines
-# the volk global function-pointer table. Other shared libraries (e.g.
-# libapp_lib.so) reference these symbols and resolve them from libvk_render.so
-# at runtime, avoiding a duplicate-table SIGSEGV and a separate libvolk.so.
-target_sources(${LIB_NAME} PRIVATE ${Vulkan_VOLK_DIR}/volk.c)
-
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces

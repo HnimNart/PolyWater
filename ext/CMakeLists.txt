@@ -48,13 +48,13 @@ if(NOT TARGET volk)
   message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
   
   # volk is an INTERFACE target: it provides only include directories and compile
-  # definitions. The actual volk.c implementation is compiled directly into
-  # libvk_render.so (see src/renderer/vulkan/CMakeLists.txt), making it the
-  # single DSO that owns the volk global function-pointer table. All other shared
-  # libraries that reference volk symbols (e.g. libapp_lib.so via imgui) resolve
-  # them from libvk_render.so at runtime via normal ELF dynamic linking.
-  # This avoids both the duplicate-table SIGSEGV (which occurs when volk.c is
-  # embedded into more than one DSO) and the need to ship a separate libvolk.so.
+  # definitions (VK_NO_PROTOTYPES + platform defines). The actual volk.c
+  # implementation is compiled into the application executable (new_world), which
+  # becomes the single canonical owner of the volk global function-pointer table.
+  # Shared libraries (libvk_render.so, libapp_lib.so) may have undefined volk
+  # references; these are resolved at runtime from the executable's exported
+  # symbols via ELF dynamic linking (-Wl,--export-dynamic on new_world).
+  # This avoids the duplicate-table SIGSEGV and the need for a separate libvolk.so.
   add_library(volk INTERFACE)
   add_library(volk::volk ALIAS volk)
   target_include_directories(volk INTERFACE ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
