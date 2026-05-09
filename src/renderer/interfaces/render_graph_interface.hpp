@@ -1,24 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "backend/interfaces/pass_builder.hpp"
 #include "backend/interfaces/render_context_interface.hpp"
 #include "backend/interfaces/rhi_definitions.hpp"
-
-class IRenderPass
-{
-public:
-  virtual ~IRenderPass() = default;
-  virtual void init() = 0;
-  virtual void setup(PassBuilder& builder) = 0;
-  virtual void execute(IRenderContext& ctx) = 0;
-  virtual void deinit() = 0;
-  virtual std::string_view name() const = 0;
-};
+#include "render_pass_interface.hpp"
 
 class RenderGraph
 {
