@@ -153,7 +153,7 @@ MeshletData buildMeshlets(const TempMesh& tm)
         &localVertices[m.vertexOffset], &localTriangles[m.triangleOffset],
         m.triangleCount, positions, vertex_count, tm.vertexStride);
 
-    // Assign to your GPUMeshlet struct
+    // Assign to GPUMeshlet struct
     m.center = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
     m.radius = bounds.radius;
     // Optional: For normal-based backface culling (Cone Culling)
@@ -172,14 +172,14 @@ MeshletData buildMeshlets(const TempMesh& tm)
 // --- Shared Packing Logic ---
 
 /**********************************************************/
-void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
+void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
                           const MeshletData& mData)
 /**********************************************************/
 {
   shaderio::MeshPrimitive prim = {};
   prim.bbox = calculateBBox(tm);
 
-  // We are storing standard 32-bit indices for the fallback/shadow pipeline
+  // Store standard 32-bit indices for the fallback/shadow pipeline
   prim.indexType = IndexType32;
 
   uint32_t vCount =
@@ -198,7 +198,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   };
 
   // ---------------------------------------------------------
-  // 1. Pack Interleaved Vertex Data (Shared)
+  // Pack Interleaved Vertex Data
   // ---------------------------------------------------------
   uint32_t currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   payload.rawBuffer.insert(payload.rawBuffer.end(), tm.vertexData.begin(),
@@ -250,7 +250,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 2. Pack Traditional Triangle Indices
+  // Pack Traditional Triangle Indices
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t iBytes = tm.indices.size() * sizeof(uint32_t);
@@ -266,7 +266,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 3. Pack Meshlet Structures (GPUMeshlet)
+  // Pack Meshlet Structures
   // ---------------------------------------------------------
   currentOffset =
       static_cast<uint32_t>(payload.rawBuffer.size());  // Fixed: was +=
@@ -326,7 +326,7 @@ void packUniversalPayload(OptimizedPayload& payload, const TempMesh& tm,
 }
 
 /**********************************************************/
-void packIntoPayload(OptimizedPayload& payload, const TempMesh& tm)
+void packIntoPayload(scene::OptimizedPayload& payload, const TempMesh& tm)
 /**********************************************************/
 {
   shaderio::MeshPrimitive prim = {};
@@ -471,7 +471,7 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
          colStride = 0, vertexCount = 0;
 
   if (!scene::getGltfAttribute<glm::vec3>(model, primitive, "POSITION", posPtr,
-                                         posStride, vertexCount))
+                                          posStride, vertexCount))
   {
     return;
   }
@@ -479,7 +479,7 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
   tm.hasNormals = scene::getGltfAttribute<glm::vec3>(
       model, primitive, "NORMAL", normPtr, normStride, vertexCount);
   tm.hasUVs = scene::getGltfAttribute<glm::vec2>(model, primitive, "TEXCOORD_0",
-                                                uvPtr, uvStride, vertexCount);
+                                                 uvPtr, uvStride, vertexCount);
   tm.hasTangents = scene::getGltfAttribute<glm::vec4>(
       model, primitive, "TANGENT", tanPtr, tanStride, vertexCount);
   tm.hasColors = scene::getGltfAttribute<glm::vec4>(
@@ -537,8 +537,6 @@ void extractAndOptimizePrimitive(const tinygltf::Model& model,
     }
   }
 }
-
-// --- Caching ---
 
 /**********************************************************/
 bool loadMeshCache(const std::filesystem::path& filepath, TempMesh& tm)
@@ -618,7 +616,6 @@ void saveMeshCache(const std::filesystem::path& filepath, const TempMesh& tm)
 }
 
 }  // namespace
-
 
 namespace scene
 {
@@ -704,10 +701,9 @@ OptimizedPayload processAndOptimizeGltf(const std::string& name,
 }
 
 /**********************************************************/
-OptimizedPayload
-processAndOptimizeObj(const std::string& name,
-                      const std::vector<ObjMesh>& loadedMeshes,
-                      const std::filesystem::path& cachePath)
+OptimizedPayload processAndOptimizeObj(const std::string& name,
+                                       const std::vector<ObjMesh>& loadedMeshes,
+                                       const std::filesystem::path& cachePath)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

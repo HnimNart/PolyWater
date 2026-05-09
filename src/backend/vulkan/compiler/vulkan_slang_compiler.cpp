@@ -89,7 +89,6 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
   SCOPED_TIMER(filename.string());
   std::string key = filename.string();
 
-  // --- 1. Check Cache First ---
   auto it = m_binaryCacheMap.find(key);
   if (useCache && it != m_binaryCacheMap.end())
   {
@@ -100,7 +99,6 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
     return shaderCode;
   }
 
-  // --- 2. Find and Compile if not cached ---
   std::filesystem::path shaderSource = core::findFile(filename, m_shaderDirs);
 
   if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource))
@@ -119,7 +117,6 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
     return shaderCode;
   }
 
-  // --- 3. Fallback logic ---
   if (!spirv.empty())
   {
     return getShaderModuleCreateInfo(spirv);
@@ -128,6 +125,7 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
   LOGE("Compilation failed for: %s", key.c_str());
   return {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 }
+}  // namespace vkb
 
 /**********************************************************/
 detail::VulkanSlangCompiler::VulkanSlangCompiler(bool enableGLSL)
@@ -363,5 +361,3 @@ void detail::VulkanSlangCompiler::createSession()
   };
   m_globalSession->createSession(desc, m_session.writeRef());
 }
-
-}  // namespace vkb

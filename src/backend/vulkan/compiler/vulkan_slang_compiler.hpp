@@ -1,23 +1,20 @@
 #pragma once
 
-// 1. Standard / System Headers first
+#include <shaders/shared/structs.h>
+#include <vulkan/vulkan_core.h>
+
 #include <deque>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
-// 2. External Library Headers
-#include <shaders/shared/structs.h>
-#include <vulkan/vulkan_core.h>
-
-// 3. Project-wide utilities (Logger MUST be outside detail namespace)
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
 
-// 4. The Slang Handshake (Keep the macro protection)
 #pragma push_macro("None")
 #pragma push_macro("Bool")
 #undef None
@@ -53,31 +50,18 @@ public:
   {
     m_options.push_back(option);
   }
-  void clearOptions()
-  {
-    m_options.clear();
-  }
-  std::vector<slang::CompilerOptionEntry>& options()
-  {
-    return m_options;
-  }
+  void clearOptions() { m_options.clear(); }
+  std::vector<slang::CompilerOptionEntry>& options() { return m_options; }
 
   void addTarget(const slang::TargetDesc& target)
   {
     m_targets.push_back(target);
   }
-  void clearTargets()
-  {
-    m_targets.clear();
-  }
-  std::vector<slang::TargetDesc>& targets()
-  {
-    return m_targets;
-  }
+  void clearTargets() { m_targets.clear(); }
+  std::vector<slang::TargetDesc>& targets() { return m_targets; }
 
   void addSearchPaths(const std::vector<std::filesystem::path>& searchPaths);
   void clearSearchPaths();
-  // This is const because modifiying the search paths requires extra work.
   const std::vector<std::filesystem::path>& searchPaths() const
   {
     return m_searchPaths;
@@ -87,14 +71,8 @@ public:
   {
     m_macros.push_back(macro);
   }
-  void clearMacros()
-  {
-    m_macros.clear();
-  }
-  std::vector<slang::PreprocessorMacroDesc>& macros()
-  {
-    return m_macros;
-  }
+  void clearMacros() { m_macros.clear(); }
+  std::vector<slang::PreprocessorMacroDesc>& macros() { return m_macros; }
 
   // Compile a file or source
   bool compileFile(const std::filesystem::path& filename);
@@ -118,7 +96,7 @@ public:
                          const uint32_t* spirvCode, size_t spirvSize)>
           callback)
   {
-    m_callback = callback;
+    m_callback = std::move(callback);
   }
 
   // Get the last diagnostic message (error or warning).
@@ -172,10 +150,7 @@ public:
                                    const std::span<const uint32_t>& spirv = {},
                                    bool useCache = true);
 
-  void clearCache()
-  {
-    m_binaryCacheMap.clear();
-  }
+  void clearCache() { m_binaryCacheMap.clear(); }
 
   // Delete Copy/Move to enforce Singleton uniqueness
   VulkanSlangCompiler(const VulkanSlangCompiler&) = delete;
@@ -205,4 +180,3 @@ private:
 };
 
 }  // namespace vkb
-
