@@ -47,7 +47,7 @@ if(NOT TARGET volk)
   set(VOLK_DIR ${Vulkan_VOLK_DIR})
   message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
   
-  add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
+  add_library(volk SHARED ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
   add_library(volk::volk ALIAS volk)
   target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
 
