@@ -47,36 +47,34 @@ if(NOT TARGET volk)
   set(VOLK_DIR ${Vulkan_VOLK_DIR})
   message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
   
-  # volk MUST be a SHARED library. If built as STATIC, the volk object file gets
-  # embedded into every shared library that links it (e.g. libvk_render.so and
-  # libapp_lib.so both pulling in volk via their own dependency chains). This
-  # gives the process two separate copies of the volk global function-pointer
-  # table. Depending on ELF DSO load order, volkInitialize() then initialises
-  # one copy while vkCreateInstance/vkCreateDevice etc. read the other
-  # (still-null) copy, causing a SIGSEGV at the first Vulkan call.
-  # As a SHARED library there is exactly one canonical table; all consumers link
-  # against libvolk.so dynamically, so volkInitialize() and every subsequent
-  # Vulkan call all see the same, properly-initialised table.
-  add_library(volk SHARED ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
+  # volk is an INTERFACE target: it provides only include directories and compile
+  # definitions. The actual volk.c implementation is compiled directly into
+  # libvk_render.so (see src/renderer/vulkan/CMakeLists.txt), making it the
+  # single DSO that owns the volk global function-pointer table. All other shared
+  # libraries that reference volk symbols (e.g. libapp_lib.so via imgui) resolve
+  # them from libvk_render.so at runtime via normal ELF dynamic linking.
+  # This avoids both the duplicate-table SIGSEGV (which occurs when volk.c is
+  # embedded into more than one DSO) and the need to ship a separate libvolk.so.
+  add_library(volk INTERFACE)
   add_library(volk::volk ALIAS volk)
-  target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
+  target_include_directories(volk INTERFACE ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
 
   # --- Platform Specific Configuration ---
   if(WIN32)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+    target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
   elseif(APPLE)
     # Apple uses Metal surfaces for Vulkan (via MoltenVK)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+    target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_METAL_EXT)
+    target_link_libraries(volk INTERFACE ${CMAKE_DL_LIBS})
   else()
     # Assume Linux/BSD (X11/XCB)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+    target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+    target_link_libraries(volk INTERFACE ${CMAKE_DL_LIBS})
   endif()
 
   # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
   # This is necessary because we are using volk to load Vulkan functions
-  target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
+  target_compile_definitions(volk INTERFACE VK_NO_PROTOTYPES)
 
   set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 endif()
