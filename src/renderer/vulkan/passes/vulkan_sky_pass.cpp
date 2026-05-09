@@ -10,7 +10,6 @@
 #include "_autogen/sky_simple.slang.h"
 #include "scene/scene.hpp"
 
-
 namespace vkb
 {
 

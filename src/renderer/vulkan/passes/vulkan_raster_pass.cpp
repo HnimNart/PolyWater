@@ -22,7 +22,6 @@
 #include "_autogen/gltf_fragment.slang.h"
 #include "_autogen/gltf_raster.slang.h"
 
-
 namespace vkb
 {
 

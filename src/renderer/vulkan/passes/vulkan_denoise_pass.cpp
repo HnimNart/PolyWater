@@ -7,7 +7,6 @@
 #include "nvvk/check_error.hpp"
 #include "nvvk/debug_util.hpp"
 
-
 namespace vkb
 {
 

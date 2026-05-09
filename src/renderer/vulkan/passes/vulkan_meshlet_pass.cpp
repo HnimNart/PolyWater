@@ -21,7 +21,6 @@
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "renderer/vulkan/vulkan_scene_asset_manager.hpp"
 
-
 namespace vkb
 {
 

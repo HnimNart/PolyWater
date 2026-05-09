@@ -29,7 +29,7 @@ VkImage VulkanRenderContext::getResourceImage(RenderOutput resource) const
       return this->swapchainImage;
 
     default:
-      // Log warning: "Unknown RenderOutput resource requested"
+      LOGD("Unknown RenderOutput resource requested");
       return VK_NULL_HANDLE;
   }
 }

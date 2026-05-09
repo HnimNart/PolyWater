@@ -10,7 +10,6 @@
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 #include "core/timers.hpp"
 
-
 namespace vkb
 {
 

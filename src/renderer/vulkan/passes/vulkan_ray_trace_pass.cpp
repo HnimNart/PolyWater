@@ -16,7 +16,6 @@
 #include "nvvk/gbuffers.hpp"
 #include "renderer/interfaces/renderer_interface.hpp"
 
-
 namespace vkb
 {
 

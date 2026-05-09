@@ -4,7 +4,6 @@
 
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 
-
 namespace vkb
 {
 

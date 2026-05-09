@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 
 #include <fstream>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
 
 #include <nlohmann/json.hpp>
@@ -11,12 +13,9 @@
 #include "core/string_utils.hpp"
 #include "core/timers.hpp"
 #include "scene_data.hpp"
-#include <stdexcept>
-#include <string>
 
 namespace scene
 {
-
 
 // Helper macro for cleaner JSON lookups with default values
 #define JSON_VAL(jsonObj, key, defaultVal)                                     \
@@ -274,7 +273,6 @@ glm::vec2 SceneLoader::parseVec2(const json& j, const glm::vec2& defaultValue)
   }
   return defaultValue;
 }
-
 
 /**********************************************************/
 MaterialType SceneLoader::parseHitGroup(const std::string& type)

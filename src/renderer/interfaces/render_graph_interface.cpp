@@ -130,16 +130,11 @@ void RenderGraph::execute(IRenderContext& ctx) const
 {
   for (size_t i = 0; i < m_passes.size(); ++i)
   {
-    // Open the command buffer dedicated to this pass.
     ctx.activatePass(m_passCmdIndex[i]);
-
-    // Submit Barriers (The Context handles the API translation)
     if (!m_barriers[i].empty())
     {
       ctx.submitBarriers(m_barriers[i]);
     }
-
-    // Execute Pass
     m_passes[i]->execute(ctx);
   }
 

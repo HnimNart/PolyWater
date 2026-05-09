@@ -75,7 +75,6 @@ std::optional<std::string> findKeyByTextureId(
 
 }  // namespace
 
-
 namespace scene
 {
 

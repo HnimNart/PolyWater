@@ -44,8 +44,9 @@ void VulkanAccelerationStructures::init(VulkanContextManager* coreManager)
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::build(const scene::SceneResourcesManager& scene,
-                                         const ShaderManager& materialManager)
+void VulkanAccelerationStructures::build(
+    const scene::SceneResourcesManager& scene,
+    const ShaderManager& materialManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -57,8 +58,9 @@ void VulkanAccelerationStructures::build(const scene::SceneResourcesManager& sce
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::rebuild(const scene::SceneResourcesManager& scene,
-                                           const ShaderManager& materialManager)
+void VulkanAccelerationStructures::rebuild(
+    const scene::SceneResourcesManager& scene,
+    const ShaderManager& materialManager)
 /**********************************************************/
 {
   auto tlasInstances = buildTLAS(scene, materialManager);
@@ -74,7 +76,8 @@ void VulkanAccelerationStructures::deinit()
 }
 
 /**********************************************************/
-void VulkanAccelerationStructures::buildBLAS(const scene::SceneResourcesManager& scene)
+void VulkanAccelerationStructures::buildBLAS(
+    const scene::SceneResourcesManager& scene)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
@@ -95,8 +98,9 @@ void VulkanAccelerationStructures::buildBLAS(const scene::SceneResourcesManager&
 
 /**********************************************************/
 std::vector<VkAccelerationStructureInstanceKHR>
-VulkanAccelerationStructures::buildTLAS(const scene::SceneResourcesManager& scene,
-                                        const ShaderManager& shaderManager)
+VulkanAccelerationStructures::buildTLAS(
+    const scene::SceneResourcesManager& scene,
+    const ShaderManager& shaderManager)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

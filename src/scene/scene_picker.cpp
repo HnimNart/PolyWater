@@ -12,7 +12,6 @@
 #include <bvh/v2/stack.h>
 #include <bvh/v2/tri.h>
 
-
 namespace scene
 {
 

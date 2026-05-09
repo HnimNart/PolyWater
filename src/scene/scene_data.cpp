@@ -16,7 +16,6 @@ void printVec(const std::string& label, const glm::vec3& v)
 }
 }  // namespace
 
-
 namespace scene
 {
 

@@ -6,7 +6,6 @@
 #include "_autogen/tonemapper.slang.h"
 #include "backend/vulkan/core/vulkan_render_context.hpp"
 
-
 namespace vkb
 {
 

@@ -34,7 +34,6 @@ constexpr VkDeviceSize kBytesPerPixel = 4 * sizeof(float);
 
 }  // namespace
 
-
 namespace vkb
 {
 

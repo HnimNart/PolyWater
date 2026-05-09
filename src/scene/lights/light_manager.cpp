@@ -23,7 +23,6 @@ inline float getLuminance(const glm::vec3& color)
 }
 }  // namespace
 
-
 namespace scene
 {
 

@@ -9,7 +9,6 @@
 #include "renderer/interfaces/renderer_interface.hpp"
 #include "scene_data.hpp"
 
-
 namespace scene
 {
 

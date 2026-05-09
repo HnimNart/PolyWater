@@ -110,8 +110,7 @@ void end()
 bool Button(const char* label, const ImVec2& size, const std::string& tooltip)
 /**********************************************************/
 {
-  return entry(
-      label, [&] { return ImGui::Button("##hidden", size); }, tooltip);
+  return entry(label, [&] { return ImGui::Button("##hidden", size); }, tooltip);
 }
 /**********************************************************/
 bool SmallButton(const char* label, const std::string& tooltip)

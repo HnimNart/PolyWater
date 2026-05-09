@@ -37,8 +37,8 @@ std::size_t vkb::hashSpirv(const uint32_t* spirvData, size_t spirvSize)
 
 /**********************************************************/
 std::filesystem::path vkb::dumpSpirvName(const std::filesystem::path& filename,
-                                          const uint32_t* spirvData,
-                                          size_t spirvSize)
+                                         const uint32_t* spirvData,
+                                         size_t spirvSize)
 /**********************************************************/
 {
   return core::getExecutablePath().parent_path() /
@@ -48,7 +48,7 @@ std::filesystem::path vkb::dumpSpirvName(const std::filesystem::path& filename,
 
 /**********************************************************/
 void vkb::dumpSpirv(const std::filesystem::path& filename,
-                     const uint32_t* spirvData, size_t spirvSize)
+                    const uint32_t* spirvData, size_t spirvSize)
 /**********************************************************/
 {
   std::ofstream file(filename, std::ios::binary);
@@ -69,7 +69,7 @@ void vkb::dumpSpirv(const std::filesystem::path& filename,
 
 /**********************************************************/
 void vkb::dumpSpirvWithHashedName(const std::filesystem::path& sourceFile,
-                                   const uint32_t* spirvData, size_t spirvSize)
+                                  const uint32_t* spirvData, size_t spirvSize)
 /**********************************************************/
 {
   dumpSpirv(dumpSpirvName(sourceFile, spirvData, spirvSize), spirvData,

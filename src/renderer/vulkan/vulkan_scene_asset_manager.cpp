@@ -472,7 +472,8 @@ void VulkanSceneAssetManager::createDesctriptorLayout()
 }
 
 /**********************************************************/
-void VulkanSceneAssetManager::createSceneBuffers(const scene::Scene& sceneResource)
+void VulkanSceneAssetManager::createSceneBuffers(
+    const scene::Scene& sceneResource)
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();

@@ -71,7 +71,7 @@ PRINTI("{}", formatted);
 */
 
 #ifndef LOGGER_HPP
-#  define LOGGER_HPP
+#define LOGGER_HPP
 
 namespace core
 {
@@ -136,30 +136,30 @@ public:
 
   // Log a message
   void log(LogLevel level,
-#  ifdef _MSC_VER
+#ifdef _MSC_VER
            _Printf_format_string_  // Enable MSVC /analyze warnings about
                                    // incorrect format strings
-#  endif
+#endif
            const char* format,
            ...) noexcept
-#  if defined(__GNUC__)
+#if defined(__GNUC__)
       __attribute__((format(
           printf, 3,
           4)))  // Enable GCC + clang warnings about incorrect format strings
-#  endif
+#endif
       ;
 
   // Set whether to break on errors
   void breakOnError(bool enable) noexcept;
 
 private:
-#  ifdef DEBUG
+#ifdef DEBUG
   LogLevel m_minLogLevel =
       LogLevel::eDEBUG;  // Messages with levels lower than this are omitted
-#  else
+#else
   LogLevel m_minLogLevel =
       LogLevel::eSTATS;  // Messages with levels lower than this are omitted
-#  endif
+#endif
   std::ofstream m_logFile;   // Output file stream
   bool m_logToFile = true;   // Enable file output
   bool m_fileFlush = false;  // Whether to flush all prints to the log file
@@ -168,9 +168,7 @@ private:
   ShowFlags m_show = eSHOW_NONE;        // Default shows no extra information
   bool m_breakOnError = true;           // Break on errors by default
 
-  Logger()
-  {
-  }
+  Logger() {}
   ~Logger();
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
@@ -188,60 +186,60 @@ private:
 
 // Logging macros
 
-#  define LOGD(format, ...)                                                    \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eDEBUG, format,    \
-                                    ##__VA_ARGS__)
-#  define LOGSTATS(format, ...)                                                \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eSTATS, format,    \
-                                    ##__VA_ARGS__)
-#  define LOGOK(format, ...)                                                   \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eOK, format,       \
-                                    ##__VA_ARGS__)
-#  define LOGI(format, ...)                                                    \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eINFO, format,     \
-                                    ##__VA_ARGS__)
-#  define LOGW(format, ...)                                                    \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eWARNING, format,  \
-                                    ##__VA_ARGS__)
-#  define LOGE(format, ...)                                                    \
-    core::Logger::getInstance().log(core::Logger::LogLevel::eERROR, format,    \
-                                    ##__VA_ARGS__)
+#define LOGD(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eDEBUG, format,      \
+                                  ##__VA_ARGS__)
+#define LOGSTATS(format, ...)                                                  \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eSTATS, format,      \
+                                  ##__VA_ARGS__)
+#define LOGOK(format, ...)                                                     \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eOK, format,         \
+                                  ##__VA_ARGS__)
+#define LOGI(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eINFO, format,       \
+                                  ##__VA_ARGS__)
+#define LOGW(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eWARNING, format,    \
+                                  ##__VA_ARGS__)
+#define LOGE(format, ...)                                                      \
+  core::Logger::getInstance().log(core::Logger::LogLevel::eERROR, format,      \
+                                  ##__VA_ARGS__)
 
 // std::print-style macros and functions.
 // These are not allowed in CUDA source files, because cudafe++ transforms
 // Unicode code points to octal code units. (nvbug 4839128)
-#  if defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
-#    include <fmt/format.h>
+#if defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
+#include <fmt/format.h>
 // This macro catches exceptions from fmt::format. This gives us compile-time
 // checking, while still making these functions have the same noexcept
 // semantics as nvprintf.
-#    define PRINT_CATCH(lvl, fmtstr, ...)                                      \
-      {                                                                        \
-        try                                                                    \
-        {                                                                      \
-          core::Logger::getInstance().log(                                     \
-              lvl, "%s", fmt::format(fmtstr, __VA_ARGS__).c_str());            \
-        }                                                                      \
-        catch (const std::exception&)                                          \
-        {                                                                      \
-          core::Logger::getInstance().log(                                     \
-              core::Logger::LogLevel::eERROR,                                  \
-              "PRINT_CATCH: Could not format string.\n");                      \
-        }                                                                      \
-      }
+#define PRINT_CATCH(lvl, fmtstr, ...)                                          \
+  {                                                                            \
+    try                                                                        \
+    {                                                                          \
+      core::Logger::getInstance().log(                                         \
+          lvl, "%s", fmt::format(fmtstr, __VA_ARGS__).c_str());                \
+    }                                                                          \
+    catch (const std::exception&)                                              \
+    {                                                                          \
+      core::Logger::getInstance().log(                                         \
+          core::Logger::LogLevel::eERROR,                                      \
+          "PRINT_CATCH: Could not format string.\n");                          \
+    }                                                                          \
+  }
 
-#    define PRINTD(fmtstr, ...)                                                \
-      PRINT_CATCH(core::Logger::LogLevel::eDEBUG, fmtstr, __VA_ARGS__)
-#    define PRINTSTATS(fmtstr, ...)                                            \
-      PRINT_CATCH(core::Logger::LogLevel::eSTATS, fmtstr, __VA_ARGS__)
-#    define PRINTOK(fmtstr, ...)                                               \
-      PRINT_CATCH(core::Logger::LogLevel::eOK, fmtstr, __VA_ARGS__)
-#    define PRINTI(fmtstr, ...)                                                \
-      PRINT_CATCH(core::Logger::LogLevel::eINFO, fmtstr, __VA_ARGS__)
-#    define PRINTW(fmtstr, ...)                                                \
-      PRINT_CATCH(core::Logger::LogLevel::eWARNING, fmtstr, __VA_ARGS__)
-#    define PRINTE(fmtstr, ...)                                                \
-      PRINT_CATCH(core::Logger::LogLevel::eERROR, fmtstr, __VA_ARGS__)
-#  endif  // defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
+#define PRINTD(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eDEBUG, fmtstr, __VA_ARGS__)
+#define PRINTSTATS(fmtstr, ...)                                                \
+  PRINT_CATCH(core::Logger::LogLevel::eSTATS, fmtstr, __VA_ARGS__)
+#define PRINTOK(fmtstr, ...)                                                   \
+  PRINT_CATCH(core::Logger::LogLevel::eOK, fmtstr, __VA_ARGS__)
+#define PRINTI(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eINFO, fmtstr, __VA_ARGS__)
+#define PRINTW(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eWARNING, fmtstr, __VA_ARGS__)
+#define PRINTE(fmtstr, ...)                                                    \
+  PRINT_CATCH(core::Logger::LogLevel::eERROR, fmtstr, __VA_ARGS__)
+#endif  // defined(NVLOGGER_ENABLE_FMT) && !defined(__CUDACC__)
 
 #endif  // LOGGER_HPP
