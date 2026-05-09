@@ -47,6 +47,16 @@ if(NOT TARGET volk)
   set(VOLK_DIR ${Vulkan_VOLK_DIR})
   message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
   
+  # volk MUST be a SHARED library. If built as STATIC, the volk object file gets
+  # embedded into every shared library that links it (e.g. libvk_render.so and
+  # libapp_lib.so both pulling in volk via their own dependency chains). This
+  # gives the process two separate copies of the volk global function-pointer
+  # table. Depending on ELF DSO load order, volkInitialize() then initialises
+  # one copy while vkCreateInstance/vkCreateDevice etc. read the other
+  # (still-null) copy, causing a SIGSEGV at the first Vulkan call.
+  # As a SHARED library there is exactly one canonical table; all consumers link
+  # against libvolk.so dynamically, so volkInitialize() and every subsequent
+  # Vulkan call all see the same, properly-initialised table.
   add_library(volk SHARED ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
   add_library(volk::volk ALIAS volk)
   target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
