@@ -12,7 +12,7 @@
 - [ ] Add support for 16-bit indices
 - [ ] Check if this works on windows
 - [x] Add back profiling for vulkan backend
-- [-] Add MACROS for get/set
+- [ ] Add collision detector
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
