@@ -26,7 +26,7 @@ public:
   ~VulkanRendererElement() override = default;
 
   // -------------------------------------------------------------------------
-  // 1. Lifecycle & Event Hooks
+  // Lifecycle & Event Hooks
   // -------------------------------------------------------------------------
   void onAttach(app::Application* app) override;
   void onDetach() override;
@@ -36,7 +36,7 @@ public:
   void onFileSelected(const std::filesystem::path& filename);
 
   // -------------------------------------------------------------------------
-  // 2. Main Render Loop Steps
+  // Main Render Loop Steps
   // -------------------------------------------------------------------------
   void onPreRender() override;
   void onRender(const IRenderContext& ctx) override;
@@ -44,7 +44,7 @@ public:
   void onLastHeadlessFrame() override;
 
   // -------------------------------------------------------------------------
-  // 3. User Interface & Editor
+  // User Interface & Editor
   // -------------------------------------------------------------------------
   void onUIMenu() override;
   void onUIRender() override;
@@ -53,7 +53,7 @@ public:
   void onGeometryPicked(InstanceID id);
 
   // -------------------------------------------------------------------------
-  // 4. Accessors
+  // Accessors
   // -------------------------------------------------------------------------
   CameraPtr getCameraManipulator() const;
   IRenderer* getRenderer() const;

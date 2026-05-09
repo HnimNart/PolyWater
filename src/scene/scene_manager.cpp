@@ -51,7 +51,7 @@ void SceneManager::buildSceneFromData(
 /**********************************************************/
 {
   SCOPED_TIMER_FUNC();
-  // 1. Load Meshes & Keep ID Mapping
+  // Load Meshes & Keep ID Mapping
   std::vector<MeshID> meshIdMap;
   for (const auto& val : data.meshPaths)
   {
@@ -61,14 +61,14 @@ void SceneManager::buildSceneFromData(
     meshIdMap.insert(meshIdMap.end(), newMeshIds.begin(), newMeshIds.end());
   }
 
-  // 2. Load Textures & Keep ID Mapping
+  // Load Textures & Keep ID Mapping
   for (const auto& val : data.texturePaths)
   {
     std::string fullPath = core::findFile(val.path, searchDirs);
     m_scene_resources.addTexture(val.name, fullPath);
   }
 
-  // 3. Create Materials & Keep ID Mapping
+  // Create Materials & Keep ID Mapping
   for (const auto& matData : data.materials)
   {
     shaderio::Material info{};
@@ -87,7 +87,7 @@ void SceneManager::buildSceneFromData(
     m_scene_resources.addMaterial(std::move(info), matData.name);
   }
 
-  // 4. Create Instances
+  // Create Instances
   for (const auto& instData : data.instances)
   {
     shaderio::Instance inst{};
@@ -112,7 +112,7 @@ void SceneManager::buildSceneFromData(
     m_scene_resources.addInstance(std::move(inst), instData.name);
   }
 
-  // 5. Fill SceneInfo (Lights & Globals)
+  // Fill SceneInfo (Lights & Globals)
   shaderio::SceneInfo sceneInfo = m_scene_resources.sceneInfo();
   sceneInfo.useSky = data.useSky;
   sceneInfo.backgroundColor = data.backgroundColor;
@@ -145,7 +145,7 @@ void SceneManager::buildSceneFromData(
   }
   m_scene_resources.setSceneInfo(sceneInfo);
 
-  // 2. Setup Camera
+  // Setup Camera
   m_camera->setLookat(data.camera.eye, data.camera.center, data.camera.up);
   m_camera->setClipPlanes(data.camera.clip);
   m_camera->setClean();

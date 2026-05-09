@@ -49,13 +49,13 @@ void LightManager::uploadAreaLights(
     deviceResources->destroyBuffer(areaLight.cdfBufferIndex);
   }
 
-  // 1. Upload Area Lights Geometry
+  // Upload Area Lights Geometry
   size_t lightBytes = triangleLights.size() * sizeof(shaderio::TriangleLight);
   std::span<const uint8_t> lightDataView(
       reinterpret_cast<const uint8_t*>(triangleLights.data()), lightBytes);
   const auto lightHandle = deviceResources->upload(lightDataView);
 
-  // 2. Build and Upload CDF for Importance Sampling
+  // Build and Upload CDF for Importance Sampling
   DiscretePDF cdfBuilder(weights);
   const std::vector<float>& areaLightCDF = cdfBuilder.getCdf();
 
@@ -152,7 +152,7 @@ LightManager::loadEnvmap(const std::filesystem::path& filename, float scale,
     return m_envmapInfo;
   }
 
-  // 1. Load HDR Image into our agnostic CPU struct
+  // Load HDR Image into our agnostic CPU struct
   m_envmapInfo.image = core::loadRawImage(filename);
 
   if (!m_envmapInfo.image.isValid())
@@ -169,7 +169,7 @@ LightManager::loadEnvmap(const std::filesystem::path& filename, float scale,
   uint32_t height = m_envmapInfo.image.height;
   float* data = reinterpret_cast<float*>(m_envmapInfo.image.pixels.data());
 
-  // 2. Build Importance Map
+  // Build Importance Map
   // We multiply luminance by sin(theta) to handle the area distortion
   // of equirectangular maps at the poles.
   size_t numPixels = (size_t) width * height;
@@ -197,7 +197,7 @@ LightManager::loadEnvmap(const std::filesystem::path& filename, float scale,
     rowWeights[y] = rowSum;
   }
 
-  // 3. Generate 2D CDF (Importance Sampling)
+  // Generate 2D CDF (Importance Sampling)
   // Marginal CDF (Columns/Rows selection)
   m_envmapInfo.cdfCols.resize(height + 1);
   m_envmapInfo.cdfCols[0] = 0.0f;
@@ -271,7 +271,7 @@ void LightManager::uploadEnvmap(
       deviceResources->destroyBuffer(envmapLight.cdfColsBufferIndex);
     }
 
-    // 1. Upload the HDR Texture
+    // Upload the HDR Texture
     if (!deviceResources->addAndUploadTexture(info.image,
                                               envmapLight.envTextureIdx, true))
     {
@@ -279,7 +279,7 @@ void LightManager::uploadEnvmap(
           "[LightManager] Failed to add and upload environment map texture.");
     }
 
-    // 2. Upload CDF Row Data (Conditional CDF)
+    // Upload CDF Row Data (Conditional CDF)
     size_t cdfRowBytes = info.cdfRows.size() * sizeof(float);
     std::span<const uint8_t> cdfRowView(
         reinterpret_cast<const uint8_t*>(info.cdfRows.data()), cdfRowBytes);
@@ -287,7 +287,7 @@ void LightManager::uploadEnvmap(
     envmapLight.cdfRows = {.address = rowHandle.get()};
     envmapLight.cdfRowsBufferIndex = rowHandle.id;
 
-    // 3. Upload CDF Column Data (Marginal CDF)
+    // Upload CDF Column Data (Marginal CDF)
     size_t cdfColBytes = info.cdfCols.size() * sizeof(float);
     std::span<const uint8_t> cdfColView(
         reinterpret_cast<const uint8_t*>(info.cdfCols.data()), cdfColBytes);
@@ -318,13 +318,13 @@ float LightManager::computeAnalyticalLightContribution(const Scene& scene)
   for (const auto& l : sceneInfo.punctualLights)
   {
 
-    // 1. Calculate base Luminance
+    // Calculate base Luminance
     float luminance = getLuminance(l.color);
     float basePower = luminance * l.intensity;
 
     float lightPower{0.0f};
 
-    // 2. Calculate total flux based on the geometric spread of the light type
+    // Calculate total flux based on the geometric spread of the light type
     if (l.type == shaderio::LightType::ePoint)
     {  // ePoint
       lightPower = 4.0f * M_PI * basePower;
@@ -339,7 +339,7 @@ float LightManager::computeAnalyticalLightContribution(const Scene& scene)
       lightPower = basePower * scene.crossSectionArea;
     }
 
-    // 3. Accumulate into the total power for the category CDF
+    // Accumulate into the total power for the category CDF
     totalAnalyticalPower += lightPower;
   }
   return totalAnalyticalPower;

@@ -153,7 +153,7 @@ MeshletData buildMeshlets(const TempMesh& tm)
         &localVertices[m.vertexOffset], &localTriangles[m.triangleOffset],
         m.triangleCount, positions, vertex_count, tm.vertexStride);
 
-    // Assign to GPUMeshlet struct
+    // Assign to your GPUMeshlet struct
     m.center = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
     m.radius = bounds.radius;
     // Optional: For normal-based backface culling (Cone Culling)
@@ -179,7 +179,7 @@ void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
   shaderio::MeshPrimitive prim = {};
   prim.bbox = calculateBBox(tm);
 
-  // Store standard 32-bit indices for the fallback/shadow pipeline
+  // We are storing standard 32-bit indices for the fallback/shadow pipeline
   prim.indexType = IndexType32;
 
   uint32_t vCount =
@@ -198,7 +198,7 @@ void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
   };
 
   // ---------------------------------------------------------
-  // Pack Interleaved Vertex Data
+  // Pack Interleaved Vertex Data (Shared)
   // ---------------------------------------------------------
   uint32_t currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   payload.rawBuffer.insert(payload.rawBuffer.end(), tm.vertexData.begin(),
@@ -266,7 +266,7 @@ void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // Pack Meshlet Structures
+  // Pack Meshlet Structures (GPUMeshlet)
   // ---------------------------------------------------------
   currentOffset =
       static_cast<uint32_t>(payload.rawBuffer.size());  // Fixed: was +=
@@ -285,7 +285,7 @@ void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 4. Pack Meshlet Vertices (Global vertex indices)
+  // Pack Meshlet Vertices (Global vertex indices)
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t mvByteSize = mData.meshletVertices.size() * sizeof(uint32_t);
@@ -302,7 +302,7 @@ void packUniversalPayload(scene::OptimizedPayload& payload, const TempMesh& tm,
   alignBuffer();
 
   // ---------------------------------------------------------
-  // 5. Pack Meshlet Triangles (Local 8-bit indices)
+  // Pack Meshlet Triangles (Local 8-bit indices)
   // ---------------------------------------------------------
   currentOffset = static_cast<uint32_t>(payload.rawBuffer.size());
   size_t mtByteSize = mData.meshletTriangles.size() * sizeof(uint8_t);
@@ -381,7 +381,7 @@ void packIntoPayload(scene::OptimizedPayload& payload, const TempMesh& tm)
 
   currentOffset += static_cast<uint32_t>(tm.vertexData.size());
 
-  // 3. Pack Indices
+  // Pack Indices
   size_t iBytes = tm.indices.size() * sizeof(uint32_t);
   const uint8_t* iData = reinterpret_cast<const uint8_t*>(tm.indices.data());
   payload.rawBuffer.insert(payload.rawBuffer.end(), iData, iData + iBytes);

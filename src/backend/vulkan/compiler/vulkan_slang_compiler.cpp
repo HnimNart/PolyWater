@@ -89,6 +89,7 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
   SCOPED_TIMER(filename.string());
   std::string key = filename.string();
 
+  // --- Check Cache First ---
   auto it = m_binaryCacheMap.find(key);
   if (useCache && it != m_binaryCacheMap.end())
   {
@@ -99,6 +100,7 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
     return shaderCode;
   }
 
+  // --- Find and Compile if not cached ---
   std::filesystem::path shaderSource = core::findFile(filename, m_shaderDirs);
 
   if (!shaderSource.empty() && m_slangContext.compileFile(shaderSource))
@@ -117,6 +119,7 @@ VulkanSlangCompiler::compile(const std::filesystem::path& filename,
     return shaderCode;
   }
 
+  // --- Fallback logic ---
   if (!spirv.empty())
   {
     return getShaderModuleCreateInfo(spirv);

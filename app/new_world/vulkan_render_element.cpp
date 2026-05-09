@@ -34,7 +34,7 @@
 #include "widgets/tooltip.hpp"
 
 // ============================================================================
-// 1. Lifecycle & System Initialization
+// Lifecycle & System Initialization
 // ============================================================================
 
 /**********************************************************/
@@ -77,7 +77,7 @@ void VulkanRendererElement::onResize(WindowSize size)
 }
 
 // ============================================================================
-// 2. Scene Management & Loading
+// Scene Management & Loading
 // ============================================================================
 
 /**********************************************************/
@@ -206,7 +206,7 @@ void VulkanRendererElement::loadScene(const std::filesystem::path& filePath)
 }
 
 // ============================================================================
-// 3. Frame Loop Callbacks
+// Frame Loop Callbacks
 // ============================================================================
 
 /**********************************************************/
@@ -260,7 +260,7 @@ void VulkanRendererElement::onLastHeadlessFrame()
 }
 
 // ============================================================================
-// 4. User Interface (ImGui)
+// User Interface (ImGui)
 // ============================================================================
 
 /**********************************************************/
@@ -391,7 +391,7 @@ void VulkanRendererElement::onUIMenu()
 }
 
 // ============================================================================
-// 5. Accessors & Interaction
+// Accessors & Interaction
 // ============================================================================
 
 /**********************************************************/
@@ -427,7 +427,7 @@ void VulkanRendererElement::processPendingResources()
 {
   auto& resourceMgr = m_sceneManager.sceneResourceManager();
 
-  // 1. Scene Loading
+  // Scene Loading
   if (!m_sceneFile.empty())
   {
     clear();
@@ -436,7 +436,7 @@ void VulkanRendererElement::processPendingResources()
     m_sceneFile.clear();
   }
 
-  // 2. Model Loading
+  // Model Loading
   if (!m_modelFileToLoad.empty())
   {
     resourceMgr.loadModel(m_modelFileToLoad);
@@ -444,7 +444,7 @@ void VulkanRendererElement::processPendingResources()
     m_modelFileToLoad.clear();
   }
 
-  // 3. Environment/Lighting Map
+  // Environment/Lighting Map
   if (!m_envFileToLoad.empty())
   {
     resourceMgr.addEnvmap(m_envFileToLoad);
@@ -452,7 +452,7 @@ void VulkanRendererElement::processPendingResources()
     m_envFileToLoad.clear();
   }
 
-  // 4. Material Texture Assignment
+  // Material Texture Assignment
   if (m_pendingTexture)
   {
     processPendingTexture(resourceMgr);
@@ -472,7 +472,7 @@ void VulkanRendererElement::processPendingTexture(
   const auto& filename = m_pendingTexture->filename;
   const auto instanceId = m_pendingTexture->id;
 
-  // 1. Validation
+  // Validation
   if (filename.empty())
   {
     LOGW("Texture Load Warning: Empty filename provided (Instance ID: %d)\n",
@@ -481,7 +481,7 @@ void VulkanRendererElement::processPendingTexture(
     return;
   }
 
-  // 2. Resource Management
+  // Resource Management
   std::string name = core::getLowercasedStem(filename);
   TextureID textureId = resourceMgr.addTexture(name, filename);
 
@@ -498,7 +498,7 @@ void VulkanRendererElement::processPendingTexture(
 
   resourceMgr.onTextureChange();
 
-  // 3. Material Assignment (if an instance ID was provided)
+  // Material Assignment (if an instance ID was provided)
   if (instanceId != -1)
   {
     auto& instances = resourceMgr.getInstances();

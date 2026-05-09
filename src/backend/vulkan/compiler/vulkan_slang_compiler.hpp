@@ -1,8 +1,5 @@
 #pragma once
 
-#include <shaders/shared/structs.h>
-#include <vulkan/vulkan_core.h>
-
 #include <deque>
 #include <filesystem>
 #include <functional>
@@ -11,6 +8,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include <shaders/shared/structs.h>
+#include <vulkan/vulkan_core.h>
 
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
@@ -62,6 +62,7 @@ public:
 
   void addSearchPaths(const std::vector<std::filesystem::path>& searchPaths);
   void clearSearchPaths();
+  // This is const because modifiying the search paths requires extra work.
   const std::vector<std::filesystem::path>& searchPaths() const
   {
     return m_searchPaths;
@@ -138,7 +139,7 @@ namespace vkb
 class VulkanSlangCompiler
 {
 public:
-  // 1. Singleton Accessor
+  // Singleton Accessor
   static VulkanSlangCompiler& instance()
   {
     static VulkanSlangCompiler s_instance;

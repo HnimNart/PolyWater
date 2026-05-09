@@ -11,7 +11,7 @@
 #include "nvvk/profiler_vk.hpp"
 #endif
 
-// Forward declarations of non-vkb types
+// Forward Declarations
 namespace scene
 {
 class SceneResourcesManager;

@@ -52,25 +52,25 @@ bool SceneLoader::load(const std::string& filepath, SceneData& outScene)
     json j;
     file >> j;
 
-    // 1. Assets (Populates meshMap and texMap)
+    // Assets (Populates meshMap and texMap)
     if (j.contains("assets"))
     {
       parseAssets(j["assets"], outScene);
     }
 
-    // 2. Materials (Uses texMap, populates matMap)
+    // Materials (Uses texMap, populates matMap)
     if (j.contains("materials"))
     {
       parseMaterials(j["materials"], outScene);
     }
 
-    // 3. Instances (Uses meshMap and matMap)
+    // Instances (Uses meshMap and matMap)
     if (j.contains("instances"))
     {
       parseInstances(j["instances"], outScene);
     }
 
-    // 4. Global Scene Info
+    // Global Scene Info
     if (j.contains("sceneInfo"))
     {
       parseSceneInfo(j["sceneInfo"], outScene);
@@ -90,7 +90,7 @@ bool SceneLoader::load(const std::string& filepath, SceneData& outScene)
 void SceneLoader::parseAssets(const json& j, SceneData& scene)
 /**********************************************************/
 {
-  // 1. Meshes
+  // Meshes
   if (j.contains("meshes"))
   {
     for (auto& [key, val] : j["meshes"].items())
@@ -100,7 +100,7 @@ void SceneLoader::parseAssets(const json& j, SceneData& scene)
     }
   }
 
-  // 2. Textures
+  // Textures
   if (j.contains("textures"))
   {
     for (auto& [key, val] : j["textures"].items())
