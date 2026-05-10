@@ -41,36 +41,74 @@ endif()
 # volk
 find_package(VulkanExtra REQUIRED)
 if(NOT TARGET volk)
-  if(Vulkan_VOLK_DIR)
-    set(VOLK_DIR ${Vulkan_VOLK_DIR})
-    message(STATUS "Using Vulkan::volk target from Vulkan package")
+  # Prefer the Vulkan SDK's pre-built volk (CMake 3.24+ FindVulkan creates
+  # Vulkan::volk when COMPONENTS volk is requested in FindVulkanExtra.cmake).
+  #
+  # Root cause of the "Debug mode" link failure
+  # -----------------------------------------
+  # The Vulkan SDK ships only a single-configuration (Release) library:
+  #   Windows : VulkanSDK/Lib/volk.lib   (no volkd.lib)
+  #   Linux   : VulkanSDK/lib/libvolk.a  (one file, no debug variant)
+  # The SDK's volkConfig.cmake creates the IMPORTED target with only
+  # IMPORTED_LOCATION_RELEASE set.  In a Debug build CMake first looks for
+  # IMPORTED_LOCATION_DEBUG; finding neither that nor a MAP_IMPORTED_CONFIG_DEBUG
+  # mapping it emits a link error (MSVC: "cannot open input file 'volkd.lib'").
+  #
+  # Fix: map every non-Release configuration to Release so the linker always
+  # resolves to the single prebuilt library file.
+  if(TARGET Vulkan::volk)
+    set_target_properties(Vulkan::volk PROPERTIES
+      MAP_IMPORTED_CONFIG_DEBUG           Release
+      MAP_IMPORTED_CONFIG_MINSIZEREL      Release
+      MAP_IMPORTED_CONFIG_RELWITHDEBINFO  Release
+    )
+    # Re-expose as plain "volk" (name used throughout the source tree) via a
+    # thin INTERFACE wrapper that also adds the definitions the SDK config omits.
+    add_library(volk INTERFACE)
+    add_library(volk::volk ALIAS volk)
+    target_link_libraries(volk INTERFACE Vulkan::volk)
+    # VK_NO_PROTOTYPES: suppress the raw Vulkan prototypes so volk is the sole
+    # provider of function-pointer symbols.
+    target_compile_definitions(volk INTERFACE VK_NO_PROTOTYPES)
+    # Platform surface extension macros (not set by FindVulkan / volkConfig).
+    if(WIN32)
+      target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+    elseif(APPLE)
+      target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_METAL_EXT)
+    else()
+      target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+      # dlopen is needed to load the Vulkan loader at runtime on Linux/BSD.
+      target_link_libraries(volk INTERFACE ${CMAKE_DL_LIBS})
+    endif()
+    message(STATUS "Using Vulkan::volk from Vulkan SDK (prebuilt)")
   else()
-    set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
-    message(STATUS "Using fallback volk version")
+    # Fallback: build volk from the SDK source files (always works in all
+    # build types because the compiler compiles it with the correct flags).
+    if(Vulkan_VOLK_DIR)
+      set(VOLK_DIR ${Vulkan_VOLK_DIR})
+      message(STATUS "Vulkan::volk not available; building volk from SDK source: ${VOLK_DIR}")
+    elseif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/volk/volk.c)
+      set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
+      message(STATUS "Vulkan::volk not available; building volk from bundled source: ${VOLK_DIR}")
+    else()
+      message(FATAL_ERROR "volk not found. Install the Vulkan SDK or place volk source in ext/volk/.")
+    endif()
+
+    add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
+    add_library(volk::volk ALIAS volk)
+    target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
+    if(WIN32)
+      target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+    elseif(APPLE)
+      target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
+      target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+    else()
+      target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+      target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+    endif()
+    target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
+    set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
   endif()
-  
-  add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
-  add_library(volk::volk ALIAS volk)
-  target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
-
-  # --- Platform Specific Configuration ---
-  if(WIN32)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-  elseif(APPLE)
-    # Apple uses Metal surfaces for Vulkan (via MoltenVK)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-  else()
-    # Assume Linux/BSD (X11/XCB)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-  endif()
-
-  # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
-  # This is necessary because we are using volk to load Vulkan functions
-  target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
-
-  set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 endif()
 
 # imgui

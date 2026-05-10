@@ -47,6 +47,7 @@ target_link_libraries(${LIB_NAME}
         backend_interfaces
         render_interfaces
         nvvk
+        volk
     PRIVATE
         core_lib
         scene_lib
