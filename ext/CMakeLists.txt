@@ -38,52 +38,48 @@ if(NOT TARGET glfw)
 endif()
 
 
-# volk
+# volk (STATIC — SDK prebuilt archive)
 #
-# IMPORTANT: volk MUST be built as a SHARED library.
+# volk stays STATIC because all libraries that consume it (nvvk, vk_backend)
+# are themselves STATIC.  They are all folded into the single SHARED library
+# libvk_render.so at link time, so the process contains exactly one copy of
+# volk's function-pointer globals.  volkInitialize() and every subsequent
+# Vulkan call therefore operate on the same table — no NULL-pointer SIGSEGV.
 #
-# The Vulkan SDK ships a prebuilt static archive (libvolk.a).  If multiple
-# shared libraries in the same process each link that archive, the linker
-# copies the volk object code — and its global function-pointer table — into
-# every .so independently.  Due to ELF symbol interposition the dynamic linker
-# picks ONE canonical copy of each PFN_vkXxx global at load time.
-# volkInitialize() in one DSO writes to its own copy, while code in another
-# DSO calls through the "winning" (still-NULL) global → SIGSEGV.
-#
-# Building volk as a SHARED library ensures every DSO in the process resolves
-# all PFN_vkXxx globals to the same symbols (those in libvolk.so), so one call
-# to volkInitialize() initialises the table for the entire process.
+# If you ever make nvvk or vk_backend SHARED again you must also switch volk
+# to SHARED (or use -Wl,--export-dynamic on the single DSO that links it) so
+# that the globals are not duplicated across DSOs.
 find_package(VulkanExtra REQUIRED)
+find_package(volk CONFIG REQUIRED)
 
-if(NOT Vulkan_VOLK_DIR)
-  message(FATAL_ERROR
-    "Vulkan SDK volk source directory not found (Vulkan_VOLK_DIR is not set). "
-    "Make sure the Vulkan SDK is installed and the 'volk' component is present "
-    "in the SDK's include directory.")
-endif()
-
-add_library(volk SHARED ${Vulkan_VOLK_DIR}/volk.c)
-add_library(volk::volk ALIAS volk)
-
-target_include_directories(volk PUBLIC ${Vulkan_VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
-target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
-
-if(WIN32)
-  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-elseif(APPLE)
-  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
-  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+set(_VOLK_IMPORTED_TARGET "")
+if(TARGET volk::volk)
+  set(_VOLK_IMPORTED_TARGET volk::volk)
+elseif(TARGET Vulkan::volk)
+  set(_VOLK_IMPORTED_TARGET Vulkan::volk)
+elseif(TARGET volk)
+  set(_VOLK_IMPORTED_TARGET volk)
 else()
-  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+  message(FATAL_ERROR "volk package found but no usable target was exported "
+    "(expected volk::volk, Vulkan::volk, or volk).")
 endif()
 
-if(MSVC)
-  target_compile_options(volk PRIVATE /W0)
-else()
-  target_compile_options(volk PRIVATE -w)
-endif()
-set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
+# The SDK ships only a Release build of libvolk.a; map all other configurations
+# to it so Debug / RelWithDebInfo builds don't fail to find the library.
+set_target_properties(${_VOLK_IMPORTED_TARGET} PROPERTIES
+  MAP_IMPORTED_CONFIG_DEBUG           Release
+  MAP_IMPORTED_CONFIG_MINSIZEREL      Release
+  MAP_IMPORTED_CONFIG_RELWITHDEBINFO  Release
+)
+
+# Ensure VK_NO_PROTOTYPES is visible to every consumer of this target so that
+# Vulkan function declarations in vulkan.h are suppressed and volk's
+# function-pointer definitions are the sole providers of Vulkan symbols.
+set_property(TARGET ${_VOLK_IMPORTED_TARGET} APPEND PROPERTY
+  INTERFACE_COMPILE_DEFINITIONS VK_NO_PROTOTYPES
+)
+
+add_library(volk ALIAS ${_VOLK_IMPORTED_TARGET})
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
