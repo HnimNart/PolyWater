@@ -38,41 +38,54 @@ if(NOT TARGET glfw)
 endif()
 
 
-# volk
+# volk (STATIC — built from SDK source)
+#
+# volk is compiled from the SDK's own volk.c and linked as a STATIC archive.
+# Using find_package(volk CONFIG) is intentionally avoided: the SDK's
+# volkConfig.cmake propagates a plain "-lvolk" linker flag rather than a full
+# archive path, which fails unless libvolk.a happens to be in a standard
+# system search directory.
+#
+# Building from source gives CMake the exact output path of the archive, so
+# the full path (e.g. lib/Release/libvolk.a) is passed on every link line —
+# no "-lvolk" flag, no search-path dependency.
+#
+# One copy of volk globals in the process is guaranteed as long as every
+# library that consumes volk (nvvk, vk_backend, vk_render) is also STATIC:
+# the linker folds them all into the final executable (or the outermost shared
+# library) and produces exactly one instance of each PFN_vkXxx pointer.
+# If any consumer becomes SHARED again, switch volk to SHARED as well.
 find_package(VulkanExtra REQUIRED)
-if(NOT TARGET volk)
-  if(Vulkan_VOLK_DIR)
-    set(VOLK_DIR ${Vulkan_VOLK_DIR})
-    message(STATUS "Using Vulkan::volk target from Vulkan package")
-  else()
-    set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
-    message(STATUS "Using fallback volk version")
-  endif()
-  
-  add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
-  add_library(volk::volk ALIAS volk)
-  target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
 
-  # --- Platform Specific Configuration ---
-  if(WIN32)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-  elseif(APPLE)
-    # Apple uses Metal surfaces for Vulkan (via MoltenVK)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-  else()
-    # Assume Linux/BSD (X11/XCB)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-  endif()
-
-  # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
-  # This is necessary because we are using volk to load Vulkan functions
-  target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
-
-  set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
+if(NOT Vulkan_VOLK_DIR)
+  message(FATAL_ERROR
+    "Vulkan SDK volk source directory not found (Vulkan_VOLK_DIR is not set). "
+    "Make sure the Vulkan SDK is installed and the 'volk' component is present "
+    "in the SDK's include directory.")
 endif()
 
+add_library(volk STATIC ${Vulkan_VOLK_DIR}/volk.c)
+add_library(volk::volk ALIAS volk)
+
+target_include_directories(volk PUBLIC ${Vulkan_VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
+target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
+
+if(WIN32)
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+elseif(APPLE)
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
+  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+else()
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+endif()
+
+if(MSVC)
+  target_compile_options(volk PRIVATE /W0)
+else()
+  target_compile_options(volk PRIVATE -w)
+endif()
+set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
@@ -92,8 +105,12 @@ if(NOT TARGET imgui)
         # Backends
         "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
         "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
-        "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
-        "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+        # imgui_impl_vulkan is intentionally NOT included here.
+        # It must be compiled directly into the Vulkan rendering library (vk_backend)
+        # so that it shares the same statically-linked volk copy.  Including it here
+        # would cause volk's function-pointer globals to be duplicated across
+        # libapp_lib.so and libvk_render.so, leaving vkCreateInstance NULL in one of
+        # them and producing a SIGSEGV on the first Vulkan call.
         "${IMGUI_DIR}/backends/imgui_impl_opengl3_loader.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
@@ -114,11 +131,9 @@ if(NOT TARGET imgui)
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # Link against GLFW and Volk
-    target_link_libraries(imgui PUBLIC glfw volk)
-
-    # Mandatory for ImGui to work with Volk
-    target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+    # Link against GLFW only; volk is NOT propagated through imgui because
+    # imgui_impl_vulkan.cpp is compiled directly into vk_backend instead.
+    target_link_libraries(imgui PUBLIC glfw)
 
     set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 endif()
@@ -247,11 +262,29 @@ endif()
 
 
 # vma
-if(NOT TARGET vma AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vma)
-  set(VMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vma/include)
-  add_library(vma INTERFACE) # Removed the header from the source list for a cleaner INTERFACE lib
-  # The SYSTEM keyword tells the compiler to ignore warnings from these headers
-  target_include_directories(vma SYSTEM INTERFACE ${VMA_DIR})
+if(NOT TARGET vma)
+  if(NOT Vulkan_VMA_DIR)
+    message(FATAL_ERROR "Vulkan SDK VMA not found. Please install the Vulkan SDK into ext/vulkansdk (run scripts/install-vulkansdk.sh).")
+  endif()
+  add_library(vma INTERFACE)
+  # The VulkanSDK places vk_mem_alloc.h in include/vma/; expose that directory
+  # so consumers can #include <vk_mem_alloc.h> as before.
+  target_include_directories(vma SYSTEM INTERFACE ${Vulkan_VMA_DIR})
+
+  # vk_mem_alloc.h internally includes <vulkan/vulkan.h>.  Without
+  # VK_NO_PROTOTYPES, Vulkan function declarations (VKAPI_CALL prototypes) are
+  # emitted there, which then conflict with volk.h's extern PFN_xxx definitions
+  # when both are included in the same translation unit.  Propagate
+  # VK_NO_PROTOTYPES so every consumer of vk_mem_alloc.h skips the prototype
+  # block, allowing volk to be the sole provider of Vulkan function symbols.
+  # VMA_STATIC_VULKAN_FUNCTIONS=0 + VMA_DYNAMIC_VULKAN_FUNCTIONS=1 tells VMA to
+  # load function pointers at runtime via volkLoadDevice / volkLoadInstance
+  # rather than using statically-linked Vulkan loader functions.
+  target_compile_definitions(vma INTERFACE
+    VK_NO_PROTOTYPES
+    VMA_STATIC_VULKAN_FUNCTIONS=0
+    VMA_DYNAMIC_VULKAN_FUNCTIONS=1
+  )
   set_property(TARGET vma PROPERTY FOLDER "ThirdParty")
 endif()
 
@@ -398,4 +431,3 @@ if(NOT TARGET bvh)
     add_subdirectory(bvh)
     set_property(TARGET bvh PROPERTY FOLDER "ThirdParty")
 endif()
-

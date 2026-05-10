@@ -5,23 +5,24 @@ if(APPLE)
 endif()
 project(my_render VERSION 1.0 LANGUAGES C CXX ${MACOS_LANGS})
 
-# --- 1. Global Compiler Settings ---
+# --- Global Compiler Settings ---
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-# Ensure ccache is used if available (improves build times)
+# Ensure ccache is used if available 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-# Disable C++20 module scanning (fixes the scan-deps error on Clang)
+# Disable C++20 module scanning 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-add_compile_definitions(PROFILE_APP)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/ext/vulkansdk/libs/cmake)
 
-# --- 2. Path Setup ---
+
+# --- Path Setup ---
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -29,7 +30,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/ext/vulkansdk/x86_64")
 
 
-# --- 4. Project Structure ---
+# --- Project Structure ---
 add_subdirectory(ext)
 add_subdirectory(src)
 add_subdirectory(app)

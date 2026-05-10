@@ -28,7 +28,7 @@
 #define STB_IMAGE_WRITE_STATIC
 #pragma warning(disable : 4996)  // sprintf warning
 #include <stb/stb_image_write.h>
-#include <volk.h>
+#include <volk/volk.h>
 
 #include "barriers.hpp"
 #include "check_error.hpp"

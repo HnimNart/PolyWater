@@ -19,7 +19,7 @@
 
 #include "physical_device.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <cassert>
 

@@ -19,10 +19,10 @@
 
 #pragma once
 
+#include <volk/volk.h>
+
 #include <algorithm>
 #include <cmath>
-
-#include "vulkan/vulkan_core.h"
 
 namespace nvvk
 {

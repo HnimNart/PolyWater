@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# 2. Vulkan Implementation (Shared Plugin)
+# Vulkan Implementation (Shared Plugin)
 # -------------------------------------------------------------------
 set(LIB_NAME vk_render)
 
@@ -7,7 +7,8 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
     "*.cpp" "*.hpp" "*.h"
 )
 
-add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
+add_library(${LIB_NAME} STATIC ${PLUGIN_SOURCES})
+
 
 
 # Link it to your project (Replace 'VulkanRenderer' with your actual target name!)
@@ -30,16 +31,18 @@ if(WIN32)
 endif()
 
 # -------------------------------------------------------------------
-# 3. Linking & Include logic
+# Linking & Include logic
 # -------------------------------------------------------------------
+# volk is already defined by ext/CMakeLists.txt; no find_package needed.
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
         ${SHADER_OUTPUT_DIR}/../
         ${SHADER_OUTPUT_DIR}
         ${Slang_INCLUDE_DIR}
+        ${Vulkan_VOLK_DIR}
+        ${Vulkan_VOLK_DIR}/..
 )
-
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces

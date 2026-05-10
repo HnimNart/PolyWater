@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-
 #include <vector>
 
 #include "backend/interfaces/render_context_interface.hpp"
@@ -93,7 +91,7 @@ public:
   const nvvk::GBuffer* gBuffers{};
   // --- Swapchain Integration ---
   // These are updated every frame by the VulkanSwapchainRenderManager
-  VkImage swapchainImage{};          // For pipeline barriers (Layout transitions)
+  VkImage swapchainImage{};  // For pipeline barriers (Layout transitions)
   VkImageView swapchainImageView{};  // For VkRenderingAttachmentInfo (Drawing)
   VkExtent2D screenSize{};           // For setting viewports and render areas
 

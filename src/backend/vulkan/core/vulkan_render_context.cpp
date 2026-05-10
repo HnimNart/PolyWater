@@ -1,7 +1,6 @@
 #include "vulkan_render_context.hpp"
 
-#include <volk.h>
-#include <vulkan/vulkan.h>
+#include <volk/volk.h>
 
 #include "nvvk/check_error.hpp"
 #include "translator.hpp"

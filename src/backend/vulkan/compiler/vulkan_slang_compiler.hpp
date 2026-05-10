@@ -1,5 +1,8 @@
 #pragma once
 
+#include <shaders/shared/structs.h>
+#include <volk/volk.h>
+
 #include <deque>
 #include <filesystem>
 #include <functional>
@@ -8,9 +11,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <shaders/shared/structs.h>
-#include <vulkan/vulkan_core.h>
 
 #include <core/file_operations.hpp>
 #include <core/logger.hpp>
@@ -24,7 +24,7 @@
 #pragma pop_macro("None")
 #pragma pop_macro("Bool")
 #include <shaders/shared/structs.h>
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 namespace detail
 {

@@ -20,7 +20,7 @@
 #include "resource_allocator.hpp"
 
 #include <fmt/format.h>
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <core/logger.hpp>
 

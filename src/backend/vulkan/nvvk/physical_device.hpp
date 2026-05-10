@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #pragma once
 

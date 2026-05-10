@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-
 #include <memory>
 
 #include "renderer/interfaces/render_graph_interface.hpp"

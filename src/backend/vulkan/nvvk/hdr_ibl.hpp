@@ -21,7 +21,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <assert.h>
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #include <array>
 #include <filesystem>

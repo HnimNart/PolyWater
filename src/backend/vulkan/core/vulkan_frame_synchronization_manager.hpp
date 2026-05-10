@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vulkan/vulkan_core.h>
-
 #include <memory>
 #include <vector>
 
@@ -20,7 +18,8 @@ public:
   // Reallocate the per-pass command buffers for every frame in the ring.
   // Must be called after RenderGraph::compile() so that exactly one command
   // buffer per pass is available each frame.  Requires the device to be idle.
-  void resizeCmdBuffers(VulkanContextManager& coreManager, uint32_t numCmdBuffers);
+  void resizeCmdBuffers(VulkanContextManager& coreManager,
+                        uint32_t numCmdBuffers);
 
   // Frame lifecycle
   void waitForFrameCompletion() const;
@@ -36,10 +35,7 @@ public:
   {
     return static_cast<uint32_t>(m_frameData.size());
   }
-  uint32_t getCurrentFrameIndex() const
-  {
-    return m_frameRingCurrent;
-  }
+  uint32_t getCurrentFrameIndex() const { return m_frameRingCurrent; }
 
   // Semaphore management
   void addWaitSemaphore(const VkSemaphoreSubmitInfo& semaphore);
