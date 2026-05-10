@@ -33,7 +33,7 @@ endif()
 # -------------------------------------------------------------------
 # Linking & Include logic
 # -------------------------------------------------------------------
-find_package(volk REQUIRED)
+# volk is already defined by ext/CMakeLists.txt; no find_package needed.
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>

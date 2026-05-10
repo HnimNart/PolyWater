@@ -226,6 +226,21 @@ if(NOT TARGET vma)
   # The VulkanSDK places vk_mem_alloc.h in include/vma/; expose that directory
   # so consumers can #include <vk_mem_alloc.h> as before.
   target_include_directories(vma SYSTEM INTERFACE ${Vulkan_VMA_DIR})
+
+  # vk_mem_alloc.h internally includes <vulkan/vulkan.h>.  Without
+  # VK_NO_PROTOTYPES, Vulkan function declarations (VKAPI_CALL prototypes) are
+  # emitted there, which then conflict with volk.h's extern PFN_xxx definitions
+  # when both are included in the same translation unit.  Propagate
+  # VK_NO_PROTOTYPES so every consumer of vk_mem_alloc.h skips the prototype
+  # block, allowing volk to be the sole provider of Vulkan function symbols.
+  # VMA_STATIC_VULKAN_FUNCTIONS=0 + VMA_DYNAMIC_VULKAN_FUNCTIONS=1 tells VMA to
+  # load function pointers at runtime via volkLoadDevice / volkLoadInstance
+  # rather than using statically-linked Vulkan loader functions.
+  target_compile_definitions(vma INTERFACE
+    VK_NO_PROTOTYPES
+    VMA_STATIC_VULKAN_FUNCTIONS=0
+    VMA_DYNAMIC_VULKAN_FUNCTIONS=1
+  )
   set_property(TARGET vma PROPERTY FOLDER "ThirdParty")
 endif()
 

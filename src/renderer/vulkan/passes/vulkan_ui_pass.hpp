@@ -2,7 +2,6 @@
 
 #include <shaders/shared/structs.h>
 #include <volk/volk.h>
-#include <volk/volk.h>
 
 #include <nvvk/gbuffers.hpp>
 

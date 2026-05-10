@@ -21,7 +21,10 @@ endif()
 # -------------------------------------------------------------------
 # INCLUDES & LINKING
 # -------------------------------------------------------------------
-find_package(volk REQUIRED)
+# volk is already defined by ext/CMakeLists.txt before this file is processed;
+# find_package(volk) would search for the SDK's volkConfig.cmake (which imports
+# libvolk.a as a separate IMPORTED target) and could conflict with our custom
+# volk SHARED library.  Simply link the already-defined target directly.
 # 2. Treat these includes as SYSTEM (ignores warnings in headers)
 target_include_directories(${LIB_NAME} SYSTEM PUBLIC ${PARENT_DIR} ${Slang_INCLUDE_DIR} ${Vulkan_INCLUDE_DIRS})
 
