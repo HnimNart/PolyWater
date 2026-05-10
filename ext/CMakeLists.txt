@@ -56,7 +56,6 @@ endif()
 # library) and produces exactly one instance of each PFN_vkXxx pointer.
 # If any consumer becomes SHARED again, switch volk to SHARED as well.
 find_package(VulkanExtra REQUIRED)
-
 if(NOT Vulkan_VOLK_DIR)
   message(FATAL_ERROR
     "Vulkan SDK volk source directory not found (Vulkan_VOLK_DIR is not set). "
@@ -105,12 +104,8 @@ if(NOT TARGET imgui)
         # Backends
         "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
         "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
-        # imgui_impl_vulkan is intentionally NOT included here.
-        # It must be compiled directly into the Vulkan rendering library (vk_backend)
-        # so that it shares the same statically-linked volk copy.  Including it here
-        # would cause volk's function-pointer globals to be duplicated across
-        # libapp_lib.so and libvk_render.so, leaving vkCreateInstance NULL in one of
-        # them and producing a SIGSEGV on the first Vulkan call.
+        "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
+        "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3_loader.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
@@ -133,7 +128,9 @@ if(NOT TARGET imgui)
 
     # Link against GLFW only; volk is NOT propagated through imgui because
     # imgui_impl_vulkan.cpp is compiled directly into vk_backend instead.
-    target_link_libraries(imgui PUBLIC glfw)
+    target_link_libraries(imgui PUBLIC glfw volk)
+    target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+
 
     set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 endif()
