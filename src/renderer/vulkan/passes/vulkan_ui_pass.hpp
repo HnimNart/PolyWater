@@ -1,8 +1,8 @@
 #pragma once
 
 #include <shaders/shared/structs.h>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
+#include <volk/volk.h>
 
 #include <nvvk/gbuffers.hpp>
 

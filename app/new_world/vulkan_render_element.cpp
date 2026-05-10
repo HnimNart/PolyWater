@@ -12,7 +12,6 @@
 // Third Party
 #include <imgui/imgui.h>
 #include <shaders/shared/structs.h>
-#include <vulkan/vulkan.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>

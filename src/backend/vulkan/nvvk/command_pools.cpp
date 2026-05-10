@@ -19,7 +19,7 @@
 
 #include "command_pools.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include "check_error.hpp"
 

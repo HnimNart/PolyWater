@@ -19,7 +19,7 @@
 
 #include "queue.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 namespace nvvk
 {

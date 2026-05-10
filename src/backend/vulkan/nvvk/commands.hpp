@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #include "check_error.hpp"
 #include "resources.hpp"

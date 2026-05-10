@@ -33,7 +33,7 @@
 // buffers.
 //
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <string>
 #include <type_traits>  // std::is_same_v

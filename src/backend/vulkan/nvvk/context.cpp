@@ -19,7 +19,7 @@
 
 #include "context.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 #include <vulkan/vk_enum_string_helper.h>
 
 #include <csignal>

@@ -20,7 +20,7 @@
 #include "pipeline.hpp"
 
 #include <string.h>
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <cinttypes>
 #include <string>

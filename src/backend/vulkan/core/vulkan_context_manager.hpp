@@ -1,6 +1,6 @@
 #pragma once
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <nvvk/check_error.hpp>
 #include <nvvk/commands.hpp>
@@ -23,39 +23,21 @@ public:
   void deinit();
 
   // Accessors
-  VkDevice getDevice() const
-  {
-    return m_vkContext.getDevice();
-  }
+  VkDevice getDevice() const { return m_vkContext.getDevice(); }
   VkPhysicalDevice getPhysicalDevice() const
   {
     return m_vkContext.getPhysicalDevice();
   }
-  VkInstance getInstance() const
-  {
-    return m_vkContext.getInstance();
-  }
+  VkInstance getInstance() const { return m_vkContext.getInstance(); }
   const nvvk::QueueInfo& getQueueInfo(uint32_t index) const
   {
     return m_vkContext.getQueueInfo(index);
   }
-  VkDescriptorPool getDescriptorPool() const
-  {
-    return m_descriptorPool;
-  }
-  VkCommandPool getTransientCmdPool() const
-  {
-    return m_transientCmdPool;
-  }
+  VkDescriptorPool getDescriptorPool() const { return m_descriptorPool; }
+  VkCommandPool getTransientCmdPool() const { return m_transientCmdPool; }
 
-  nvvk::ResourceAllocator& getAllocator()
-  {
-    return m_allocator;
-  }
-  nvvk::StagingUploader& getStagingUploader()
-  {
-    return m_stagingUploader;
-  }
+  nvvk::ResourceAllocator& getAllocator() { return m_allocator; }
+  nvvk::StagingUploader& getStagingUploader() { return m_stagingUploader; }
 
   // Utility methods
   VkCommandBuffer startSingleTimeCmd();

@@ -21,7 +21,7 @@
 #include <span>
 #include <vector>
 
-#include "vulkan/vulkan_core.h"
+#include "volk.h"
 
 namespace nvvk
 {

@@ -18,7 +18,7 @@
  */
 
 #pragma once
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <cassert>
 #include <queue>

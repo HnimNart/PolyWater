@@ -18,7 +18,7 @@
  */
 
 #pragma once
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #include <cstring>
 #include <mutex>

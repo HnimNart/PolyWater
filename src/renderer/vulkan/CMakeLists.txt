@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# 2. Vulkan Implementation (Shared Plugin)
+# Vulkan Implementation (Shared Plugin)
 # -------------------------------------------------------------------
 set(LIB_NAME vk_render)
 
@@ -8,6 +8,7 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
 )
 
 add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
+
 
 
 # Link it to your project (Replace 'VulkanRenderer' with your actual target name!)
@@ -30,8 +31,9 @@ if(WIN32)
 endif()
 
 # -------------------------------------------------------------------
-# 3. Linking & Include logic
+# Linking & Include logic
 # -------------------------------------------------------------------
+find_package(volk REQUIRED)
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
@@ -45,7 +47,7 @@ target_link_libraries(${LIB_NAME}
         backend_interfaces
         render_interfaces
         nvvk
-        volk  # libvolk.so: provides VK_NO_PROTOTYPES, include dirs, and default-visible volk symbols
+        volk  
     PRIVATE
         core_lib
         scene_lib

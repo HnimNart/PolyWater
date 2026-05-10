@@ -41,7 +41,7 @@
 // https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <cstring>  // for memset
 #include <vector>

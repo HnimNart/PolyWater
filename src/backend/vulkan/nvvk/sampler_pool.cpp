@@ -19,7 +19,7 @@
 
 #include "sampler_pool.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <cassert>
 #include <mutex>

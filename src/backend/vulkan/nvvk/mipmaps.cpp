@@ -19,7 +19,7 @@
 
 #include "mipmaps.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 #include "barriers.hpp"
 #include "helpers.hpp"

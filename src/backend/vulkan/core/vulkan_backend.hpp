@@ -1,18 +1,16 @@
 #pragma once
 
-#include <vulkan/vulkan_core.h>
-
 #include <memory>
 
 #include <nvvk/profiler_vk.hpp>
 
-#include "vulkan_context_manager.hpp"
-#include "vulkan_frame_synchronization_manager.hpp"
-#include "render_backend_interface.hpp"
-#include "renderable_interface.hpp"
-#include "vulkan_swapchain_render_manager.hpp"
 #include "app/gui_system_interface.hpp"
 #include "nvvk/queue.hpp"
+#include "render_backend_interface.hpp"
+#include "renderable_interface.hpp"
+#include "vulkan_context_manager.hpp"
+#include "vulkan_frame_synchronization_manager.hpp"
+#include "vulkan_swapchain_render_manager.hpp"
 
 namespace vkb
 {

@@ -40,56 +40,7 @@ endif()
 
 # volk
 find_package(VulkanExtra REQUIRED)
-if(NOT TARGET volk)
-  if(NOT Vulkan_VOLK_DIR)
-    message(FATAL_ERROR "Vulkan SDK volk not found. Please install the Vulkan SDK into ext/vulkansdk (run scripts/install-vulkansdk.sh).")
-  endif()
-  set(VOLK_DIR ${Vulkan_VOLK_DIR})
-  message(STATUS "Using Vulkan SDK volk: ${VOLK_DIR}")
-  
-  # volk is built as a SHARED library so that its global function-pointer
-  # symbols have ELF default visibility and appear in the dynamic symbol table.
-  # This is necessary because:
-  #  - libvk_render.so and libapp_lib.so reference volk symbols at runtime.
-  #  - libnvvk.a (a PUBLIC dep of vk_render) references volk symbols during
-  #    the link step of the final executable.
-  # Symbols with hidden ELF visibility (STV_HIDDEN) are excluded from the
-  # dynamic symbol table even with --export-dynamic, so neither embedding
-  # volk.c in an executable nor in a DSO with hidden visibility works.
-  # Building libvolk.so with -fvisibility=default guarantees all volk symbols
-  # are default-visible, solving both the static-archive and DSO reference
-  # problems with a single, process-wide function-pointer table.
-  add_library(volk SHARED ${VOLK_DIR}/volk.c)
-  add_library(volk::volk ALIAS volk)
-
-  # Ensure all volk symbols get default ELF visibility regardless of any
-  # __attribute__((visibility("hidden"))) annotations in the SDK volk headers.
-  if(NOT WIN32)
-    target_compile_options(volk PRIVATE -fvisibility=default)
-  endif()
-
-  target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
-
-  # --- Platform Specific Configuration ---
-  if(WIN32)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-  elseif(APPLE)
-    # Apple uses Metal surfaces for Vulkan (via MoltenVK)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
-    target_link_libraries(volk PRIVATE ${CMAKE_DL_LIBS})
-  else()
-    # Assume Linux/BSD (X11/XCB)
-    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-    target_link_libraries(volk PRIVATE ${CMAKE_DL_LIBS})
-  endif()
-
-  # Propagate VK_NO_PROTOTYPES to all consumers so they include Vulkan types
-  # without declaring prototypes (volk provides the function pointers instead).
-  target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
-
-  set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
-endif()
-
+set(VOLK_DIR ${Vulkan_VOLK_DIR})
 
 
 # imgui
@@ -130,6 +81,8 @@ if(NOT TARGET imgui)
     target_include_directories(imgui SYSTEM PUBLIC 
         ${IMGUI_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${VOLK_DIR}
+        ${VOLK_DIR}/..
     )
 
     # Link against GLFW and Volk

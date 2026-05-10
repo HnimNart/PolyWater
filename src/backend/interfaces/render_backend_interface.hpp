@@ -1,7 +1,7 @@
 #pragma once
 
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #include <functional>
 #include <string>

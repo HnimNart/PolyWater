@@ -2,7 +2,7 @@
 
 #include <backends/imgui_impl_vulkan.h>
 #include <tinygltf/tiny_gltf.h>
-#include <volk.h>
+#include <volk/volk.h>
 
 #include <core/file_operations.hpp>
 #include <core/shape/primitives.hpp>

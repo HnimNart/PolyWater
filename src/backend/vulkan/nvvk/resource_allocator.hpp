@@ -43,7 +43,7 @@
 #endif
 
 #include <vk_mem_alloc.h>
-#include <vulkan/vulkan_core.h>
+#include <volk/volk.h>
 
 #include "barriers.hpp"
 #include "resources.hpp"

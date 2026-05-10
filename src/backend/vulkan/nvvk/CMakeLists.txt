@@ -21,22 +21,20 @@ endif()
 # -------------------------------------------------------------------
 # INCLUDES & LINKING
 # -------------------------------------------------------------------
-# All libraries use nvpro_core2 as their include root
-cmake_path(GET CMAKE_CURRENT_LIST_DIR PARENT_PATH PARENT_DIR)
-
+find_package(volk REQUIRED)
 # 2. Treat these includes as SYSTEM (ignores warnings in headers)
-target_include_directories(${LIB_NAME} SYSTEM PUBLIC ${PARENT_DIR} ${Slang_INCLUDE_DIR})
+target_include_directories(${LIB_NAME} SYSTEM PUBLIC ${PARENT_DIR} ${Slang_INCLUDE_DIR} ${Vulkan_INCLUDE_DIRS})
 
 target_link_libraries(
   ${LIB_NAME}
   PUBLIC 
-         core_lib
-         glm # Math library
-         volk # The Vulkan loader
-         vma # Vulkan Memory Allocator
-         fmt # Formatting library
-         offsetAllocator # OffsetAllocator library
-         Slang
+    core_lib
+    glm 
+    volk 
+    vma 
+    fmt 
+    offsetAllocator # OffsetAllocator library
+    Slang
 )
 
 target_precompile_headers(${LIB_NAME} PRIVATE
