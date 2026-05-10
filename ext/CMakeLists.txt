@@ -91,8 +91,12 @@ if(NOT TARGET imgui)
         # Backends
         "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
         "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
-        "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
-        "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+        # imgui_impl_vulkan is intentionally NOT included here.
+        # It must be compiled directly into the Vulkan rendering library (vk_backend)
+        # so that it shares the same statically-linked volk copy.  Including it here
+        # would cause volk's function-pointer globals to be duplicated across
+        # libapp_lib.so and libvk_render.so, leaving vkCreateInstance NULL in one of
+        # them and producing a SIGSEGV on the first Vulkan call.
         "${IMGUI_DIR}/backends/imgui_impl_opengl3_loader.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
@@ -115,11 +119,9 @@ if(NOT TARGET imgui)
         ${VOLK_DIR}/..
     )
 
-    # Link against GLFW and Volk
-    target_link_libraries(imgui PUBLIC glfw volk)
-
-    # Mandatory for ImGui to work with Volk
-    target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+    # Link against GLFW only; volk is NOT propagated through imgui because
+    # imgui_impl_vulkan.cpp is compiled directly into vk_backend instead.
+    target_link_libraries(imgui PUBLIC glfw)
 
     set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 endif()
