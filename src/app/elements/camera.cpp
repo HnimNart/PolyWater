@@ -137,14 +137,20 @@ void app::ElementCamera::onAttach(Application*)
 void app::ElementCamera::onUIRender()
 /**********************************************************/
 {
-  assert(m_cameraManip && "Missing setCamera");
-  updateCamera(m_cameraManip, ImGui::FindWindowByName("Viewport"));
+  // assert(m_cameraManip && "Missing setCamera");
+  if (m_cameraManip)
+  {
+    updateCamera(m_cameraManip, ImGui::FindWindowByName("Viewport"));
+  }
 }
 
 /**********************************************************/
 void app::ElementCamera::onResize(WindowSize size)
 /**********************************************************/
 {
-  assert(m_cameraManip && "Missing setCamera");
-  m_cameraManip->setWindowSize(size);
+  // assert(m_cameraManip && "Missing setCamera");
+  if (m_cameraManip)
+  {
+    m_cameraManip->setWindowSize(size);
+  }
 }
