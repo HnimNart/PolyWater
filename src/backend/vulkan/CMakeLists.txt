@@ -41,7 +41,6 @@ target_link_libraries(${LIB_NAME}
         nvvk   
     PRIVATE
         core_lib            
-        volk
         glm
         imgui
         vma

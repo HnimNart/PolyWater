@@ -1,6 +1,6 @@
 # This calls find_package(Vulkan), and finds some additional components that
 # CMake doesn't yet provide. Also prints out diagnostic information.
-find_package(Vulkan COMPONENTS glslangValidator)
+find_package(Vulkan COMPONENTS glslangValidator volk)
 get_filename_component(_Vulkan_LIB_DIR ${Vulkan_LIBRARY} DIRECTORY)
 set(_Vulkan_BIN_DIR ${Vulkan_INCLUDE_DIRS}/../bin)
 # Vulkan - Volk
