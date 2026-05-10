@@ -25,17 +25,16 @@ get_filename_component(NVVK_PARENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
 target_include_directories(${LIB_NAME} SYSTEM PUBLIC
     ${NVVK_PARENT_DIR}
     ${Slang_INCLUDE_DIR}
-    ${Vulkan_VOLK_DIR}
-    ${Vulkan_VOLK_DIR}/..
     ${Vulkan_INCLUDE_DIRS})
 
 
+find_package(volk CONFIG REQUIRED)
 target_link_libraries(
   ${LIB_NAME}
   PUBLIC 
     core_lib
     glm 
-    volk 
+    volk::volk 
     vma 
     fmt 
     offsetAllocator # OffsetAllocator library

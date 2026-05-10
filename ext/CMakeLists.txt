@@ -61,25 +61,7 @@ set_target_properties(${_VOLK_IMPORTED_TARGET} PROPERTIES
   MAP_IMPORTED_CONFIG_RELWITHDEBINFO  Release
 )
 
-# Keep a plain `volk` target name for existing link sites.
-if(NOT TARGET volk)
-  add_library(volk INTERFACE)
-  target_link_libraries(volk INTERFACE ${_VOLK_IMPORTED_TARGET})
-endif()
-if(NOT TARGET volk::volk)
-  add_library(volk::volk ALIAS volk)
-endif()
-
-# VK_NO_PROTOTYPES: suppress raw Vulkan prototypes so volk owns dispatch symbols.
-target_compile_definitions(volk INTERFACE VK_NO_PROTOTYPES)
-if(WIN32)
-  target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
-elseif(APPLE)
-  target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_METAL_EXT)
-else()
-  target_compile_definitions(volk INTERFACE VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
-  target_link_libraries(volk INTERFACE ${CMAKE_DL_LIBS})
-endif()
+add_library(volk ALIAS ${_VOLK_IMPORTED_TARGET})
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")

@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# 2. Vulkan Implementation (Shared Plugin)
+# Vulkan Implementation 
 # -------------------------------------------------------------------
 set(LIB_NAME vk_backend)
 
@@ -25,7 +25,7 @@ add_subdirectory(nvvk)
 
 
 # -------------------------------------------------------------------
-# 3. Linking & Include logic
+# Linking & Include logic
 # -------------------------------------------------------------------
 target_include_directories(${LIB_NAME}
     PUBLIC
@@ -35,13 +35,13 @@ target_include_directories(${LIB_NAME}
         ${Slang_INCLUDE_DIR}
 )
 
+find_package(volk CONFIG REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces
         nvvk   
     PRIVATE
         core_lib            
-        volk
         glm
         imgui
         vma

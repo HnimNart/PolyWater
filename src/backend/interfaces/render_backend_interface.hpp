@@ -1,7 +1,6 @@
 #pragma once
 
 #include <GLFW/glfw3.h>
-#include <volk/volk.h>
 
 #include <functional>
 #include <string>
@@ -10,14 +9,15 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 #include <cxxabi.h>
+
 #include <cstdlib>
 #endif
 
-#include "render_context_interface.hpp"
 #include "app/app_element_interface.hpp"
 #include "app/gui_system_interface.hpp"
-#include "core/types.hpp"
 #include "core/profiler.hpp"
+#include "core/types.hpp"
+#include "render_context_interface.hpp"
 
 //------------------------------------------------------------
 // IRenderBackend
@@ -85,11 +85,11 @@ public:
     if (timeline)
     {
       const std::string base = getName();
-      m_sectionNames.beginFrame  = base + "::beginFrame";
+      m_sectionNames.beginFrame = base + "::beginFrame";
       m_sectionNames.renderFrame = base + "::renderFrame";
-      m_sectionNames.endFrame    = base + "::endFrame";
-      m_sectionNames.present     = base + "::present";
-      m_sectionNames.advance     = base + "::advance";
+      m_sectionNames.endFrame = base + "::endFrame";
+      m_sectionNames.present = base + "::present";
+      m_sectionNames.advance = base + "::advance";
     }
 #endif
     doInitProfiler(timeline);
@@ -199,10 +199,7 @@ public:
     m_viewportSize = size;
   }
 
-  const WindowSize& getViewportSize() const
-  {
-    return m_viewportSize;
-  }
+  const WindowSize& getViewportSize() const { return m_viewportSize; }
   virtual void setWindow(GLFWwindow* windowHandle)
   {
     m_windowHandle = windowHandle;
@@ -211,10 +208,7 @@ public:
   {
     m_windowSize = windowSize;
   };
-  const WindowSize& getWindowSize() const
-  {
-    return m_windowSize;
-  }
+  const WindowSize& getWindowSize() const { return m_windowSize; }
 
   //----------------------------------------------------------
   // Utilities

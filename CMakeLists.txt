@@ -19,7 +19,7 @@ endif()
 # Disable C++20 module scanning 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/ext/vulkansdk/libs/cmake)
 
 
 # --- Path Setup ---

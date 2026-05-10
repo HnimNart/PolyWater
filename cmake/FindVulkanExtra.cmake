@@ -4,9 +4,6 @@ find_package(Vulkan COMPONENTS glslangValidator volk)
 get_filename_component(_Vulkan_LIB_DIR ${Vulkan_LIBRARY} DIRECTORY)
 set(_Vulkan_BIN_DIR ${Vulkan_INCLUDE_DIRS}/../bin)
 # Vulkan - Volk
-if(NOT Vulkan_VOLK_DIR)
-  find_path(Vulkan_VOLK_DIR volk.h HINTS ${Vulkan_INCLUDE_DIRS}/volk)
-endif()
 
 # Vulkan - VMA (Vulkan Memory Allocator)
 if(NOT Vulkan_VMA_DIR)
