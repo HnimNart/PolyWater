@@ -5,7 +5,6 @@
 #include <nvvk/profiler_vk.hpp>
 
 #include "app/gui_system_interface.hpp"
-#include "nvvk/queue.hpp"
 #include "render_backend_interface.hpp"
 #include "renderable_interface.hpp"
 #include "vulkan_context_manager.hpp"

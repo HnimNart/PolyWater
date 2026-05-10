@@ -40,32 +40,38 @@ endif()
 
 # volk
 find_package(VulkanExtra REQUIRED)
-set(VOLK_DIR ${Vulkan_VOLK_DIR})
-
-# Create a proper CMake IMPORTED STATIC target for volk backed by the SDK's
-# pre-compiled libvolk.a.  Without this, `target_link_libraries(... volk)`
-# emits `-lvolk` to the linker which fails because the SDK lib directory is
-# not in the default search path.  An IMPORTED target causes CMake to expand
-# the reference to the full library path, avoiding the -L / -lvolk lookup.
 if(NOT TARGET volk)
-  get_filename_component(_volk_lib_dir ${Vulkan_LIBRARY} DIRECTORY)
-  find_library(Vulkan_VOLK_LIBRARY NAMES volk HINTS ${_volk_lib_dir})
-  if(NOT Vulkan_VOLK_LIBRARY)
-    message(FATAL_ERROR
-      "Could not find libvolk in ${_volk_lib_dir}. "
-      "Make sure the Vulkan SDK is installed under ext/vulkansdk "
-      "(run scripts/install-vulkansdk.sh)."
-    )
+  if(Vulkan_VOLK_DIR)
+    set(VOLK_DIR ${Vulkan_VOLK_DIR})
+    message(STATUS "Using Vulkan::volk target from Vulkan package")
+  else()
+    set(VOLK_DIR ${CMAKE_CURRENT_LIST_DIR}/volk)
+    message(STATUS "Using fallback volk version")
   endif()
-  add_library(volk STATIC IMPORTED GLOBAL)
-  set_target_properties(volk PROPERTIES
-    IMPORTED_LOCATION "${Vulkan_VOLK_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${Vulkan_VOLK_DIR};${Vulkan_VOLK_DIR}/.."
-    INTERFACE_COMPILE_DEFINITIONS "VK_NO_PROTOTYPES"
-  )
+  
+  add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
+  add_library(volk::volk ALIAS volk)
+  target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
+
+  # --- Platform Specific Configuration ---
+  if(WIN32)
+    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+  elseif(APPLE)
+    # Apple uses Metal surfaces for Vulkan (via MoltenVK)
+    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
+    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+  else()
+    # Assume Linux/BSD (X11/XCB)
+    target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+    target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+  endif()
+
+  # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
+  # This is necessary because we are using volk to load Vulkan functions
+  target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
+
   set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 endif()
-
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")

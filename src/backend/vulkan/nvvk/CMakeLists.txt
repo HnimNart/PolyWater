@@ -21,15 +21,14 @@ endif()
 # -------------------------------------------------------------------
 # INCLUDES & LINKING
 # -------------------------------------------------------------------
+get_filename_component(NVVK_PARENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
 target_include_directories(${LIB_NAME} SYSTEM PUBLIC
-    ${PARENT_DIR}
+    ${NVVK_PARENT_DIR}
     ${Slang_INCLUDE_DIR}
     ${Vulkan_VOLK_DIR}
     ${Vulkan_VOLK_DIR}/..
     ${Vulkan_INCLUDE_DIRS})
 
-
-message(STATUS "############ xxxxxx ${Vulkan_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${LIB_NAME}

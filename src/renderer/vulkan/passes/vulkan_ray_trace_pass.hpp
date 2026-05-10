@@ -2,8 +2,9 @@
 
 #include <volk/volk.h>
 
-#include "nvvk/descriptors.hpp"
-#include "nvvk/sbt_generator.hpp"
+#include <nvvk/descriptors.hpp>
+#include <nvvk/sbt_generator.hpp>
+
 #include "renderer/interfaces/render_graph_interface.hpp"
 #include "renderer/vulkan/vulkan_acceleration_structures.hpp"
 
@@ -36,8 +37,9 @@ public:
   // Lifecycle
   // -------------------------------------------------------------------------
   VulkanRayTracePass(VulkanContextManager* contextManager,
-               const nvvk::DescriptorPack& descPack,
-               ShaderManager* materialManager, VulkanAccelerationStructures* accel);
+                     const nvvk::DescriptorPack& descPack,
+                     ShaderManager* materialManager,
+                     VulkanAccelerationStructures* accel);
   ~VulkanRayTracePass() = default;
 
   void init() override;
