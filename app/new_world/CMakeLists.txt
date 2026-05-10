@@ -17,23 +17,8 @@ add_executable(${PROJECT_NAME} ${EXE_SOURCES})
 # Link Dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE
     vk_render
-    common
-    # volk INTERFACE: propagates VK_NO_PROTOTYPES so that volk.c (added below)
-    # compiles correctly and does not conflict with vulkan.h prototypes.
-    volk
+    common             
 )
-
-# The executable is the canonical owner of the volk global function-pointer
-# table.  libvk_render.so and libapp_lib.so leave their volk references
-# undefined (shared libs allow this on Linux); at runtime GNU ld's dynamic
-# linker resolves those undefined references back to the symbols defined here.
-# --export-dynamic (Linux/BSD only) makes all global symbols in the executable
-# visible to dynamically-loaded DSOs so that the volk table is shared
-# process-wide.
-target_sources(${PROJECT_NAME} PRIVATE ${Vulkan_VOLK_DIR}/volk.c)
-if(UNIX AND NOT APPLE)
-    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--export-dynamic)
-endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   $<$<CONFIG:RelWithDebInfo>:PROFILE_APP>  

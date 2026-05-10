@@ -45,7 +45,7 @@ target_link_libraries(${LIB_NAME}
         backend_interfaces
         render_interfaces
         nvvk
-        volk  # INTERFACE: propagates VK_NO_PROTOTYPES and volk include dirs
+        volk  # libvolk.so: provides VK_NO_PROTOTYPES, include dirs, and default-visible volk symbols
     PRIVATE
         core_lib
         scene_lib
