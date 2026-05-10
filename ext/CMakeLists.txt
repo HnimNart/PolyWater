@@ -42,6 +42,30 @@ endif()
 find_package(VulkanExtra REQUIRED)
 set(VOLK_DIR ${Vulkan_VOLK_DIR})
 
+# Create a proper CMake IMPORTED STATIC target for volk backed by the SDK's
+# pre-compiled libvolk.a.  Without this, `target_link_libraries(... volk)`
+# emits `-lvolk` to the linker which fails because the SDK lib directory is
+# not in the default search path.  An IMPORTED target causes CMake to expand
+# the reference to the full library path, avoiding the -L / -lvolk lookup.
+if(NOT TARGET volk)
+  get_filename_component(_volk_lib_dir ${Vulkan_LIBRARY} DIRECTORY)
+  find_library(Vulkan_VOLK_LIBRARY NAMES volk HINTS ${_volk_lib_dir})
+  if(NOT Vulkan_VOLK_LIBRARY)
+    message(FATAL_ERROR
+      "Could not find libvolk in ${_volk_lib_dir}. "
+      "Make sure the Vulkan SDK is installed under ext/vulkansdk "
+      "(run scripts/install-vulkansdk.sh)."
+    )
+  endif()
+  add_library(volk STATIC IMPORTED GLOBAL)
+  set_target_properties(volk PROPERTIES
+    IMPORTED_LOCATION "${Vulkan_VOLK_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${Vulkan_VOLK_DIR};${Vulkan_VOLK_DIR}/.."
+    INTERFACE_COMPILE_DEFINITIONS "VK_NO_PROTOTYPES"
+  )
+  set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
+endif()
+
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
