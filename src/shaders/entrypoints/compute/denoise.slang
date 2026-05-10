@@ -1,15 +1,8 @@
-// ========================================================================
-// denoise.slang
-// ========================================================================
 #include "shared/structs.h" 
 
-// Input: Noisy HDR
 [[vk::binding(0, 0)]] Texture2D<float4> inImage;
-
-// Output: Clean HDR
 [[vk::binding(1, 0)]] RWTexture2D<float4> outImage;
 
-// Use your global push constant definition
 [[vk::push_constant]]
 ConstantBuffer<PushConstant> pc;
 
@@ -33,10 +26,8 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (pixelCoord.x >= width || pixelCoord.y >= height)
         return;
 
-    // Read the noisy color
     float4 centerColor4 = inImage[pixelCoord];
     
-    // If denoise is toggled off in UI, just copy the noisy pixel and exit!
     if (pc.renderParams.denoise == 0) {
         outImage[pixelCoord] = centerColor4;
         return;
@@ -45,7 +36,6 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 centerColor = centerColor4.rgb;
     float centerLuminance = getLuminance(centerColor);
 
-    // Read parameters from your global struct
     int blurRadius = (int)pc.renderParams.denoiseRadius;
     float spatialSigmaSq2 = 2.0 * pc.renderParams.denoiseSpatialSigma * pc.renderParams.denoiseSpatialSigma;
     float luminanceSigmaSq2 = 2.0 * pc.renderParams.denoiseLuminanceSigma * pc.renderParams.denoiseLuminanceSigma;

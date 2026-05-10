@@ -1,17 +1,11 @@
-# -------------------------------------------------------------------
-# Library: core_lib (Shared)
-# -------------------------------------------------------------------
 set(LIB_NAME core_lib)
 
-# 1. Collect Sources
-# Using GLOB_RECURSE to pick up shape/primitives.cpp and others
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS 
     "*.cpp" 
     "*.hpp" 
     "*.h"
 )
 
-# 2. Define Shared Library
 add_library(${LIB_NAME} SHARED ${CORE_SOURCES})
 
 target_link_libraries(${LIB_NAME}

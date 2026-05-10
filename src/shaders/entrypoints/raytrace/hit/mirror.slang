@@ -15,7 +15,6 @@ void rchit_mirror(inout HitPayload payload, in BuiltInTriangleIntersectionAttrib
     
     payload.weight *= albedo * bsdf.sample(hit.viewDir, hit.worldNormal, payload.seed, bounceDir);
 
-    // --- First-hit auxiliary data for denoiser ---
     if (payload.depth == 0)
     {
         payload.albedo = albedo;

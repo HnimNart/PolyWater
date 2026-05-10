@@ -1,7 +1,6 @@
 #ifndef VERTEX_FETCH_H_SLANG
 #define VERTEX_FETCH_H_SLANG 1
 
-// Generic function to retrieve vertex attributes from GLTF buffer data
 /**********************************************************/
 __generic<T : IFloat> T getAttribute(DevicePtr<uint8_t> dataBufferAddress,
                                      BufferView bufferView,
@@ -9,21 +8,18 @@ __generic<T : IFloat> T getAttribute(DevicePtr<uint8_t> dataBufferAddress,
 /**********************************************************/
 {
   if (bufferView.count > 0) {
-    // glTF spec: If byteStride is 0, the data is tightly packed.
-    // So the actual stride is the size of the data type (T).
+    // glTF spec: if byteStride is 0, data is tightly packed
     uint actualStride =
         bufferView.byteStride == 0 ? sizeof(T) : bufferView.byteStride;
 
-    // Calculate pointer to the specific attribute using the .at() method
     Ptr<T> ptr = (Ptr<T>)dataBufferAddress.at(bufferView.offset +
                                               attributeIndex * actualStride);
     return ptr[0];
   }
 
-  return T(1); // Error case - return default value
+  return T(1);
 }
 
-// Retrieve triangle vertex indices from the mesh index buffer
 /**********************************************************/
 __generic<T> int3 getTriangleIndices(DevicePtr<uint8_t> dataBufferAddress,
                                      const TriangleMesh mesh, int primitiveID,
@@ -32,7 +28,6 @@ __generic<T> int3 getTriangleIndices(DevicePtr<uint8_t> dataBufferAddress,
 {
   // 0 == VK_INDEX_TYPE_UINT16, 1 == VK_INDEX_TYPE_UINT32
   if (indexType == 0) {
-    // 16-bit indices
     Ptr<int16_t3> indices = dataBufferAddress.at<int16_t3>(mesh.indices.offset);
     return indices[primitiveID];
   } else if (indexType == 1) {
@@ -40,10 +35,9 @@ __generic<T> int3 getTriangleIndices(DevicePtr<uint8_t> dataBufferAddress,
     return indices[primitiveID];
   }
 
-  return int3(-1); // Error case - invalid index format
+  return int3(-1);
 }
 
-// Interpolate vertex attributes across a triangle using barycentric coordinates
 /**********************************************************/
 __generic<T : IFloat>
     T getTriangleAttribute(DevicePtr<uint8_t> dataBufferAddress,
@@ -59,19 +53,16 @@ __generic<T : IFloat>
          T(barycentrics.z) * attr2;
 }
 
-// Helper to fetch the GPUMeshlet struct from the raw buffer
 /**********************************************************/
 GPUMeshlet getMeshlet(DevicePtr<uint8_t> dataBufferAddress,
                       BufferView bufferView, uint meshletIndex)
 /**********************************************************/
 {
-  // Removed C-style cast, directly using Ptr<GPUMeshlet> from .at()
   Ptr<GPUMeshlet> ptr = (Ptr<GPUMeshlet>)dataBufferAddress.at(
       bufferView.offset + meshletIndex * bufferView.byteStride);
   return ptr[0];
 }
 
-// Helper to fetch the 32-bit global vertex index
 /**********************************************************/
 uint getMeshletVertex(DevicePtr<uint8_t> dataBufferAddress,
                       BufferView bufferView, uint elementIndex)
@@ -82,7 +73,6 @@ uint getMeshletVertex(DevicePtr<uint8_t> dataBufferAddress,
   return *ptr;
 }
 
-// Helper to fetch the tightly packed 8-bit local triangle index
 /**********************************************************/
 uint8_t getMeshletTriangle(DevicePtr<uint8_t> dataBufferAddress,
                            BufferView bufferView, uint elementIndex)
@@ -103,29 +93,23 @@ struct HitState {
   Material material;
 };
 
-// Helper to unpack everything
 /**********************************************************/
 HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
 /**********************************************************/
 {
   HitState s;
 
-  // Barycentrics
   float3 barycentrics = float3(1.0 - attr.barycentrics.x - attr.barycentrics.y,
                                attr.barycentrics.x, attr.barycentrics.y);
 
-  // IDs
   uint instanceID = InstanceIndex();
   uint triID = PrimitiveIndex();
 
-  // Fetch Resources 
   Ptr<SceneResources> sceneResources = pushConst.resourcesAddress.get();
   Instance instance = sceneResources->instances[instanceID];
   MeshPrimitive mesh = sceneResources->meshes[instance.meshIndex];
   s.material = sceneResources->materials[instance.materialIndex];
 
-  // 4. Interpolate Attributes
-  // We pass mesh.indexType to safely handle 16-bit vs 32-bit indices
   int3 indices = getTriangleIndices<int3>(mesh.buffer, mesh.triMesh, triID,
                                           mesh.indexType);
 
@@ -136,7 +120,6 @@ HitState getHitState(BuiltInTriangleIntersectionAttributes attr)
   s.uv = getTriangleAttribute<float2>(mesh.buffer, mesh.triMesh.texCoords,
                                       indices, barycentrics);
 
-  // 5. Transform to World Space
   s.worldPos = float3(mul(float4(s.pos, 1.0), ObjectToWorld4x3()));
   s.worldNormal = normalize(mul(WorldToObject4x3(), s.normal).xyz);
   s.viewDir = -WorldRayDirection();

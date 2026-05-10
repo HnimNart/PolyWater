@@ -4,6 +4,5 @@
 [shader("miss")] void main(inout ShadowPayload payload)
 /**********************************************************/
 {
-  payload.isHit =
-      false;  // If we reach the miss shader, nothing blocked the light
+  payload.isHit = false;
 }

@@ -5,7 +5,7 @@
 
 struct PushData {
     int isFirstPass;
-    int reductionOp; // 0: Max, 1: Min, 2: Avg
+    int reductionOp;
 };
 
 [[vk::push_constant]]
@@ -14,7 +14,6 @@ ConstantBuffer<PushData> pushConst;
 [[vk::binding(0, 0)]] Texture2D<float> inDepthMip;
 [[vk::binding(1, 0)]] RWTexture2D<float> outDepthMip;
 
-// Helper to perform the specific reduction
 /**********************************************************/
 float reduce(float d0, float d1, float d2, float d3, int op)
 /**********************************************************/
@@ -44,13 +43,11 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
 
     if (pushConst.isFirstPass == 1) 
     {
-        // Copy pass: high-res source to Mip 0
         float depth = inDepthMip.Load(int3(threadId.xy, 0)).r;
         outDepthMip[threadId.xy] = depth;
     } 
     else 
     {
-        // 2x2 Reduction pass
         int2 inPos = int2(threadId.xy * 2);
         float d0 = inDepthMip.Load(int3(inPos, 0)).r;
         float d1 = inDepthMip.Load(int3(inPos + int2(1, 0), 0)).r;
