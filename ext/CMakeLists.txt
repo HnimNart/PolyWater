@@ -39,29 +39,51 @@ endif()
 
 
 # volk
+#
+# IMPORTANT: volk MUST be built as a SHARED library.
+#
+# The Vulkan SDK ships a prebuilt static archive (libvolk.a).  If multiple
+# shared libraries in the same process each link that archive, the linker
+# copies the volk object code — and its global function-pointer table — into
+# every .so independently.  Due to ELF symbol interposition the dynamic linker
+# picks ONE canonical copy of each PFN_vkXxx global at load time.
+# volkInitialize() in one DSO writes to its own copy, while code in another
+# DSO calls through the "winning" (still-NULL) global → SIGSEGV.
+#
+# Building volk as a SHARED library ensures every DSO in the process resolves
+# all PFN_vkXxx globals to the same symbols (those in libvolk.so), so one call
+# to volkInitialize() initialises the table for the entire process.
 find_package(VulkanExtra REQUIRED)
-find_package(volk CONFIG REQUIRED)
 
-set(_VOLK_IMPORTED_TARGET "")
-if(TARGET volk::volk)
-  set(_VOLK_IMPORTED_TARGET volk::volk)
-elseif(TARGET Vulkan::volk)
-  set(_VOLK_IMPORTED_TARGET Vulkan::volk)
-elseif(TARGET volk)
-  set(_VOLK_IMPORTED_TARGET volk)
-else()
-  message(FATAL_ERROR "volk package found but no usable target was exported (expected volk::volk, Vulkan::volk, or volk).")
+if(NOT Vulkan_VOLK_DIR)
+  message(FATAL_ERROR
+    "Vulkan SDK volk source directory not found (Vulkan_VOLK_DIR is not set). "
+    "Make sure the Vulkan SDK is installed and the 'volk' component is present "
+    "in the SDK's include directory.")
 endif()
 
-# SDK volk ships as a single prebuilt library (no debug-specific binary), so map
-# non-Release configurations to Release.
-set_target_properties(${_VOLK_IMPORTED_TARGET} PROPERTIES
-  MAP_IMPORTED_CONFIG_DEBUG           Release
-  MAP_IMPORTED_CONFIG_MINSIZEREL      Release
-  MAP_IMPORTED_CONFIG_RELWITHDEBINFO  Release
-)
+add_library(volk SHARED ${Vulkan_VOLK_DIR}/volk.c)
+add_library(volk::volk ALIAS volk)
 
-add_library(volk ALIAS ${_VOLK_IMPORTED_TARGET})
+target_include_directories(volk PUBLIC ${Vulkan_VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
+target_compile_definitions(volk PUBLIC VK_NO_PROTOTYPES)
+
+if(WIN32)
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
+elseif(APPLE)
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_METAL_EXT)
+  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+else()
+  target_compile_definitions(volk PUBLIC VK_USE_PLATFORM_XCB_KHR VK_USE_PLATFORM_XLIB_KHR)
+  target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
+endif()
+
+if(MSVC)
+  target_compile_options(volk PRIVATE /W0)
+else()
+  target_compile_options(volk PRIVATE -w)
+endif()
+set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")

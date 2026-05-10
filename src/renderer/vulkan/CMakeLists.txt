@@ -42,7 +42,6 @@ target_include_directories(${LIB_NAME}
         ${Slang_INCLUDE_DIR}
 )
 
-find_package(volk CONFIG REQUIRED)
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces

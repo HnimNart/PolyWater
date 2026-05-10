@@ -28,7 +28,6 @@ target_include_directories(${LIB_NAME} SYSTEM PUBLIC
     ${Vulkan_INCLUDE_DIRS})
 
 
-find_package(volk CONFIG REQUIRED)
 target_link_libraries(
   ${LIB_NAME}
   PUBLIC 
