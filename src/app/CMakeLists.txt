@@ -1,6 +1,6 @@
 set(LIB_NAME app_lib)
 
-# 1. Update GLOB to include .mm files for macOS
+# Update GLOB to include .mm files for macOS
 file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS 
     "*.cpp" 
     "*.hpp" 
@@ -11,7 +11,7 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
 add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
 
 # -------------------------------------------------------------------
-# 2. Platform-specific setup for Apple (macOS)
+# Platform-specific setup for Apple (macOS)
 # -------------------------------------------------------------------
 if(APPLE)
     # Ensure .mm files are treated as Objective-C++
@@ -30,11 +30,13 @@ if(APPLE)
 endif()
 
 # -------------------------------------------------------------------
-# 3. Linking & Include logic
+# Linking & Include logic
 # -------------------------------------------------------------------
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
+        ${Vulkan_VOLK_DIR}
+        ${Vulkan_VOLK_DIR}/..
 )
 
 target_link_libraries(${LIB_NAME}
