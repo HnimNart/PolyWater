@@ -33,6 +33,8 @@ target_include_directories(${LIB_NAME}
         ${SHADER_OUTPUT_DIR}/../
         ${SHADER_OUTPUT_DIR}
         ${Slang_INCLUDE_DIR}
+        ${Vulkan_VOLK_DIR}
+        ${Vulkan_VOLK_DIR}/..
 )
 
 target_link_libraries(${LIB_NAME}

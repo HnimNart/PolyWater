@@ -6,7 +6,7 @@ file(GLOB LIB_SOURCES "*.cpp" "*.hpp")
 source_group("Source Files" FILES ${LIB_SOURCES})
 
 # Define the utils library
-add_library(${LIB_NAME} ${LIB_SOURCES})
+add_library(${LIB_NAME} STATIC ${LIB_SOURCES})
 
 # -------------------------------------------------------------------
 # WARNING SUPPRESSION (NEW)
@@ -25,7 +25,10 @@ get_filename_component(NVVK_PARENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
 target_include_directories(${LIB_NAME} SYSTEM PUBLIC
     ${NVVK_PARENT_DIR}
     ${Slang_INCLUDE_DIR}
-    ${Vulkan_INCLUDE_DIRS})
+    ${Vulkan_INCLUDE_DIRS}
+    ${Vulkan_VOLK_DIR}
+    ${Vulkan_VOLK_DIR}/..
+    )
 
 
 target_link_libraries(
@@ -33,7 +36,7 @@ target_link_libraries(
   PUBLIC 
     core_lib
     glm 
-    volk::volk 
+    volk 
     vma 
     fmt 
     offsetAllocator # OffsetAllocator library

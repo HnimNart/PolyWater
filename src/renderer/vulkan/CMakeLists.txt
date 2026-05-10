@@ -7,7 +7,7 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
     "*.cpp" "*.hpp" "*.h"
 )
 
-add_library(${LIB_NAME} SHARED ${PLUGIN_SOURCES})
+add_library(${LIB_NAME} STATIC ${PLUGIN_SOURCES})
 
 
 
@@ -40,8 +40,9 @@ target_include_directories(${LIB_NAME}
         ${SHADER_OUTPUT_DIR}/../
         ${SHADER_OUTPUT_DIR}
         ${Slang_INCLUDE_DIR}
+        ${Vulkan_VOLK_DIR}
+        ${Vulkan_VOLK_DIR}/..
 )
-
 target_link_libraries(${LIB_NAME}
     PUBLIC
         backend_interfaces
