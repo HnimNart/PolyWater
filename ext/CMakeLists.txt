@@ -49,8 +49,18 @@ if(NOT TARGET volk)
     message(STATUS "Using fallback volk version")
   endif()
   
-  add_library(volk STATIC ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
+  # Build volk as a SHARED library so there is exactly ONE set of global
+  # function-pointer variables (vkCreateInstance, etc.) in the process at
+  # runtime. If volk were a STATIC library it would be copied into every
+  # SHARED library that links against it; Linux symbol interposition would
+  # then route `volkInitialize()` to one copy while `vkCreateInstance` in
+  # another copy remained NULL, causing a SIGSEGV on the first Vulkan call.
+  add_library(volk SHARED ${VOLK_DIR}/volk.h ${VOLK_DIR}/volk.c)
   add_library(volk::volk ALIAS volk)
+  # Make all volk symbols visible so the dynamic linker can deduplicate them.
+  if(NOT MSVC)
+    target_compile_options(volk PRIVATE -fvisibility=default)
+  endif()
   target_include_directories(volk PUBLIC ${VOLK_DIR} ${Vulkan_INCLUDE_DIRS})
 
   # --- Platform Specific Configuration ---
