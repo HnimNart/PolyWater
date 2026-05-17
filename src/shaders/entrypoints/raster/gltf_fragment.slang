@@ -1,5 +1,3 @@
-// gltf_fragment.slang
-
 #include "gltf_shared.h.slang"
 #include "include/bsdf/pbr.h.slang"
 #include "include/light/lights.h.slang"
@@ -17,7 +15,6 @@
   PSout output;
   float3 finalColor = float3(0);
 
-  // Switch based on the hit_group (MaterialType)
   switch ((MaterialType)instance.hit_group) {
   case MaterialType::eDiffuse: {
     finalColor = stage.debugColor.rgb;
@@ -31,14 +28,12 @@
 
   case MaterialType::eGltfPbr:
   default: {
-    // Standard PBR path
     LightSample light = sampleLight(sceneInfo, stage.worldPos);
 
     float3 V = normalize(sceneInfo->cameraPosition - stage.worldPos);
     float3 N = normalize(stage.worldNormal);
     float3 L = normalize(light.direction);
 
-    // Get base color from material or texture
     float3 albedo = material.baseColorFactor.xyz;
     if (material.baseColorTextureIndex > 0) {
       albedo *= textures[material.baseColorTextureIndex]
@@ -49,11 +44,9 @@
     float metallic = material.metallicFactor;
     float roughness = material.roughnessFactor;
 
-    // PBR Calculation
     float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
     color *= light.color * light.intensity;
 
-    // Ambient / Sky
     float3 ambient = sceneInfo->backgroundColor;
     if (sceneInfo->useSky == 1) {
       float3 skyUpDir = float3(0, 1, 0);

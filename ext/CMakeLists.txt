@@ -1,11 +1,7 @@
-# This CMake file sets up targets for all third-party libraries included within
-# this folder.
 project(third_party LANGUAGES C CXX)
 
-# We want static libraries for all packages defined here.
 set(BUILD_SHARED_LIBS ON)
 
-# Speed up CMake configuration by setting some properties if we recognize the toolchain.
 include(SetKnownToolchainProperties.cmake)
 
 # dxh
@@ -28,7 +24,6 @@ if(NOT TARGET glfw)
   set(GLFW_INSTALL OFF)
   add_subdirectory(glfw)
   target_include_directories(glfw SYSTEM INTERFACE glfw/include)
-# 3. Suppress warnings during the compilation of GLFW's .c files
   if(MSVC)
     target_compile_options(glfw PRIVATE /W0)
   else()
@@ -38,23 +33,7 @@ if(NOT TARGET glfw)
 endif()
 
 
-# volk (STATIC — built from SDK source)
-#
-# volk is compiled from the SDK's own volk.c and linked as a STATIC archive.
-# Using find_package(volk CONFIG) is intentionally avoided: the SDK's
-# volkConfig.cmake propagates a plain "-lvolk" linker flag rather than a full
-# archive path, which fails unless libvolk.a happens to be in a standard
-# system search directory.
-#
-# Building from source gives CMake the exact output path of the archive, so
-# the full path (e.g. lib/Release/libvolk.a) is passed on every link line —
-# no "-lvolk" flag, no search-path dependency.
-#
-# One copy of volk globals in the process is guaranteed as long as every
-# library that consumes volk (nvvk, vk_backend, vk_render) is also STATIC:
-# the linker folds them all into the final executable (or the outermost shared
-# library) and produces exactly one instance of each PFN_vkXxx pointer.
-# If any consumer becomes SHARED again, switch volk to SHARED as well.
+# volk
 find_package(VulkanExtra REQUIRED)
 if(NOT Vulkan_VOLK_DIR)
   message(FATAL_ERROR
@@ -113,21 +92,17 @@ if(NOT TARGET imgui)
 
     add_library(imgui STATIC ${IMGUI_FILES})
 
-    # 1. Silence warnings for ImGui's source files
     if(MSVC)
         target_compile_options(imgui PRIVATE /W0)
     else()
         target_compile_options(imgui PRIVATE -w)
     endif()
 
-    # 2. Treat the include directories as SYSTEM
     target_include_directories(imgui SYSTEM PUBLIC 
         ${IMGUI_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # Link against GLFW only; volk is NOT propagated through imgui because
-    # imgui_impl_vulkan.cpp is compiled directly into vk_backend instead.
     target_link_libraries(imgui PUBLIC glfw volk)
     target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
 
@@ -215,20 +190,17 @@ endif()
 if(NOT TARGET tinygltf)
   set(TINYGLTF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinygltf)
   
-  # INTERFACE libraries don't compile .cpp files, so we just manage the headers
   add_library(tinygltf INTERFACE)
   
-  # 1. Use SYSTEM to tell the compiler to ignore warnings in these headers
   target_include_directories(tinygltf SYSTEM INTERFACE 
     ${TINYGLTF_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR} 
     ${STB_DIR}
   )
 
-  # 2. Add definitions to reduce 'json.hpp' noise and disable exceptions if desired
   target_compile_definitions(tinygltf INTERFACE 
-    TINYGLTF_NO_STB_IMAGE_WRITE  # Optional: skip writing if not needed
-    JSON_NOEXCEPTION             # Reduces overhead and warnings in nlohmann/json
+    TINYGLTF_NO_STB_IMAGE_WRITE
+    JSON_NOEXCEPTION
   )
 
   set_property(TARGET tinygltf PROPERTY FOLDER "ThirdParty")
@@ -264,19 +236,8 @@ if(NOT TARGET vma)
     message(FATAL_ERROR "Vulkan SDK VMA not found. Please install the Vulkan SDK into ext/vulkansdk (run scripts/install-vulkansdk.sh).")
   endif()
   add_library(vma INTERFACE)
-  # The VulkanSDK places vk_mem_alloc.h in include/vma/; expose that directory
-  # so consumers can #include <vk_mem_alloc.h> as before.
   target_include_directories(vma SYSTEM INTERFACE ${Vulkan_VMA_DIR})
 
-  # vk_mem_alloc.h internally includes <vulkan/vulkan.h>.  Without
-  # VK_NO_PROTOTYPES, Vulkan function declarations (VKAPI_CALL prototypes) are
-  # emitted there, which then conflict with volk.h's extern PFN_xxx definitions
-  # when both are included in the same translation unit.  Propagate
-  # VK_NO_PROTOTYPES so every consumer of vk_mem_alloc.h skips the prototype
-  # block, allowing volk to be the sole provider of Vulkan function symbols.
-  # VMA_STATIC_VULKAN_FUNCTIONS=0 + VMA_DYNAMIC_VULKAN_FUNCTIONS=1 tells VMA to
-  # load function pointers at runtime via volkLoadDevice / volkLoadInstance
-  # rather than using statically-linked Vulkan loader functions.
   target_compile_definitions(vma INTERFACE
     VK_NO_PROTOTYPES
     VMA_STATIC_VULKAN_FUNCTIONS=0
@@ -304,14 +265,12 @@ if(NOT TARGET offsetAllocator)
     ${OFFSETALLOCATOR_DIR}/offsetAllocator.hpp
   )
 
-  # 1. Silence warnings during compilation of the .cpp file
   if(MSVC)
     target_compile_options(offsetAllocator PRIVATE /W0)
   else()
     target_compile_options(offsetAllocator PRIVATE -w)
   endif()
 
-  # 2. Treat the include directory as SYSTEM to silence header warnings in consumers
   target_include_directories(offsetAllocator SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
   set_property(TARGET offsetAllocator PROPERTY FOLDER "ThirdParty")
@@ -334,24 +293,17 @@ if(NOT TARGET basisu)
   
   add_library(basisu STATIC ${_BASISU_FILES})
 
-  # -------------------------------------------------------------------
-  # WARNING SUPPRESSION (NEW)
-  # -------------------------------------------------------------------
-  # 1. Silence warnings when compiling basisu's own source files
   if(MSVC)
     target_compile_options(basisu PRIVATE /W0)
   else()
     target_compile_options(basisu PRIVATE -w)
   endif()
 
-  # 2. Treat basisu headers as SYSTEM for your project
   target_include_directories(basisu SYSTEM INTERFACE 
     "${_BASISU_DIR}/transcoder" 
     "${_BASISU_DIR}/encoder"
   )
-  # -------------------------------------------------------------------
 
-  # Keep your existing definitions...
   target_compile_definitions(basisu PRIVATE
     BASISD_SUPPORT_ATC=0
     BASISD_SUPPORT_DXT1=0
@@ -362,7 +314,6 @@ if(NOT TARGET basisu)
     BASISD_SUPPORT_PVRTC2=0
   )
 
-  # ... and your existing POSIX/SSE logic
   if(WIN32 AND NOT MSVC)
     add_compile_definitions(_CRT_NONSTDC_NO_DEPRECATE _CRT_INSECURE_NO_DEPRECATE)
   endif()
@@ -389,7 +340,6 @@ endif()
 # NVTX
 if (NOT TARGET nvtx3-cpp AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/NVTX/c/CMakeLists.txt)
   add_subdirectory(NVTX/c)
-  # Set folder property for NVTX targets if they exist
   if(TARGET nvtx3-cpp)
     set_property(TARGET nvtx3-cpp PROPERTY FOLDER "ThirdParty")
   endif()
@@ -408,14 +358,12 @@ if (NOT TARGET meshoptimizer)
 
   add_subdirectory(meshoptimizer)
 
-  # 1. Silence warnings when compiling meshoptimizer.cpp
   if(MSVC)
     target_compile_options(meshoptimizer PRIVATE /W0)
   else()
     target_compile_options(meshoptimizer PRIVATE -w)
   endif()
 
-  # 2. Treat the public headers (in src/) as SYSTEM to silence consumer warnings
   target_include_directories(meshoptimizer SYSTEM INTERFACE 
     "${CMAKE_CURRENT_SOURCE_DIR}/meshoptimizer/src"
   )

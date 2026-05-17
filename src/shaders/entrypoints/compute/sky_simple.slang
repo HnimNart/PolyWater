@@ -21,11 +21,10 @@
 
 #include "include/light/sky_functions.h.slang"
 
-// Push Constant block (combined struct to match Vulkan)
 struct PushConstants
 {
     SkySimpleParameters skyParams;
-    float4x4 transformMatrix; // This starts at offset sizeof(SkySimpleParameters)
+    float4x4 transformMatrix;
 };
 
 // clang-format off
@@ -50,10 +49,8 @@ void main(uint3 globalThreadID: SV_DispatchThreadID)
     float4 transformed = mul(float4(screenPos, 1.0F, 1.0F), pushConst.transformMatrix);
     float3 rayDir = normalize(transformed.xyz);
 
-    // Evaluate sky color
     float3 skyColor = evalSimpleSky(pushConst.skyParams, rayDir);
 
-    // Store result
     outImage[int2(globalThreadID.xy)] = float4(skyColor, 1);
 }
 

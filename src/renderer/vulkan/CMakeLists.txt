@@ -1,6 +1,3 @@
-# -------------------------------------------------------------------
-# Vulkan Implementation (Shared Plugin)
-# -------------------------------------------------------------------
 set(LIB_NAME vk_render)
 
 file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS 
@@ -9,13 +6,9 @@ file(GLOB_RECURSE PLUGIN_SOURCES CONFIGURE_DEPENDS
 
 add_library(${LIB_NAME} STATIC ${PLUGIN_SOURCES})
 
-
-
-# Link it to your project (Replace 'VulkanRenderer' with your actual target name!)
 include(DownloadOIDN)
 target_link_libraries(${LIB_NAME} PRIVATE OpenImageDenoise)
 
-# On Windows, the .dll files must be next to your .exe to run.
 if(WIN32)
     add_custom_command(TARGET VulkanRenderer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -30,10 +23,6 @@ if(WIN32)
     )
 endif()
 
-# -------------------------------------------------------------------
-# Linking & Include logic
-# -------------------------------------------------------------------
-# volk is already defined by ext/CMakeLists.txt; no find_package needed.
 target_include_directories(${LIB_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>

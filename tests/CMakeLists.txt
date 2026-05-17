@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 
-# Allow tests to be built as a standalone project or as part of the main build
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(VulkanRendererTests CXX)
     set(TESTS_STANDALONE TRUE)
@@ -17,7 +16,6 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
 )
 
-# Prevent GoogleTest from overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -30,7 +28,6 @@ enable_testing()
 
 set(CORE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src/core")
 
-# Collect all test source files
 set(TEST_SOURCES
     test_math.cpp
     test_frustum.cpp
@@ -40,8 +37,6 @@ set(TEST_SOURCES
     test_string_utils.cpp
 )
 
-# When building standalone, compile the required core sources directly
-# (avoids pulling in the full Vulkan/Slang/GLFW build graph)
 if(TESTS_STANDALONE)
     list(APPEND TEST_SOURCES
         ${CORE_SRC_DIR}/math.cpp
@@ -56,7 +51,6 @@ add_executable(unit_tests ${TEST_SOURCES})
 target_compile_features(unit_tests PRIVATE cxx_std_20)
 
 if(TESTS_STANDALONE)
-    # Fetch glm when standalone
     FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -65,7 +59,6 @@ if(TESTS_STANDALONE)
     )
     FetchContent_MakeAvailable(glm)
 
-    # Fetch fmt when standalone
     FetchContent_Declare(
         fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -94,13 +87,10 @@ if(TESTS_STANDALONE)
             GLM_FORCE_RADIANS
             GLM_ENABLE_EXPERIMENTAL
             GLM_FORCE_XYZW_ONLY
-            # Provide a dummy ROOT_DIR for logger/profiler if needed
             ROOT_DIR=\"/\"
-            # Disable profiling macros that require Vulkan/NVTX
             PROFILE_APP
     )
 else()
-    # When part of the main build, reuse already-defined targets
     target_link_libraries(unit_tests
         PRIVATE
             gtest_main

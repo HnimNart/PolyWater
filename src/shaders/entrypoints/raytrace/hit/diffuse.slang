@@ -1,9 +1,6 @@
 #include "entrypoints/raytrace/ray_common.h.slang"
 #include "include/bsdf/diffuse.h.slang"
 
-//-----------------------------------------------------------------------
-// DIFFUSE CLOSEST HIT SHADER - Path Tracing + NEE
-//-----------------------------------------------------------------------
 /**********************************************************/
 [shader("closesthit")] void
 rchit_diffuse(inout HitPayload payload,
@@ -23,29 +20,24 @@ rchit_diffuse(inout HitPayload payload,
     albedo *= textures[material.baseColorTextureIndex].SampleLevel(uv, 0).xyz;
   }
 
-  // --- EMISSIVE ACCUMULATION ---
   float3 emissive = material.emission;
   payload.color += emissive * payload.weight;
 
-  // --- First-hit auxiliary data for denoiser ---
   if (payload.depth == 0)
   {
     payload.albedo = albedo;
     payload.normal = worldNormal;
   }
 
-  // --- Direct Lighting ---
   SceneInfo *sceneInfo = pushConst.sceneInfoAddress.get();
   DiffuseEvaluator bsdf = DiffuseEvaluator(albedo);
   LightRaySample sample = sampleDirectLightingPowerCDF(
       sceneInfo, worldPos, worldNormal, bsdf, payload.seed);
   payload.color += sample.light * payload.weight;
 
-  // --- INDIRECT BOUNCE ---
   float3 bounceDir;
   payload.weight *= bsdf.sample(viewDir, worldNormal, payload.seed, bounceDir);
 
-  // --- PREPARE NEXT RAY ---
   payload.nextRayOrigin = worldPos;
   payload.nextRayDir = normalize(bounceDir);
   payload.stop = false;
