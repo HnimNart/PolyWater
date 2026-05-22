@@ -28,7 +28,9 @@ enum BindRayTrace
 enum BindRaster
 {
   eHiZTexture = 0,
-  eHiZSampler = 1
+  eHiZSampler = 1,
+  eShadowMap = 2,
+  eShadowSampler = 3
 };
 
 #ifndef __cplusplus
@@ -38,6 +40,10 @@ enum BindRaster
 
 // --- SHARED GLOBALS ---
 [[vk::binding(BindGlobal::eTextures, 0)]] Sampler2D textures[];
+
+// --- RASTER PASS SET 1 ---
+[[vk::binding(BindRaster::eShadowMap, 1)]] Texture2D<float> shadowMap;
+[[vk::binding(BindRaster::eShadowSampler, 1)]] SamplerComparisonState shadowSampler;
 
 // clang-format on
 #endif

@@ -49,6 +49,16 @@ void VulkanMeshletPass::init()
                            .descriptorCount = 1,
                            .stageFlags = VK_SHADER_STAGE_TASK_BIT_EXT});
 
+  passBindings.addBinding({.binding         = shaderio::BindRaster::eShadowMap,
+                            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                            .descriptorCount = 1,
+                            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT});
+
+  passBindings.addBinding({.binding         = shaderio::BindRaster::eShadowSampler,
+                            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
+                            .descriptorCount = 1,
+                            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT});
+
   m_passDescPack.init(passBindings, m_context_manager->getDevice(), 0,
                       VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
   // -------------------------------------------------------------
@@ -182,25 +192,48 @@ void VulkanMeshletPass::execute(IRenderContext& ctx)
       .pDescriptorSets = m_descPack.getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
 
-  // --- PUSH SET 1 (Hi-Z Pass Data) ---
-  if (m_hiZTexture && m_hiZTexture->image != VK_NULL_HANDLE)
+  // --- PUSH SET 1 (Hi-Z Pass Data + Shadow Map) ---
   {
-    VkDescriptorImageInfo hizTexInfo = {
-        VK_NULL_HANDLE, m_hiZTexture->descriptor.imageView,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-
-    VkDescriptorImageInfo hizSampInfo = {m_hiZTexture->descriptor.sampler,
-                                         VK_NULL_HANDLE,
-                                         VK_IMAGE_LAYOUT_UNDEFINED};
-
     nvvk::WriteSetContainer write{};
-    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZTexture),
-                 &hizTexInfo);
-    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZSampler),
-                 &hizSampInfo);
 
-    vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineLayout, 1, write.size(), write.data());
+    if (m_hiZTexture && m_hiZTexture->image != VK_NULL_HANDLE)
+    {
+      VkDescriptorImageInfo hizTexInfo = {
+          VK_NULL_HANDLE, m_hiZTexture->descriptor.imageView,
+          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+
+      VkDescriptorImageInfo hizSampInfo = {m_hiZTexture->descriptor.sampler,
+                                            VK_NULL_HANDLE,
+                                            VK_IMAGE_LAYOUT_UNDEFINED};
+
+      write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZTexture),
+                   &hizTexInfo);
+      write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eHiZSampler),
+                   &hizSampInfo);
+    }
+
+    if (m_shadowMap != nullptr && m_shadowMap->image != VK_NULL_HANDLE
+        && m_shadowSampler != VK_NULL_HANDLE)
+    {
+      VkDescriptorImageInfo shadowTexInfo{
+          VK_NULL_HANDLE,
+          m_shadowMap->descriptor.imageView,
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
+
+      VkDescriptorImageInfo shadowSampInfo{
+          m_shadowSampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
+
+      write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eShadowMap),
+                   &shadowTexInfo);
+      write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eShadowSampler),
+                   &shadowSampInfo);
+    }
+
+    if (write.size() > 0)
+    {
+      vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 m_pipelineLayout, 1, write.size(), write.data());
+    }
   }
 
   // ** BEGIN RENDERING **

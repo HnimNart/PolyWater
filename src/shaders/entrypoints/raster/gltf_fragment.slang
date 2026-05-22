@@ -3,6 +3,41 @@
 #include "include/light/lights.h.slang"
 #include "shared/structs.h"
 
+static const float kShadowBias     = 0.005f;
+static const float kShadowTexelSize = 1.0f / 2048.0f;
+
+/**********************************************************/
+float samplePCF(SceneInfo* sceneInfo, float3 worldPos)
+/**********************************************************/
+{
+  if (sceneInfo->hasShadowMap == 0)
+    return 1.0f;
+
+  float4 lightClip = mul(float4(worldPos, 1.0f), sceneInfo->lightViewProjMatrix);
+  float3 ndc = lightClip.xyz / lightClip.w;
+
+  // Remap XY from [-1,1] to [0,1]; Vulkan Y is already top-down
+  float2 uv = ndc.xy * 0.5f + 0.5f;
+
+  // Discard fragments outside the light frustum
+  if (any(uv < float2(0.0f)) || any(uv > float2(1.0f)))
+    return 1.0f;
+
+  float currentDepth = ndc.z - kShadowBias;
+
+  // 3x3 PCF kernel using hardware comparison sampling
+  float shadow = 0.0f;
+  for (int x = -1; x <= 1; x++)
+  {
+    for (int y = -1; y <= 1; y++)
+    {
+      float2 offset = float2(x, y) * kShadowTexelSize;
+      shadow += shadowMap.SampleCmpLevelZero(shadowSampler, uv + offset, currentDepth);
+    }
+  }
+  return shadow / 9.0f;
+}
+
 /**********************************************************/
 [shader("pixel")] PSout fragmentMain(FragmentInput stage)
 /**********************************************************/
@@ -46,6 +81,9 @@
 
     float3 color = pbrMetallicRoughness(albedo, metallic, roughness, N, V, L);
     color *= light.color * light.intensity;
+
+    float shadowFactor = samplePCF(sceneInfo, stage.worldPos);
+    color *= shadowFactor;
 
     float3 ambient = sceneInfo->backgroundColor;
     if (sceneInfo->useSky == 1) {

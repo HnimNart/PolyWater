@@ -9,9 +9,6 @@
 #include "include/light/lights.h.slang"
 #include "include/core/color.h.slang"
 
-[[vk::binding(BindRaster::eHiZTexture, 1)]] Texture2D<float> hiZTexture;
-[[vk::binding(BindRaster::eHiZSampler, 1)]] SamplerState hiZSampler;
-
 
 struct FragmentInput
 {

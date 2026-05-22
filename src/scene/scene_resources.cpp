@@ -12,6 +12,7 @@
 #include <core/logger.hpp>
 #include <core/path_utils.hpp>
 #include <core/string_utils.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include "core/path_utils.hpp"
@@ -558,6 +559,60 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
   for (int i = 0; i < 6; ++i)
   {
     m_scene_resources.sceneInfo.frustumPlanes[i] = cameraFrustum.planes[i];
+  }
+
+  // Compute light-space view-projection matrix for shadow mapping.
+  // Use the sun direction when sky is active, otherwise the first directional light.
+  auto& si = m_scene_resources.sceneInfo;
+  glm::vec3 lightDir;
+  bool hasLight = false;
+
+  if (si.useSky == 1)
+  {
+    lightDir = glm::normalize(glm::vec3(si.skySimpleParam.sunDirection));
+    hasLight = true;
+  }
+  else
+  {
+    for (int i = 0; i < si.numLights; ++i)
+    {
+      if (si.punctualLights[i].type == LightType::eDirectional)
+      {
+        lightDir = glm::normalize(glm::vec3(si.punctualLights[i].direction));
+        hasLight = true;
+        break;
+      }
+    }
+  }
+
+  if (hasLight)
+  {
+    // Build a stable up vector that is not parallel to lightDir.
+    glm::vec3 up =
+        (std::abs(glm::dot(lightDir, glm::vec3(0.0f, 1.0f, 0.0f))) > 0.99f)
+            ? glm::vec3(1.0f, 0.0f, 0.0f)
+            : glm::vec3(0.0f, 1.0f, 0.0f);
+
+    // Shadow frustum: 50-unit radius ortho box centered on the camera position.
+    static constexpr float kShadowRadius = 50.0f;
+    static constexpr float kShadowDepth  = 200.0f;
+
+    glm::vec3 center = camera->getEye();
+    glm::vec3 eye    = center - lightDir * (kShadowDepth * 0.5f);
+
+    glm::mat4 lightView = glm::lookAt(eye, center, up);
+
+    // Vulkan clip space: Z in [0,1], Y pointing down — use RH + zero-to-one ortho.
+    glm::mat4 lightProj = glm::orthoRH_ZO(-kShadowRadius, kShadowRadius,
+                                           -kShadowRadius, kShadowRadius,
+                                           0.1f, kShadowDepth);
+
+    si.lightViewProjMatrix = lightProj * lightView;
+    si.hasShadowMap        = 1;
+  }
+  else
+  {
+    si.hasShadowMap = 0;
   }
 }
 

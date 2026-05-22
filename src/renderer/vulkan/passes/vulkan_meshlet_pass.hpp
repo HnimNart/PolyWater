@@ -51,6 +51,13 @@ public:
   void reload();
   void resize(VkCommandBuffer cmd, VkExtent2D size);
 
+  // Set the shadow map produced by VulkanShadowPass.
+  void setShadowMap(const nvvk::Image* shadowMap, VkSampler compareSampler)
+  {
+    m_shadowMap     = shadowMap;
+    m_shadowSampler = compareSampler;
+  }
+
 private:
   void createPipelineLayout(VkDevice device);
   void clearShaders();
@@ -62,6 +69,10 @@ private:
   nvvk::DescriptorPack m_passDescPack;
   VkPipelineLayout m_pipelineLayout{};
   const nvvk::Image* m_hiZTexture = nullptr;
+
+  // Shadow map resources (provided by VulkanShadowPass)
+  const nvvk::Image* m_shadowMap     = nullptr;
+  VkSampler          m_shadowSampler = VK_NULL_HANDLE;
 
   VkShaderEXT m_taskShader{};
   VkShaderEXT m_meshShader{};

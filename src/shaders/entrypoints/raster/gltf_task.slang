@@ -1,5 +1,9 @@
 #include "gltf_shared.h.slang"
 
+// Hi-Z texture bindings used for occlusion culling in the task shader.
+[[vk::binding(BindRaster::eHiZTexture, 1)]] Texture2D<float> hiZTexture;
+[[vk::binding(BindRaster::eHiZSampler, 1)]] SamplerState hiZSampler;
+
 groupshared MeshTaskPayload sharedPayload;
 groupshared uint groupSurvivorCount;
 

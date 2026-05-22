@@ -39,6 +39,19 @@ VulkanRasterPass::VulkanRasterPass(
 void VulkanRasterPass::init()
 /**********************************************************/
 {
+  // SET 1: shadow map (push descriptor set — no allocation needed)
+  nvvk::DescriptorBindings passBindings;
+  passBindings.addBinding({.binding         = shaderio::BindRaster::eShadowMap,
+                            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                            .descriptorCount = 1,
+                            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT});
+  passBindings.addBinding({.binding         = shaderio::BindRaster::eShadowSampler,
+                            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
+                            .descriptorCount = 1,
+                            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT});
+  m_passDescPack.init(passBindings, m_context_manager->getDevice(), 0,
+                      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
+
   createPipelineLayout(m_context_manager->getDevice());
   compileShaders();
 }
@@ -50,6 +63,7 @@ void VulkanRasterPass::deinit()
   vkDestroyPipelineLayout(m_context_manager->getDevice(), m_pipelineLayout,
                           nullptr);
   clearShaders();
+  m_passDescPack.deinit();
 }
 
 /**********************************************************/
@@ -140,6 +154,28 @@ void VulkanRasterPass::execute(IRenderContext& ctx)
       .descriptorSetCount = 1,
       .pDescriptorSets = m_descPack.getSetPtr()};
   vkCmdBindDescriptorSets2(cmd, &bindDescriptorSetsInfo);
+
+  // Push SET 1 (shadow map + comparison sampler)
+  if (m_shadowMap != nullptr && m_shadowMap->image != VK_NULL_HANDLE
+      && m_shadowSampler != VK_NULL_HANDLE)
+  {
+    VkDescriptorImageInfo shadowTexInfo{
+        VK_NULL_HANDLE,
+        m_shadowMap->descriptor.imageView,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
+
+    VkDescriptorImageInfo shadowSampInfo{
+        m_shadowSampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
+
+    nvvk::WriteSetContainer write{};
+    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eShadowMap),
+                 &shadowTexInfo);
+    write.append(m_passDescPack.makeWrite(shaderio::BindRaster::eShadowSampler),
+                 &shadowSampInfo);
+
+    vkCmdPushDescriptorSetKHR(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                               m_pipelineLayout, 1, write.size(), write.data());
+  }
 
   // ** BEGIN RENDERING **
   vkCmdBeginRendering(cmd, &renderingInfo);
@@ -253,10 +289,13 @@ void VulkanRasterPass::createPipelineLayout(VkDevice device)
       .offset = 0,
       .size = sizeof(shaderio::PushConstant)};
 
+  VkDescriptorSetLayout layouts[] = {m_descPack.getLayout(),
+                                      m_passDescPack.getLayout()};
+
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 1,
-      .pSetLayouts = m_descPack.getLayoutPtr(),
+      .setLayoutCount = 2,
+      .pSetLayouts = layouts,
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };
@@ -291,12 +330,15 @@ void VulkanRasterPass::compileShaders()
       .size = sizeof(shaderio::PushConstant),
   };
 
+  VkDescriptorSetLayout layouts[] = {m_descPack.getLayout(),
+                                      m_passDescPack.getLayout()};
+
   VkShaderCreateInfoEXT shaderInfo{
       .sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
       .codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
       .pName = "main",
-      .setLayoutCount = 1,
-      .pSetLayouts = m_descPack.getLayoutPtr(),
+      .setLayoutCount = 2,
+      .pSetLayouts = layouts,
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange,
   };

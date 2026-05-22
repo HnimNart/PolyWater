@@ -52,6 +52,13 @@ public:
 
   const nvvk::GBuffer& gbuffer() const;
 
+  // Set the shadow map image and comparison sampler produced by VulkanShadowPass.
+  void setShadowMap(const nvvk::Image* shadowMap, VkSampler compareSampler)
+  {
+    m_shadowMap      = shadowMap;
+    m_shadowSampler  = compareSampler;
+  }
+
 private:
   void createPipelineLayout(VkDevice device);
   void clearShaders();
@@ -60,10 +67,16 @@ private:
   VulkanContextManager* m_context_manager = nullptr;
   const VulkanSceneAssetManager* m_assetManager = nullptr;
   const nvvk::DescriptorPack& m_descPack;
+  nvvk::DescriptorPack m_passDescPack{};   // SET 1: shadow map
   VkPipelineLayout m_pipelineLayout{};
 
   VkShaderEXT m_vertexShader{};
   VkShaderEXT m_fragmentShader{};
+
+  // Shadow map resources (provided by VulkanShadowPass)
+  const nvvk::Image* m_shadowMap     = nullptr;
+  VkSampler          m_shadowSampler = VK_NULL_HANDLE;
+
 #ifdef PROFILE_APP
   nvvk::ProfilerGpuTimer* m_gpuTimer = nullptr;
 #endif

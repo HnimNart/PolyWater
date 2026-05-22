@@ -10,6 +10,7 @@
 #include "renderer/vulkan/passes/vulkan_oidn_denoise_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_raster_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_ray_trace_pass.hpp"
+#include "renderer/vulkan/passes/vulkan_shadow_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_sky_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_tone_map_pass.hpp"
 #include "renderer/vulkan/passes/vulkan_ui_pass.hpp"
@@ -40,9 +41,21 @@ VulkanPipelineManager::VulkanPipelineManager()
           graph->addPass(std::move(pass));
         };
 
+        // 1. Shadow pass — allocates the shadow map in its constructor so
+        //    downstream passes can grab a stable pointer to it immediately.
+        auto shadowPass = std::make_unique<VulkanShadowPass>(
+            settings.context, settings.assetManager);
+        const nvvk::Image* shadowImg    = &shadowPass->getShadowMap();
+        VkSampler          shadowSampler = shadowPass->getCompareSampler();
+
+        // 2. Raster pass
+        auto rasterPass = std::make_unique<VulkanRasterPass>(
+            settings.context, descriptorPack, settings.assetManager);
+        rasterPass->setShadowMap(shadowImg, shadowSampler);
+
         addTimedPass(std::make_unique<VulkanSkyPass>(settings.context));
-        addTimedPass(std::make_unique<VulkanRasterPass>(
-            settings.context, descriptorPack, settings.assetManager));
+        addTimedPass(std::move(shadowPass));
+        addTimedPass(std::move(rasterPass));
         addTimedPass(std::make_unique<VulkanToneMapPass>(settings.context,
                                                          RenderOutput::Linear));
 
@@ -73,9 +86,19 @@ VulkanPipelineManager::VulkanPipelineManager()
           graph->addPass(std::move(pass));
         };
 
+        // Shadow pass
+        auto shadowPass = std::make_unique<VulkanShadowPass>(
+            settings.context, settings.assetManager);
+        const nvvk::Image* shadowImg     = &shadowPass->getShadowMap();
+        VkSampler          shadowSampler  = shadowPass->getCompareSampler();
+
+        auto meshletPass = std::make_unique<VulkanMeshletPass>(
+            settings.context, descriptorPack, settings.hiZTexture);
+        meshletPass->setShadowMap(shadowImg, shadowSampler);
+
         addTimedPass(std::make_unique<VulkanSkyPass>(settings.context));
-        addTimedPass(std::make_unique<VulkanMeshletPass>(
-            settings.context, descriptorPack, settings.hiZTexture));
+        addTimedPass(std::move(shadowPass));
+        addTimedPass(std::move(meshletPass));
         addTimedPass(std::make_unique<VulkanMipReductionPass>(
             settings.context, settings.hiZTexture));
         addTimedPass(std::make_unique<VulkanToneMapPass>(settings.context,

@@ -268,6 +268,11 @@ struct SceneInfo
 
   AreaLight areaLight;
   EnvmapLight envmapLight;
+
+  // Shadow mapping
+  int hasShadowMap = 0;
+  int pad_shadow = 0;
+  float4x4 lightViewProjMatrix = {};
 };
 CHECK_STRUCT_ALIGNMENT(SceneInfo)
 
