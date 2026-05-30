@@ -190,8 +190,13 @@ void VulkanRenderer::render(IRenderContext& ctx)
   vkCtx.gBuffers = m_gBuffers.get();
 
   // 2. Update GPU Resources (Uploads & Barriers)
+  // When shadows are disabled by the user, suppress hasShadowMap so the
+  // fragment shader skips PCF and the shadow pass skips rendering.
+  shaderio::SceneInfo sceneInfoToUpload = vkCtx.sceneResources->sceneInfo;
+  if (!m_rasterParams.enableShadows)
+    sceneInfoToUpload.hasShadowMap = 0;
   VkDeviceAddress sceneInfoAddress =
-      m_resources->update(vkCtx.cmdBuffer, vkCtx.sceneResources->sceneInfo);
+      m_resources->update(vkCtx.cmdBuffer, sceneInfoToUpload);
   VkDeviceAddress resourcesAddress = m_resources->getSceneResources();
 
   // 3. Configure Frame Global State (Push Constants)

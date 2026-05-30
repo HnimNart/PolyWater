@@ -5,6 +5,7 @@
 #include <nvvk/check_error.hpp>
 #include <nvvk/debug_util.hpp>
 #include <nvvk/default_structs.hpp>
+#include <nvvk/graphics_pipeline.hpp>
 
 #include "_autogen/shadow_depth.slang.h"
 #include "backend/vulkan/compiler/vulkan_slang_compiler.hpp"
@@ -161,25 +162,24 @@ void VulkanShadowPass::execute(IRenderContext& ctx)
 
   vkCmdBeginRendering(cmd, &renderingInfo);
 
-  // --- Viewport / scissor ---
-  VkViewport viewport{0.0f, 0.0f,
-                      static_cast<float>(kShadowMapSize),
-                      static_cast<float>(kShadowMapSize),
-                      0.0f, 1.0f};
-  VkRect2D scissor{{0, 0}, {kShadowMapSize, kShadowMapSize}};
-  vkCmdSetViewport(cmd, 0, 1, &viewport);
-  vkCmdSetScissor(cmd, 0, 1, &scissor);
+  // --- Viewport / scissor and all other required dynamic states ---
+  // VK_EXT_shader_object requires ALL dynamic states to be set before a draw.
+  // Use GraphicsPipelineState to set them correctly in one call, then override
+  // the shadow-specific settings.
+  nvvk::GraphicsPipelineState pipelineState{};
+  // Front-face culling reduces self-shadowing (peter-panning) artefacts.
+  pipelineState.rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+  // Depth-only pass: clear the default 1-attachment color blend vectors so
+  // cmdApplyAllStates does not emit colour-blend commands for non-existent
+  // attachments.
+  pipelineState.colorBlendEnables.clear();
+  pipelineState.colorWriteMasks.clear();
+  pipelineState.colorBlendEquations.clear();
 
-  // --- Dynamic state ---
-  vkCmdSetDepthTestEnable(cmd, VK_TRUE);
-  vkCmdSetDepthWriteEnable(cmd, VK_TRUE);
-  vkCmdSetDepthCompareOp(cmd, VK_COMPARE_OP_LESS_OR_EQUAL);
-  vkCmdSetCullMode(cmd, VK_CULL_MODE_FRONT_BIT);  // front-face culling reduces peter-panning
-  vkCmdSetFrontFace(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  vkCmdSetRasterizerDiscardEnable(cmd, VK_FALSE);
-  vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
-  vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-  vkCmdSetDepthBiasEnable(cmd, VK_FALSE);
+  pipelineState.cmdApplyAllStates(cmd);
+  nvvk::GraphicsPipelineState::cmdSetViewportAndScissor(
+      cmd, {kShadowMapSize, kShadowMapSize});
+  vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 
   // --- Bind shaders (vertex only; fragment disabled) ---
   const VkShaderStageFlagBits stages[] = {

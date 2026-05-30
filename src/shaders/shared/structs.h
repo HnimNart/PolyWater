@@ -237,6 +237,7 @@ struct RenderParams
 struct RasterParams
 {
   bool wireframe = false;
+  bool enableShadows = true;
   float wireframeLineWidth = 1.0f;
 };
 
