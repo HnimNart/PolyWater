@@ -598,7 +598,7 @@ void SceneResourcesManager::updateSceneInfo(const CameraPtr& camera)
     static constexpr float kShadowDepth  = 200.0f;
 
     glm::vec3 center = camera->getEye();
-    glm::vec3 eye    = center - lightDir * (kShadowDepth * 0.5f);
+    glm::vec3 eye    = center + lightDir * (kShadowDepth * 0.5f);
 
     glm::mat4 lightView = glm::lookAt(eye, center, up);
 
