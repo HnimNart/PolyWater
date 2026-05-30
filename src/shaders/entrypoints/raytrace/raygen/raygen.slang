@@ -22,8 +22,8 @@
   for (int s = 0; s < N_SAMPLES; s++)
   {
     uint sampleSeed = tea(seed, s);
-    float r1 = (float) (tea(sampleSeed, 1) & 0x00FFFFFF) / (float) 0x01000000;
-    float r2 = (float) (tea(sampleSeed, 2) & 0x00FFFFFF) / (float) 0x01000000;
+    float r1 = rnd(sampleSeed);
+    float r2 = rnd(sampleSeed);
     float2 jitter = float2(r1, r2) - 0.5f;
 
     const float2 pixelCenter = (float2) launchID + float2(0.5, 0.5) + jitter;
@@ -45,8 +45,8 @@
     ray.TMax = INFINITE;
 
     HitPayload payload;
-    payload.color = float3(0, 0, 0);   
-    payload.weight = float3(1, 1, 1);  
+    payload.color = float3(0, 0, 0);
+    payload.weight = float3(1, 1, 1);
     payload.depth = 0;
     payload.seed = sampleSeed;
     payload.stop = true;
@@ -97,19 +97,14 @@
     normalImage[int2(launchID)] = float4(firstHitNormal, 0.0);
   }
 
-  if (params.frameIdx == 0)
-  {
-    accumImage[int2(launchID)] = float4(currentFrameColor, 1.0);
-  }
-  else
-  {
-    float4 previousAccum = accumImage[int2(launchID)];
-    accumImage[int2(launchID)] = previousAccum + float4(currentFrameColor, 1.0);
-  }
+  int2 index = int2(launchID);
+  float4 prev = accumImage[index];
+  float4 cur = float4(currentFrameColor, 1.0);
+  float w = (params.frameIdx == 0) ? 0.0 : 1.0;
+  accumImage[index] = prev * w + cur;
 
   float4 totalAccum = accumImage[int2(launchID)];
-  float3 averageColor =
-      totalAccum.rgb / totalAccum.a;
+  float3 averageColor = totalAccum.rgb / totalAccum.a;
 
   outImage[int2(launchID)] = float4(averageColor, 1.0F);
 }

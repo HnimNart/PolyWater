@@ -12,7 +12,7 @@ uint tea(uint val0, uint val1)
   uint v0 = val0;
   uint v1 = val1;
   uint s0 = 0;
-  for (uint n = 0; n < 16; n++)
+  for (uint n = 0; n < 4; n++)
   {
     s0 += 0x9e3779b9;
     v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
@@ -30,7 +30,7 @@ uint pcg_hash(inout uint seed)
 {
   uint state = seed * 747796405u + 2891336453u;
   uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-  seed = (word >> 22u) ^ word;  // Update state
+  seed = (word >> 22u) ^ word;
   return seed;
 }
 
@@ -42,10 +42,10 @@ uint pcg_hash(inout uint seed)
 float rnd(inout uint seed)
 /**********************************************************/
 {
-  // 1. Get a random integer
+  // Get a random integer
   uint r = pcg_hash(seed);
 
-  // 2. Convert to float [0..1]
+  // Convert to float [0..1]
   // Dividing by 2^32 (4294967296.0) maps the full uint range to 0.0-1.0
   return float(r) / 4294967296.0;
 }
