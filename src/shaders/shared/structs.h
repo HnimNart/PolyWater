@@ -237,7 +237,12 @@ struct RenderParams
 struct RasterParams
 {
   bool wireframe = false;
-  bool enableShadows = true;
+  // NOTE: must be int32_t (not bool) to keep this struct the same size in C++
+  // (where bool == 1 byte, padded to 4) and in Slang/SPIR-V (where bool == 4
+  // bytes).  Using a second 'bool' would give C++ a 8-byte struct but Slang a
+  // 12-byte struct, shifting every PushConstant field that follows (including
+  // globalMeshletRefsAddress and totalSceneMeshlets) by 8 bytes.
+  int32_t enableShadows = 1;
   float wireframeLineWidth = 1.0f;
 };
 

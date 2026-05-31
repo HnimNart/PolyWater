@@ -121,9 +121,13 @@ bool RenderEditor::render(scene::SceneResourcesManager& resources,
         ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
                            "Note: Wide lines require hardware support.");
       }
-      if (PE::Checkbox("Enable Shadows", (bool*) &params.enableShadows))
       {
-        hasChanged = true;
+        bool shadowsEnabled = params.enableShadows != 0;
+        if (PE::Checkbox("Enable Shadows", &shadowsEnabled))
+        {
+          params.enableShadows = shadowsEnabled ? 1 : 0;
+          hasChanged = true;
+        }
       }
     }
 
