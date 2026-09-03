@@ -1,0 +1,29 @@
+.cache/
+build/
+compile_commands.json
+
+    
+ext/vulkansdk
+ext/oidn
+ext/zstd
+ext/zlib-ng/
+
+**/_*/
+
+
+
+*.meshcache
+
+
+# Mac OS ignores
+.ini
+log.txt
+.DS_Store
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+ext/glfw/src/glfw3*.cmake
+ext/glfw/src/glfw3*.pc

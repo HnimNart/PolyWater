@@ -1,0 +1,70 @@
+#include "meshes_editor.hpp"
+
+#include <fmt/format.h>
+#include <imgui.h>
+
+#include <algorithm>
+
+#include "property_editor.hpp"
+#include "shaders/shared/structs.h"
+
+namespace app
+{
+
+/**********************************************************/
+bool MeshEditor::render(scene::SceneResourcesManager& resources)
+/**********************************************************/
+{
+  namespace PE = app;
+  auto& meshes = resources.getMeshes();
+  const auto& meshMap = resources.meshMap();
+
+  if (ImGui::CollapsingHeader("Meshes", ImGuiTreeNodeFlags_DefaultOpen))
+  {
+    ImGui::InputTextWithHint("##MeshSearch", "Search meshes...", m_search,
+                             IM_ARRAYSIZE(m_search));
+    ImGui::Separator();
+
+    std::string searchStr = m_search;
+    std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(),
+                   ::tolower);
+
+    for (const auto& [name, id] : meshMap)
+    {
+      if (id >= meshes.size())
+        continue;
+
+      std::string nameLower = name;
+      std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+                     ::tolower);
+      if (!searchStr.empty() && nameLower.find(searchStr) == std::string::npos)
+        continue;
+
+      std::string label = fmt::format("{}##mesh_{}", name, id);
+
+      if (ImGui::TreeNode(label.c_str()))
+      {
+        const auto& mesh = meshes[id];
+        const shaderio::BoundingBox& bbox = mesh.bbox;
+        PE::begin();
+        PE::Text("Mesh ID", fmt::format("{}", id).c_str());
+        PE::Text("Vertices",
+                 fmt::format("{}", mesh.triMesh.positions.count).c_str());
+        PE::Text("Indices",
+                 fmt::format("{}", mesh.triMesh.indices.count).c_str());
+        PE::Text("BBox Min", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.min.x,
+                                         bbox.min.y, bbox.min.z)
+                                 .c_str());
+        PE::Text("BBox Max", fmt::format("{:.1f}, {:.1f}, {:.1f}", bbox.max.x,
+                                         bbox.max.y, bbox.max.z)
+                                 .c_str());
+        PE::end();
+
+        ImGui::TreePop();
+      }
+    }
+  }
+  return false;
+}
+
+}  // namespace app

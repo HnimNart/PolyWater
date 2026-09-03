@@ -1,0 +1,109 @@
+{
+  "sceneInfo": {
+    "backgroundColor": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "useSky": true,
+    "camera": {
+      "eye": [
+        -9.744948,
+        3.0966864,
+        -6.000878
+      ],
+      "center": [
+        0.0,
+        2.0,
+        0.0
+      ],
+      "up": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "clip": [
+        0.01,
+        1000.0
+      ]
+    },
+    "envmap": {
+      "file": "envs/ludwikowice_farmland_1k.hdr",
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  },
+  "assets": {
+    "meshes": {
+      "building": "models/Medieval_building.obj",
+      "plane": "models/plane.gltf"
+    },
+    "textures": {
+      "floor": "textures/tiled_floor.png",
+      "wood": "textures/WoodPlanksBare0002_1_S.jpg"
+    }
+  },
+  "materials": [
+    {
+      "id": "mat_white",
+      "baseColor": [
+        0.725,
+        0.71,
+        0.68,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.5,
+      "textureId": "wood"
+    },
+    {
+      "id": "mat_red",
+      "baseColor": [
+        0.63,
+        0.065,
+        0.05,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.5
+    },
+    {
+      "id": "mat_plane",
+      "baseColor": [
+        0.5,
+        0.5,
+        0.5,
+        1.0
+      ],
+      "metallic": 0.1,
+      "roughness": 0.8,
+      "ior": [
+        1.3,
+        1.3,
+        1.3
+      ],
+      "textureId": "floor"
+    }
+  ],
+  "instances": [
+    {
+      "name": "Plane",
+      "meshId": "Plane",
+      "materialId": "mat_plane",
+      "transform": {
+        "translate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "hitGroup": "Diffuse"
+    }
+  ]
+}
+

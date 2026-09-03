@@ -1,0 +1,44 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24 },
+  "configurePresets": [
+    {
+      "name": "tests-debug",
+      "displayName": "Unit Tests – Debug",
+      "description": "Standalone unit-test build (Debug). No Vulkan/GLFW/Slang required.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../build/tests",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+        "CMAKE_C_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wmissing-field-initializers",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wmissing-field-initializers"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "tests-debug",
+      "configurePreset": "tests-debug",
+      "jobs": 0
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "tests-debug",
+      "configurePreset": "tests-debug",
+      "environment": {
+        "GTEST_COLOR": "yes"
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Language standard
+Standard: c++20
+
+# Line length
+ColumnLimit: 80
+
+# Braces
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+# Indentation
+NamespaceIndentation: None
+IndentCaseLabels: true
+IndentGotoLabels: false
+IndentPPDirectives: None
+
+# Spaces
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpacesInParentheses: false
+SpacesInAngles: false
+SpacesInSquareBrackets: false
+SpacesBeforeTrailingComments: 2
+
+# Pointers & References
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Includes
+IncludeBlocks: Regroup
+IncludeCategories:
+  # 1. C system headers (e.g., <stdio.h>, <stdlib.h>)
+  - Regex: '^<.*\.h>$'
+    Priority: 1
+
+  # 2. C++ standard library headers (e.g., <vector>, <string>)
+  - Regex: '^<[^/]+>$'
+    Priority: 2
+
+  # 3. Third-party headers (e.g., <glm/glm.hpp>, <boost/...>)
+  - Regex: '^<.*>'
+    Priority: 3
+
+  # 4. Local/project headers (e.g., "my_header.h")
+  - Regex: '^".*"'
+    Priority: 4
+SortIncludes: true
+
+# Comments
+AlignTrailingComments: true
+ReflowComments: true
+
+# Constructors / Initializer lists
+BreakConstructorInitializers: AfterColon
+ConstructorInitializerIndentWidth: 4
+
+# Enums
+AllowShortEnumsOnASingleLine: false
+
+# Lambdas
+LambdaBodyIndentation: Signature
+
+# Prevents breaking the line after the [shader(...)] attribute
+BreakAfterAttributes: Never
+
+# Ensure the macro doesn't force a wrap
+AttributeMacros: 
+  - '[shader("closesthit")]'
+  - '[shader("raygen")]'
+  - '[shader("miss")]'
+  - '[shader("anyhit")]'
+  - '[shader("intersection")]'
