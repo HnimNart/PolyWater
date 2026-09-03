@@ -1,21 +1,9 @@
-# Renderer
-
-## TODOS
-- [x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
-- [ ] Add SceneSaver support
-- [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
-- [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
-- [ ] Add a geometry picker and widget
-- [x] Add OIDN denoiser
-- [ ] Add Mac OS support
-- [ ] Add probe light/light cuts rendering
-- [ ] Add support for 16-bit indices
-- [ ] Check if this works on windows
-- [x] Add back profiling for vulkan backend
-- [ ] Add collision detector
+# PolyWater 
 
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
+
+Parts of this framework were written with help from AI.
 
 ---
 
@@ -246,3 +234,19 @@ make clear_cache
 ```sh
 make help
 ```
+
+
+
+## TODOS
+- [x] Scene Loader & Specification: Finalize the glTF/JSON scene schema.
+- [ ] Add SceneSaver support
+- [ ] Profiling Integration: Evaluate NVIDIA Nsight Graphics vs. Nsight Systems.
+- [ ] Concurrent Rendering: Explore multi-queue submission or async compute.
+- [ ] Add a geometry picker and widget
+- [x] Add OIDN denoiser
+- [ ] Add Mac OS support
+- [ ] Add probe light/light cuts rendering
+- [ ] Add support for 16-bit indices
+- [ ] Check if this works on windows
+- [x] Add back profiling for vulkan backend
+- [ ] Add collision detector
