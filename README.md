@@ -1,5 +1,7 @@
 # PolyWater 
 
+![Default Scene](docs/images/new_world.jpg)
+
 A modular rendering framework designed to support **multiple platforms** and **multiple graphics backends** (e.g., Vulkan, Direct3D12, Metal, WebGPU).
 It can be used for both **rasterization** and **ray tracing**, with a focus on modularity, extensibility, and maintainability.
 
